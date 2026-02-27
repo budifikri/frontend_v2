@@ -53,7 +53,7 @@ function App() {
           />
           <DashboardCanvas activeTool={activeTool} />
         </section>
-        <DashboardFooter />
+        <DashboardFooter user={userId} />
       </main>
     )
   }
