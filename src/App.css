@@ -1,23 +1,25 @@
 .app-shell {
-  min-height: 100vh;
+  width: 100vw;
+  height: 100vh;
   display: grid;
   place-items: center;
-  padding: clamp(1rem, 4vw, 2.25rem);
+  overflow: hidden;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
   background:
     radial-gradient(1100px 650px at 50% -140px, #cfdae7 8%, transparent 62%),
     linear-gradient(180deg, #c3cfdd 0%, #becad8 100%);
 }
 
 .login-window {
-  --window-width: min(94vw, 680px);
+  --window-width: min(90vw, 580px);
   --title-size: clamp(1rem, 2.25vw, 1.9rem);
   --label-size: clamp(1rem, 2vw, 2rem);
   --field-size: clamp(1.05rem, 2.1vw, 1.95rem);
-  --button-size: clamp(62px, 10vw, 82px);
+  --button-size: clamp(56px, 8vw, 72px);
 
   width: var(--window-width);
-  aspect-ratio: 1.33;
-  border-radius: clamp(18px, 3vw, 26px);
+  border-radius: clamp(14px, 2.5vw, 22px);
   border: 2px solid #235ce2;
   background: #d2cfcf;
   box-shadow: 0 22px 44px rgba(45, 66, 92, 0.25);
@@ -230,23 +232,23 @@
 }
 
 .dashboard-shell {
-  min-height: 100vh;
-  display: grid;
-  place-items: center;
-  padding: clamp(0.7rem, 2vw, 1.6rem);
-  background: #d3dae3;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background: #f1f5f9;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 
 .dashboard-window {
-  width: min(98vw, 1360px);
-  min-height: min(900px, 94vh);
-  border: 1px solid #cbd5e1;
-  border-radius: 8px;
+  width: 100vw;
+  height: 100vh;
+  border: none;
+  border-radius: 0;
   background: #f1f5f9;
   overflow: hidden;
-  box-shadow: 0 20px 46px rgba(54, 67, 88, 0.22);
   display: grid;
-  grid-template-rows: auto auto auto 1fr auto;
+  grid-template-rows: auto auto auto 1fr;
 }
 
 .dashboard-titlebar {
@@ -441,7 +443,7 @@
   background-color: #008080;
   background-image: 
     radial-gradient(ellipse at center, rgba(255, 255, 255, 0.08) 0%, transparent 70%);
-  min-height: 460px;
+  height: calc(100vh - 32px - 72px - 24px);
 }
 
 .cash-register {
@@ -498,6 +500,10 @@
 }
 
 .dashboard-statusbar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
   height: 24px;
   display: flex;
   align-items: center;
@@ -508,6 +514,7 @@
   background: linear-gradient(180deg, #cbd5e1 0%, #cbd5e1 100%);
   color: #334155;
   font-size: 0.7rem;
+  z-index: 100;
 }
 
 .status-left {
