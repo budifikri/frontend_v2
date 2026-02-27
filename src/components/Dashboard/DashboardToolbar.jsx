@@ -1,6 +1,6 @@
 import { toolbarItems } from '../../data'
 
-export function DashboardToolbar({ activeMenu, onLoginClick }) {
+export function DashboardToolbar({ activeMenu, onLoginClick, onToolClick }) {
   const items = toolbarItems[activeMenu] || toolbarItems.master
 
   return (
@@ -15,7 +15,7 @@ export function DashboardToolbar({ activeMenu, onLoginClick }) {
             key={tool.key}
             type="button"
             className="toolbar-item"
-            onClick={tool.backToLogin ? onLoginClick : undefined}
+            onClick={tool.backToLogin ? onLoginClick : () => onToolClick?.(tool.key)}
           >
             <span className={`icon tone-${tool.tone}`}>{tool.mark}</span>
             <span>{tool.label}</span>

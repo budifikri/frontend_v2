@@ -13,6 +13,7 @@ import { defaultMenu } from './data'
 function App() {
   const [view, setView] = useState('login')
   const [activeMenu, setActiveMenu] = useState(defaultMenu)
+  const [activeTool, setActiveTool] = useState(null)
   const [userId, setUserId] = useState('A')
   const [password, setPassword] = useState('')
 
@@ -29,6 +30,11 @@ function App() {
 
   const handleMenuChange = (menuKey) => {
     setActiveMenu(menuKey)
+    setActiveTool(null)
+  }
+
+  const handleToolClick = (toolKey) => {
+    setActiveTool(toolKey)
   }
 
   if (view === 'dashboard') {
@@ -42,9 +48,10 @@ function App() {
           />
           <DashboardToolbar 
             activeMenu={activeMenu} 
-            onLoginClick={() => setView('login')} 
+            onLoginClick={() => setView('login')}
+            onToolClick={handleToolClick}
           />
-          <DashboardCanvas />
+          <DashboardCanvas activeTool={activeTool} />
         </section>
         <DashboardFooter />
       </main>

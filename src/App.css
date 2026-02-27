@@ -557,3 +557,284 @@
     align-items: flex-start;
   }
 }
+
+.gudang-crud {
+  padding: 16px;
+  background: #fff;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.gudang-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 16px;
+  text-transform: uppercase;
+  color: #1e293b;
+}
+
+.gudang-table-wrapper {
+  flex: 1;
+  border: 1px solid #cbd5e1;
+  overflow: auto;
+  margin-bottom: 16px;
+}
+
+.gudang-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.gudang-table thead {
+  background: linear-gradient(180deg, #f2f7fb 0%, #d8e4f1 100%);
+  position: sticky;
+  top: 0;
+}
+
+.gudang-table th {
+  padding: 8px 16px;
+  text-align: left;
+  font-weight: 600;
+  color: #475569;
+  border-right: 1px solid #cbd5e1;
+  border-bottom: 1px solid #cbd5e1;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+}
+
+.gudang-table th.w-16 { width: 64px; }
+.gudang-table th.w-24 { width: 96px; }
+
+.gudang-table tbody tr {
+  border-bottom: 1px solid #e2e8f0;
+  cursor: pointer;
+}
+
+.gudang-table tbody tr:hover {
+  background: #eff6ff;
+}
+
+.gudang-table tbody tr.selected {
+  background: #dbeafe;
+}
+
+.gudang-table td {
+  padding: 8px 16px;
+  border-right: 1px solid #e2e8f0;
+  color: #334155;
+}
+
+.gudang-form {
+  border: 2px solid #2563eb;
+  background: #e3effa;
+  padding: 16px;
+  border-radius: 4px;
+}
+
+.gudang-form h2 {
+  font-size: 1rem;
+  font-weight: 500;
+  margin-bottom: 12px;
+  color: #1e293b;
+}
+
+.gudang-form-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 0.875rem;
+}
+
+.gudang-form-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.gudang-form-group.flex-grow {
+  flex: 1;
+  max-width: 400px;
+}
+
+.gudang-form-group label {
+  font-weight: 500;
+  color: #334155;
+  white-space: nowrap;
+}
+
+.gudang-input {
+  height: 28px;
+  border: 1px solid #64748b;
+  padding: 0 8px;
+  font-size: 0.875rem;
+  width: 80px;
+}
+
+.gudang-form-group.flex-grow .gudang-input {
+  width: 100%;
+}
+
+.gudang-btn-save {
+  background: linear-gradient(180deg, #f0f0f0 0%, #dcdcdc 100%);
+  border: 1px solid #999;
+  box-shadow: inset 1px 1px 0 #fff;
+  height: 28px;
+  padding: 0 24px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #334155;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.gudang-btn-save:active {
+  background: #dcdcdc;
+  box-shadow: inset 1px 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.gudang-footer {
+  padding: 12px;
+  background: #d6e5f3;
+  border-top: 1px solid #cbd5e1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.gudang-footer-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.gudang-footer-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+}
+
+.gudang-footer-icon {
+  font-family: 'Material Icons';
+  font-size: 2.5rem;
+  color: #64748b;
+}
+
+.gudang-footer-icon.orange {
+  color: #f97316;
+}
+
+.gudang-footer-icon.red {
+  color: #dc2626;
+}
+
+.gudang-footer-key {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  background: #facc15;
+  color: #000;
+  font-size: 0.625rem;
+  font-weight: 700;
+  padding: 1px 4px;
+  border-radius: 999px;
+  border: 1px solid #fff;
+}
+
+.gudang-footer-search {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  max-width: 300px;
+}
+
+.gudang-search-input {
+  flex: 1;
+  height: 32px;
+  border: 1px solid #cbd5e1;
+  padding: 0 8px;
+  font-size: 0.875rem;
+  border-radius: 4px 0 0 4px;
+}
+
+.gudang-search-btn {
+  height: 32px;
+  padding: 0 12px;
+  background: #fff;
+  border: 1px solid #cbd5e1;
+  border-left: none;
+  border-radius: 0 4px 4px 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.material-icon {
+  font-family: 'Material Icons';
+  font-size: 1.25rem;
+  color: #f97316;
+}
+
+.gudang-footer-pagination {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.gudang-page-btn {
+  background: linear-gradient(180deg, #f0f0f0 0%, #dcdcdc 100%);
+  border: 1px solid #999;
+  box-shadow: inset 1px 1px 0 #fff;
+  padding: 4px 8px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #334155;
+  cursor: pointer;
+}
+
+.gudang-page-btn:active {
+  background: #dcdcdc;
+  box-shadow: inset 1px 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.gudang-page-info {
+  padding: 4px 12px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #334155;
+}
+
+.gudang-footer-info {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 0.875rem;
+  color: #475569;
+}
+
+.gudang-exit-btn {
+  background: #16a34a;
+  border: none;
+  padding: 8px 24px;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #fff;
+  cursor: pointer;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.gudang-exit-btn:hover {
+  background: #15803d;
+}
