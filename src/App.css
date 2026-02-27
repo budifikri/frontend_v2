@@ -2,77 +2,84 @@
   min-height: 100vh;
   display: grid;
   place-items: center;
-  padding: 1.5rem;
+  padding: clamp(1rem, 4vw, 2.25rem);
   background:
-    radial-gradient(1000px 600px at 50% -150px, #c9d7e5 10%, transparent 70%),
-    #bcc8d6;
+    radial-gradient(1100px 650px at 50% -140px, #cfdae7 8%, transparent 62%),
+    linear-gradient(180deg, #c3cfdd 0%, #becad8 100%);
 }
 
 .login-window {
-  width: min(580px, 100%);
-  border-radius: 22px;
-  border: 2px solid #2b5fdb;
+  --window-width: min(94vw, 680px);
+  --title-size: clamp(1rem, 2.25vw, 1.9rem);
+  --label-size: clamp(1rem, 2vw, 2rem);
+  --field-size: clamp(1.05rem, 2.1vw, 1.95rem);
+  --button-size: clamp(62px, 10vw, 82px);
+
+  width: var(--window-width);
+  aspect-ratio: 1.33;
+  border-radius: clamp(18px, 3vw, 26px);
+  border: 2px solid #235ce2;
   background: #d2cfcf;
-  box-shadow: 0 20px 45px rgba(46, 65, 87, 0.25);
+  box-shadow: 0 22px 44px rgba(45, 66, 92, 0.25);
   overflow: hidden;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  animation: window-enter 380ms ease-out;
 }
 
 .window-titlebar {
   display: flex;
   align-items: center;
-  gap: 0.8rem;
+  gap: 0.75rem;
   color: #fff;
-  padding: 0.95rem 1.55rem;
-  font-family: "Trebuchet MS", "Segoe UI", sans-serif;
-  font-size: 2rem;
-  letter-spacing: 0.02em;
-  background:
-    linear-gradient(120deg, #1f55d6 0%, #5289e8 78%, #a9c4eb 79%, #d6deeb 100%);
+  padding: clamp(0.75rem, 1.7vw, 1rem) clamp(1rem, 2.8vw, 1.8rem);
+  background: linear-gradient(120deg, #1d53d4 0%, #4f86e6 78%, #aac5eb 79%, #d6dfec 100%);
 }
 
 .window-titlebar strong {
-  font-size: 1.65rem;
+  font-size: var(--title-size);
+  letter-spacing: 0.015em;
 }
 
 .titlebar-icon {
-  width: 28px;
-  height: 28px;
+  width: clamp(24px, 4vw, 34px);
+  height: clamp(24px, 4vw, 34px);
   border-radius: 7px;
   display: inline-flex;
   justify-content: center;
   align-items: center;
   color: #e33535;
   font-weight: 900;
-  font-size: 1.55rem;
+  font-size: clamp(1.05rem, 1.7vw, 1.5rem);
   background: #f2f4f7;
   box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.15);
 }
 
 .window-body {
   display: grid;
-  grid-template-columns: 150px 1fr;
-  gap: 1rem;
-  padding: 2.2rem 2rem 1.7rem;
+  grid-template-columns: minmax(96px, 24%) 1fr;
+  gap: clamp(0.8rem, 2.3vw, 1.5rem);
+  padding: clamp(1rem, 3.2vw, 2.1rem) clamp(1rem, 3.1vw, 2rem) clamp(0.7rem, 2vw, 1.2rem);
 }
 
 .lock-wrap {
   display: grid;
   justify-items: center;
   align-content: start;
-  padding-top: 1.1rem;
+  padding-top: clamp(0.55rem, 1.6vw, 1rem);
 }
 
 .lock-shackle {
-  width: 66px;
-  height: 54px;
-  border: 11px solid #a24a0a;
+  width: clamp(46px, 9vw, 72px);
+  height: clamp(36px, 6.5vw, 56px);
+  border: clamp(7px, 1.4vw, 11px) solid #a24a0a;
   border-bottom: 0;
   border-radius: 30px 30px 0 0;
 }
 
 .lock-body {
-  width: 95px;
-  height: 95px;
+  width: clamp(72px, 13vw, 98px);
+  height: clamp(72px, 13vw, 98px);
   margin-top: -2px;
   border-radius: 12px;
   background: #a14a0e;
@@ -82,43 +89,44 @@
 }
 
 .lock-hole {
-  width: 26px;
-  height: 26px;
+  width: clamp(17px, 3vw, 26px);
+  height: clamp(17px, 3vw, 26px);
   border-radius: 50%;
   background: #d8d8d8;
 }
 
 .lock-shadow {
-  width: 87px;
-  height: 13px;
+  width: clamp(62px, 11vw, 87px);
+  height: clamp(9px, 1.4vw, 13px);
   margin-top: 8px;
   border-radius: 999px;
-  background: rgba(0, 0, 0, 0.09);
+  background: rgba(0, 0, 0, 0.1);
 }
 
 .login-form {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 0.95rem;
-  padding-right: 0.6rem;
+  align-content: start;
+  gap: clamp(0.55rem, 1.3vw, 0.95rem);
 }
 
 .login-form label {
-  margin-top: 0.2rem;
+  margin-top: clamp(0.1rem, 0.3vw, 0.25rem);
   color: #1f4ed7;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: 0.11em;
+  font-size: var(--label-size);
 }
 
 .login-form input {
-  height: 52px;
+  width: 100%;
+  height: clamp(45px, 7vw, 60px);
   border-radius: 14px;
   border: 2px solid #9ba7b8;
-  background: #ebebeb;
+  background: #ededed;
   color: #1b1b1b;
-  font: 700 2rem "Trebuchet MS", "Segoe UI", sans-serif;
-  padding: 0 1rem;
+  font: 700 var(--field-size) 'Trebuchet MS', 'Segoe UI', sans-serif;
+  padding: 0 clamp(0.7rem, 1.8vw, 1rem);
   box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.08);
 }
 
@@ -132,35 +140,40 @@
   display: flex;
   justify-content: space-between;
   align-items: end;
-  padding: 0.8rem 2rem 1.8rem;
+  gap: 1rem;
+  padding: clamp(0.45rem, 1.5vw, 0.85rem) clamp(1rem, 3vw, 2rem) clamp(1rem, 2.4vw, 1.65rem);
 }
 
 .version-pill {
-  font-size: 1.25rem;
+  font-size: clamp(0.82rem, 1.7vw, 1.25rem);
   font-weight: 700;
   color: #1d49be;
-  background: #e7e6e6;
+  background: #e9e7e7;
   border-radius: 999px;
-  padding: 0.2rem 0.95rem;
+  padding: 0.28rem 0.98rem;
 }
 
 .action-buttons {
   display: flex;
-  gap: 1rem;
+  gap: clamp(0.5rem, 1.5vw, 1rem);
 }
 
 .circle-button {
-  width: 70px;
-  height: 70px;
+  width: var(--button-size);
+  height: var(--button-size);
   border-radius: 50%;
   border: 2px solid rgba(0, 0, 0, 0.45);
-  font-size: 2.6rem;
+  font-size: clamp(2rem, 4.5vw, 2.8rem);
   font-weight: 900;
   line-height: 1;
   color: #fff;
   cursor: pointer;
   box-shadow: inset 0 10px 15px rgba(255, 255, 255, 0.25), 0 4px 0 rgba(0, 0, 0, 0.2);
-  transition: transform 100ms ease-in-out;
+  transition: transform 120ms ease-in-out, filter 120ms ease-in-out;
+}
+
+.circle-button:hover {
+  filter: brightness(1.06);
 }
 
 .circle-button:active {
@@ -175,27 +188,32 @@
   background: #30bc62;
 }
 
-@media (max-width: 700px) {
-  .window-titlebar {
-    font-size: 1.65rem;
-  }
-
-  .window-titlebar strong {
-    font-size: 1.45rem;
+@media (max-width: 760px) {
+  .login-window {
+    aspect-ratio: auto;
   }
 
   .window-body {
     grid-template-columns: 1fr;
     justify-items: center;
-    gap: 1.2rem;
   }
 
   .login-form {
     width: 100%;
-    padding-right: 0;
   }
 
   .window-footer {
     align-items: center;
+  }
+}
+
+@keyframes window-enter {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
   }
 }

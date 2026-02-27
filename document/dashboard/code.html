@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>POS Admin Menu Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,typography,container-queries"></script>
+<script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#3b82f6",
+                        "background-light": "#f1f5f9",
+                        "background-dark": "#0f172a",
+                    },
+                    fontFamily: {
+                        display: ["Inter", "sans-serif"],
+                    },
+                    borderRadius: {
+                        DEFAULT: "0.5rem",
+                    },
+                },
+            },
+        };
+    </script>
+<style type="text/tailwindcss">
+        :root {
+            --win-blue-start: #3b82f6;
+            --win-blue-end: #1d4ed8;
+            --desktop-bg: #008080;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .win-gradient {
+            background: linear-gradient(to bottom, #3b82f6, #1d4ed8);
+        }
+        .toolbar-button {
+            @apply flex flex-col items-center justify-center min-w-[64px] h-[64px] px-1 rounded border border-transparent hover:bg-white/40 hover:border-white/50 active:bg-black/10 transition-colors;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display">
+<div class="min-h-screen flex items-center justify-center p-4">
+<div class="w-full max-w-7xl mx-auto shadow-2xl rounded-lg overflow-hidden border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900">
+<div class="h-8 bg-gradient-to-b from-blue-400 to-blue-600 dark:from-blue-700 dark:to-blue-900 flex items-center justify-between px-2">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-sm text-white">desktop_windows</span>
+<span class="text-white text-xs font-semibold">POS Admin Menu Dashboard</span>
+</div>
+<div class="flex items-center gap-1">
+<button class="w-5 h-5 bg-slate-100 dark:bg-slate-700 rounded-sm flex items-center justify-center text-slate-800 dark:text-slate-200">
+<span class="material-symbols-outlined" style="font-size: 14px;">remove</span>
+</button>
+<button class="w-5 h-5 bg-slate-100 dark:bg-slate-700 rounded-sm flex items-center justify-center text-slate-800 dark:text-slate-200">
+<span class="material-symbols-outlined" style="font-size: 14px;">check_box_outline_blank</span>
+</button>
+<button class="w-5 h-5 bg-red-500 hover:bg-red-600 rounded-sm flex items-center justify-center text-white">
+<span class="material-symbols-outlined" style="font-size: 14px;">close</span>
+</button>
+</div>
+</div>
+<div class="bg-slate-200 dark:bg-slate-800">
+<div class="px-2 pt-1">
+<div class="flex border-b border-slate-400 dark:border-slate-600">
+<a class="px-3 py-1 text-sm bg-slate-100 dark:bg-slate-700 border-t border-l border-r border-slate-400 dark:border-slate-600 rounded-t-md text-slate-800 dark:text-slate-200 font-medium" href="#">Master</a>
+<a class="px-3 py-1 text-sm text-slate-600 dark:text-slate-400 hover:text-slate-900" href="#">Transaksi</a>
+<a class="px-3 py-1 text-sm text-slate-600 dark:text-slate-400 hover:text-slate-900" href="#">Laporan</a>
+<a class="px-3 py-1 text-sm text-slate-600 dark:text-slate-400 hover:text-slate-900" href="#">Setting</a>
+<a class="px-3 py-1 text-sm text-slate-600 dark:text-slate-400 hover:text-slate-900" href="#">Help</a>
+</div>
+</div>
+<div class="p-1 bg-slate-200 dark:bg-slate-800 border-b border-slate-300 dark:border-slate-700 shadow-inner overflow-x-auto">
+<div class="flex items-center space-x-1 min-w-max h-18">
+<button class="toolbar-button">
+<span class="material-symbols-outlined text-2xl text-slate-600 dark:text-slate-300">lock</span>
+<span class="text-[10px] text-slate-700 dark:text-slate-300 font-medium mt-0.5">Login</span>
+</button>
+<div class="w-[1px] h-10 bg-slate-400 dark:bg-slate-600 mx-1"></div>
+<button class="toolbar-button">
+<span class="material-symbols-outlined text-2xl text-orange-500">inventory_2</span>
+<span class="text-[10px] text-slate-700 dark:text-slate-300 font-medium mt-0.5">Gudang</span>
+</button>
+<button class="toolbar-button">
+<span class="material-symbols-outlined text-2xl text-emerald-500">all_inbox</span>
+<span class="text-[10px] text-slate-700 dark:text-slate-300 font-medium mt-0.5">Satuan</span>
+</button>
+<button class="toolbar-button">
+<span class="material-symbols-outlined text-2xl text-cyan-500">public</span>
+<span class="text-[10px] text-slate-700 dark:text-slate-300 font-medium mt-0.5">Wilayah</span>
+</button>
+<button class="toolbar-button">
+<span class="material-symbols-outlined text-2xl text-blue-500">category</span>
+<span class="text-[10px] text-slate-700 dark:text-slate-300 font-medium mt-0.5">Dept.</span>
+</button>
+<button class="toolbar-button">
+<span class="material-symbols-outlined text-2xl text-indigo-500">style</span>
+<span class="text-[10px] text-slate-700 dark:text-slate-300 font-medium mt-0.5">Golongan</span>
+</button>
+<button class="toolbar-button">
+<span class="material-symbols-outlined text-2xl text-amber-500">table_restaurant</span>
+<span class="text-[10px] text-slate-700 dark:text-slate-300 font-medium mt-0.5">Meja</span>
+</button>
+<div class="w-[1px] h-10 bg-slate-400 dark:bg-slate-600 mx-1"></div>
+<button class="toolbar-button">
+<span class="material-symbols-outlined text-2xl text-slate-600 dark:text-slate-300">barcode_scanner</span>
+<span class="text-[10px] text-slate-700 dark:text-slate-300 font-medium mt-0.5">Barcode</span>
+</button>
+<button class="toolbar-button">
+<span class="material-symbols-outlined text-2xl text-slate-600 dark:text-slate-300">manage_search</span>
+<span class="text-[10px] text-slate-700 dark:text-slate-300 font-medium mt-0.5">Daftar Barang</span>
+</button>
+<div class="w-[1px] h-10 bg-slate-400 dark:bg-slate-600 mx-1"></div>
+<button class="toolbar-button">
+<span class="material-symbols-outlined text-2xl text-yellow-600">payments</span>
+<span class="text-[10px] text-slate-700 dark:text-slate-300 font-medium mt-0.5">Payment</span>
+</button>
+<button class="toolbar-button">
+<span class="material-symbols-outlined text-2xl text-pink-500">person_add</span>
+<span class="text-[10px] text-slate-700 dark:text-slate-300 font-medium mt-0.5">Customer</span>
+</button>
+<button class="toolbar-button">
+<span class="material-symbols-outlined text-2xl text-lime-600">local_shipping</span>
+<span class="text-[10px] text-slate-700 dark:text-slate-300 font-medium mt-0.5">Supplier</span>
+</button>
+<button class="toolbar-button">
+<span class="material-symbols-outlined text-2xl text-amber-600">package_2</span>
+<span class="text-[10px] text-slate-700 dark:text-slate-300 font-medium mt-0.5">Barang</span>
+</button>
+<div class="w-[1px] h-10 bg-slate-400 dark:bg-slate-600 mx-1"></div>
+<button class="toolbar-button">
+<span class="material-symbols-outlined text-2xl text-red-500">confirmation_number</span>
+<span class="text-[10px] text-slate-700 dark:text-slate-300 font-medium mt-0.5">Voucher</span>
+</button>
+</div>
+</div>
+</div>
+<div class="relative h-[600px] bg-[#008080] dark:bg-slate-900 overflow-hidden">
+<div class="absolute inset-0 flex items-center justify-center opacity-10 pointer-events-none">
+<span class="material-symbols-outlined text-[20rem] text-white">point_of_sale</span>
+</div>
+<div class="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent"></div>
+</div>
+<div class="h-6 bg-slate-200 dark:bg-slate-800 border-t border-slate-300 dark:border-slate-700 flex items-center justify-between px-3 text-[10px] text-slate-600 dark:text-slate-400">
+<div class="flex items-center gap-4">
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-xs">person</span> Admin</span>
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-xs">calendar_today</span> 20 Oct 2023</span>
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-xs">update</span> Version 2.16.01.08</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="bg-green-500 w-2 h-2 rounded-full"></span>
+<span>System Connected</span>
+</div>
+</div>
+</div>
+</div>
+
+</body></html>
