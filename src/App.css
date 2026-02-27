@@ -443,7 +443,36 @@
   background-color: #008080;
   background-image: 
     radial-gradient(ellipse at center, rgba(255, 255, 255, 0.08) 0%, transparent 70%);
-  height: calc(100vh - 32px - 72px - 24px);
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.dashboard-canvas .master-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 16px;
+  min-height: 0;
+}
+
+.dashboard-canvas .master-content .master-table-wrapper {
+  flex: 1;
+  overflow: auto;
+  min-height: 0;
+}
+
+.dashboard-canvas .master-content .master-form {
+  flex-shrink: 0;
+}
+
+.dashboard-canvas .master-footer {
+  flex-shrink: 0;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .cash-register {
@@ -558,7 +587,7 @@
   }
 }
 
-.gudang-crud {
+.master-content {
   padding: 16px;
   background: #fff;
   height: 100%;
@@ -566,7 +595,15 @@
   flex-direction: column;
 }
 
-.gudang-title {
+.master-content .master-table-wrapper {
+  margin-bottom: 12px;
+}
+
+.master-content .master-form {
+  margin-bottom: 12px;
+}
+
+.master-title {
   font-size: 1.5rem;
   font-weight: 700;
   margin-bottom: 16px;
@@ -574,26 +611,26 @@
   color: #1e293b;
 }
 
-.gudang-table-wrapper {
+.master-table-wrapper {
   flex: 1;
   border: 1px solid #cbd5e1;
   overflow: auto;
   margin-bottom: 16px;
 }
 
-.gudang-table {
+.master-table {
   width: 100%;
   border-collapse: collapse;
   font-size: 0.875rem;
 }
 
-.gudang-table thead {
+.master-table thead {
   background: linear-gradient(180deg, #f2f7fb 0%, #d8e4f1 100%);
   position: sticky;
   top: 0;
 }
 
-.gudang-table th {
+.master-table th {
   padding: 8px 16px;
   text-align: left;
   font-weight: 600;
@@ -604,67 +641,67 @@
   font-size: 0.75rem;
 }
 
-.gudang-table th.w-16 { width: 64px; }
-.gudang-table th.w-24 { width: 96px; }
+.master-table th.w-16 { width: 64px; }
+.master-table th.w-24 { width: 96px; }
 
-.gudang-table tbody tr {
+.master-table tbody tr {
   border-bottom: 1px solid #e2e8f0;
   cursor: pointer;
 }
 
-.gudang-table tbody tr:hover {
+.master-table tbody tr:hover {
   background: #eff6ff;
 }
 
-.gudang-table tbody tr.selected {
+.master-table tbody tr.selected {
   background: #dbeafe;
 }
 
-.gudang-table td {
+.master-table td {
   padding: 8px 16px;
   border-right: 1px solid #e2e8f0;
   color: #334155;
 }
 
-.gudang-form {
+.master-form {
   border: 2px solid #2563eb;
   background: #e3effa;
   padding: 16px;
   border-radius: 4px;
 }
 
-.gudang-form h2 {
+.master-form h2 {
   font-size: 1rem;
   font-weight: 500;
   margin-bottom: 12px;
   color: #1e293b;
 }
 
-.gudang-form-row {
+.master-form-row {
   display: flex;
   align-items: center;
   gap: 16px;
   font-size: 0.875rem;
 }
 
-.gudang-form-group {
+.master-form-group {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.gudang-form-group.flex-grow {
+.master-form-group.flex-grow {
   flex: 1;
   max-width: 400px;
 }
 
-.gudang-form-group label {
+.master-form-group label {
   font-weight: 500;
   color: #334155;
   white-space: nowrap;
 }
 
-.gudang-input {
+.master-input {
   height: 28px;
   border: 1px solid #64748b;
   padding: 0 8px;
@@ -672,11 +709,11 @@
   width: 80px;
 }
 
-.gudang-form-group.flex-grow .gudang-input {
+.master-form-group.flex-grow .master-input {
   width: 100%;
 }
 
-.gudang-btn-save {
+.master-btn-save {
   background: linear-gradient(180deg, #f0f0f0 0%, #dcdcdc 100%);
   border: 1px solid #999;
   box-shadow: inset 1px 1px 0 #fff;
@@ -689,13 +726,13 @@
   border-radius: 4px;
 }
 
-.gudang-btn-save:active {
+.master-btn-save:active {
   background: #dcdcdc;
   box-shadow: inset 1px 1px 2px rgba(0, 0, 0, 0.2);
 }
 
-.gudang-footer {
-  padding: 12px;
+.master-footer {
+  padding: 12px 12px 16px 12px;
   background: #d6e5f3;
   border-top: 1px solid #cbd5e1;
   display: flex;
@@ -703,15 +740,18 @@
   justify-content: space-between;
   gap: 16px;
   flex-wrap: wrap;
+  margin: 0;
+  width: 100%;
+  box-sizing: border-box;
 }
 
-.gudang-footer-actions {
+.master-footer-actions {
   display: flex;
   align-items: center;
   gap: 12px;
 }
 
-.gudang-footer-btn {
+.master-footer-btn {
   background: none;
   border: none;
   cursor: pointer;
@@ -721,21 +761,21 @@
   position: relative;
 }
 
-.gudang-footer-icon {
+.master-footer-icon {
   font-family: 'Material Icons';
   font-size: 2.5rem;
   color: #64748b;
 }
 
-.gudang-footer-icon.orange {
+.master-footer-icon.orange {
   color: #f97316;
 }
 
-.gudang-footer-icon.red {
+.master-footer-icon.red {
   color: #dc2626;
 }
 
-.gudang-footer-key {
+.master-footer-key {
   position: absolute;
   bottom: 0;
   right: 0;
@@ -748,14 +788,14 @@
   border: 1px solid #fff;
 }
 
-.gudang-footer-search {
+.master-footer-search {
   display: flex;
   align-items: center;
   flex: 1;
   max-width: 300px;
 }
 
-.gudang-search-input {
+.master-search-input {
   flex: 1;
   height: 32px;
   border: 1px solid #cbd5e1;
@@ -764,7 +804,7 @@
   border-radius: 4px 0 0 4px;
 }
 
-.gudang-search-btn {
+.master-search-btn {
   height: 32px;
   padding: 0 12px;
   background: #fff;
@@ -783,13 +823,13 @@
   color: #f97316;
 }
 
-.gudang-footer-pagination {
+.master-footer-pagination {
   display: flex;
   align-items: center;
   gap: 4px;
 }
 
-.gudang-page-btn {
+.master-page-btn {
   background: linear-gradient(180deg, #f0f0f0 0%, #dcdcdc 100%);
   border: 1px solid #999;
   box-shadow: inset 1px 1px 0 #fff;
@@ -800,19 +840,19 @@
   cursor: pointer;
 }
 
-.gudang-page-btn:active {
+.master-page-btn:active {
   background: #dcdcdc;
   box-shadow: inset 1px 1px 2px rgba(0, 0, 0, 0.2);
 }
 
-.gudang-page-info {
+.master-page-info {
   padding: 4px 12px;
   font-size: 0.875rem;
   font-weight: 500;
   color: #334155;
 }
 
-.gudang-footer-info {
+.master-footer-info {
   display: flex;
   align-items: center;
   gap: 16px;
@@ -820,7 +860,7 @@
   color: #475569;
 }
 
-.gudang-exit-btn {
+.master-exit-btn {
   background: #16a34a;
   border: none;
   padding: 8px 24px;
@@ -835,6 +875,6 @@
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
-.gudang-exit-btn:hover {
+.master-exit-btn:hover {
   background: #15803d;
 }

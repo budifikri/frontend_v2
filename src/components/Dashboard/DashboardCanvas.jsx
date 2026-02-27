@@ -1,10 +1,10 @@
-import { GudangCRUD } from './GudangCRUD'
+import { Warehouse } from '../ToolbarItem/master/Warehouse'
 
 export function DashboardCanvas({ activeTool }) {
-  if (activeTool === 'gudang') {
+  if (activeTool === 'warehouse') {
     return (
       <div className="dashboard-canvas">
-        <GudangCRUD />
+        <Warehouse />
       </div>
     )
   }

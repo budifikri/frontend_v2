@@ -2,7 +2,7 @@ export const toolbarItems = {
   master: [
     { key: 'login', label: 'Login', mark: 'L', tone: 'slate', backToLogin: true },
     { key: 'divider-1', divider: true },
-    { key: 'gudang', label: 'Gudang', mark: 'G', tone: 'orange' },
+    { key: 'warehouse', label: 'Warehouse', mark: 'W', tone: 'orange' },
     { key: 'satuan', label: 'Satuan', mark: 'S', tone: 'green' },
     { key: 'wilayah', label: 'Wilayah', mark: 'W', tone: 'cyan' },
     { key: 'dept', label: 'Dept.', mark: 'D', tone: 'blue' },
