@@ -5,3 +5,5 @@ export const menuItems = [
   { key: 'setting', label: 'Setting', active: false },
   { key: 'help', label: 'Help', active: false },
 ]
+
+export const defaultMenu = 'master'

@@ -1,9 +1,11 @@
 import { toolbarItems } from '../../data'
 
-export function DashboardToolbar({ onLoginClick }) {
+export function DashboardToolbar({ activeMenu, onLoginClick }) {
+  const items = toolbarItems[activeMenu] || toolbarItems.master
+
   return (
     <div className="dashboard-toolbar">
-      {toolbarItems.map((tool) => {
+      {items.map((tool) => {
         if (tool.divider) {
           return <span key={tool.key} className="toolbar-divider" aria-hidden="true" />
         }
