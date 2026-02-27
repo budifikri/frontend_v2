@@ -14,3 +14,14 @@ export const gudangFormFields = [
   { key: 'alamat', label: 'Alamat', type: 'text', placeholder: 'Masukkan alamat' },
   { key: 'telepon', label: 'Telepon', type: 'text', placeholder: 'Masukkan nomor telepon' },
 ]
+
+export const satuanDummyData = {
+  title: 'Data Satuan',
+  rows: [
+    { kode: 'PCS', satuan: 'Pieces' },
+    { kode: 'BOX', satuan: 'Box' },
+    { kode: 'KG', satuan: 'Kilogram' },
+    { kode: 'LTR', satuan: 'Liter' },
+    { kode: 'PACK', satuan: 'Pack' },
+  ],
+}
