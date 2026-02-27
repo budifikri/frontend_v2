@@ -1,0 +1,201 @@
+.app-shell {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
+  background:
+    radial-gradient(1000px 600px at 50% -150px, #c9d7e5 10%, transparent 70%),
+    #bcc8d6;
+}
+
+.login-window {
+  width: min(580px, 100%);
+  border-radius: 22px;
+  border: 2px solid #2b5fdb;
+  background: #d2cfcf;
+  box-shadow: 0 20px 45px rgba(46, 65, 87, 0.25);
+  overflow: hidden;
+}
+
+.window-titlebar {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  color: #fff;
+  padding: 0.95rem 1.55rem;
+  font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+  font-size: 2rem;
+  letter-spacing: 0.02em;
+  background:
+    linear-gradient(120deg, #1f55d6 0%, #5289e8 78%, #a9c4eb 79%, #d6deeb 100%);
+}
+
+.window-titlebar strong {
+  font-size: 1.65rem;
+}
+
+.titlebar-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  color: #e33535;
+  font-weight: 900;
+  font-size: 1.55rem;
+  background: #f2f4f7;
+  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.15);
+}
+
+.window-body {
+  display: grid;
+  grid-template-columns: 150px 1fr;
+  gap: 1rem;
+  padding: 2.2rem 2rem 1.7rem;
+}
+
+.lock-wrap {
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  padding-top: 1.1rem;
+}
+
+.lock-shackle {
+  width: 66px;
+  height: 54px;
+  border: 11px solid #a24a0a;
+  border-bottom: 0;
+  border-radius: 30px 30px 0 0;
+}
+
+.lock-body {
+  width: 95px;
+  height: 95px;
+  margin-top: -2px;
+  border-radius: 12px;
+  background: #a14a0e;
+  box-shadow: inset 0 -8px 0 rgba(0, 0, 0, 0.09);
+  display: grid;
+  place-items: center;
+}
+
+.lock-hole {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #d8d8d8;
+}
+
+.lock-shadow {
+  width: 87px;
+  height: 13px;
+  margin-top: 8px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.09);
+}
+
+.login-form {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.95rem;
+  padding-right: 0.6rem;
+}
+
+.login-form label {
+  margin-top: 0.2rem;
+  color: #1f4ed7;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  font-size: 2rem;
+}
+
+.login-form input {
+  height: 52px;
+  border-radius: 14px;
+  border: 2px solid #9ba7b8;
+  background: #ebebeb;
+  color: #1b1b1b;
+  font: 700 2rem "Trebuchet MS", "Segoe UI", sans-serif;
+  padding: 0 1rem;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.08);
+}
+
+.login-form input:focus {
+  outline: none;
+  border-color: #2f67e2;
+  box-shadow: 0 0 0 3px rgba(47, 103, 226, 0.18), inset 0 2px 4px rgba(0, 0, 0, 0.08);
+}
+
+.window-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  padding: 0.8rem 2rem 1.8rem;
+}
+
+.version-pill {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #1d49be;
+  background: #e7e6e6;
+  border-radius: 999px;
+  padding: 0.2rem 0.95rem;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 1rem;
+}
+
+.circle-button {
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  border: 2px solid rgba(0, 0, 0, 0.45);
+  font-size: 2.6rem;
+  font-weight: 900;
+  line-height: 1;
+  color: #fff;
+  cursor: pointer;
+  box-shadow: inset 0 10px 15px rgba(255, 255, 255, 0.25), 0 4px 0 rgba(0, 0, 0, 0.2);
+  transition: transform 100ms ease-in-out;
+}
+
+.circle-button:active {
+  transform: translateY(1px);
+}
+
+.circle-button.cancel {
+  background: #e83f40;
+}
+
+.circle-button.submit {
+  background: #30bc62;
+}
+
+@media (max-width: 700px) {
+  .window-titlebar {
+    font-size: 1.65rem;
+  }
+
+  .window-titlebar strong {
+    font-size: 1.45rem;
+  }
+
+  .window-body {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    gap: 1.2rem;
+  }
+
+  .login-form {
+    width: 100%;
+    padding-right: 0;
+  }
+
+  .window-footer {
+    align-items: center;
+  }
+}
