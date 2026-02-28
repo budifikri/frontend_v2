@@ -1,12 +1,23 @@
 import { useState } from 'react'
 import { satuanDummyData } from '../../../data'
 import { FooterMaster } from '../footer/FooterMaster'
+import { DeleteMaster } from '../footer/DeleteMaster'
 
-export function Satuan() {
+export function Satuan({ onExit }) {
   const [data, setData] = useState(satuanDummyData.rows)
   const [form, setForm] = useState({ kode: '', satuan: '' })
   const [selectedIndex, setSelectedIndex] = useState(-1)
   const [showForm, setShowForm] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [searchKeyword, setSearchKeyword] = useState('')
+
+  const filteredData = data.filter((row) => {
+    const keyword = searchKeyword.toLowerCase()
+    return (
+      row.kode.toLowerCase().includes(keyword) ||
+      row.satuan.toLowerCase().includes(keyword)
+    )
+  })
 
   const handleSave = () => {
     if (!form.kode || !form.satuan) return
@@ -30,39 +41,51 @@ export function Satuan() {
   const handleSelect = (index) => {
     setSelectedIndex(index)
     setForm({ kode: data[index].kode, satuan: data[index].satuan })
-    setShowForm(true)
   }
 
-  const handleDelete = () => {
+  const handleDeleteClick = () => {
     if (selectedIndex >= 0) {
-      const newData = data.filter((_, i) => i !== selectedIndex)
-      setData(newData)
-      setForm({ kode: '', satuan: '' })
-      setSelectedIndex(-1)
-      setShowForm(false)
+      setShowDeleteConfirm(true)
     }
+  }
+
+  const handleConfirmDelete = () => {
+    const newData = data.filter((_, i) => i !== selectedIndex)
+    setData(newData)
+    setForm({ kode: '', satuan: '' })
+    setSelectedIndex(-1)
+    setShowForm(false)
+    setShowDeleteConfirm(false)
   }
 
   const handleNew = () => {
-    setShowForm(!showForm)
-    if (!showForm) {
-      setForm({ kode: '', satuan: '' })
-      setSelectedIndex(-1)
-    }
+    setShowForm(true)
+    setForm({ kode: '', satuan: '' })
+    setSelectedIndex(-1)
   }
 
   const handleEdit = () => {
     if (selectedIndex >= 0) {
       setShowForm(true)
     } else if (data.length > 0) {
-      handleSelect(0)
+      setSelectedIndex(0)
+      setForm({ kode: data[0].kode, satuan: data[0].satuan })
+      setShowForm(true)
     }
+  }
+
+  const handlePrint = () => {
+    setShowForm(false)
+    window.print()
   }
 
   return (
     <div className="master-content">
       <h1 className="master-title">satuan</h1>
       <div className="master-table-wrapper">
+      <div className="master-table-title print-only">
+  Data Satuan
+</div>
         <table className="master-table">
           <thead>
             <tr>
@@ -72,7 +95,7 @@ export function Satuan() {
             </tr>
           </thead>
           <tbody>
-            {data.map((row, index) => (
+            {filteredData.map((row, index) => (
               <tr
                 key={row.kode}
                 className={selectedIndex === index ? 'selected' : ''}
@@ -88,7 +111,7 @@ export function Satuan() {
       </div>
       {showForm && (
         <div className="master-form">
-          <h2>Isi Data Satuan</h2>
+          <h2>{selectedIndex >= 0 ? 'Ubah Data Satuan' : 'Isi Data Satuan'}</h2>
           <div className="master-form-row">
             <div className="master-form-group">
               <label>Kode :</label>
@@ -120,9 +143,19 @@ export function Satuan() {
       <FooterMaster
         onNew={handleNew}
         onEdit={handleEdit}
-        onDelete={handleDelete}
-        totalRow={data.length}
+        onDelete={handleDeleteClick}
+        totalRow={filteredData.length}
+        onSearch={setSearchKeyword}
+        onPrint={handlePrint}
+        onExit={onExit}
       />
+      {showDeleteConfirm && (
+        <DeleteMaster
+          itemName={data[selectedIndex]?.satuan}
+          onConfirm={handleConfirmDelete}
+          onCancel={() => setShowDeleteConfirm(false)}
+        />
+      )}
     </div>
   )
 }

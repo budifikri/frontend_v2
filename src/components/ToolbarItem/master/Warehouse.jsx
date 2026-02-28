@@ -3,12 +3,21 @@ import { gudangDummyData } from '../../../data'
 import { FooterMaster } from '../footer/FooterMaster'
 import { DeleteMaster } from '../footer/DeleteMaster'
 
-export function Warehouse() {
+export function Warehouse({ onExit }) {
   const [data, setData] = useState(gudangDummyData.rows)
   const [form, setForm] = useState({ kode: '', nama: '' })
   const [selectedIndex, setSelectedIndex] = useState(-1)
   const [showForm, setShowForm] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [searchKeyword, setSearchKeyword] = useState('')
+
+  const filteredData = data.filter((row) => {
+    const keyword = searchKeyword.toLowerCase()
+    return (
+      row.kode.toLowerCase().includes(keyword) ||
+      row.nama.toLowerCase().includes(keyword)
+    )
+  })
 
   const handleSave = () => {
     if (!form.kode || !form.nama) return
@@ -62,13 +71,26 @@ export function Warehouse() {
   const handleEdit = () => {
     if (selectedIndex >= 0) {
       setShowForm(true)
+    } else if (data.length > 0) {
+      setSelectedIndex(0)
+      setForm({ kode: data[0].kode, nama: data[0].nama })
+      setShowForm(true)
     }
+  }
+
+  const handlePrint = () => {
+    setShowForm(false)
+    window.print()
   }
 
   return (
     <div className="master-content">
       <h1 className="master-title">warehouse</h1>
       <div className="master-table-wrapper">
+          <div className="master-table-title print-only">
+  Data Warehouse
+</div>
+        
         <table className="master-table">
           <thead>
             <tr>
@@ -78,7 +100,7 @@ export function Warehouse() {
             </tr>
           </thead>
           <tbody>
-            {data.map((row, index) => (
+            {filteredData.map((row, index) => (
               <tr
                 key={row.kode}
                 className={selectedIndex === index ? 'selected' : ''}
@@ -94,7 +116,7 @@ export function Warehouse() {
       </div>
       {showForm && (
         <div className="master-form">
-          <h2>Isi Data Warehouse</h2>
+          <h2>{selectedIndex >= 0 ? 'Ubah Data Warehouse' : 'Isi Data Warehouse'}</h2>
           <div className="master-form-row">
             <div className="master-form-group">
               <label>Kode :</label>
@@ -127,7 +149,10 @@ export function Warehouse() {
         onNew={handleNew}
         onEdit={handleEdit}
         onDelete={handleDeleteClick}
-        totalRow={data.length}
+        totalRow={filteredData.length}
+        onSearch={setSearchKeyword}
+        onPrint={handlePrint}
+        onExit={onExit}
       />
       {showDeleteConfirm && (
         <DeleteMaster

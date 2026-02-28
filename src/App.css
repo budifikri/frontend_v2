@@ -1030,3 +1030,59 @@
   background: #f1f5f9;
   border-color: #94a3b8;
 }
+
+.print-only {
+  display: none;
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .master-table-wrapper,
+  .master-table-wrapper * {
+    visibility: visible;
+  }
+  .master-table-wrapper {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 95%;
+    padding: 20px;
+  }
+  .print-only {
+    display: block;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .master-table-title {
+    visibility: visible;
+    margin-bottom: 20px;
+    font-size: 24px;
+    font-weight: bold;
+    text-align: center;
+  }
+  .master-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .master-table th,
+  .master-table td {
+    border: 1px solid #000;
+    padding: 10px 12px;
+    text-align: left;
+    font-size: 14px;
+  }
+  .master-table th {
+    background: #eee !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    font-weight: bold;
+  }
+  .master-table tr:nth-child(even) {
+    background: #f9f9f9 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}

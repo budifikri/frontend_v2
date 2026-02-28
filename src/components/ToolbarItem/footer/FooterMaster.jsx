@@ -1,4 +1,4 @@
-export function FooterMaster({ onNew, onEdit, onDelete, totalRow }) {
+export function FooterMaster({ onNew, onEdit, onDelete, totalRow, onSearch, onPrint, onExit }) {
   return (
     <div className="master-footer">
       <div className="master-footer-actions">
@@ -14,12 +14,17 @@ export function FooterMaster({ onNew, onEdit, onDelete, totalRow }) {
           <span className="master-footer-icon red">remove_circle</span>
           <span className="master-footer-key">F3</span>
         </button>
-        <button type="button" className="master-footer-btn">
+        <button type="button" className="master-footer-btn" onClick={onPrint}>
           <span className="master-footer-icon">print</span>
         </button>
       </div>
       <div className="master-footer-search">
-        <input type="text" placeholder="Search keyword..." className="master-search-input" />
+        <input 
+          type="text" 
+          placeholder="Search keyword..." 
+          className="master-search-input"
+          onChange={(e) => onSearch && onSearch(e.target.value)}
+        />
         <button type="button" className="master-search-btn">
           <span className="material-icon">search</span>
         </button>
@@ -34,7 +39,7 @@ export function FooterMaster({ onNew, onEdit, onDelete, totalRow }) {
       <div className="master-footer-info">
         <span>Total Row: {totalRow}</span>
       </div>
-      <button type="button" className="master-exit-btn">
+      <button type="button" className="master-exit-btn" onClick={onExit}>
         <span>EXIT</span>
       </button>
     </div>

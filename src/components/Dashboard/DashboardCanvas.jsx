@@ -1,11 +1,11 @@
 import { Warehouse } from '../ToolbarItem/master/Warehouse'
 import { Satuan } from '../ToolbarItem/master/Satuan'
 
-export function DashboardCanvas({ activeTool }) {
+export function DashboardCanvas({ activeTool, onExit }) {
   if (activeTool === 'warehouse') {
     return (
       <div className="dashboard-canvas">
-        <Warehouse />
+        <Warehouse onExit={onExit} />
       </div>
     )
   }
@@ -13,7 +13,7 @@ export function DashboardCanvas({ activeTool }) {
   if (activeTool === 'satuan') {
     return (
       <div className="dashboard-canvas">
-        <Satuan />
+        <Satuan onExit={onExit} />
       </div>
     )
   }

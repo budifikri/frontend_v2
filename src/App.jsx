@@ -37,6 +37,10 @@ function App() {
     setActiveTool(toolKey)
   }
 
+  const handleExit = () => {
+    setActiveTool(null)
+  }
+
   if (view === 'dashboard') {
     return (
       <main className="dashboard-shell" aria-label="POS Admin Menu Dashboard">
@@ -51,7 +55,7 @@ function App() {
             onLoginClick={() => setView('login')}
             onToolClick={handleToolClick}
           />
-          <DashboardCanvas activeTool={activeTool} />
+          <DashboardCanvas activeTool={activeTool} onExit={handleExit} />
         </section>
         <DashboardFooter user={userId} />
       </main>
