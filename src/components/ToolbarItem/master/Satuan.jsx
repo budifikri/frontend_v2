@@ -111,6 +111,9 @@ export function Satuan() {
             <button type="button" className="master-btn-save" onClick={handleSave}>
               Simpan
             </button>
+            <button type="button" className="master-btn-cancel" onClick={() => setShowForm(false)}>
+              Cancel
+            </button>
           </div>
         </div>
       )}

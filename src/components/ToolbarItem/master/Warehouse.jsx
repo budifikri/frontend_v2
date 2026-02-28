@@ -1,12 +1,14 @@
 import { useState } from 'react'
 import { gudangDummyData } from '../../../data'
 import { FooterMaster } from '../footer/FooterMaster'
+import { DeleteMaster } from '../footer/DeleteMaster'
 
 export function Warehouse() {
   const [data, setData] = useState(gudangDummyData.rows)
   const [form, setForm] = useState({ kode: '', nama: '' })
   const [selectedIndex, setSelectedIndex] = useState(-1)
   const [showForm, setShowForm] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
   const handleSave = () => {
     if (!form.kode || !form.nama) return
@@ -33,32 +35,33 @@ export function Warehouse() {
   const handleSelect = (index) => {
     setSelectedIndex(index)
     setForm({ kode: data[index].kode, nama: data[index].nama })
-    setShowForm(true)
+    // No longer auto-showing form here
   }
 
-  const handleDelete = () => {
+  const handleDeleteClick = () => {
     if (selectedIndex >= 0) {
-      const newData = data.filter((_, i) => i !== selectedIndex)
-      setData(newData)
-      setForm({ kode: '', nama: '' })
-      setSelectedIndex(-1)
-      setShowForm(false)
+      setShowDeleteConfirm(true)
     }
+  }
+
+  const handleConfirmDelete = () => {
+    const newData = data.filter((_, i) => i !== selectedIndex)
+    setData(newData)
+    setForm({ kode: '', nama: '' })
+    setSelectedIndex(-1)
+    setShowForm(false)
+    setShowDeleteConfirm(false)
   }
 
   const handleNew = () => {
-    setShowForm(!showForm)
-    if (!showForm) {
-      setForm({ kode: '', nama: '' })
-      setSelectedIndex(-1)
-    }
+    setShowForm(true)
+    setForm({ kode: '', nama: '' })
+    setSelectedIndex(-1)
   }
 
   const handleEdit = () => {
     if (selectedIndex >= 0) {
       setShowForm(true)
-    } else if (data.length > 0) {
-      handleSelect(0)
     }
   }
 
@@ -91,7 +94,7 @@ export function Warehouse() {
       </div>
       {showForm && (
         <div className="master-form">
-          <h2>Isi Data Gudang</h2>
+          <h2>Isi Data Warehouse</h2>
           <div className="master-form-row">
             <div className="master-form-group">
               <label>Kode :</label>
@@ -114,15 +117,25 @@ export function Warehouse() {
             <button type="button" className="master-btn-save" onClick={handleSave}>
               Simpan
             </button>
+            <button type="button" className="master-btn-cancel" onClick={() => setShowForm(false)}>
+              Cancel
+            </button>
           </div>
         </div>
       )}
       <FooterMaster
         onNew={handleNew}
         onEdit={handleEdit}
-        onDelete={handleDelete}
+        onDelete={handleDeleteClick}
         totalRow={data.length}
       />
+      {showDeleteConfirm && (
+        <DeleteMaster
+          itemName={data[selectedIndex]?.nama}
+          onConfirm={handleConfirmDelete}
+          onCancel={() => setShowDeleteConfirm(false)}
+        />
+      )}
     </div>
   )
 }
