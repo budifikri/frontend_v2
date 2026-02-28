@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { gudangDummyData } from '../../../data'
 import { FooterMaster } from '../footer/FooterMaster'
 import { DeleteMaster } from '../footer/DeleteMaster'
@@ -9,7 +9,45 @@ export function Warehouse({ onExit }) {
   const [selectedIndex, setSelectedIndex] = useState(-1)
   const [showForm, setShowForm] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [showExitConfirm, setShowExitConfirm] = useState(false)
   const [searchKeyword, setSearchKeyword] = useState('')
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (showDeleteConfirm) {
+        if (e.key === 'Escape') {
+          e.preventDefault()
+          setShowDeleteConfirm(false)
+        }
+        return
+      }
+
+      if (showForm) {
+        if (e.key === 'Escape') {
+          e.preventDefault()
+          setShowForm(false)
+        }
+        return
+      }
+
+      if (e.key === 'F2') {
+        e.preventDefault()
+        handleEdit()
+      } else if (e.key === 'Delete') {
+        e.preventDefault()
+        handleDeleteClick()
+      } else if (e.key === '+') {
+        e.preventDefault()
+        handleNew()
+      } else if (e.key === 'Escape') {
+        e.preventDefault()
+        setShowExitConfirm(true)
+      }
+    }
+    
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [showForm, showDeleteConfirm, showExitConfirm, selectedIndex, data])
 
   const filteredData = data.filter((row) => {
     const keyword = searchKeyword.toLowerCase()
@@ -83,6 +121,15 @@ export function Warehouse({ onExit }) {
     window.print()
   }
 
+  const handleExitClick = () => {
+    setShowExitConfirm(true)
+  }
+
+  const handleConfirmExit = () => {
+    setShowExitConfirm(false)
+    onExit()
+  }
+
   return (
     <div className="master-content">
       <h1 className="master-title">warehouse</h1>
@@ -152,13 +199,24 @@ export function Warehouse({ onExit }) {
         totalRow={filteredData.length}
         onSearch={setSearchKeyword}
         onPrint={handlePrint}
-        onExit={onExit}
+        onExit={handleExitClick}
       />
       {showDeleteConfirm && (
         <DeleteMaster
           itemName={data[selectedIndex]?.nama}
           onConfirm={handleConfirmDelete}
           onCancel={() => setShowDeleteConfirm(false)}
+        />
+      )}
+      {showExitConfirm && (
+        <DeleteMaster
+          itemName="keluar dari halaman ini"
+          title="Konfirmasi Keluar"
+          confirmText="Ya"
+          cancelText="Tidak"
+          isExit={true}
+          onConfirm={handleConfirmExit}
+          onCancel={() => setShowExitConfirm(false)}
         />
       )}
     </div>

@@ -36,6 +36,32 @@
   color: #fff;
   padding: clamp(0.75rem, 1.7vw, 1rem) clamp(1rem, 2.8vw, 1.8rem);
   background: linear-gradient(120deg, #1d53d4 0%, #4f86e6 78%, #aac5eb 79%, #d6dfec 100%);
+/* jangan dihapus */
+/*   🔵 Ungu */
+/* background: linear-gradient( */
+/*   120deg, */
+/*   #5b2dd8 0%, */
+/*   #8a63f2 78%, */
+/*   #c6b6f7 79%, */
+/*   #e9e3fc 100% */
+/* ); */
+/* 🔴 Merah */
+/* background: linear-gradient( */
+/*   120deg, */
+/*   #c81d25 0%, */
+/*   #e64949 78%, */
+/*   #f5a3a3 79%, */
+/*   #fde2e2 100% */
+/* ); */
+/* 🟠 Orange */
+/* background: linear-gradient( */
+/*   120deg, */
+/*   #e8590c 0%, */
+/*   #ff922b 78%, */
+/*   #ffc078 79%, */
+/*   #ffe8cc 100% */
+/* ); */
+  
 }
 
 .window-titlebar strong {
@@ -261,7 +287,16 @@
   justify-content: space-between;
   padding: 0 8px 0 12px;
   color: #fff;
-  background: linear-gradient(180deg, #60a5fa 0%, #2563eb 100%);
+  /* biru */
+  background: linear-gradient(180deg, #60a5fa 0%, #2563eb 100%);  
+  /* jangan dihapus */
+/*   ungu */
+/*   background: linear-gradient(180deg, #c084fc 0%, #7c3aed 100%);  */
+/*   🔴 Merah */
+/* background: linear-gradient(180deg, #f87171 0%, #dc2626 100%); */
+/* 🟠 Orange */
+/* background: linear-gradient(180deg, #fb923c 0%, #ea580c 100%);  */
+  
 }
 
 .dashboard-title-group {
@@ -828,6 +863,13 @@
 
 .master-footer-icon.red {
   color: #dc2626;
+}
+
+.master-footer-add-icon {
+  font-size: 2.5rem;
+  font-weight: bold;
+  color: #f97316;
+  line-height: 1;
 }
 
 .master-footer-key {

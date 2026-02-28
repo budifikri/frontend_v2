@@ -1,6 +1,6 @@
 export const toolbarItems = {
   master: [
-    { key: 'login', label: 'Login', mark: 'L', tone: 'slate', backToLogin: true },
+    { key: 'logout', label: 'Logout', mark: 'L', tone: 'slate', backToLogin: true },
     { key: 'divider-1', divider: true },
     { key: 'warehouse', label: 'Warehouse', mark: 'W', tone: 'orange' },
     { key: 'satuan', label: 'Satuan', mark: 'S', tone: 'green' },
@@ -20,7 +20,7 @@ export const toolbarItems = {
     { key: 'voucher', label: 'Voucher', mark: 'V', tone: 'red' },
   ],
   transaksi: [
-    { key: 'login', label: 'Login', mark: 'L', tone: 'slate', backToLogin: true },
+  { key: 'logout', label: 'Logout', mark: 'L', tone: 'slate', backToLogin: true },
     { key: 'divider-1', divider: true },
     { key: 'beli', label: 'Pembelian', mark: 'P', tone: 'orange' },
     { key: 'rbeli', label: 'Retur Pembelian', mark: 'R', tone: 'green' },
@@ -34,7 +34,7 @@ export const toolbarItems = {
     { key: 'piutang', label: 'Piutang', mark: 'U', tone: 'yellow' },
   ],
   laporan: [
-    { key: 'login', label: 'Login', mark: 'L', tone: 'slate', backToLogin: true },
+    { key: 'logout', label: 'Logout', mark: 'L', tone: 'slate', backToLogin: true },
     { key: 'divider-1', divider: true },
     { key: 'lapjual', label: 'Lap. Penjualan', mark: 'J', tone: 'blue' },
     { key: 'lapbeli', label: 'Lap. Pembelian', mark: 'B', tone: 'orange' },
@@ -42,14 +42,15 @@ export const toolbarItems = {
     { key: 'laprugi', label: 'Lap. Laba/Rugi', mark: 'L', tone: 'amber' },
   ],
   setting: [
-    { key: 'login', label: 'Login', mark: 'L', tone: 'slate', backToLogin: true },
+   { key: 'logout', label: 'Logout', mark: 'L', tone: 'slate', backToLogin: true },
     { key: 'divider-1', divider: true },
+      { key: 'theme', label: 'Theme', mark: 'T', tone: 'cyan' },
     { key: 'user', label: 'User', mark: 'U', tone: 'blue' },
     { key: 'backup', label: 'Backup', mark: 'B', tone: 'green' },
     { key: 'restore', label: 'Restore', mark: 'R', tone: 'orange' },
   ],
   help: [
-    { key: 'login', label: 'Login', mark: 'L', tone: 'slate', backToLogin: true },
+  { key: 'logout', label: 'Logout', mark: 'L', tone: 'slate', backToLogin: true },
     { key: 'divider-1', divider: true },
     { key: 'about', label: 'About', mark: 'A', tone: 'blue' },
   ],
