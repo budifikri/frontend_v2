@@ -15,6 +15,12 @@ export function Theme({ onExit }) {
   const [titleColor, setTitleColor] = useState(localStorage.getItem('theme-title-color') || DEFAULT_TITLE_COLOR)
   const [savedWallpaper, setSavedWallpaper] = useState(wallpaper)
   const [savedTitleColor, setSavedTitleColor] = useState(titleColor)
+  const [showBrowse, setShowBrowse] = useState(false)
+
+  const getWallpaperHistory = () => {
+    const history = localStorage.getItem('wallpaper-history')
+    return history ? JSON.parse(history) : []
+  }
 
   useEffect(() => {
     // Apply saved settings on load (localStorage > .env)
@@ -33,6 +39,16 @@ export function Theme({ onExit }) {
     setSavedTitleColor(titleColor)
     localStorage.setItem('theme-wallpaper', wallpaper || '')
     localStorage.setItem('theme-title-color', titleColor)
+    
+    // Save to wallpaper history if new wallpaper
+    if (wallpaper) {
+      const history = getWallpaperHistory()
+      if (!history.includes(wallpaper)) {
+        history.unshift(wallpaper)
+        localStorage.setItem('wallpaper-history', JSON.stringify(history.slice(0, 10))) // Keep last 10
+      }
+    }
+    
     document.documentElement.style.setProperty('--titlebar-bg', titleColor)
     if (wallpaper) {
       document.documentElement.style.setProperty('--app-wallpaper', `url(${wallpaper})`)
@@ -100,7 +116,7 @@ export function Theme({ onExit }) {
                   Upload
                   <input type="file" onChange={handleWallpaperChange} style={{ display: 'none' }} accept="image/*" />
                 </label>
-                <button className="theme-btn browse-btn">
+                <button className="theme-btn browse-btn" onClick={() => setShowBrowse(true)}>
                   <span className="material-icons">folder_open</span>
                   Browse
                 </button>
@@ -176,6 +192,35 @@ export function Theme({ onExit }) {
         <button className="theme-btn-cancel" onClick={handleCancel}>Cancel</button>
         <button className="theme-btn-save" onClick={handleSave}>Save</button>
       </div>
+
+      {/* Browse Popup */}
+      {showBrowse && (
+        <div className="browse-popup-overlay" onClick={() => setShowBrowse(false)}>
+          <div className="browse-popup-modal" onClick={e => e.stopPropagation()}>
+            <div className="browse-popup-header">
+              <h3>Select Wallpaper</h3>
+              <button className="browse-popup-close" onClick={() => setShowBrowse(false)}>×</button>
+            </div>
+            <div className="browse-popup-content">
+              {getWallpaperHistory().length === 0 ? (
+                <p className="no-history">No wallpaper history. Upload a new wallpaper.</p>
+              ) : (
+                <div className="browse-grid">
+                  {getWallpaperHistory().map((img, index) => (
+                    <div 
+                      key={index} 
+                      className={`browse-item ${wallpaper === img ? 'selected' : ''}`}
+                      onClick={() => { setWallpaper(img); setShowBrowse(false); }}
+                    >
+                      <img src={img} alt={`Wallpaper ${index + 1}`} />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
