@@ -167,57 +167,45 @@
   box-shadow: 0 0 0 2px #fff;
 }
 
-/* Real-time Preview   #0d9488;  hijau */  
+/* Real-time Preview */
 .preview-container {
   width: 100%;
   aspect-ratio: 16/10;
-  background: #0d9488;
-  border: 4px solid #475569;
-  padding: 24px;
+  background: #64748b;
+  padding: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
   box-shadow: 0 4px 6px rgba(0,0,0,0.1);
 }
 
-.mockup-frame {
-  width: 100%;
-  height: 100%;
-  padding: 0px;
-}
-
-
-/* backgroun #f8fafc */
-.mockup-wallpaper {
-  width: 100%;
-  height: 100%;
-  background-size: cover;
-  background-position: center;
-  background-color: #0d9488;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0px;
-}
-
 .mockup-window {
-  width: 90%;
-  height: 90%;
-  background: #fff;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  width: 95%;
+  height: 95%;
+  background: #f1f5f9;
+  border-radius: 4px;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+  border: 4px solid #475569;
 }
 
 .mockup-titlebar {
-  height: 24px;
-  background: #3b82f6;
+  height: 20px;
   color: #fff;
   display: flex;
   align-items: center;
+  justify-content: space-between;
   padding: 0 8px;
-  font-size: 10px;
-  gap: 8px;
+  font-size: 9px;
+  font-weight: bold;
+}
+
+.mockup-title-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .mockup-dot {
@@ -228,57 +216,158 @@
 }
 
 .mockup-controls {
-  margin-left: auto;
   display: flex;
   gap: 4px;
 }
 
 .mockup-ctrl {
-  width: 10px;
-  height: 10px;
+  width: 12px;
+  height: 12px;
   background: rgba(255,255,255,0.3);
+  border-radius: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 8px;
 }
 
 .mockup-ctrl.red {
   background: #ef4444;
 }
 
-.mockup-body {
-  flex: 1;
-  padding: 8px;
+/* Menu Bar */
+.mockup-menubar {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.mockup-menu {
-  display: flex;
-  gap: 6px;
-}
-
-.mockup-item {
-  width: 40px;
-  height: 8px;
   background: #e2e8f0;
+  border-bottom: 1px solid #cbd5e1;
+  padding: 0 8px;
 }
 
-.mockup-content {
+.mockup-menu-item {
+  padding: 4px 12px;
+  font-size: 9px;
+  color: #475569;
+}
+
+.mockup-menu-item.active {
+  background: #3b82f6;
+  color: #fff;
+}
+
+/* Toolbar */
+.mockup-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  background: #fff;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.mockup-toolbar-item {
+  padding: 2px 8px;
+  font-size: 8px;
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  border-radius: 2px;
+}
+
+.mockup-toolbar-divider {
+  width: 1px;
+  height: 16px;
+  background: #cbd5e1;
+  margin: 0 4px;
+}
+
+.mockup-toolbar-item.logout {
+  background: #ef4444;
+  color: #fff;
+  border-color: #dc2626;
+}
+
+/* Canvas */
+.mockup-canvas {
   flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #008080;
+  position: relative;
+}
+
+.mockup-cash-register {
+  width: 40%;
+  height: 50%;
+  opacity: 0.3;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  color: #cbd5e1;
 }
 
-.mockup-content .material-icons.large {
-  font-size: 40px;
+.mockup-display {
+  width: 80%;
+  height: 25%;
+  background: #8ec8c7;
+  border-radius: 8px;
+  margin-bottom: 8%;
 }
 
-.mockup-text {
-  font-size: 10px;
-  font-weight: bold;
-  margin-top: 4px;
+.mockup-keys {
+  width: 90%;
+  height: 45%;
+  background: #087f81;
+  clip-path: polygon(10% 0, 90% 0, 100% 100%, 0 100%);
+  margin-bottom: 8%;
+}
+
+.mockup-base {
+  width: 100%;
+  height: 8%;
+  background: #065f60;
+  border-radius: 0 0 4px 4px;
+}
+
+/* Footer */
+.mockup-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 8px;
+  background: #d6e5f3;
+  border-top: 1px solid #cbd5e1;
+  gap: 8px;
+  font-size: 8px;
+}
+
+.mockup-footer-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.mockup-footer-btn {
+  padding: 2px 6px;
+  background: #fff;
+  border: 1px solid #94a3b8;
+  border-radius: 2px;
+}
+
+.mockup-footer-search {
+  flex: 1;
+}
+
+.mockup-search-input {
+  background: #fff;
+  border: 1px solid #cbd5e1;
+  padding: 2px 6px;
+  font-size: 8px;
+  color: #94a3b8;
+}
+
+.mockup-exit-btn {
+  padding: 2px 8px;
+  background: #ef4444;
+  color: #fff;
+  border-radius: 2px;
 }
 
 .preview-hint {

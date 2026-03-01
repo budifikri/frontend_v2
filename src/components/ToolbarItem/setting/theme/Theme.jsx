@@ -154,31 +154,62 @@ export function Theme({ onExit }) {
               <h2>Real-time Preview</h2>
             </div>
             <div className="theme-divider" />
-              <div className="preview-container">
-                <div className="mockup-frame" style={{ background: titleColor }}>
-                  <div className="mockup-wallpaper" style={{ backgroundImage: wallpaper ? `url(${wallpaper})` : 'none' }}>
-                  <div className="mockup-window">
-                    <div className="mockup-titlebar" style={{ background: titleColor }}>
-                      <div className="mockup-dot" />
-                      <span>POS Mockup</span>
-                      <div className="mockup-controls">
-                        <div className="mockup-ctrl" />
-                        <div className="mockup-ctrl red" />
-                      </div>
-                    </div>
-                    <div className="mockup-body">
-                      <div className="mockup-menu">
-                        <div className="mockup-item" />
-                        <div className="mockup-item" />
-                        <div className="mockup-item" />
-                        <div className="mockup-item" />
-                      </div>
-                      <div className="mockup-content">
-                        <span className="material-icons large">calculate</span>
-                        <div className="mockup-text">POS SYSTEM</div>
-                      </div>
-                    </div>
+            <div className="preview-container">
+              {/* Window */}
+              <div className="mockup-window">
+                {/* Titlebar */}
+                <div className="mockup-titlebar" style={{ background: titleColor }}>
+                  <div className="mockup-title-group">
+                    <div className="mockup-dot" />
+                    <span>POS Admin Menu Dashboard</span>
                   </div>
+                  <div className="mockup-controls">
+                    <div className="mockup-ctrl">-</div>
+                    <div className="mockup-ctrl">+</div>
+                    <div className="mockup-ctrl red">x</div>
+                  </div>
+                </div>
+                {/* Menu Bar */}
+                <div className="mockup-menubar">
+                  <div className="mockup-menu-item active">Master</div>
+                  <div className="mockup-menu-item">Transaksi</div>
+                  <div className="mockup-menu-item">Laporan</div>
+                  <div className="mockup-menu-item">Setting</div>
+                  <div className="mockup-menu-item">Help</div>
+                </div>
+                {/* Toolbar */}
+                <div className="mockup-toolbar">
+                  <div className="mockup-toolbar-item logout">L</div>
+                  <div className="mockup-toolbar-divider" />
+                  <div className="mockup-toolbar-item">Warehouse</div>
+                  <div className="mockup-toolbar-item">Satuan</div>
+                  <div className="mockup-toolbar-item">Wilayah</div>
+                  <div className="mockup-toolbar-item">Dept.</div>
+                </div>
+                {/* Canvas Area */}
+                <div className="mockup-canvas" style={{ background: wallpaper ? `url(${wallpaper})` : '#008080', backgroundSize: 'cover' }}>
+                  {/* Cash Register (when no tool active) */}
+                  {!wallpaper && (
+                    <div className="mockup-cash-register">
+                      <div className="mockup-display" />
+                      <div className="mockup-keys" />
+                      <div className="mockup-base" />
+                    </div>
+                  )}
+                </div>
+                {/* Footer */}
+                <div className="mockup-footer">
+                  <div className="mockup-footer-actions">
+                    <div className="mockup-footer-btn">F1</div>
+                    <div className="mockup-footer-btn">F2</div>
+                    <div className="mockup-footer-btn">[del]</div>
+                    <div className="mockup-footer-btn">Print</div>
+                  </div>
+                  <div className="mockup-footer-search">
+                    <div className="mockup-search-input">Search...</div>
+                  </div>
+                  <div className="mockup-footer-info">Total: 0</div>
+                  <div className="mockup-exit-btn">EXIT</div>
                 </div>
               </div>
             </div>
