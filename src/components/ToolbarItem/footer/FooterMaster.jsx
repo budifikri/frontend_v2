@@ -8,6 +8,8 @@ export function FooterMaster({
   onExit,
   filter = 'all',
   onFilterChange,
+  onRefresh,
+  isLoading = false,
 }) {
   return (
     <div className="master-footer">
@@ -27,6 +29,11 @@ export function FooterMaster({
         <button type="button" className="master-footer-btn" onClick={onPrint}>
           <span className="material-icons-round master-footer-icon">print</span>
         </button>
+        {onRefresh && (
+          <button type="button" className="master-footer-btn" onClick={onRefresh} disabled={isLoading}>
+            <span className="material-icons-round master-footer-icon">refresh</span>
+          </button>
+        )}
       </div>
       {onFilterChange && (
         <div className="master-filter-wrap">
