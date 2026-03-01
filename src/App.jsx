@@ -9,7 +9,7 @@ import {
   LoginForm,
 } from './components'
 import { AuthProvider, useAuth } from './shared/auth'
-import { defaultMenu } from './data'
+import { defaultMenu, toolbarItems } from './data'
 import { login } from './features/auth/login.api'
 
 function AppContent() {
@@ -47,6 +47,20 @@ function AppContent() {
   useEffect(() => {
     if (view !== 'dashboard') return
 
+    const menuTools = toolbarItems[activeMenu] || []
+    const shortcutMap = new Map()
+
+    menuTools.forEach((item) => {
+      if (item?.divider || !item?.mark || !item?.key || item?.backToLogin) return
+
+      const mark = String(item.mark).toLowerCase()
+      if (shortcutMap.has(mark)) {
+        console.warn(`Duplicate shortcut mark '${mark.toUpperCase()}' on menu '${activeMenu}'`)
+        return
+      }
+      shortcutMap.set(mark, item.key)
+    })
+
     const handleKeyDown = (event) => {
       const target = event.target
       const isTypingTarget =
@@ -59,9 +73,13 @@ function AppContent() {
 
       if (isTypingTarget) return
 
-      if (activeMenu === 'master' && event.key.toLowerCase() === 'w') {
+      const key = event.key?.toLowerCase?.()
+      if (!key || key.length !== 1) return
+
+      const toolKey = shortcutMap.get(key)
+      if (toolKey) {
         event.preventDefault()
-        setActiveTool('warehouse')
+        setActiveTool(toolKey)
       }
     }
 
