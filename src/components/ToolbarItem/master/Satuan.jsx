@@ -126,15 +126,6 @@ export function Satuan({ onExit }) {
     window.print()
   }
 
-  const handleExitClick = () => {
-    setShowExitConfirm(true)
-  }
-
-  const handleConfirmExit = () => {
-    setShowExitConfirm(false)
-    onExit()
-  }
-
   return (
     <div className="master-content with-wallpaper frame-color-primary">
       <h1 className="master-title no-print">satuan</h1>

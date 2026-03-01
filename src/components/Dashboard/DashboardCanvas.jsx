@@ -1,5 +1,6 @@
 import { Warehouse } from '../ToolbarItem/master/Warehouse'
 import { Satuan } from '../ToolbarItem/master/Satuan'
+import { Theme } from '../ToolbarItem/setting/theme/Theme'
 
 export function DashboardCanvas({ activeTool, onExit }) {
   if (activeTool === 'warehouse') {
@@ -14,6 +15,14 @@ export function DashboardCanvas({ activeTool, onExit }) {
     return (
       <div className="dashboard-canvas">
         <Satuan onExit={onExit} />
+      </div>
+    )
+  }
+
+  if (activeTool === 'theme') {
+    return (
+      <div className="dashboard-canvas">
+        <Theme onExit={onExit} />
       </div>
     )
   }
