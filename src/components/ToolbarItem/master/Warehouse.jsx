@@ -33,6 +33,8 @@ export function Warehouse({ onExit }) {
   const [showExitConfirm, setShowExitConfirm] = useState(false)
 
   const [isSaving, setIsSaving] = useState(false)
+  const [togglingId, setTogglingId] = useState(null)
+  const [sortConfig, setSortConfig] = useState({ key: 'code', direction: 'asc' })
 
   const fetchData = useCallback(async () => {
     if (!token) {
@@ -129,6 +131,22 @@ export function Warehouse({ onExit }) {
     )
   })
 
+  const sortedData = [...filteredData].sort((a, b) => {
+    const { key, direction } = sortConfig
+
+    if (key === 'is_active') {
+      const aVal = a.is_active ? 1 : 0
+      const bVal = b.is_active ? 1 : 0
+      return direction === 'asc' ? aVal - bVal : bVal - aVal
+    }
+
+    const aVal = String(a[key] ?? '').toLowerCase()
+    const bVal = String(b[key] ?? '').toLowerCase()
+    if (aVal === bVal) return 0
+    const cmp = aVal > bVal ? 1 : -1
+    return direction === 'asc' ? cmp : -cmp
+  })
+
   const selectedItem = selectedId == null ? null : data.find((item) => item.id === selectedId) || null
   const isEditing = selectedItem != null
 
@@ -223,8 +241,8 @@ export function Warehouse({ onExit }) {
         phone: selectedItem.phone || '',
       })
       setShowForm(true)
-    } else if (filteredData.length > 0) {
-      const item = filteredData[0]
+    } else if (sortedData.length > 0) {
+      const item = sortedData[0]
       setSelectedId(item.id)
       setForm({
         code: item.code || '',
@@ -241,6 +259,50 @@ export function Warehouse({ onExit }) {
   const handlePrint = () => {
     setShowForm(false)
     window.print()
+  }
+
+  const handleToggleStatus = async (row) => {
+    if (!row?.id || togglingId) return
+
+    const nextIsActive = !row.is_active
+
+    if (token) {
+      setTogglingId(row.id)
+      try {
+        await updateWarehouse(token, row.id, { is_active: nextIsActive })
+        await fetchData()
+      } catch (err) {
+        setError(err.message || 'Failed to update status')
+      } finally {
+        setTogglingId(null)
+      }
+      return
+    }
+
+    setData((prev) => prev.map((item) => (
+      item.id === row.id ? { ...item, is_active: nextIsActive } : item
+    )))
+  }
+
+  const handleSort = (key) => {
+    setSortConfig((prev) => {
+      if (prev.key === key) {
+        return {
+          key,
+          direction: prev.direction === 'asc' ? 'desc' : 'asc',
+        }
+      }
+
+      return {
+        key,
+        direction: 'asc',
+      }
+    })
+  }
+
+  const getSortIcon = (key) => {
+    if (sortConfig.key !== key) return 'unfold_more'
+    return sortConfig.direction === 'asc' ? 'expand_less' : 'expand_more'
   }
 
   const handleCancelForm = () => {
@@ -277,22 +339,40 @@ export function Warehouse({ onExit }) {
                     <span className="material-icons-round">unfold_more</span>
                   </div>
                 </th>
-                <th className="master-th-header">
+                <th className="master-th-header master-th-sortable" onClick={() => handleSort('code')}>
                   <div className="master-th-content">
                     KODE
-                    <span className="material-icons-round text-primary">expand_more</span>
+                    <span className={`material-icons-round ${sortConfig.key === 'code' ? 'text-primary' : ''}`}>{getSortIcon('code')}</span>
                   </div>
                 </th>
-                <th className="master-th-header">
+                <th className="master-th-header master-th-sortable" onClick={() => handleSort('name')}>
                   <div className="master-th-content">
                     NAMA
-                    <span className="material-icons-round">unfold_more</span>
+                    <span className={`material-icons-round ${sortConfig.key === 'name' ? 'text-primary' : ''}`}>{getSortIcon('name')}</span>
+                  </div>
+                </th>
+                <th className="master-th-header master-th-sortable" onClick={() => handleSort('type')}>
+                  <div className="master-th-content">
+                    TYPE
+                    <span className={`material-icons-round ${sortConfig.key === 'type' ? 'text-primary' : ''}`}>{getSortIcon('type')}</span>
+                  </div>
+                </th>
+                <th className="master-th-header master-th-sortable" onClick={() => handleSort('city')}>
+                  <div className="master-th-content">
+                    CITY
+                    <span className={`material-icons-round ${sortConfig.key === 'city' ? 'text-primary' : ''}`}>{getSortIcon('city')}</span>
+                  </div>
+                </th>
+                <th className="master-th-header master-th-sortable" onClick={() => handleSort('is_active')}>
+                  <div className="master-th-content">
+                    STATUS
+                    <span className={`material-icons-round ${sortConfig.key === 'is_active' ? 'text-primary' : ''}`}>{getSortIcon('is_active')}</span>
                   </div>
                 </th>
               </tr>
             </thead>
             <tbody>
-              {filteredData.map((row, index) => (
+              {sortedData.map((row, index) => (
                 <tr
                   key={row.id || index}
                   className={selectedId === row.id ? 'master-row-selected' : 'master-row'}
@@ -301,11 +381,26 @@ export function Warehouse({ onExit }) {
                   <td>{index + 1}</td>
                   <td>{row.code || '-'}</td>
                   <td>{row.name}</td>
+                  <td>{row.type || '-'}</td>
+                  <td>{row.city || '-'}</td>
+                  <td>
+                    <button
+                      type="button"
+                      className={`master-status-toggle ${row.is_active ? 'is-active' : 'is-inactive'}`}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleToggleStatus(row)
+                      }}
+                      disabled={togglingId === row.id}
+                    >
+                      {togglingId === row.id ? '...' : (row.is_active ? 'ACTIVE' : 'INACTIVE')}
+                    </button>
+                  </td>
                 </tr>
               ))}
-              {!isLoading && filteredData.length === 0 && (
+              {!isLoading && sortedData.length === 0 && (
                 <tr>
-                  <td colSpan={3} className="text-center">No data</td>
+                  <td colSpan={6} className="text-center">No data</td>
                 </tr>
               )}
             </tbody>

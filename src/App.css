@@ -761,7 +761,7 @@ body.has-wallpaper .cash-register {
 }
 
 .master-th-header {
-  padding: 16px 24px;
+  padding: 8px 24px;
   border-right: 1px solid rgba(255, 255, 255, 0.1);
   color: #fff;
   text-transform: uppercase;
@@ -826,7 +826,7 @@ body.has-wallpaper .cash-register {
 }
 
 .master-table td {
-  padding: 16px 24px;
+  padding: 4px 24px;
   border-right: 1px solid #e2e8f0;
   color: #334155;
 }
@@ -835,20 +835,56 @@ body.has-wallpaper .cash-register {
   border-right: none;
 }
 
+.master-status-toggle {
+  min-width: 92px;
+  height: 30px;
+  border: none;
+  border-radius: 999px;
+  padding: 0 10px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #fff;
+  cursor: pointer;
+  transition: transform 120ms ease, filter 120ms ease;
+}
+
+.master-status-toggle.is-active {
+  background: linear-gradient(180deg, #16a34a 0%, #15803d 100%);
+}
+
+.master-status-toggle.is-inactive {
+  background: linear-gradient(180deg, #ef4444 0%, #dc2626 100%);
+}
+
+.master-status-toggle:hover {
+  filter: brightness(1.05);
+}
+
+.master-status-toggle:active {
+  transform: translateY(1px);
+}
+
+.master-status-toggle:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  transform: none;
+}
+
 .master-form-card {
   background: #fff;
   margin:0px 16px;
   border-radius: 12px;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
   border: 2px solid rgba(13, 148, 136, 0.2);
-  padding: 24px;
+  padding: 16px;
 }
 
 .master-form-header {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 24px;
+  margin-bottom: 16px;
 }
 
 .master-form-icon {
@@ -865,8 +901,8 @@ body.has-wallpaper .cash-register {
 
 .master-form-grid {
   display: grid;
-  grid-template-columns: 2fr 8fr 2fr;
-  gap: 24px;
+  grid-template-columns: 100px 2fr 2fr 2fr 2fr   ;
+  gap: 8px;
   align-items: end;
 }
 
@@ -890,7 +926,7 @@ body.has-wallpaper .cash-register {
 }
 
 .master-form-input {
-  height: 44px;
+  height: 30px;
   border: 1px solid #e2e8f0;
   border-radius: 8px;
   padding: 0 16px;
@@ -911,7 +947,7 @@ body.has-wallpaper .cash-register {
 }
 
 .master-btn-save-primary {
-  height: 44px;
+  height: 30px;
   background: #0D9488;
   border: none;
   border-radius: 8px;
@@ -961,7 +997,7 @@ body.has-wallpaper .cash-register {
 }
 
 .master-btn-cancel-secondary {
-  height: 44px;
+  height: 30px;
   border: none;
   border-radius: 8px;
   padding: 0 16px;
@@ -1129,30 +1165,48 @@ body.has-wallpaper .cash-register {
 .master-footer-pagination {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
+  padding: 6px 8px;
+  border: 1px solid #cfd8e3;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #f8fafc 0%, #edf2f7 100%);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
 }
 
 .master-page-btn {
-  background: linear-gradient(180deg, #f0f0f0 0%, #dcdcdc 100%);
-  border: 1px solid #999;
-  box-shadow: inset 1px 1px 0 #fff;
-  padding: 4px 8px;
-  font-size: 0.75rem;
-  font-weight: 700;
-  color: #334155;
+  width: 26px;
+  height: 26px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  padding: 0;
+  color: #2563eb;
   cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: background-color 120ms ease, color 120ms ease;
+}
+
+.master-page-btn:hover {
+  background: #dbeafe;
+  color: #1d4ed8;
 }
 
 .master-page-btn:active {
-  background: #dcdcdc;
-  box-shadow: inset 1px 1px 2px rgba(0, 0, 0, 0.2);
+  background: #bfdbfe;
 }
 
 .master-page-info {
-  padding: 4px 12px;
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: #334155;
+  padding: 0 8px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #0f172a;
+  white-space: nowrap;
+}
+
+.master-page-icon {
+  font-size: 1rem;
+  color: currentColor;
 }
 
 .master-footer-info {
