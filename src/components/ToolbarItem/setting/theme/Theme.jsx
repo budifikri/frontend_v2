@@ -8,17 +8,23 @@ const COLORS = [
   { name: 'Orange', value: 'linear-gradient(180deg, #fb923c 0%, #ea580c 100%)' },
 ]
 
+const DEFAULT_TITLE_COLOR = import.meta.env.VITE_DEFAULT_TITLEBAR_COLOR || 'linear-gradient(180deg, #60a5fa 0%, #2563eb 100%)'
+
 export function Theme({ onExit }) {
   const [wallpaper, setWallpaper] = useState(localStorage.getItem('theme-wallpaper') || null)
-  const [titleColor, setTitleColor] = useState(localStorage.getItem('theme-title-color') || 'linear-gradient(180deg, #60a5fa 0%, #2563eb 100%)')
+  const [titleColor, setTitleColor] = useState(localStorage.getItem('theme-title-color') || DEFAULT_TITLE_COLOR)
   const [savedWallpaper, setSavedWallpaper] = useState(wallpaper)
   const [savedTitleColor, setSavedTitleColor] = useState(titleColor)
 
   useEffect(() => {
-    // Apply saved settings on load
-    const savedW = localStorage.getItem('theme-wallpaper')
-    const savedC = localStorage.getItem('theme-title-color')
-    if (savedW) document.documentElement.style.setProperty('--app-wallpaper', `url(${savedW})`)
+    // Apply saved settings on load (localStorage > .env)
+    const savedW = localStorage.getItem('theme-wallpaper') || import.meta.env.VITE_DEFAULT_WALLPAPER
+    const savedC = localStorage.getItem('theme-title-color') || import.meta.env.VITE_DEFAULT_TITLEBAR_COLOR
+    
+    if (savedW) {
+      document.documentElement.style.setProperty('--app-wallpaper', `url(${savedW})`)
+      document.body.classList.add('has-wallpaper')
+    }
     if (savedC) document.documentElement.style.setProperty('--titlebar-bg', savedC)
   }, [])
 
@@ -30,8 +36,10 @@ export function Theme({ onExit }) {
     document.documentElement.style.setProperty('--titlebar-bg', titleColor)
     if (wallpaper) {
       document.documentElement.style.setProperty('--app-wallpaper', `url(${wallpaper})`)
+      document.body.classList.add('has-wallpaper')
     } else {
       document.documentElement.style.setProperty('--app-wallpaper', 'none')
+      document.body.classList.remove('has-wallpaper')
     }
   }
 
@@ -42,8 +50,10 @@ export function Theme({ onExit }) {
     document.documentElement.style.setProperty('--titlebar-bg', savedTitleColor)
     if (savedWallpaper) {
       document.documentElement.style.setProperty('--app-wallpaper', `url(${savedWallpaper})`)
+      document.body.classList.add('has-wallpaper')
     } else {
       document.documentElement.style.setProperty('--app-wallpaper', 'none')
+      document.body.classList.remove('has-wallpaper')
     }
     if (onExit) onExit()
   }

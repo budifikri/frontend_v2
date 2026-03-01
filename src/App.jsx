@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import './App.css'
 import {
   DashboardHeader,
@@ -16,6 +16,22 @@ function App() {
   const [activeTool, setActiveTool] = useState(null)
   const [userId, setUserId] = useState('A')
   const [password, setPassword] = useState('')
+
+  useEffect(() => {
+    // Apply theme settings on initial load (localStorage > .env)
+    const savedWallpaper = localStorage.getItem('theme-wallpaper') || import.meta.env.VITE_DEFAULT_WALLPAPER
+    const savedTitleColor = localStorage.getItem('theme-title-color') || import.meta.env.VITE_DEFAULT_TITLEBAR_COLOR
+    
+    if (savedTitleColor) {
+      document.documentElement.style.setProperty('--titlebar-bg', savedTitleColor)
+    }
+    if (savedWallpaper) {
+      document.documentElement.style.setProperty('--app-wallpaper', `url(${savedWallpaper})`)
+      document.body.classList.add('has-wallpaper')
+    } else {
+      document.body.classList.remove('has-wallpaper')
+    }
+  }, [])
 
   const handleLogin = (event) => {
     event.preventDefault()

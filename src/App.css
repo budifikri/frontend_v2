@@ -13,8 +13,8 @@
   scrollbar-width: none;
   -ms-overflow-style: none;
   background: var(--app-wallpaper), 
-    radial-gradient(1100px 650px at 50% -140px, #cfdae7 8%, transparent 62%),
-    linear-gradient(180deg, #c3cfdd 0%, #becad8 100%);
+    radial-gradient(1100px 650px at 50% -140px, #0d9488 100%, transparent 62%),
+    linear-gradient(180deg, #c3cfdd 0%, #0d9488 100%);
   background-size: cover;
   background-position: center;
 }
@@ -28,7 +28,9 @@
 
   width: var(--window-width);
   border-radius: clamp(14px, 2.5vw, 22px);
-  border: 2px solid #235ce2;
+
+  
+  border: 2px solid #9ba7b8;
   background: #d2cfcf;
   box-shadow: 0 22px 44px rgba(45, 66, 92, 0.25);
   overflow: hidden;
@@ -43,7 +45,9 @@
   gap: 0.75rem;
   color: #fff;
   padding: clamp(0.75rem, 1.7vw, 1rem) clamp(1rem, 2.8vw, 1.8rem);
-  background: linear-gradient(120deg, #1d53d4 0%, #4f86e6 78%, #aac5eb 79%, #d6dfec 100%);
+    background: var(--titlebar-bg);
+  /* background: linear-gradient(120deg, #1d53d4 0%, #4f86e6 78%, #aac5eb 79%, #d6dfec 100%); */
+
 /* jangan dihapus */
 /*   🔵 Ungu */
 /* background: linear-gradient( */
@@ -478,8 +482,10 @@
 .dashboard-canvas {
   position: relative;
   background-color: #008080;
-  background-image: 
+  background-image: var(--app-wallpaper), 
     radial-gradient(ellipse at center, rgba(255, 255, 255, 0.08) 0%, transparent 70%);
+  background-size: cover;
+  background-position: center;
   height: calc(100vh - 32px - 72px - 48px); /* Restore height calculation, minus fixed footer */
   display: flex;
   flex-direction: column;
@@ -545,6 +551,10 @@
   width: min(280px, 46%);
   height: min(310px, 56%);
   opacity: 0.22;
+}
+
+body.has-wallpaper .cash-register {
+  display: none;
 }
 
 .cash-register .display {
