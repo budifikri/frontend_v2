@@ -8,6 +8,13 @@ const COLORS = [
   { name: 'Orange', value: 'linear-gradient(180deg, #fb923c 0%, #ea580c 100%)' },
 ]
 
+// const COLORS = [
+//   { name: 'Biru', value: 'linear-gradient(180deg, #93c5fd 0%, #2563eb 100%)' },
+//   { name: 'Ungu', value: 'linear-gradient(180deg, #d8b4fe 0%, #7c3aed 100%)' },
+//   { name: 'Merah', value: 'linear-gradient(180deg, #fca5a5 0%, #dc2626 100%)' },
+//   { name: 'Orange', value: 'linear-gradient(180deg, #fdba74 0%, #ea580c 100%)' },
+// ]
+
 const DEFAULT_TITLE_COLOR = import.meta.env.VITE_DEFAULT_TITLEBAR_COLOR || 'linear-gradient(180deg, #60a5fa 0%, #2563eb 100%)'
 
 export function Theme({ onExit }) {
@@ -48,6 +55,33 @@ export function Theme({ onExit }) {
         localStorage.setItem('wallpaper-history', JSON.stringify(history.slice(0, 10))) // Keep last 10
       }
     }
+
+function extractFirstColor(gradient) {
+  const match = gradient.match(/#([0-9a-fA-F]{6})/);
+  return match ? match[0] : null;
+}
+
+const firstColor = extractFirstColor(titleColor);
+
+document.documentElement.style.setProperty(
+  '--firstcolor-bg',
+  firstColor
+   );
+
+
+   function extractSecondColor(gradient) {
+  const matches = gradient.match(/#([0-9a-fA-F]{6})/g);
+  return matches && matches.length > 1 ? matches[1] : null;
+}
+
+const secondColor = extractSecondColor(titleColor);
+
+document.documentElement.style.setProperty(
+  '--secondcolor-bg',
+  secondColor
+);
+
+
     
     document.documentElement.style.setProperty('--titlebar-bg', titleColor)
     if (wallpaper) {
