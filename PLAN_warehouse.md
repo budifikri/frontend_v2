@@ -39,7 +39,7 @@ Implement full CRUD (Create, Read, Update, Delete) for Warehouse using the API f
 
 ## Implementation Plan
 
-### 1. Create API Module
+### 1. Create API Module ✅
 **File:** `src/features/master/warehouse/warehouse.api.js`
 
 ```javascript
@@ -50,47 +50,53 @@ Implement full CRUD (Create, Read, Update, Delete) for Warehouse using the API f
 - deleteWarehouse(token, id) -> Promise
 ```
 
-### 2. Update Auth Hook to Export Token
+### 2. Update Auth Hook to Export Token ✅
 **File:** `src/shared/auth.jsx`
 - Export `auth` state so Warehouse component can access token
 
-### 3. Update Warehouse Component
+### 3. Update Warehouse Component ✅
 **File:** `src/components/ToolbarItem/master/Warehouse.jsx`
 
-**New State:**
-- `data` - warehouse list from API
-- `isLoading` - loading state
-- `error` - error message
-- `form` - extended with type, address, city, phone
-- `editIsActive` - for toggle active status
+**Design Template:** `document/template_table.html`
+- Dark gradient header (slate gray: #374151 → #1F2937)
+- Primary color: Teal (#0D9488)
+- Background: Gray 100 (#F3F4F6)
+- White cards with subtle shadows
+- Form grid: 2-8-2 column layout (Kode-Nama-Simpan)
+- Material Icons Round
 
-**New Features:**
+**Features Implemented:**
 - Fetch data from API on mount
-- Add filter: Active/Inactive/All  
-- Add pagination (NEXT/PREV buttons)
-- Add refresh button
-- Extended form fields (type, address, city, phone)
-- Toggle active status inline
+- Filter: Active/Inactive/All
+- Table columns: No, Kode, Nama
+- Row click to select (teal highlight)
+- Alternating row colors (white/slate-50)
+- Extended form fields (code, name)
 - Loading states on buttons
+- Keyboard shortcuts (F2, Delete, +, Escape)
 
-### 4. Update FooterMaster (Optional)
+### 4. Update FooterMaster ✅
 **File:** `src/components/ToolbarItem/footer/FooterMaster.jsx`
-- Add Refresh button if not exists
+- Filter dropdown
+- Refresh button
+- Search input
+- Pagination
 
 ## UI/UX Flow
 
 ### List View
-- Filter dropdown: Active | Inactive | All
-- Refresh button (top right)
-- Table columns: No, Code, Name, Type, City, Active (toogle)
-- Row click to select
-- NEXT/PREV for pagination
+- Header with accent bar and title "Daftar Gudang"
+- Table with glossy dark header
+- Row selection with teal background
+- Hover effects on rows
+- Material Icons in table headers
 
 ### Form (Create/Edit)
-- Fields: Code, Name, Type, Address, City, Phone
-- Type dropdown: MAIN, BRANCH, STORAGE, OUTLET
-- Active checkbox (edit mode only)
-- Save/Cancel buttons
+- Card design with border and shadow
+- Icon + title header
+- Grid layout: Kode (2fr) - Nama (8fr) - Simpan button (2fr)
+- Input styling with focus states
+- Save button with icon and hover effects
 
 ### Actions
 - **+ (+):** New warehouse
@@ -109,3 +115,27 @@ Implement full CRUD (Create, Read, Update, Delete) for Warehouse using the API f
 - Use existing `useAuth` from `src/shared/auth.jsx`
 - Use existing `FooterMaster` component
 - Use existing `DeleteMaster` component
+- Material Icons Round (Google Fonts)
+
+## Files Modified
+1. ✅ `src/features/master/warehouse/warehouse.api.js` - Created
+2. ✅ `src/shared/auth.jsx` - Updated to export auth state
+3. ✅ `src/components/ToolbarItem/master/Warehouse.jsx` - Redesigned
+4. ✅ `src/components/ToolbarItem/footer/FooterMaster.jsx` - Updated
+5. ✅ `src/App.css` - Added template-based styles
+6. ✅ `index.html` - Updated to Material Icons Round
+
+## Status
+✅ COMPLETE - Build successful
+- Material Icons Round (Google Fonts)
+
+## Files Modified
+1. ✅ `src/features/master/warehouse/warehouse.api.js` - Created
+2. ✅ `src/shared/auth.jsx` - Updated to export auth state
+3. ✅ `src/components/ToolbarItem/master/Warehouse.jsx` - Redesigned
+4. ✅ `src/components/ToolbarItem/footer/FooterMaster.jsx` - Updated
+5. ✅ `src/App.css` - Added template-based styles
+6. ✅ `index.html` - Updated to Material Icons Round
+
+## Status
+✅ COMPLETE - Build successful

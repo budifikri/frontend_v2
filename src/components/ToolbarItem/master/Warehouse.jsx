@@ -8,10 +8,6 @@ import { DeleteMaster } from '../footer/DeleteMaster'
 const DEFAULT_FORM = {
   code: '',
   name: '',
-  type: 'MAIN',
-  address: '',
-  city: '',
-  phone: '',
 }
 
 export function Warehouse({ onExit }) {
@@ -24,7 +20,6 @@ export function Warehouse({ onExit }) {
   const [isActiveFilter, setIsActiveFilter] = useState('active')
 
   const [searchKeyword, setSearchKeyword] = useState('')
-  const [editIsActive, setEditIsActive] = useState(true)
   const [form, setForm] = useState(DEFAULT_FORM)
   const [selectedIndex, setSelectedIndex] = useState(-1)
   const [showForm, setShowForm] = useState(false)
@@ -40,10 +35,6 @@ export function Warehouse({ onExit }) {
         id: item.kode,
         code: item.kode,
         name: item.nama,
-        type: 'MAIN',
-        address: '',
-        city: '',
-        phone: '',
         is_active: true,
       })))
       setIsLoading(false)
@@ -65,10 +56,6 @@ export function Warehouse({ onExit }) {
         id: item.kode,
         code: item.kode,
         name: item.nama,
-        type: 'MAIN',
-        address: '',
-        city: '',
-        phone: '',
         is_active: true,
       })))
     } finally {
@@ -133,7 +120,7 @@ export function Warehouse({ onExit }) {
       if (token) {
         if (selectedIndex >= 0) {
           const item = filteredData[selectedIndex]
-          await updateWarehouse(token, item.id, { ...form, is_active: editIsActive })
+          await updateWarehouse(token, item.id, form)
         } else {
           await createWarehouse(token, form)
         }
@@ -142,7 +129,7 @@ export function Warehouse({ onExit }) {
         if (selectedIndex >= 0) {
           const item = filteredData[selectedIndex]
           const newData = data.map(row => 
-            row.id === item.id ? { ...row, ...form, is_active: editIsActive } : row
+            row.id === item.id ? { ...row, ...form } : row
           )
           setData(newData)
         } else {
@@ -150,11 +137,7 @@ export function Warehouse({ onExit }) {
             id: form.code,
             code: form.code,
             name: form.name,
-            type: form.type,
-            address: form.address,
-            city: form.city,
-            phone: form.phone,
-            is_active: editIsActive,
+            is_active: true,
           }
           setData([...data, newItem])
         }
@@ -201,7 +184,6 @@ export function Warehouse({ onExit }) {
     setShowForm(true)
     setForm(DEFAULT_FORM)
     setSelectedIndex(-1)
-    setEditIsActive(true)
   }
 
   const handleEdit = () => {
@@ -210,12 +192,7 @@ export function Warehouse({ onExit }) {
       setForm({
         code: item.code || '',
         name: item.name || '',
-        type: item.type || 'MAIN',
-        address: item.address || '',
-        city: item.city || '',
-        phone: item.phone || '',
       })
-      setEditIsActive(item.is_active !== false)
       setShowForm(true)
     } else if (filteredData.length > 0) {
       setSelectedIndex(0)
@@ -223,12 +200,7 @@ export function Warehouse({ onExit }) {
       setForm({
         code: item.code || '',
         name: item.name || '',
-        type: item.type || 'MAIN',
-        address: item.address || '',
-        city: item.city || '',
-        phone: item.phone || '',
       })
-      setEditIsActive(item.is_active !== false)
       setShowForm(true)
     }
   }
@@ -269,148 +241,101 @@ export function Warehouse({ onExit }) {
     onExit()
   }
 
-  const getStatusLabel = (item) => {
-    if (typeof item.is_active === 'boolean') return item.is_active
-    return String(item.status ?? 'active').toLowerCase() !== 'inactive'
-  }
-
   return (
     <div className="master-content">
-      <h1 className="master-title">warehouse</h1>
+      <div className="master-header">
+        <div className="master-header-accent"></div>
+        <h1 className="master-title">Daftar Gudang</h1>
+      </div>
 
       {error && <div className="master-error">{error}</div>}
 
       <div className="master-table-wrapper">
-        <table className="master-table">
-          <thead>
-            <tr>
-              <th>No</th>
-              <th>Kode</th>
-              <th>Nama</th>
-              <th>Type</th>
-              <th>Kota</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredData.map((row, index) => (
-              <tr
-                key={row.id || index}
-                className={selectedIndex === index ? 'selected' : ''}
-                onClick={() => handleSelect(index)}
-              >
-                <td>{index + 1}</td>
-                <td>{row.code || '-'}</td>
-                <td>{row.name}</td>
-                <td>{row.type || '-'}</td>
-                <td>{row.city || '-'}</td>
-                <td>
-                  <label className="master-toggle">
-                    <input
-                      type="checkbox"
-                      checked={getStatusLabel(row)}
-                      disabled={togglingId === row.id}
-                      onChange={() => handleToggleActive(row)}
-                    />
-                    <span className={`master-toggle-label ${getStatusLabel(row) ? 'active' : ''}`}>
-                      {getStatusLabel(row) ? 'Active' : 'Inactive'}
-                    </span>
-                  </label>
-                </td>
-              </tr>
-            ))}
-            {!isLoading && filteredData.length === 0 && (
+        <div className="master-table-container">
+          <table className="master-table">
+            <thead>
               <tr>
-                <td colSpan={6} className="text-center">No data</td>
+                <th className="master-th-header">
+                  <div className="master-th-content">
+                    NO
+                    <span className="material-icons-round">unfold_more</span>
+                  </div>
+                </th>
+                <th className="master-th-header">
+                  <div className="master-th-content">
+                    KODE
+                    <span className="material-icons-round text-primary">expand_more</span>
+                  </div>
+                </th>
+                <th className="master-th-header">
+                  <div className="master-th-content">
+                    NAMA
+                    <span className="material-icons-round">unfold_more</span>
+                  </div>
+                </th>
               </tr>
-            )}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {filteredData.map((row, index) => (
+                <tr
+                  key={row.id || index}
+                  className={selectedIndex === index ? 'master-row-selected' : 'master-row'}
+                  onClick={() => handleSelect(index)}
+                >
+                  <td>{index + 1}</td>
+                  <td>{row.code || '-'}</td>
+                  <td>{row.name}</td>
+                </tr>
+              ))}
+              {!isLoading && filteredData.length === 0 && (
+                <tr>
+                  <td colSpan={3} className="text-center">No data</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {showForm && (
-        <div className="master-form">
-          <h2>{selectedIndex >= 0 ? 'Ubah Data Warehouse' : 'Isi Data Warehouse'}</h2>
+        <div className="master-form-card">
+          <div className="master-form-header">
+            <span className="material-icons-round master-form-icon">inventory</span>
+            <h2 className="master-form-title">{selectedIndex >= 0 ? 'Ubah Data Gudang' : 'Isi Data Gudang'}</h2>
+          </div>
           <div className="master-form-grid">
             <div className="master-form-group">
-              <label>Kode :</label>
+              <label className="master-form-label">Kode :</label>
               <input
                 type="text"
                 value={form.code}
                 onChange={(e) => setForm({ ...form, code: e.target.value })}
-                className="master-input"
+                className="master-form-input"
               />
             </div>
-            <div className="master-form-group">
-              <label>Nama :</label>
+            <div className="master-form-group-wide">
+              <label className="master-form-label">Nama :</label>
               <input
                 type="text"
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
-                className="master-input"
+                className="master-form-input"
+                placeholder="Masukkan nama gudang..."
               />
             </div>
-            <div className="master-form-group">
-              <label>Type :</label>
-              <select
-                value={form.type}
-                onChange={(e) => setForm({ ...form, type: e.target.value })}
-                className="master-input"
-              >
-                <option value="MAIN">MAIN</option>
-                <option value="BRANCH">BRANCH</option>
-                <option value="STORAGE">STORAGE</option>
-                <option value="OUTLET">OUTLET</option>
-              </select>
-            </div>
-            <div className="master-form-group">
-              <label>Alamat :</label>
-              <input
-                type="text"
-                value={form.address}
-                onChange={(e) => setForm({ ...form, address: e.target.value })}
-                className="master-input"
-              />
-            </div>
-            <div className="master-form-group">
-              <label>Kota :</label>
-              <input
-                type="text"
-                value={form.city}
-                onChange={(e) => setForm({ ...form, city: e.target.value })}
-                className="master-input"
-              />
-            </div>
-            <div className="master-form-group">
-              <label>Telepon :</label>
-              <input
-                type="text"
-                value={form.phone}
-                onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                className="master-input"
-              />
-            </div>
-            {selectedIndex >= 0 && (
-              <div className="master-form-group">
-                <label>Aktif :</label>
-                <input
-                  type="checkbox"
-                  checked={editIsActive}
-                  onChange={(e) => setEditIsActive(e.target.checked)}
-                />
-              </div>
-            )}
-            <div className="master-form-actions">
-              <button type="button" className="master-btn-save" onClick={handleSave} disabled={isSaving}>
-                {isSaving ? '...' : 'Simpan'}
-              </button>
-              <button type="button" className="master-btn-cancel" onClick={() => setShowForm(false)} disabled={isSaving}>
-                Cancel
-              </button>
-            </div>
+            <button
+              type="button"
+              className="master-btn-save-primary"
+              onClick={handleSave}
+              disabled={isSaving}
+            >
+              <span className="material-icons-round">save</span>
+              Simpan
+            </button>
           </div>
         </div>
       )}
+
       <FooterMaster
         onNew={handleNew}
         onEdit={handleEdit}
@@ -424,6 +349,7 @@ export function Warehouse({ onExit }) {
         onRefresh={fetchData}
         isLoading={isLoading}
       />
+
       {showDeleteConfirm && (
         <DeleteMaster
           itemName={filteredData[selectedIndex]?.name}
@@ -431,6 +357,7 @@ export function Warehouse({ onExit }) {
           onCancel={() => setShowDeleteConfirm(false)}
         />
       )}
+
       {showExitConfirm && (
         <DeleteMaster
           itemName="keluar dari halaman ini"
