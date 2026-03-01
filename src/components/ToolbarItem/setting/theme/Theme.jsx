@@ -57,6 +57,8 @@ export function Theme({ onExit }) {
       document.documentElement.style.setProperty('--app-wallpaper', 'none')
       document.body.classList.remove('has-wallpaper')
     }
+
+    if (onExit) onExit()
   }
 
   const handleCancel = () => {
@@ -196,20 +198,6 @@ export function Theme({ onExit }) {
                       <div className="mockup-base" />
                     </div>
                   )}
-                </div>
-                {/* Footer */}
-                <div className="mockup-footer">
-                  <div className="mockup-footer-actions">
-                    <div className="mockup-footer-btn">F1</div>
-                    <div className="mockup-footer-btn">F2</div>
-                    <div className="mockup-footer-btn">[del]</div>
-                    <div className="mockup-footer-btn">Print</div>
-                  </div>
-                  <div className="mockup-footer-search">
-                    <div className="mockup-search-input">Search...</div>
-                  </div>
-                  <div className="mockup-footer-info">Total: 0</div>
-                  <div className="mockup-exit-btn">EXIT</div>
                 </div>
               </div>
             </div>

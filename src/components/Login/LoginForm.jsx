@@ -3,8 +3,8 @@ export function LoginForm({ userId, password, onUserIdChange, onPasswordChange, 
     <main className="app-shell">
       <section className="login-window" aria-label="Minimarket login">
         <header className="window-titlebar">
-          <span className="titlebar-icon" aria-hidden="true">M</span>
-          <strong>Minimarket Ver 2.16.01</strong>
+          <span className="titlebar-icon" aria-hidden="true">P</span>
+          <strong>PosXpress </strong>
         </header>
 
         <div className="window-body">
@@ -43,7 +43,7 @@ export function LoginForm({ userId, password, onUserIdChange, onPasswordChange, 
         </div>
 
         <footer className="window-footer">
-          <span className="version-pill">Minimarket Ver 2.16.01.08</span>
+          <span className="version-pill">Ver 3.0</span>
           <div className="action-buttons" aria-label="login actions">
             <button type="button" className="circle-button cancel" aria-label="Batal" onClick={onReset}>
               &times;
