@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import './App.css'
 import {
   DashboardHeader,
@@ -9,8 +9,11 @@ import {
   LoginForm,
 } from './components'
 import { AuthProvider, useAuth } from './shared/auth'
-import { defaultMenu, toolbarItems } from './data'
+import { defaultMenu } from './data'
 import { login } from './features/auth/login.api'
+import { resolveShortcutTool } from './utils/shortcutHelper'
+
+const IMPLEMENTED_TOOLS = new Set(['warehouse', 'satuan', 'theme'])
 
 function AppContent() {
   const { auth, setAuth, clearAuth } = useAuth()
@@ -21,6 +24,17 @@ function AppContent() {
   const [password, setPassword] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
+
+  const activateTool = useCallback((toolKey, label = toolKey) => {
+    if (!toolKey) return
+
+    if (!IMPLEMENTED_TOOLS.has(toolKey)) {
+      window.alert(`${label} masih dalam pengembangan`)
+      return
+    }
+
+    setActiveTool(toolKey)
+  }, [])
 
   useEffect(() => {
     if (auth.token) {
@@ -47,20 +61,6 @@ function AppContent() {
   useEffect(() => {
     if (view !== 'dashboard') return
 
-    const menuTools = toolbarItems[activeMenu] || []
-    const shortcutMap = new Map()
-
-    menuTools.forEach((item) => {
-      if (item?.divider || !item?.mark || !item?.key || item?.backToLogin) return
-
-      const mark = String(item.mark).toLowerCase()
-      if (shortcutMap.has(mark)) {
-        console.warn(`Duplicate shortcut mark '${mark.toUpperCase()}' on menu '${activeMenu}'`)
-        return
-      }
-      shortcutMap.set(mark, item.key)
-    })
-
     const handleKeyDown = (event) => {
       const target = event.target
       const isTypingTarget =
@@ -76,16 +76,18 @@ function AppContent() {
       const key = event.key?.toLowerCase?.()
       if (!key || key.length !== 1) return
 
-      const toolKey = shortcutMap.get(key)
-      if (toolKey) {
+      if (event.ctrlKey || event.altKey || event.metaKey) return
+
+      const shortcutTool = resolveShortcutTool(activeMenu, key)
+      if (shortcutTool?.key) {
         event.preventDefault()
-        setActiveTool(toolKey)
+        activateTool(shortcutTool.key, shortcutTool.label)
       }
     }
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [view, activeMenu])
+  }, [view, activeMenu, activateTool])
 
   const handleLogin = async (event) => {
     event.preventDefault()
@@ -132,7 +134,7 @@ function AppContent() {
   }
 
   const handleToolClick = (toolKey) => {
-    setActiveTool(toolKey)
+    activateTool(toolKey, toolKey)
   }
 
   const handleExit = () => {
