@@ -44,6 +44,31 @@ function AppContent() {
     }
   }, [])
 
+  useEffect(() => {
+    if (view !== 'dashboard') return
+
+    const handleKeyDown = (event) => {
+      const target = event.target
+      const isTypingTarget =
+        target instanceof HTMLElement && (
+          target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.tagName === 'SELECT' ||
+          target.isContentEditable
+        )
+
+      if (isTypingTarget) return
+
+      if (activeMenu === 'master' && event.key.toLowerCase() === 'w') {
+        event.preventDefault()
+        setActiveTool('warehouse')
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [view, activeMenu])
+
   const handleLogin = async (event) => {
     event.preventDefault()
     setError('')

@@ -1333,6 +1333,10 @@ body.has-wallpaper .cash-register {
   background: #dc2626;
 }
 
+.delete-master-footer .btn-confirm.is-active {
+  box-shadow: 0 0 0 2px #fff, 0 0 0 4px rgba(239, 68, 68, 0.45);
+}
+
 .delete-master-footer .btn-cancel {
   background: #fff;
   color: #475569;
@@ -1342,6 +1346,11 @@ body.has-wallpaper .cash-register {
 .delete-master-footer .btn-cancel:hover {
   background: #f1f5f9;
   border-color: #94a3b8;
+}
+
+.delete-master-footer .btn-cancel.is-active {
+  border-color: #64748b;
+  box-shadow: 0 0 0 3px rgba(100, 116, 139, 0.2);
 }
 
 .print-only {
@@ -1467,6 +1476,10 @@ body.has-wallpaper .cash-register {
   background: #d1d5db;
 }
 
+.exit-popup-cancel.is-active {
+  box-shadow: 0 0 0 3px rgba(100, 116, 139, 0.25);
+}
+
 .exit-popup-confirm {
   padding: 10px 20px;
   background: #dc2626;
@@ -1479,4 +1492,8 @@ body.has-wallpaper .cash-register {
 
 .exit-popup-confirm:hover {
   background: #b91c1c;
+}
+
+.exit-popup-confirm.is-active {
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.3);
 }

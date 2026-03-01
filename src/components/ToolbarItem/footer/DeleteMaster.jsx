@@ -1,3 +1,5 @@
+import { useEffect, useState } from 'react'
+
 export function DeleteMaster({ onConfirm, onCancel, itemName, title = '', confirmText, cancelText, isExit = false }) {
   const bodyText = isExit 
     ? `Apakah Anda yakin ingin ${itemName}?`
@@ -5,6 +7,32 @@ export function DeleteMaster({ onConfirm, onCancel, itemName, title = '', confir
   const headerTitle = title || 'Konfirmasi Hapus'
   const btnConfirmText = confirmText || (isExit ? 'Ya' : 'Hapus')
   const btnCancelText = cancelText || 'Batal'
+  const [activeButton, setActiveButton] = useState('cancel')
+
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+        event.preventDefault()
+        setActiveButton((prev) => (prev === 'confirm' ? 'cancel' : 'confirm'))
+        return
+      }
+
+      if (event.key === 'Enter') {
+        event.preventDefault()
+        if (activeButton === 'confirm') onConfirm()
+        else onCancel()
+        return
+      }
+
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        onCancel()
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [activeButton, onConfirm, onCancel])
 
   return (
     <div className="delete-master-overlay">
@@ -17,10 +45,18 @@ export function DeleteMaster({ onConfirm, onCancel, itemName, title = '', confir
           <p>{bodyText}</p>
         </div>
         <div className="delete-master-footer">
-          <button type="button" className="btn-confirm" onClick={onConfirm}>
+          <button
+            type="button"
+            className={`btn-confirm ${activeButton === 'confirm' ? 'is-active' : ''}`}
+            onClick={onConfirm}
+          >
             {btnConfirmText}
           </button>
-          <button type="button" className="btn-cancel" onClick={onCancel}>
+          <button
+            type="button"
+            className={`btn-cancel ${activeButton === 'cancel' ? 'is-active' : ''}`}
+            onClick={onCancel}
+          >
             {btnCancelText}
           </button>
         </div>
