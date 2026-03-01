@@ -1,6 +1,7 @@
 :root {
   --frame-color: #2563eb;
   --app-wallpaper: none;
+  --titlebar-bg: linear-gradient(180deg, #60a5fa 0%, #2563eb 100%);
 }
 
 .app-shell {
@@ -294,16 +295,7 @@
   justify-content: space-between;
   padding: 0 8px 0 12px;
   color: #fff;
-  /* biru */
-  background: linear-gradient(180deg, #60a5fa 0%, #2563eb 100%);  
-  /* jangan dihapus */
-/*   ungu */
-/*   background: linear-gradient(180deg, #c084fc 0%, #7c3aed 100%);  */
-/*   🔴 Merah */
-/* background: linear-gradient(180deg, #f87171 0%, #dc2626 100%); */
-/* 🟠 Orange */
-/* background: linear-gradient(180deg, #fb923c 0%, #ea580c 100%);  */
-  
+  background: var(--titlebar-bg);
 }
 
 .dashboard-title-group {

@@ -14,7 +14,6 @@
   grid-template-columns: 1fr 1.2fr;
   gap: 32px;
   max-width: 1000px;
-  flex: 1;
   min-height: 0;
 }
 

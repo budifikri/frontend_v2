@@ -2,36 +2,32 @@ import { useState, useEffect } from 'react'
 import './Theme.css'
 
 const COLORS = [
-  '#2563eb', // Blue
-  '#475569', // Slate
-  '#0d9488', // Teal
-  '#0f172a', // Navy
-  '#9333ea', // Purple
-  '#059669', // Green
-  '#e11d48', // Red
-  '#d97706', // Orange
+  { name: 'Biru', value: 'linear-gradient(180deg, #60a5fa 0%, #2563eb 100%)' },
+  { name: 'Ungu', value: 'linear-gradient(180deg, #c084fc 0%, #7c3aed 100%)' },
+  { name: 'Merah', value: 'linear-gradient(180deg, #f87171 0%, #dc2626 100%)' },
+  { name: 'Orange', value: 'linear-gradient(180deg, #fb923c 0%, #ea580c 100%)' },
 ]
 
 export function Theme({ onExit }) {
   const [wallpaper, setWallpaper] = useState(localStorage.getItem('theme-wallpaper') || null)
-  const [frameColor, setFrameColor] = useState(localStorage.getItem('theme-frame-color') || '#2563eb')
+  const [titleColor, setTitleColor] = useState(localStorage.getItem('theme-title-color') || 'linear-gradient(180deg, #60a5fa 0%, #2563eb 100%)')
   const [savedWallpaper, setSavedWallpaper] = useState(wallpaper)
-  const [savedFrameColor, setSavedFrameColor] = useState(frameColor)
+  const [savedTitleColor, setSavedTitleColor] = useState(titleColor)
 
   useEffect(() => {
     // Apply saved settings on load
     const savedW = localStorage.getItem('theme-wallpaper')
-    const savedC = localStorage.getItem('theme-frame-color')
+    const savedC = localStorage.getItem('theme-title-color')
     if (savedW) document.documentElement.style.setProperty('--app-wallpaper', `url(${savedW})`)
-    if (savedC) document.documentElement.style.setProperty('--frame-color', savedC)
+    if (savedC) document.documentElement.style.setProperty('--titlebar-bg', savedC)
   }, [])
 
   const handleSave = () => {
     setSavedWallpaper(wallpaper)
-    setSavedFrameColor(frameColor)
+    setSavedTitleColor(titleColor)
     localStorage.setItem('theme-wallpaper', wallpaper || '')
-    localStorage.setItem('theme-frame-color', frameColor)
-    document.documentElement.style.setProperty('--frame-color', frameColor)
+    localStorage.setItem('theme-title-color', titleColor)
+    document.documentElement.style.setProperty('--titlebar-bg', titleColor)
     if (wallpaper) {
       document.documentElement.style.setProperty('--app-wallpaper', `url(${wallpaper})`)
     } else {
@@ -42,8 +38,8 @@ export function Theme({ onExit }) {
   const handleCancel = () => {
     // Revert to saved state
     setWallpaper(savedWallpaper)
-    setFrameColor(savedFrameColor)
-    document.documentElement.style.setProperty('--frame-color', savedFrameColor)
+    setTitleColor(savedTitleColor)
+    document.documentElement.style.setProperty('--titlebar-bg', savedTitleColor)
     if (savedWallpaper) {
       document.documentElement.style.setProperty('--app-wallpaper', `url(${savedWallpaper})`)
     } else {
@@ -103,20 +99,21 @@ export function Theme({ onExit }) {
             </div>
           </div>
 
-          {/* Frame Color Section */}
+          {/* Titlebar Color Section */}
           <div className="theme-section">
             <div className="theme-header">
               <span className="material-icons">palette</span>
-              <h2>Window Frame Color</h2>
+              <h2>Window Titlebar Color</h2>
             </div>
             <div className="theme-divider" />
             <div className="color-grid">
               {COLORS.map((color) => (
                 <button
-                  key={color}
-                  className={`color-swatch ${frameColor === color ? 'selected' : ''}`}
-                  style={{ backgroundColor: color }}
-                  onClick={() => setFrameColor(color)}
+                  key={color.name}
+                  className={`color-swatch ${titleColor === color.value ? 'selected' : ''}`}
+                  style={{ background: color.value }}
+                  onClick={() => setTitleColor(color.value)}
+                  title={color.name}
                 />
               ))}
             </div>
@@ -131,11 +128,11 @@ export function Theme({ onExit }) {
               <h2>Real-time Preview</h2>
             </div>
             <div className="theme-divider" />
-            <div className="preview-container">
-              <div className="mockup-frame" style={{ backgroundColor: frameColor }}>
-                <div className="mockup-wallpaper" style={{ backgroundImage: wallpaper ? `url(${wallpaper})` : 'none' }}>
+              <div className="preview-container">
+                <div className="mockup-frame" style={{ background: titleColor }}>
+                  <div className="mockup-wallpaper" style={{ backgroundImage: wallpaper ? `url(${wallpaper})` : 'none' }}>
                   <div className="mockup-window">
-                    <div className="mockup-titlebar">
+                    <div className="mockup-titlebar" style={{ background: titleColor }}>
                       <div className="mockup-dot" />
                       <span>POS Mockup</span>
                       <div className="mockup-controls">
