@@ -8,7 +8,13 @@ import { DeleteMaster } from '../footer/DeleteMaster'
 const DEFAULT_FORM = {
   code: '',
   name: '',
+  type: 'MAIN',
+  address: '',
+  city: '',
+  phone: '',
 }
+
+const WAREHOUSE_TYPES = ['MAIN', 'BRANCH', 'STORAGE', 'OUTLET']
 
 export function Warehouse({ onExit }) {
   const { auth } = useAuth()
@@ -34,6 +40,10 @@ export function Warehouse({ onExit }) {
         id: item.kode,
         code: item.kode,
         name: item.nama,
+        type: 'MAIN',
+        address: '',
+        city: '',
+        phone: '',
         is_active: true,
       })))
       setIsLoading(false)
@@ -55,6 +65,10 @@ export function Warehouse({ onExit }) {
         id: item.kode,
         code: item.kode,
         name: item.nama,
+        type: 'MAIN',
+        address: '',
+        city: '',
+        phone: '',
         is_active: true,
       })))
     } finally {
@@ -107,7 +121,11 @@ export function Warehouse({ onExit }) {
     const keyword = searchKeyword.toLowerCase()
     return (
       (row.code || '').toLowerCase().includes(keyword) ||
-      (row.name || '').toLowerCase().includes(keyword)
+      (row.name || '').toLowerCase().includes(keyword) ||
+      (row.type || '').toLowerCase().includes(keyword) ||
+      (row.address || '').toLowerCase().includes(keyword) ||
+      (row.city || '').toLowerCase().includes(keyword) ||
+      (row.phone || '').toLowerCase().includes(keyword)
     )
   })
 
@@ -115,7 +133,7 @@ export function Warehouse({ onExit }) {
   const isEditing = selectedItem != null
 
   const handleSave = async () => {
-    if (!form.code || !form.name) return
+    if (!form.code || !form.name || !form.type) return
 
     setIsSaving(true)
     try {
@@ -137,6 +155,10 @@ export function Warehouse({ onExit }) {
             id: form.code,
             code: form.code,
             name: form.name,
+            type: form.type,
+            address: form.address,
+            city: form.city,
+            phone: form.phone,
             is_active: true,
           }
           setData([...data, newItem])
@@ -195,6 +217,10 @@ export function Warehouse({ onExit }) {
       setForm({
         code: selectedItem.code || '',
         name: selectedItem.name || '',
+        type: selectedItem.type || 'MAIN',
+        address: selectedItem.address || '',
+        city: selectedItem.city || '',
+        phone: selectedItem.phone || '',
       })
       setShowForm(true)
     } else if (filteredData.length > 0) {
@@ -203,6 +229,10 @@ export function Warehouse({ onExit }) {
       setForm({
         code: item.code || '',
         name: item.name || '',
+        type: item.type || 'MAIN',
+        address: item.address || '',
+        city: item.city || '',
+        phone: item.phone || '',
       })
       setShowForm(true)
     }
@@ -211,6 +241,11 @@ export function Warehouse({ onExit }) {
   const handlePrint = () => {
     setShowForm(false)
     window.print()
+  }
+
+  const handleCancelForm = () => {
+    setShowForm(false)
+    setForm(DEFAULT_FORM)
   }
 
   const handleExitClick = () => {
@@ -304,15 +339,68 @@ export function Warehouse({ onExit }) {
                 placeholder="Masukkan nama warehouse..."
               />
             </div>
-            <button
-              type="button"
-              className="master-btn-save-primary"
-              onClick={handleSave}
-              disabled={isSaving}
-            >
-              <span className="material-icons-round">save</span>
-              Simpan
-            </button>
+            <div className="master-form-group">
+              <label className="master-form-label">Tipe :</label>
+              <select
+                value={form.type}
+                onChange={(e) => setForm({ ...form, type: e.target.value })}
+                className="master-form-input"
+              >
+                {WAREHOUSE_TYPES.map((type) => (
+                  <option key={type} value={type}>{type}</option>
+                ))}
+              </select>
+            </div>
+            <div className="master-form-group-wide">
+              <label className="master-form-label">Alamat :</label>
+              <input
+                type="text"
+                value={form.address}
+                onChange={(e) => setForm({ ...form, address: e.target.value })}
+                className="master-form-input"
+                placeholder="Masukkan alamat warehouse..."
+              />
+            </div>
+            <div className="master-form-group">
+              <label className="master-form-label">Kota :</label>
+              <input
+                type="text"
+                value={form.city}
+                onChange={(e) => setForm({ ...form, city: e.target.value })}
+                className="master-form-input"
+                placeholder="Masukkan kota..."
+              />
+            </div>
+            <div className="master-form-group">
+              <label className="master-form-label">Telepon :</label>
+              <input
+                type="text"
+                value={form.phone}
+                onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                className="master-form-input"
+                placeholder="Masukkan telepon..."
+              />
+            </div>
+            <div className="master-form-actions">
+              <button
+                type="button"
+                className="master-btn-save-primary"
+                onClick={handleSave}
+                disabled={isSaving}
+              >
+                <span className="material-icons-round">save</span>
+                Simpan
+              </button>
+              <button
+                type="button"
+                className="master-btn-cancel-secondary"
+                onClick={handleCancelForm}
+                disabled={isSaving}
+              >
+                <span className="material-icons-round">close</span>
+                Cancel
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -949,6 +949,8 @@ body.has-wallpaper .cash-register {
 
 .master-btn-save-primary .material-icons-round {
   font-size: 20px;
+  color: #fff;
+  opacity: 1;
 }
 
 .master-form-actions {
@@ -960,27 +962,38 @@ body.has-wallpaper .cash-register {
 
 .master-btn-cancel-secondary {
   height: 44px;
-  border: 1px solid #cbd5e1;
+  border: none;
   border-radius: 8px;
   padding: 0 16px;
-  background: #fff;
-  color: #475569;
+  background: #dc2626;
+  color: #fff;
   font-size: 0.875rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 4px 6px rgba(220, 38, 38, 0.3);
   transition: all 150ms ease;
 }
 
 .master-btn-cancel-secondary:hover {
-  background: #f8fafc;
-  border-color: #94a3b8;
+  background: #b91c1c;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 10px rgba(220, 38, 38, 0.4);
 }
 
 .master-btn-cancel-secondary:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+.master-btn-cancel-secondary .material-icons-round {
+  color: #fff;
+  font-size: 20px;
 }
 
 .master-footer {
