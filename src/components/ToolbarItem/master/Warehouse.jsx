@@ -21,13 +21,12 @@ export function Warehouse({ onExit }) {
 
   const [searchKeyword, setSearchKeyword] = useState('')
   const [form, setForm] = useState(DEFAULT_FORM)
-  const [selectedIndex, setSelectedIndex] = useState(-1)
+  const [selectedId, setSelectedId] = useState(null)
   const [showForm, setShowForm] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [showExitConfirm, setShowExitConfirm] = useState(false)
 
   const [isSaving, setIsSaving] = useState(false)
-  const [togglingId, setTogglingId] = useState(null)
 
   const fetchData = useCallback(async () => {
     if (!token) {
@@ -102,7 +101,7 @@ export function Warehouse({ onExit }) {
     
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [showForm, showDeleteConfirm, showExitConfirm, selectedIndex, data])
+  }, [showForm, showDeleteConfirm, selectedId, data, searchKeyword])
 
   const filteredData = data.filter((row) => {
     const keyword = searchKeyword.toLowerCase()
@@ -112,24 +111,25 @@ export function Warehouse({ onExit }) {
     )
   })
 
+  const selectedItem = selectedId == null ? null : data.find((item) => item.id === selectedId) || null
+  const isEditing = selectedItem != null
+
   const handleSave = async () => {
     if (!form.code || !form.name) return
 
     setIsSaving(true)
     try {
       if (token) {
-        if (selectedIndex >= 0) {
-          const item = filteredData[selectedIndex]
-          await updateWarehouse(token, item.id, form)
+        if (selectedItem) {
+          await updateWarehouse(token, selectedItem.id, form)
         } else {
           await createWarehouse(token, form)
         }
         await fetchData()
       } else {
-        if (selectedIndex >= 0) {
-          const item = filteredData[selectedIndex]
+        if (selectedItem) {
           const newData = data.map(row => 
-            row.id === item.id ? { ...row, ...form } : row
+            row.id === selectedItem.id ? { ...row, ...form } : row
           )
           setData(newData)
         } else {
@@ -143,7 +143,7 @@ export function Warehouse({ onExit }) {
         }
       }
       setForm(DEFAULT_FORM)
-      setSelectedIndex(-1)
+      setSelectedId(null)
       setShowForm(false)
     } catch (err) {
       setError(err.message || 'Failed to save')
@@ -152,30 +152,34 @@ export function Warehouse({ onExit }) {
     }
   }
 
-  const handleSelect = (index) => {
-    setSelectedIndex(index)
+  const handleSelect = (row) => {
+    setSelectedId(row.id)
   }
 
   const handleDeleteClick = () => {
-    if (selectedIndex >= 0) {
+    if (selectedItem) {
       setShowDeleteConfirm(true)
     }
   }
 
   const handleConfirmDelete = async () => {
+    if (!selectedItem) {
+      setShowDeleteConfirm(false)
+      return
+    }
+
     if (token) {
       try {
-        const item = filteredData[selectedIndex]
-        await deleteWarehouse(token, item.id)
+        await deleteWarehouse(token, selectedItem.id)
       } catch (err) {
         console.warn('API delete failed, deleting locally:', err.message)
       }
     }
-    
-    const newData = data.filter((_, i) => i !== selectedIndex)
+
+    const newData = data.filter((row) => row.id !== selectedItem.id)
     setData(newData)
     setForm(DEFAULT_FORM)
-    setSelectedIndex(-1)
+    setSelectedId(null)
     setShowForm(false)
     setShowDeleteConfirm(false)
   }
@@ -183,48 +187,25 @@ export function Warehouse({ onExit }) {
   const handleNew = () => {
     setShowForm(true)
     setForm(DEFAULT_FORM)
-    setSelectedIndex(-1)
+    setSelectedId(null)
   }
 
   const handleEdit = () => {
-    if (selectedIndex >= 0) {
-      const item = filteredData[selectedIndex]
+    if (selectedItem) {
       setForm({
-        code: item.code || '',
-        name: item.name || '',
+        code: selectedItem.code || '',
+        name: selectedItem.name || '',
       })
       setShowForm(true)
     } else if (filteredData.length > 0) {
-      setSelectedIndex(0)
       const item = filteredData[0]
+      setSelectedId(item.id)
       setForm({
         code: item.code || '',
         name: item.name || '',
       })
       setShowForm(true)
     }
-  }
-
-  const handleToggleActive = async (item) => {
-    if (togglingId) return
-    const nextIsActive = !item.is_active
-    
-    if (token) {
-      setTogglingId(item.id)
-      try {
-        await updateWarehouse(token, item.id, { is_active: nextIsActive })
-        await fetchData()
-      } catch (err) {
-        console.warn('API toggle failed, toggling locally:', err.message)
-      } finally {
-        setTogglingId(null)
-      }
-    }
-    
-    const newData = data.map(row => 
-      row.id === item.id ? { ...row, is_active: nextIsActive } : row
-    )
-    setData(newData)
   }
 
   const handlePrint = () => {
@@ -245,7 +226,7 @@ export function Warehouse({ onExit }) {
     <div className="master-content">
       <div className="master-header">
         <div className="master-header-accent"></div>
-        <h1 className="master-title">Daftar Gudang</h1>
+        <h1 className="master-title">Daftar Warehouse</h1>
       </div>
 
       {error && <div className="master-error">{error}</div>}
@@ -279,8 +260,8 @@ export function Warehouse({ onExit }) {
               {filteredData.map((row, index) => (
                 <tr
                   key={row.id || index}
-                  className={selectedIndex === index ? 'master-row-selected' : 'master-row'}
-                  onClick={() => handleSelect(index)}
+                  className={selectedId === row.id ? 'master-row-selected' : 'master-row'}
+                  onClick={() => handleSelect(row)}
                 >
                   <td>{index + 1}</td>
                   <td>{row.code || '-'}</td>
@@ -301,7 +282,7 @@ export function Warehouse({ onExit }) {
         <div className="master-form-card">
            <div className="master-form-header">
              <span className="material-icons-round master-form-icon">store</span>
-             <h2 className="master-form-title">{selectedIndex >= 0 ? 'Ubah Data Gudang' : 'Isi Data Gudang'}</h2>
+             <h2 className="master-form-title">{isEditing ? 'Ubah Data Warehouse' : 'Isi Data Warehouse'}</h2>
            </div>
           <div className="master-form-grid">
             <div className="master-form-group">
@@ -320,7 +301,7 @@ export function Warehouse({ onExit }) {
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
                 className="master-form-input"
-                placeholder="Masukkan nama gudang..."
+                placeholder="Masukkan nama warehouse..."
               />
             </div>
             <button
@@ -352,7 +333,7 @@ export function Warehouse({ onExit }) {
 
       {showDeleteConfirm && (
         <DeleteMaster
-          itemName={filteredData[selectedIndex]?.name}
+          itemName={selectedItem?.name}
           onConfirm={handleConfirmDelete}
           onCancel={() => setShowDeleteConfirm(false)}
         />

@@ -7,7 +7,7 @@ export function FooterMaster({ onNew, onEdit, onDelete, totalRow, onSearch, onPr
           <span className="master-footer-key">+</span>
         </button>
         <button type="button" className="master-footer-btn" onClick={onEdit}>
-          <span className="material-icons-round master-footer-icon orange">edit_square</span>
+          <span className="material-icons-round master-footer-icon orange">edit</span>
           <span className="master-footer-key">F2</span>
         </button>
         <button type="button" className="master-footer-btn" onClick={onDelete}>
