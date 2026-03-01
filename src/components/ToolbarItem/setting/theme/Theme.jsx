@@ -189,9 +189,10 @@ export function Theme({ onExit }) {
                   <div className="mockup-toolbar-item">Dept.</div>
                 </div>
                 {/* Canvas Area */}
-                <div className="mockup-canvas" style={{ background: wallpaper ? `url(${wallpaper})` : '#008080', backgroundSize: 'cover' }}>
-                  {/* Cash Register (when no tool active) */}
-                  {!wallpaper && (
+                <div className="mockup-canvas">
+                  {wallpaper ? (
+                    <img src={wallpaper} alt="Wallpaper" className="mockup-wallpaper-img" />
+                  ) : (
                     <div className="mockup-cash-register">
                       <div className="mockup-display" />
                       <div className="mockup-keys" />
