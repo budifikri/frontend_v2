@@ -10,7 +10,7 @@ export function DeleteMaster({ onConfirm, onCancel, itemName, title = '', confir
     <div className="delete-master-overlay">
       <div className="delete-master-modal">
         <div className="delete-master-header">
-          <span className="material-icon red">warning</span>
+          <span className="material-icons-round material-icon red">warning</span>
           <h2>{headerTitle}</h2>
         </div>
         <div className="delete-master-body">

@@ -299,10 +299,10 @@ export function Warehouse({ onExit }) {
 
       {showForm && (
         <div className="master-form-card">
-          <div className="master-form-header">
-            <span className="material-icons-round master-form-icon">inventory</span>
-            <h2 className="master-form-title">{selectedIndex >= 0 ? 'Ubah Data Gudang' : 'Isi Data Gudang'}</h2>
-          </div>
+           <div className="master-form-header">
+             <span className="material-icons-round master-form-icon">store</span>
+             <h2 className="master-form-title">{selectedIndex >= 0 ? 'Ubah Data Gudang' : 'Isi Data Gudang'}</h2>
+           </div>
           <div className="master-form-grid">
             <div className="master-form-group">
               <label className="master-form-label">Kode :</label>

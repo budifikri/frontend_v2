@@ -3,19 +3,19 @@ export function FooterMaster({ onNew, onEdit, onDelete, totalRow, onSearch, onPr
     <div className="master-footer">
       <div className="master-footer-actions">
         <button type="button" className="master-footer-btn" onClick={onNew}>
-          <span className="master-footer-icon orange">add_box</span>
+          <span className="material-icons-round master-footer-icon orange">add_box</span>
           <span className="master-footer-key">+</span>
         </button>
         <button type="button" className="master-footer-btn" onClick={onEdit}>
-          <span className="master-footer-icon orange">edit_square</span>
+          <span className="material-icons-round master-footer-icon orange">edit_square</span>
           <span className="master-footer-key">F2</span>
         </button>
         <button type="button" className="master-footer-btn" onClick={onDelete}>
-          <span className="master-footer-icon red">remove_circle</span>
+          <span className="material-icons-round master-footer-icon red">remove_circle</span>
           <span className="master-footer-key">DEL</span>
         </button>
         <button type="button" className="master-footer-btn" onClick={onPrint}>
-          <span className="master-footer-icon">print</span>
+          <span className="material-icons-round master-footer-icon">print</span>
         </button>
       </div>
       <div className="master-footer-search">
@@ -26,7 +26,7 @@ export function FooterMaster({ onNew, onEdit, onDelete, totalRow, onSearch, onPr
           onChange={(e) => onSearch && onSearch(e.target.value)}
         />
         <button type="button" className="master-search-btn">
-          <span className="material-icon">search</span>
+          <span className="material-icons-round material-icon">search</span>
         </button>
       </div>
       <div className="master-footer-pagination">
