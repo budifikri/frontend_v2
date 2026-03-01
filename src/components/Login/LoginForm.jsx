@@ -1,4 +1,4 @@
-export function LoginForm({ userId, password, onUserIdChange, onPasswordChange, onSubmit, onReset }) {
+export function LoginForm({ userId, password, onUserIdChange, onPasswordChange, onSubmit, onReset, isLoading, error }) {
   return (
     <main className="app-shell">
       <section className="login-window" aria-label="Minimarket login">
@@ -24,6 +24,7 @@ export function LoginForm({ userId, password, onUserIdChange, onPasswordChange, 
               value={userId}
               onChange={(event) => onUserIdChange(event.target.value)}
               autoComplete="username"
+              disabled={isLoading}
             />
 
             <label htmlFor="password">PASSWORD</label>
@@ -34,7 +35,12 @@ export function LoginForm({ userId, password, onUserIdChange, onPasswordChange, 
               value={password}
               onChange={(event) => onPasswordChange(event.target.value)}
               autoComplete="current-password"
+              disabled={isLoading}
             />
+
+            {error && (
+              <div className="login-error">{error}</div>
+            )}
 
             <button type="submit" className="visually-hidden" aria-hidden="true" tabIndex={-1}>
               Login
@@ -45,11 +51,11 @@ export function LoginForm({ userId, password, onUserIdChange, onPasswordChange, 
         <footer className="window-footer">
           <span className="version-pill">Ver 3.0</span>
           <div className="action-buttons" aria-label="login actions">
-            <button type="button" className="circle-button cancel" aria-label="Batal" onClick={onReset}>
+            <button type="button" className="circle-button cancel" aria-label="Batal" onClick={onReset} disabled={isLoading}>
               &times;
             </button>
-            <button type="button" className="circle-button submit" aria-label="Masuk" onClick={onSubmit}>
-              &#10003;
+            <button type="button" className="circle-button submit" aria-label="Masuk" onClick={onSubmit} disabled={isLoading || !userId.trim() || !password.trim()}>
+              {isLoading ? '...' : '✓'}
             </button>
           </div>
         </footer>

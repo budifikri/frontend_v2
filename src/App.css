@@ -176,6 +176,21 @@
   box-shadow: 0 0 0 3px rgba(47, 103, 226, 0.18), inset 0 2px 4px rgba(0, 0, 0, 0.08);
 }
 
+.login-error {
+  color: #dc2626;
+  font-size: 0.875rem;
+  text-align: center;
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  background: #fee2e2;
+  border-radius: 4px;
+}
+
+.login-form input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .window-footer {
   display: flex;
   justify-content: space-between;

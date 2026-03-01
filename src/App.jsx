@@ -8,17 +8,28 @@ import {
   DashboardFooter,
   LoginForm,
 } from './components'
+import { AuthProvider, useAuth } from './shared/auth'
 import { defaultMenu } from './data'
+import { login } from './features/auth/login.api'
 
-function App() {
+function AppContent() {
+  const { auth, setAuth, clearAuth } = useAuth()
   const [view, setView] = useState('login')
   const [activeMenu, setActiveMenu] = useState(defaultMenu)
   const [activeTool, setActiveTool] = useState(null)
-  const [userId, setUserId] = useState('A')
+  const [userId, setUserId] = useState('')
   const [password, setPassword] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState('')
 
   useEffect(() => {
-    // Apply theme settings on initial load (localStorage > .env)
+    if (auth.token) {
+      setView('dashboard')
+      setActiveMenu(defaultMenu)
+    }
+  }, [auth.token])
+
+  useEffect(() => {
     const savedWallpaper = localStorage.getItem('theme-wallpaper') || import.meta.env.VITE_DEFAULT_WALLPAPER
     const savedTitleColor = localStorage.getItem('theme-title-color') || import.meta.env.VITE_DEFAULT_TITLEBAR_COLOR
     
@@ -33,15 +44,27 @@ function App() {
     }
   }, [])
 
-  const handleLogin = (event) => {
+  const handleLogin = async (event) => {
     event.preventDefault()
-    setView('dashboard')
-    setActiveMenu(defaultMenu)
+    setError('')
+    setIsLoading(true)
+
+    try {
+      const result = await login({ username: userId, password })
+      setAuth({ token: result.token, role: result.role })
+      setView('dashboard')
+      setActiveMenu(defaultMenu)
+    } catch (err) {
+      setError(err.message || 'Login failed')
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const handleReset = async () => {
     setUserId('')
     setPassword('')
+    setError('')
     if (window.__TAURI__) {
       try {
         const { getCurrentWindow } = await import('@tauri-apps/api/window')
@@ -51,6 +74,13 @@ function App() {
         console.error('Tauri error:', e)
       }
     }
+  }
+
+  const handleLogout = () => {
+    clearAuth()
+    setView('login')
+    setUserId('')
+    setPassword('')
   }
 
   const handleMenuChange = (menuKey) => {
@@ -77,12 +107,12 @@ function App() {
           />
           <DashboardToolbar 
             activeMenu={activeMenu} 
-            onLoginClick={() => setView('login')}
+            onLoginClick={handleLogout}
             onToolClick={handleToolClick}
           />
           <DashboardCanvas activeTool={activeTool} onExit={handleExit} />
         </section>
-        <DashboardFooter user={userId} />
+        <DashboardFooter user={auth.role || userId} />
       </main>
     )
   }
@@ -95,7 +125,17 @@ function App() {
       onPasswordChange={setPassword}
       onSubmit={handleLogin}
       onReset={handleReset}
+      isLoading={isLoading}
+      error={error}
     />
+  )
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   )
 }
 
