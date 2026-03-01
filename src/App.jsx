@@ -39,9 +39,18 @@ function App() {
     setActiveMenu(defaultMenu)
   }
 
-  const handleReset = () => {
+  const handleReset = async () => {
     setUserId('')
     setPassword('')
+    if (window.__TAURI__) {
+      try {
+        const { getCurrentWindow } = await import('@tauri-apps/api/window')
+        const appWindow = getCurrentWindow()
+        await appWindow.close()
+      } catch (e) {
+        console.error('Tauri error:', e)
+      }
+    }
   }
 
   const handleMenuChange = (menuKey) => {
