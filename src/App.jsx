@@ -13,7 +13,7 @@ import { defaultMenu } from './data'
 import { login } from './features/auth/login.api'
 import { resolveShortcutTool } from './utils/shortcutHelper'
 
-const IMPLEMENTED_TOOLS = new Set(['warehouse', 'satuan', 'theme'])
+const IMPLEMENTED_TOOLS = new Set(['warehouse', 'satuan', 'categori', 'product', 'customer', 'supplier', 'company', 'theme'])
 
 function AppContent() {
   const { auth, setAuth, clearAuth } = useAuth()

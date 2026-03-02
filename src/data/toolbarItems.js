@@ -7,11 +7,10 @@ export const toolbarItems = {
     { key: 'categori', label: 'Kategori', mark: 'K', tone: 'blue' },
     { key: 'product', label: 'Product', mark: 'P', tone: 'indigo' },
     { key: 'divider-3', divider: true },
-    { key: 'payment', label: 'Payment', mark: 'Y', tone: 'yellow' },
     { key: 'customer', label: 'Customer', mark: 'C', tone: 'pink' },
     { key: 'supplier', label: 'Supplier', mark: 'S', tone: 'lime' },
-    { key: 'divider-4', divider: true },
-    { key: 'voucher', label: 'Voucher', mark: 'V', tone: 'red' },
+ 
+
   ],
   transaksi: [
   { key: 'logout', label: 'Logout', mark: 'L', tone: 'slate', backToLogin: true },
@@ -40,6 +39,7 @@ export const toolbarItems = {
     { key: 'divider-1', divider: true },
       { key: 'theme', label: 'Theme', mark: 'T', tone: 'cyan' },
     { key: 'user', label: 'User', mark: 'U', tone: 'blue' },
+        { key: 'company', label: 'Company', mark: 'O', tone: 'red' },
     { key: 'backup', label: 'Backup', mark: 'B', tone: 'green' },
     { key: 'restore', label: 'Restore', mark: 'R', tone: 'orange' },
   ],

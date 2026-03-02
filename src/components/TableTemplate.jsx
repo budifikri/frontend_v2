@@ -1,12 +1,8 @@
-import React from 'react';
-
 export default function TableTemplate({
-  title,
   headers = [],
   data = [],
   onRowClick,
   selectedRow,
-  children,
 }) {
   return (
     <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col min-h-[500px]">

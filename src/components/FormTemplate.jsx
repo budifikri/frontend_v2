@@ -1,12 +1,9 @@
-import React from 'react';
-
 export default function FormTemplate({
   title,
   subtitle,
   icon,
   onSubmit,
   onCancel,
-  isEditing = false,
   children,
   submitText = "Simpan",
   cancelText = "Batal",

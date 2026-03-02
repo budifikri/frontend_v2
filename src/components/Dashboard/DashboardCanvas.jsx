@@ -1,5 +1,10 @@
 import { Warehouse } from '../ToolbarItem/master/Warehouse'
 import { Satuan } from '../ToolbarItem/master/Satuan'
+import { Category } from '../ToolbarItem/master/Category'
+import { Product } from '../ToolbarItem/master/Product'
+import { Customer } from '../ToolbarItem/master/Customer'
+import { Supplier } from '../ToolbarItem/master/Supplier'
+import { Company } from '../ToolbarItem/master/Company'
 import { Theme } from '../ToolbarItem/setting/theme/Theme'
 
 export function DashboardCanvas({ activeTool, onExit }) {
@@ -23,6 +28,46 @@ export function DashboardCanvas({ activeTool, onExit }) {
     return (
       <div className="dashboard-canvas">
         <Theme onExit={onExit} />
+      </div>
+    )
+  }
+
+  if (activeTool === 'customer') {
+    return (
+      <div className="dashboard-canvas">
+        <Customer onExit={onExit} />
+      </div>
+    )
+  }
+
+  if (activeTool === 'supplier') {
+    return (
+      <div className="dashboard-canvas">
+        <Supplier onExit={onExit} />
+      </div>
+    )
+  }
+
+  if (activeTool === 'categori') {
+    return (
+      <div className="dashboard-canvas">
+        <Category onExit={onExit} />
+      </div>
+    )
+  }
+
+  if (activeTool === 'product') {
+    return (
+      <div className="dashboard-canvas">
+        <Product onExit={onExit} />
+      </div>
+    )
+  }
+
+  if (activeTool === 'company' || activeTool === 'dept') {
+    return (
+      <div className="dashboard-canvas">
+        <Company onExit={onExit} />
       </div>
     )
   }

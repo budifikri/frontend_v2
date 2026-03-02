@@ -3,6 +3,7 @@ import { useAuth } from '../../../shared/auth'
 import { listWarehouses, createWarehouse, updateWarehouse, deleteWarehouse } from '../../../features/master/warehouse/warehouse.api'
 import { gudangDummyData } from '../../../data'
 import { FooterMaster } from '../footer/FooterMaster'
+import { FooterFormMaster } from '../footer/FooterFormMaster'
 import { DeleteMaster } from '../footer/DeleteMaster'
 
 const DEFAULT_FORM = {
@@ -117,6 +118,7 @@ export function Warehouse({ onExit }) {
     
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showForm, showDeleteConfirm, selectedId, data, searchKeyword])
 
   const filteredData = data.filter((row) => {
@@ -476,26 +478,7 @@ export function Warehouse({ onExit }) {
                 placeholder="Masukkan telepon..."
               />
             </div>
-            <div className="master-form-actions">
-              <button
-                type="button"
-                className="master-btn-save-primary"
-                onClick={handleSave}
-                disabled={isSaving}
-              >
-                <span className="material-icons-round">save</span>
-                Simpan
-              </button>
-              <button
-                type="button"
-                className="master-btn-cancel-secondary"
-                onClick={handleCancelForm}
-                disabled={isSaving}
-              >
-                <span className="material-icons-round">close</span>
-                Cancel
-              </button>
-            </div>
+            <FooterFormMaster onSave={handleSave} onCancel={handleCancelForm} isSaving={isSaving} />
           </div>
         </div>
       )}
