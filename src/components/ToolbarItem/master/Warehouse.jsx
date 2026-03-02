@@ -8,6 +8,7 @@ import { DeleteMaster } from '../footer/DeleteMaster'
 import { MasterTableHeader } from '../table/MasterTableHeader'
 import { MasterStatusToggle } from '../table/MasterStatusToggle'
 import { useMasterTableSort } from '../../../hooks/useMasterTableSort'
+import { useMasterPagination } from '../../../hooks/useMasterPagination'
 
 const DEFAULT_FORM = {
   code: '',
@@ -35,10 +36,13 @@ export function Warehouse({ onExit }) {
 
   const [data, setData] = useState([])
   const [isLoading, setIsLoading] = useState(false)
+  const [pagination, setPagination] = useState({ has_more: false, total: 0 })
   const [error, setError] = useState('')
   const [isActiveFilter, setIsActiveFilter] = useState('active')
 
   const [searchKeyword, setSearchKeyword] = useState('')
+  const pager = useMasterPagination({ initialLimit: 10, total: pagination.total, hasMore: pagination.has_more })
+  const { limit, offset } = pager
   const [form, setForm] = useState(DEFAULT_FORM)
   const [selectedId, setSelectedId] = useState(null)
   const [showForm, setShowForm] = useState(false)
@@ -50,7 +54,7 @@ export function Warehouse({ onExit }) {
 
   const fetchData = useCallback(async () => {
     if (!token) {
-      setData(gudangDummyData.rows.map(item => ({
+      const mapped = gudangDummyData.rows.map(item => ({
         id: item.kode,
         code: item.kode,
         name: item.nama,
@@ -59,7 +63,27 @@ export function Warehouse({ onExit }) {
         city: '',
         phone: '',
         is_active: true,
-      })))
+      }))
+
+      const keyword = searchKeyword.trim().toLowerCase()
+      const filtered = mapped.filter((item) => {
+        if (isActiveFilter === 'active' && !item.is_active) return false
+        if (isActiveFilter === 'inactive' && item.is_active) return false
+        if (!keyword) return true
+
+        return (
+          String(item.code || '').toLowerCase().includes(keyword) ||
+          String(item.name || '').toLowerCase().includes(keyword) ||
+          String(item.type || '').toLowerCase().includes(keyword) ||
+          String(item.address || '').toLowerCase().includes(keyword) ||
+          String(item.city || '').toLowerCase().includes(keyword) ||
+          String(item.phone || '').toLowerCase().includes(keyword)
+        )
+      })
+
+      const rows = filtered.slice(offset, offset + limit)
+      setData(rows)
+      setPagination({ total: filtered.length, has_more: offset + limit < filtered.length })
       setIsLoading(false)
       return
     }
@@ -68,14 +92,23 @@ export function Warehouse({ onExit }) {
     setError('')
     try {
       const params = {
+        search: searchKeyword.trim() || undefined,
         is_active: isActiveFilter === 'all' ? undefined : isActiveFilter === 'active',
         include_inactive: isActiveFilter === 'all' ? true : undefined,
+        limit,
+        offset,
       }
       const result = await listWarehouses(token, params)
-      setData(result)
+      setData(result.items || [])
+      const nextPagination = result.pagination || {}
+      const itemsLength = (result.items || []).length
+      setPagination({
+        total: Number(nextPagination.total ?? (offset + itemsLength + (itemsLength === limit ? 1 : 0))),
+        has_more: Boolean(nextPagination.has_more ?? (itemsLength === limit)),
+      })
     } catch (err) {
       console.warn('API failed, using dummy data:', err.message)
-      setData(gudangDummyData.rows.map(item => ({
+      const mapped = gudangDummyData.rows.map(item => ({
         id: item.kode,
         code: item.kode,
         name: item.nama,
@@ -84,11 +117,14 @@ export function Warehouse({ onExit }) {
         city: '',
         phone: '',
         is_active: true,
-      })))
+      }))
+      const rows = mapped.slice(offset, offset + limit)
+      setData(rows)
+      setPagination({ total: mapped.length, has_more: offset + limit < mapped.length })
     } finally {
       setIsLoading(false)
     }
-  }, [token, isActiveFilter])
+  }, [token, isActiveFilter, searchKeyword, limit, offset])
 
   useEffect(() => {
     fetchData()
@@ -132,19 +168,7 @@ export function Warehouse({ onExit }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showForm, showDeleteConfirm, selectedId, data, searchKeyword])
 
-  const filteredData = data.filter((row) => {
-    const keyword = searchKeyword.toLowerCase()
-    return (
-      (row.code || '').toLowerCase().includes(keyword) ||
-      (row.name || '').toLowerCase().includes(keyword) ||
-      (row.type || '').toLowerCase().includes(keyword) ||
-      (row.address || '').toLowerCase().includes(keyword) ||
-      (row.city || '').toLowerCase().includes(keyword) ||
-      (row.phone || '').toLowerCase().includes(keyword)
-    )
-  })
-
-  const { sortConfig, sortedData, handleSort } = useMasterTableSort(filteredData, {
+  const { sortConfig, sortedData, handleSort } = useMasterTableSort(data, {
     initialKey: 'code',
     valueGetters: {
       is_active: (row) => (row?.is_active ? 1 : 0),
@@ -302,6 +326,16 @@ export function Warehouse({ onExit }) {
     onExit()
   }
 
+  const handleSearchChange = (value) => {
+    pager.reset()
+    setSearchKeyword(value)
+  }
+
+  const handleStatusFilter = (value) => {
+    pager.reset()
+    setIsActiveFilter(value)
+  }
+
   return (
     <div className="master-content">
       <div className="master-header">
@@ -322,7 +356,7 @@ export function Warehouse({ onExit }) {
                   className={selectedId === row.id ? 'master-row-selected' : 'master-row'}
                   onClick={() => handleSelect(row)}
                 >
-                  <td>{index + 1}</td>
+                  <td>{offset + index + 1}</td>
                   <td>{row.code || '-'}</td>
                   <td>{row.name}</td>
                   <td>{row.type || '-'}</td>
@@ -426,14 +460,22 @@ export function Warehouse({ onExit }) {
         onNew={handleNew}
         onEdit={handleEdit}
         onDelete={handleDeleteClick}
-        totalRow={filteredData.length}
-        onSearch={setSearchKeyword}
+        totalRow={pagination.total || data.length}
+        onSearch={handleSearchChange}
         onPrint={handlePrint}
         onExit={handleExitClick}
         filter={isActiveFilter}
-        onFilterChange={setIsActiveFilter}
+        onFilterChange={handleStatusFilter}
         onRefresh={fetchData}
         isLoading={isLoading}
+        page={pager.page}
+        totalPages={pager.totalPages}
+        canPrev={pager.canPrev}
+        canNext={pager.canNext}
+        onFirstPage={pager.goFirst}
+        onPrevPage={pager.goPrev}
+        onNextPage={pager.goNext}
+        onLastPage={pager.goLast}
       />
 
       {showDeleteConfirm && (

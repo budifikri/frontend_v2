@@ -7,6 +7,7 @@ import { DeleteMaster } from '../footer/DeleteMaster'
 import { MasterTableHeader } from '../table/MasterTableHeader'
 import { MasterStatusToggle } from '../table/MasterStatusToggle'
 import { useMasterTableSort } from '../../../hooks/useMasterTableSort'
+import { useMasterPagination } from '../../../hooks/useMasterPagination'
 
 const DEFAULT_FORM = {
   code: '',
@@ -80,7 +81,7 @@ export function Company({ onExit }) {
   const token = auth?.token
 
   const [data, setData] = useState([])
-  const [totalRow, setTotalRow] = useState(0)
+  const [pagination, setPagination] = useState({ has_more: false, total: 0 })
   const [isLoading, setIsLoading] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState('')
@@ -92,8 +93,8 @@ export function Company({ onExit }) {
 
   const [isActiveFilter, setIsActiveFilter] = useState('active')
   const [searchKeyword, setSearchKeyword] = useState('')
-  const [limit] = useState(20)
-  const [offset, setOffset] = useState(0)
+  const pager = useMasterPagination({ initialLimit: 10, total: pagination.total, hasMore: pagination.has_more })
+  const { limit, offset } = pager
   const [togglingId, setTogglingId] = useState(null)
 
   const [form, setForm] = useState(DEFAULT_FORM)
@@ -113,30 +114,47 @@ export function Company({ onExit }) {
     setIsLoading(true)
 
     try {
-      const allItems = token ? await listCompanies(token) : DUMMY_COMPANIES
-      const keyword = searchKeyword.trim().toLowerCase()
+      if (!token) {
+        const keyword = searchKeyword.trim().toLowerCase()
+        const filtered = DUMMY_COMPANIES.filter((item) => {
+          const active = isActiveCompany(item)
+          if (isActiveFilter === 'active' && !active) return false
+          if (isActiveFilter === 'inactive' && active) return false
 
-      const filtered = allItems.filter((item) => {
-        const active = isActiveCompany(item)
-        if (isActiveFilter === 'active' && !active) return false
-        if (isActiveFilter === 'inactive' && active) return false
+          if (!keyword) return true
+          return (
+            String(item.code || '').toLowerCase().includes(keyword) ||
+            String(item.nama || item.name || '').toLowerCase().includes(keyword) ||
+            String(item.email || '').toLowerCase().includes(keyword) ||
+            String(item.telp || item.phone || '').toLowerCase().includes(keyword)
+          )
+        })
 
-        if (!keyword) return true
-        return (
-          String(item.code || '').toLowerCase().includes(keyword) ||
-          String(item.nama || item.name || '').toLowerCase().includes(keyword) ||
-          String(item.email || '').toLowerCase().includes(keyword) ||
-          String(item.telp || item.phone || '').toLowerCase().includes(keyword)
-        )
+        const rows = filtered.slice(offset, offset + limit)
+        setData(rows)
+        setPagination({ total: filtered.length, has_more: offset + limit < filtered.length })
+        return
+      }
+
+      const result = await listCompanies(token, {
+        search: searchKeyword.trim() || undefined,
+        is_active: isActiveFilter === 'all' ? undefined : isActiveFilter === 'active',
+        include_inactive: isActiveFilter === 'all' ? true : undefined,
+        limit,
+        offset,
       })
+      const items = result.items || []
+      const nextPagination = result.pagination || {}
 
-      const rows = filtered.slice(offset, offset + limit)
-      setData(rows)
-      setTotalRow(filtered.length)
+      setData(items)
+      setPagination({
+        total: Number(nextPagination.total ?? (offset + items.length + (items.length === limit ? 1 : 0))),
+        has_more: Boolean(nextPagination.has_more ?? (items.length === limit)),
+      })
     } catch (err) {
       setError(err.message || 'Failed to load companies')
       setData([])
-      setTotalRow(0)
+      setPagination({ total: 0, has_more: false })
     } finally {
       setIsLoading(false)
     }
@@ -218,7 +236,7 @@ export function Company({ onExit }) {
             ...payload,
           }
           setData((prev) => [next, ...prev])
-          setTotalRow((prev) => prev + 1)
+          setPagination((prev) => ({ ...prev, total: prev.total + 1 }))
         }
       }
 
@@ -266,7 +284,7 @@ export function Company({ onExit }) {
         await fetchData()
       } else {
         setData((prev) => prev.filter((row) => row.id !== selectedItem.id))
-        setTotalRow((prev) => Math.max(0, prev - 1))
+        setPagination((prev) => ({ ...prev, total: Math.max(0, prev.total - 1) }))
       }
     } catch (err) {
       setError(err.message || 'Failed to delete company')
@@ -301,12 +319,12 @@ export function Company({ onExit }) {
   }
 
   function handleSearchChange(value) {
-    setOffset(0)
+    pager.reset()
     setSearchKeyword(value)
   }
 
   function handleStatusFilter(value) {
-    setOffset(0)
+    pager.reset()
     setIsActiveFilter(value)
   }
 
@@ -430,7 +448,7 @@ export function Company({ onExit }) {
         onNew={handleNew}
         onEdit={handleEdit}
         onDelete={handleDeleteClick}
-        totalRow={totalRow}
+        totalRow={pagination.total || data.length}
         onSearch={handleSearchChange}
         onPrint={handlePrint}
         onExit={handleExitClick}
@@ -438,6 +456,14 @@ export function Company({ onExit }) {
         onFilterChange={handleStatusFilter}
         onRefresh={fetchData}
         isLoading={isLoading}
+        page={pager.page}
+        totalPages={pager.totalPages}
+        canPrev={pager.canPrev}
+        canNext={pager.canNext}
+        onFirstPage={pager.goFirst}
+        onPrevPage={pager.goPrev}
+        onNextPage={pager.goNext}
+        onLastPage={pager.goLast}
       />
 
       {showDeleteConfirm && (

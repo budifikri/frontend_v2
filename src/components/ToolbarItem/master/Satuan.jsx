@@ -8,6 +8,7 @@ import { DeleteMaster } from '../footer/DeleteMaster'
 import { MasterTableHeader } from '../table/MasterTableHeader'
 import { MasterStatusToggle } from '../table/MasterStatusToggle'
 import { useMasterTableSort } from '../../../hooks/useMasterTableSort'
+import { useMasterPagination } from '../../../hooks/useMasterPagination'
 
 const DEFAULT_FORM = {
   code: '',
@@ -38,12 +39,15 @@ export function Satuan({ onExit }) {
   const token = auth?.token
 
   const [data, setData] = useState([])
+  const [pagination, setPagination] = useState({ has_more: false, total: 0 })
   const [isLoading, setIsLoading] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState('')
 
   const [isActiveFilter, setIsActiveFilter] = useState('active')
   const [searchKeyword, setSearchKeyword] = useState('')
+  const pager = useMasterPagination({ initialLimit: 10, total: pagination.total, hasMore: pagination.has_more })
+  const { limit, offset } = pager
 
   const [form, setForm] = useState(DEFAULT_FORM)
   const [selectedId, setSelectedId] = useState(null)
@@ -54,7 +58,20 @@ export function Satuan({ onExit }) {
 
   const fetchData = useCallback(async () => {
     if (!token) {
-      setData(mapDummyRows())
+      const keyword = searchKeyword.trim().toLowerCase()
+      const filtered = mapDummyRows().filter((row) => {
+        if (isActiveFilter === 'active' && !row.is_active) return false
+        if (isActiveFilter === 'inactive' && row.is_active) return false
+        if (!keyword) return true
+        return (
+          (row.code || '').toLowerCase().includes(keyword) ||
+          (row.name || '').toLowerCase().includes(keyword) ||
+          (row.description || '').toLowerCase().includes(keyword)
+        )
+      })
+      const rows = filtered.slice(offset, offset + limit)
+      setData(rows)
+      setPagination({ total: filtered.length, has_more: offset + limit < filtered.length })
       setIsLoading(false)
       return
     }
@@ -67,28 +84,27 @@ export function Satuan({ onExit }) {
         search: searchKeyword.trim() || undefined,
         is_active: isActiveFilter === 'all' ? undefined : isActiveFilter === 'active',
         include_inactive: isActiveFilter === 'all' ? true : undefined,
-        limit: 50,
-        offset: 0,
+        limit,
+        offset,
       })
       setData(result)
+      setPagination({
+        total: offset + result.length + (result.length === limit ? 1 : 0),
+        has_more: result.length === limit,
+      })
     } catch (err) {
       console.warn('Units API failed, fallback to dummy data:', err.message)
-      setData(mapDummyRows())
+      const fallback = mapDummyRows()
+      const rows = fallback.slice(offset, offset + limit)
+      setData(rows)
+      setPagination({ total: fallback.length, has_more: offset + limit < fallback.length })
     } finally {
       setIsLoading(false)
     }
-  }, [token, isActiveFilter, searchKeyword])
+  }, [token, isActiveFilter, searchKeyword, limit, offset])
 
   const selectedItem = selectedId == null ? null : data.find((row) => row.id === selectedId) || null
-  const filteredData = data.filter((row) => {
-    const keyword = searchKeyword.toLowerCase()
-    return (
-      (row.code || '').toLowerCase().includes(keyword) ||
-      (row.name || '').toLowerCase().includes(keyword) ||
-      (row.description || '').toLowerCase().includes(keyword)
-    )
-  })
-  const { sortConfig, sortedData, handleSort } = useMasterTableSort(filteredData, {
+  const { sortConfig, sortedData, handleSort } = useMasterTableSort(data, {
     initialKey: 'code',
     valueGetters: {
       is_active: (row) => (row?.is_active ? 1 : 0),
@@ -205,8 +221,8 @@ export function Satuan({ onExit }) {
       return
     }
 
-    if (filteredData.length > 0) {
-      const first = filteredData[0]
+    if (sortedData.length > 0) {
+      const first = sortedData[0]
       setSelectedId(first.id)
       setForm({
         code: first.code || '',
@@ -277,6 +293,16 @@ export function Satuan({ onExit }) {
     window.print()
   }
 
+  function handleSearchChange(value) {
+    pager.reset()
+    setSearchKeyword(value)
+  }
+
+  function handleStatusFilter(value) {
+    pager.reset()
+    setIsActiveFilter(value)
+  }
+
   function handleExitClick() {
     setShowExitConfirm(true)
   }
@@ -306,7 +332,7 @@ export function Satuan({ onExit }) {
                   className={selectedId === row.id ? 'master-row-selected' : 'master-row'}
                   onClick={() => handleSelect(row)}
                 >
-                  <td>{index + 1}</td>
+                  <td>{offset + index + 1}</td>
                   <td>{row.code || '-'}</td>
                   <td>{row.name || '-'}</td>
                   <td>{row.description || '-'}</td>
@@ -377,14 +403,22 @@ export function Satuan({ onExit }) {
         onNew={handleNew}
         onEdit={handleEdit}
         onDelete={handleDeleteClick}
-        totalRow={filteredData.length}
-        onSearch={setSearchKeyword}
+        totalRow={pagination.total || data.length}
+        onSearch={handleSearchChange}
         onPrint={handlePrint}
         onExit={handleExitClick}
         filter={isActiveFilter}
-        onFilterChange={setIsActiveFilter}
+        onFilterChange={handleStatusFilter}
         onRefresh={fetchData}
         isLoading={isLoading}
+        page={pager.page}
+        totalPages={pager.totalPages}
+        canPrev={pager.canPrev}
+        canNext={pager.canNext}
+        onFirstPage={pager.goFirst}
+        onPrevPage={pager.goPrev}
+        onNextPage={pager.goNext}
+        onLastPage={pager.goLast}
       />
 
       {showDeleteConfirm && (

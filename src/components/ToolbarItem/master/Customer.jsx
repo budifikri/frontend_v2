@@ -7,6 +7,7 @@ import { DeleteMaster } from '../footer/DeleteMaster'
 import { MasterTableHeader } from '../table/MasterTableHeader'
 import { MasterStatusToggle } from '../table/MasterStatusToggle'
 import { useMasterTableSort } from '../../../hooks/useMasterTableSort'
+import { useMasterPagination } from '../../../hooks/useMasterPagination'
 
 const DEFAULT_FORM = {
   name: '',
@@ -95,7 +96,7 @@ export function Customer({ onExit }) {
   const token = auth?.token
 
   const [data, setData] = useState([])
-  const [pagination, setPagination] = useState({ limit: 20, offset: 0, has_more: false, total: 0 })
+  const [pagination, setPagination] = useState({ has_more: false, total: 0 })
   const [isLoading, setIsLoading] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState('')
@@ -103,8 +104,8 @@ export function Customer({ onExit }) {
   const [searchKeyword, setSearchKeyword] = useState('')
   const [tierFilter, setTierFilter] = useState('')
   const [isActiveFilter, setIsActiveFilter] = useState('active')
-  const [limit] = useState(20)
-  const [offset, setOffset] = useState(0)
+  const pager = useMasterPagination({ initialLimit: 10, total: pagination.total, hasMore: pagination.has_more })
+  const { limit, offset } = pager
 
   const [form, setForm] = useState(DEFAULT_FORM)
   const [selectedId, setSelectedId] = useState(null)
@@ -137,8 +138,6 @@ export function Customer({ onExit }) {
       const rows = filtered.slice(offset, offset + limit)
       setData(rows)
       setPagination({
-        limit,
-        offset,
         total: filtered.length,
         has_more: offset + limit < filtered.length,
       })
@@ -159,15 +158,13 @@ export function Customer({ onExit }) {
       setData(result.items || [])
       const nextPagination = result.pagination || {}
       setPagination({
-        limit,
-        offset,
         total: Number(nextPagination.total ?? 0),
         has_more: Boolean(nextPagination.has_more),
       })
     } catch (err) {
       setError(err.message || 'Failed to load customers')
       setData([])
-      setPagination({ limit, offset, total: 0, has_more: false })
+      setPagination({ total: 0, has_more: false })
     } finally {
       setIsLoading(false)
     }
@@ -224,17 +221,17 @@ export function Customer({ onExit }) {
   }, [showDeleteConfirm, showForm, selectedId, data])
 
   function handleSearchChange(value) {
-    setOffset(0)
+    pager.reset()
     setSearchKeyword(value)
   }
 
   function handleTierChange(value) {
-    setOffset(0)
+    pager.reset()
     setTierFilter(value)
   }
 
   function handleStatusFilter(value) {
-    setOffset(0)
+    pager.reset()
     setIsActiveFilter(value)
   }
 
@@ -372,14 +369,6 @@ export function Customer({ onExit }) {
     )))
   }
 
-  function handlePrevPage() {
-    setOffset((prev) => Math.max(0, prev - limit))
-  }
-
-  function handleNextPage() {
-    if (!pagination.has_more) return
-    setOffset((prev) => prev + limit)
-  }
 
   function handleCancelForm() {
     setShowForm(false)
@@ -399,8 +388,6 @@ export function Customer({ onExit }) {
     setShowExitConfirm(false)
     onExit()
   }
-
-  const pageNumber = Math.floor(offset / limit) + 1
 
   return (
     <div className="master-content">
@@ -425,15 +412,6 @@ export function Customer({ onExit }) {
           </select>
         </div>
 
-        <div className="master-inline-pagination">
-          <button type="button" className="master-page-btn" onClick={handlePrevPage} disabled={offset === 0}>
-            <span className="material-icons-round master-page-icon">chevron_left</span>
-          </button>
-          <span className="master-page-info">Page {pageNumber}</span>
-          <button type="button" className="master-page-btn" onClick={handleNextPage} disabled={!pagination.has_more}>
-            <span className="material-icons-round master-page-icon">chevron_right</span>
-          </button>
-        </div>
       </div>
 
       {error && <div className="master-error">{error}</div>}
@@ -555,6 +533,14 @@ export function Customer({ onExit }) {
         onFilterChange={handleStatusFilter}
         onRefresh={fetchData}
         isLoading={isLoading}
+        page={pager.page}
+        totalPages={pager.totalPages}
+        canPrev={pager.canPrev}
+        canNext={pager.canNext}
+        onFirstPage={pager.goFirst}
+        onPrevPage={pager.goPrev}
+        onNextPage={pager.goNext}
+        onLastPage={pager.goLast}
       />
 
       {showDeleteConfirm && (

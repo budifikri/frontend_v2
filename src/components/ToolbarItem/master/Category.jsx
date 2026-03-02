@@ -7,6 +7,7 @@ import { DeleteMaster } from '../footer/DeleteMaster'
 import { MasterTableHeader } from '../table/MasterTableHeader'
 import { MasterStatusToggle } from '../table/MasterStatusToggle'
 import { useMasterTableSort } from '../../../hooks/useMasterTableSort'
+import { useMasterPagination } from '../../../hooks/useMasterPagination'
 
 const DEFAULT_FORM = {
   code: '',
@@ -38,14 +39,15 @@ export function Category({ onExit }) {
   const token = auth?.token
 
   const [data, setData] = useState([])
+  const [pagination, setPagination] = useState({ has_more: false, total: 0 })
   const [isLoading, setIsLoading] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState('')
 
   const [searchKeyword, setSearchKeyword] = useState('')
   const [isActiveFilter, setIsActiveFilter] = useState('active')
-  const [limit] = useState(50)
-  const [offset, setOffset] = useState(0)
+  const pager = useMasterPagination({ initialLimit: 10, total: pagination.total, hasMore: pagination.has_more })
+  const { limit, offset } = pager
 
   const [form, setForm] = useState(DEFAULT_FORM)
   const [selectedId, setSelectedId] = useState(null)
@@ -74,33 +76,30 @@ export function Category({ onExit }) {
         )
       })
 
-      setData(filtered.slice(offset, offset + limit))
+      const rows = filtered.slice(offset, offset + limit)
+      setData(rows)
+      setPagination({ total: filtered.length, has_more: offset + limit < filtered.length })
       setIsLoading(false)
       return
     }
 
     try {
       const items = await listCategories(token, {
+        search: searchKeyword.trim() || undefined,
         limit,
         offset,
         is_active: isActiveFilter === 'all' ? undefined : isActiveFilter === 'active',
         include_inactive: isActiveFilter === 'all' ? true : undefined,
       })
-
-      const keyword = searchKeyword.trim().toLowerCase()
-      const filtered = !keyword
-        ? items
-        : items.filter((item) => (
-          String(item.code || '').toLowerCase().includes(keyword) ||
-          String(item.name || '').toLowerCase().includes(keyword) ||
-          String(item.description || '').toLowerCase().includes(keyword) ||
-          String(item.parent_id || '').toLowerCase().includes(keyword)
-        ))
-
-      setData(filtered)
+      setData(items)
+      setPagination({
+        total: offset + items.length + (items.length === limit ? 1 : 0),
+        has_more: items.length === limit,
+      })
     } catch (err) {
       setError(err.message || 'Failed to load categories')
       setData([])
+      setPagination({ total: 0, has_more: false })
     } finally {
       setIsLoading(false)
     }
@@ -262,12 +261,12 @@ export function Category({ onExit }) {
   }
 
   function handleSearchChange(value) {
-    setOffset(0)
+    pager.reset()
     setSearchKeyword(value)
   }
 
   function handleStatusChange(value) {
-    setOffset(0)
+    pager.reset()
     setIsActiveFilter(value)
   }
 
@@ -310,7 +309,7 @@ export function Category({ onExit }) {
                   className={selectedId === row.id ? 'master-row-selected' : 'master-row'}
                   onClick={() => handleSelect(row)}
                 >
-                  <td>{index + 1}</td>
+                  <td>{offset + index + 1}</td>
                   <td>{row.code || '-'}</td>
                   <td>{row.name || '-'}</td>
                   <td>{row.parent_id || '-'}</td>
@@ -368,7 +367,7 @@ export function Category({ onExit }) {
         onNew={handleNew}
         onEdit={handleEdit}
         onDelete={handleDeleteClick}
-        totalRow={data.length}
+        totalRow={pagination.total || data.length}
         onSearch={handleSearchChange}
         onPrint={handlePrint}
         onExit={handleExitClick}
@@ -376,6 +375,14 @@ export function Category({ onExit }) {
         onFilterChange={handleStatusChange}
         onRefresh={fetchData}
         isLoading={isLoading}
+        page={pager.page}
+        totalPages={pager.totalPages}
+        canPrev={pager.canPrev}
+        canNext={pager.canNext}
+        onFirstPage={pager.goFirst}
+        onPrevPage={pager.goPrev}
+        onNextPage={pager.goNext}
+        onLastPage={pager.goLast}
       />
 
       {showDeleteConfirm && (

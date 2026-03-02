@@ -10,6 +10,14 @@ export function FooterMaster({
   onFilterChange,
   onRefresh,
   isLoading = false,
+  page = 1,
+  totalPages = 1,
+  canPrev = false,
+  canNext = false,
+  onFirstPage,
+  onPrevPage,
+  onNextPage,
+  onLastPage,
 }) {
   return (
     <div className="master-footer">
@@ -62,17 +70,17 @@ export function FooterMaster({
         </button>
       </div>
       <div className="master-footer-pagination">
-        <button type="button" className="master-page-btn" title="First Page">
+        <button type="button" className="master-page-btn" title="First Page" onClick={onFirstPage} disabled={!canPrev}>
           <span className="material-icons-round master-page-icon">first_page</span>
         </button>
-        <button type="button" className="master-page-btn" title="Previous Page">
+        <button type="button" className="master-page-btn" title="Previous Page" onClick={onPrevPage} disabled={!canPrev}>
           <span className="material-icons-round master-page-icon">chevron_left</span>
         </button>
-        <span className="master-page-info">Page 1 of 1</span>
-        <button type="button" className="master-page-btn" title="Next Page">
+        <span className="master-page-info">Page {page} of {totalPages}</span>
+        <button type="button" className="master-page-btn" title="Next Page" onClick={onNextPage} disabled={!canNext}>
           <span className="material-icons-round master-page-icon">chevron_right</span>
         </button>
-        <button type="button" className="master-page-btn" title="Last Page">
+        <button type="button" className="master-page-btn" title="Last Page" onClick={onLastPage} disabled={!canNext}>
           <span className="material-icons-round master-page-icon">last_page</span>
         </button>
       </div>

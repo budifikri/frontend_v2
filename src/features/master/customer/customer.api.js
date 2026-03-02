@@ -19,7 +19,7 @@ export async function listCustomers(token, params = {}) {
   return {
     items: items ?? [],
     pagination: {
-      limit: params.limit ?? 20,
+      limit: params.limit ?? 10,
       offset: params.offset ?? 0,
       ...pagination,
     },
