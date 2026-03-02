@@ -5,6 +5,9 @@ import { gudangDummyData } from '../../../data'
 import { FooterMaster } from '../footer/FooterMaster'
 import { FooterFormMaster } from '../footer/FooterFormMaster'
 import { DeleteMaster } from '../footer/DeleteMaster'
+import { MasterTableHeader } from '../table/MasterTableHeader'
+import { MasterStatusToggle } from '../table/MasterStatusToggle'
+import { useMasterTableSort } from '../../../hooks/useMasterTableSort'
 
 const DEFAULT_FORM = {
   code: '',
@@ -16,6 +19,15 @@ const DEFAULT_FORM = {
 }
 
 const WAREHOUSE_TYPES = ['MAIN', 'BRANCH', 'STORAGE', 'OUTLET']
+
+const TABLE_COLUMNS = [
+  { key: 'no', label: 'NO', sortable: false },
+  { key: 'code', label: 'KODE' },
+  { key: 'name', label: 'NAMA' },
+  { key: 'type', label: 'TYPE' },
+  { key: 'city', label: 'CITY' },
+  { key: 'is_active', label: 'STATUS' },
+]
 
 export function Warehouse({ onExit }) {
   const { auth } = useAuth()
@@ -35,7 +47,6 @@ export function Warehouse({ onExit }) {
 
   const [isSaving, setIsSaving] = useState(false)
   const [togglingId, setTogglingId] = useState(null)
-  const [sortConfig, setSortConfig] = useState({ key: 'code', direction: 'asc' })
 
   const fetchData = useCallback(async () => {
     if (!token) {
@@ -133,20 +144,11 @@ export function Warehouse({ onExit }) {
     )
   })
 
-  const sortedData = [...filteredData].sort((a, b) => {
-    const { key, direction } = sortConfig
-
-    if (key === 'is_active') {
-      const aVal = a.is_active ? 1 : 0
-      const bVal = b.is_active ? 1 : 0
-      return direction === 'asc' ? aVal - bVal : bVal - aVal
-    }
-
-    const aVal = String(a[key] ?? '').toLowerCase()
-    const bVal = String(b[key] ?? '').toLowerCase()
-    if (aVal === bVal) return 0
-    const cmp = aVal > bVal ? 1 : -1
-    return direction === 'asc' ? cmp : -cmp
+  const { sortConfig, sortedData, handleSort } = useMasterTableSort(filteredData, {
+    initialKey: 'code',
+    valueGetters: {
+      is_active: (row) => (row?.is_active ? 1 : 0),
+    },
   })
 
   const selectedItem = selectedId == null ? null : data.find((item) => item.id === selectedId) || null
@@ -286,27 +288,6 @@ export function Warehouse({ onExit }) {
     )))
   }
 
-  const handleSort = (key) => {
-    setSortConfig((prev) => {
-      if (prev.key === key) {
-        return {
-          key,
-          direction: prev.direction === 'asc' ? 'desc' : 'asc',
-        }
-      }
-
-      return {
-        key,
-        direction: 'asc',
-      }
-    })
-  }
-
-  const getSortIcon = (key) => {
-    if (sortConfig.key !== key) return 'unfold_more'
-    return sortConfig.direction === 'asc' ? 'expand_less' : 'expand_more'
-  }
-
   const handleCancelForm = () => {
     setShowForm(false)
     setForm(DEFAULT_FORM)
@@ -333,46 +314,7 @@ export function Warehouse({ onExit }) {
       <div className="master-table-wrapper">
         <div className="master-table-container">
           <table className="master-table">
-            <thead>
-              <tr>
-                <th className="master-th-header">
-                  <div className="master-th-content">
-                    NO
-                    <span className="material-icons-round">unfold_more</span>
-                  </div>
-                </th>
-                <th className="master-th-header master-th-sortable" onClick={() => handleSort('code')}>
-                  <div className="master-th-content">
-                    KODE
-                    <span className={`material-icons-round ${sortConfig.key === 'code' ? 'text-primary' : ''}`}>{getSortIcon('code')}</span>
-                  </div>
-                </th>
-                <th className="master-th-header master-th-sortable" onClick={() => handleSort('name')}>
-                  <div className="master-th-content">
-                    NAMA
-                    <span className={`material-icons-round ${sortConfig.key === 'name' ? 'text-primary' : ''}`}>{getSortIcon('name')}</span>
-                  </div>
-                </th>
-                <th className="master-th-header master-th-sortable" onClick={() => handleSort('type')}>
-                  <div className="master-th-content">
-                    TYPE
-                    <span className={`material-icons-round ${sortConfig.key === 'type' ? 'text-primary' : ''}`}>{getSortIcon('type')}</span>
-                  </div>
-                </th>
-                <th className="master-th-header master-th-sortable" onClick={() => handleSort('city')}>
-                  <div className="master-th-content">
-                    CITY
-                    <span className={`material-icons-round ${sortConfig.key === 'city' ? 'text-primary' : ''}`}>{getSortIcon('city')}</span>
-                  </div>
-                </th>
-                <th className="master-th-header master-th-sortable" onClick={() => handleSort('is_active')}>
-                  <div className="master-th-content">
-                    STATUS
-                    <span className={`material-icons-round ${sortConfig.key === 'is_active' ? 'text-primary' : ''}`}>{getSortIcon('is_active')}</span>
-                  </div>
-                </th>
-              </tr>
-            </thead>
+            <MasterTableHeader columns={TABLE_COLUMNS} sortConfig={sortConfig} onSort={handleSort} />
             <tbody>
               {sortedData.map((row, index) => (
                 <tr
@@ -386,17 +328,14 @@ export function Warehouse({ onExit }) {
                   <td>{row.type || '-'}</td>
                   <td>{row.city || '-'}</td>
                   <td>
-                    <button
-                      type="button"
-                      className={`master-status-toggle ${row.is_active ? 'is-active' : 'is-inactive'}`}
+                    <MasterStatusToggle
+                      active={row.is_active}
+                      loading={togglingId === row.id}
                       onClick={(e) => {
                         e.stopPropagation()
                         handleToggleStatus(row)
                       }}
-                      disabled={togglingId === row.id}
-                    >
-                      {togglingId === row.id ? '...' : (row.is_active ? 'ACTIVE' : 'INACTIVE')}
-                    </button>
+                    />
                   </td>
                 </tr>
               ))}

@@ -4,6 +4,9 @@ import { createCategory, deactivateCategory, listCategories, updateCategory } fr
 import { FooterMaster } from '../footer/FooterMaster'
 import { FooterFormMaster } from '../footer/FooterFormMaster'
 import { DeleteMaster } from '../footer/DeleteMaster'
+import { MasterTableHeader } from '../table/MasterTableHeader'
+import { MasterStatusToggle } from '../table/MasterStatusToggle'
+import { useMasterTableSort } from '../../../hooks/useMasterTableSort'
 
 const DEFAULT_FORM = {
   code: '',
@@ -16,6 +19,14 @@ const DUMMY_CATEGORIES = [
   { id: 'CAT001', code: 'CAT001', name: 'Makanan', description: '', parent_id: '', is_active: true },
   { id: 'CAT002', code: 'CAT002', name: 'Minuman', description: '', parent_id: '', is_active: true },
   { id: 'CAT003', code: 'CAT003', name: 'ATK', description: '', parent_id: '', is_active: false },
+]
+
+const TABLE_COLUMNS = [
+  { key: 'no', label: 'NO', sortable: false },
+  { key: 'code', label: 'CODE' },
+  { key: 'name', label: 'NAME' },
+  { key: 'parent_id', label: 'PARENT' },
+  { key: 'is_active', label: 'STATUS' },
 ]
 
 function isActiveCategory(item) {
@@ -100,6 +111,12 @@ export function Category({ onExit }) {
   }, [fetchData])
 
   const selectedItem = selectedId == null ? null : data.find((row) => row.id === selectedId) || null
+  const { sortConfig, sortedData, handleSort } = useMasterTableSort(data, {
+    initialKey: 'code',
+    valueGetters: {
+      is_active: (row) => (isActiveCategory(row) ? 1 : 0),
+    },
+  })
 
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -285,17 +302,9 @@ export function Category({ onExit }) {
       <div className="master-table-wrapper">
         <div className="master-table-container">
           <table className="master-table">
-            <thead>
-              <tr>
-                <th className="master-th-header"><div className="master-th-content">NO</div></th>
-                <th className="master-th-header"><div className="master-th-content">CODE</div></th>
-                <th className="master-th-header"><div className="master-th-content">NAME</div></th>
-                <th className="master-th-header"><div className="master-th-content">PARENT</div></th>
-                <th className="master-th-header"><div className="master-th-content">STATUS</div></th>
-              </tr>
-            </thead>
+            <MasterTableHeader columns={TABLE_COLUMNS} sortConfig={sortConfig} onSort={handleSort} />
             <tbody>
-              {data.map((row, index) => (
+              {sortedData.map((row, index) => (
                 <tr
                   key={row.id || index}
                   className={selectedId === row.id ? 'master-row-selected' : 'master-row'}
@@ -306,21 +315,18 @@ export function Category({ onExit }) {
                   <td>{row.name || '-'}</td>
                   <td>{row.parent_id || '-'}</td>
                   <td>
-                    <button
-                      type="button"
-                      className={`master-status-toggle ${isActiveCategory(row) ? 'is-active' : 'is-inactive'}`}
+                    <MasterStatusToggle
+                      active={isActiveCategory(row)}
+                      loading={togglingId === row.id}
                       onClick={(e) => {
                         e.stopPropagation()
                         handleToggleStatus(row)
                       }}
-                      disabled={togglingId === row.id}
-                    >
-                      {togglingId === row.id ? '...' : (isActiveCategory(row) ? 'ACTIVE' : 'INACTIVE')}
-                    </button>
+                    />
                   </td>
                 </tr>
               ))}
-              {!isLoading && data.length === 0 && (
+              {!isLoading && sortedData.length === 0 && (
                 <tr>
                   <td colSpan={5} className="text-center">No data</td>
                 </tr>

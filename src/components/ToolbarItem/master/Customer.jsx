@@ -4,6 +4,9 @@ import { createCustomer, deleteCustomer, listCustomers, updateCustomer } from '.
 import { FooterMaster } from '../footer/FooterMaster'
 import { FooterFormMaster } from '../footer/FooterFormMaster'
 import { DeleteMaster } from '../footer/DeleteMaster'
+import { MasterTableHeader } from '../table/MasterTableHeader'
+import { MasterStatusToggle } from '../table/MasterStatusToggle'
+import { useMasterTableSort } from '../../../hooks/useMasterTableSort'
 
 const DEFAULT_FORM = {
   name: '',
@@ -20,6 +23,16 @@ const DEFAULT_FORM = {
 }
 
 const TIERS = ['BRONZE', 'SILVER', 'GOLD', 'PLATINUM']
+
+const TABLE_COLUMNS = [
+  { key: 'no', label: 'NO', sortable: false },
+  { key: 'customer_code', label: 'CODE' },
+  { key: 'name', label: 'NAME' },
+  { key: 'email', label: 'EMAIL' },
+  { key: 'phone', label: 'PHONE' },
+  { key: 'tier', label: 'TIER' },
+  { key: 'is_active', label: 'STATUS' },
+]
 
 const DUMMY_CUSTOMERS = [
   {
@@ -161,6 +174,12 @@ export function Customer({ onExit }) {
   }, [token, searchKeyword, tierFilter, isActiveFilter, limit, offset])
 
   const selectedItem = selectedId == null ? null : data.find((row) => row.id === selectedId) || null
+  const { sortConfig, sortedData, handleSort } = useMasterTableSort(data, {
+    initialKey: 'customer_code',
+    valueGetters: {
+      is_active: (row) => (isActiveCustomer(row) ? 1 : 0),
+    },
+  })
 
   useEffect(() => {
     fetchData()
@@ -422,19 +441,9 @@ export function Customer({ onExit }) {
       <div className="master-table-wrapper">
         <div className="master-table-container">
           <table className="master-table">
-            <thead>
-              <tr>
-                <th className="master-th-header"><div className="master-th-content">NO</div></th>
-                <th className="master-th-header"><div className="master-th-content">CODE</div></th>
-                <th className="master-th-header"><div className="master-th-content">NAME</div></th>
-                <th className="master-th-header"><div className="master-th-content">EMAIL</div></th>
-                <th className="master-th-header"><div className="master-th-content">PHONE</div></th>
-                <th className="master-th-header"><div className="master-th-content">TIER</div></th>
-                <th className="master-th-header"><div className="master-th-content">STATUS</div></th>
-              </tr>
-            </thead>
+            <MasterTableHeader columns={TABLE_COLUMNS} sortConfig={sortConfig} onSort={handleSort} />
             <tbody>
-              {data.map((row, index) => (
+              {sortedData.map((row, index) => (
                 <tr
                   key={row.id || index}
                   className={selectedId === row.id ? 'master-row-selected' : 'master-row'}
@@ -447,21 +456,18 @@ export function Customer({ onExit }) {
                   <td>{row.phone || '-'}</td>
                   <td>{row.tier || '-'}</td>
                   <td>
-                    <button
-                      type="button"
-                      className={`master-status-toggle ${isActiveCustomer(row) ? 'is-active' : 'is-inactive'}`}
+                    <MasterStatusToggle
+                      active={isActiveCustomer(row)}
+                      loading={togglingId === row.id}
                       onClick={(e) => {
                         e.stopPropagation()
                         handleToggleStatus(row)
                       }}
-                      disabled={togglingId === row.id}
-                    >
-                      {togglingId === row.id ? '...' : (isActiveCustomer(row) ? 'ACTIVE' : 'INACTIVE')}
-                    </button>
+                    />
                   </td>
                 </tr>
               ))}
-              {!isLoading && data.length === 0 && (
+              {!isLoading && sortedData.length === 0 && (
                 <tr>
                   <td colSpan={7} className="text-center">No data</td>
                 </tr>

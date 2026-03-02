@@ -5,6 +5,9 @@ import { satuanDummyData } from '../../../data'
 import { FooterMaster } from '../footer/FooterMaster'
 import { FooterFormMaster } from '../footer/FooterFormMaster'
 import { DeleteMaster } from '../footer/DeleteMaster'
+import { MasterTableHeader } from '../table/MasterTableHeader'
+import { MasterStatusToggle } from '../table/MasterStatusToggle'
+import { useMasterTableSort } from '../../../hooks/useMasterTableSort'
 
 const DEFAULT_FORM = {
   code: '',
@@ -21,6 +24,14 @@ function mapDummyRows() {
     is_active: true,
   }))
 }
+
+const TABLE_COLUMNS = [
+  { key: 'no', label: 'NO', sortable: false },
+  { key: 'code', label: 'CODE' },
+  { key: 'name', label: 'NAME' },
+  { key: 'description', label: 'DESCRIPTION' },
+  { key: 'is_active', label: 'STATUS' },
+]
 
 export function Satuan({ onExit }) {
   const { auth } = useAuth()
@@ -76,6 +87,12 @@ export function Satuan({ onExit }) {
       (row.name || '').toLowerCase().includes(keyword) ||
       (row.description || '').toLowerCase().includes(keyword)
     )
+  })
+  const { sortConfig, sortedData, handleSort } = useMasterTableSort(filteredData, {
+    initialKey: 'code',
+    valueGetters: {
+      is_active: (row) => (row?.is_active ? 1 : 0),
+    },
   })
 
   useEffect(() => {
@@ -281,27 +298,9 @@ export function Satuan({ onExit }) {
       <div className="master-table-wrapper">
         <div className="master-table-container">
           <table className="master-table">
-            <thead>
-              <tr>
-                <th className="master-th-header">
-                  <div className="master-th-content">NO</div>
-                </th>
-                <th className="master-th-header">
-                  <div className="master-th-content">CODE</div>
-                </th>
-                <th className="master-th-header">
-                  <div className="master-th-content">NAME</div>
-                </th>
-                <th className="master-th-header">
-                  <div className="master-th-content">DESCRIPTION</div>
-                </th>
-                <th className="master-th-header">
-                  <div className="master-th-content">STATUS</div>
-                </th>
-              </tr>
-            </thead>
+            <MasterTableHeader columns={TABLE_COLUMNS} sortConfig={sortConfig} onSort={handleSort} />
             <tbody>
-              {filteredData.map((row, index) => (
+              {sortedData.map((row, index) => (
                 <tr
                   key={row.id || index}
                   className={selectedId === row.id ? 'master-row-selected' : 'master-row'}
@@ -312,21 +311,18 @@ export function Satuan({ onExit }) {
                   <td>{row.name || '-'}</td>
                   <td>{row.description || '-'}</td>
                   <td>
-                    <button
-                      type="button"
-                      className={`master-status-toggle ${row.is_active ? 'is-active' : 'is-inactive'}`}
+                    <MasterStatusToggle
+                      active={row.is_active}
+                      loading={togglingId === row.id}
                       onClick={(e) => {
                         e.stopPropagation()
                         handleToggleStatus(row)
                       }}
-                      disabled={togglingId === row.id}
-                    >
-                      {togglingId === row.id ? '...' : (row.is_active ? 'ACTIVE' : 'INACTIVE')}
-                    </button>
+                    />
                   </td>
                 </tr>
               ))}
-              {!isLoading && filteredData.length === 0 && (
+              {!isLoading && sortedData.length === 0 && (
                 <tr>
                   <td colSpan={5} className="text-center">No data</td>
                 </tr>

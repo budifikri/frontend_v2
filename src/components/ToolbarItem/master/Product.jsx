@@ -6,6 +6,9 @@ import { createProduct, deleteProduct, listProducts, updateProduct } from '../..
 import { FooterMaster } from '../footer/FooterMaster'
 import { FooterFormMaster } from '../footer/FooterFormMaster'
 import { DeleteMaster } from '../footer/DeleteMaster'
+import { MasterTableHeader } from '../table/MasterTableHeader'
+import { MasterStatusToggle } from '../table/MasterStatusToggle'
+import { useMasterTableSort } from '../../../hooks/useMasterTableSort'
 
 const DEFAULT_FORM = {
   sku: '',
@@ -59,6 +62,16 @@ const DUMMY_PRODUCTS = [
     reorder_point: 30,
     is_active: true,
   },
+]
+
+const TABLE_COLUMNS = [
+  { key: 'no', label: 'NO', sortable: false },
+  { key: 'sku', label: 'SKU' },
+  { key: 'name', label: 'NAME' },
+  { key: 'category_name', label: 'CATEGORY' },
+  { key: 'unit_name', label: 'UNIT' },
+  { key: 'retail_price', label: 'RETAIL' },
+  { key: 'is_active', label: 'STATUS' },
 ]
 
 function isActiveProduct(item) {
@@ -194,6 +207,15 @@ export function Product({ onExit }) {
   }, [fetchData])
 
   const selectedItem = selectedId == null ? null : data.find((row) => row.id === selectedId) || null
+  const { sortConfig, sortedData, handleSort } = useMasterTableSort(data, {
+    initialKey: 'sku',
+    valueGetters: {
+      category_name: (row) => row?.category?.name || row?.categoryName || categoryNameById.get(String(row?.category_id || '')) || '',
+      unit_name: (row) => row?.unit?.name || row?.unitName || unitNameById.get(String(row?.unit_id || '')) || '',
+      retail_price: (row) => Number(row?.retail_price || 0),
+      is_active: (row) => (isActiveProduct(row) ? 1 : 0),
+    },
+  })
 
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -436,19 +458,9 @@ export function Product({ onExit }) {
       <div className="master-table-wrapper">
         <div className="master-table-container">
           <table className="master-table">
-            <thead>
-              <tr>
-                <th className="master-th-header"><div className="master-th-content">NO</div></th>
-                <th className="master-th-header"><div className="master-th-content">SKU</div></th>
-                <th className="master-th-header"><div className="master-th-content">NAME</div></th>
-                <th className="master-th-header"><div className="master-th-content">CATEGORY</div></th>
-                <th className="master-th-header"><div className="master-th-content">UNIT</div></th>
-                <th className="master-th-header"><div className="master-th-content">RETAIL</div></th>
-                <th className="master-th-header"><div className="master-th-content">STATUS</div></th>
-              </tr>
-            </thead>
+            <MasterTableHeader columns={TABLE_COLUMNS} sortConfig={sortConfig} onSort={handleSort} />
             <tbody>
-              {data.map((row, index) => (
+              {sortedData.map((row, index) => (
                 <tr
                   key={row.id || index}
                   className={selectedId === row.id ? 'master-row-selected' : 'master-row'}
@@ -461,21 +473,18 @@ export function Product({ onExit }) {
                   <td>{row.unit?.name || row.unitName || unitNameById.get(String(row.unit_id || '')) || '-'}</td>
                   <td>{Number(row.retail_price || 0).toLocaleString()}</td>
                   <td>
-                    <button
-                      type="button"
-                      className={`master-status-toggle ${isActiveProduct(row) ? 'is-active' : 'is-inactive'}`}
+                    <MasterStatusToggle
+                      active={isActiveProduct(row)}
+                      loading={togglingId === row.id}
                       onClick={(e) => {
                         e.stopPropagation()
                         handleToggleStatus(row)
                       }}
-                      disabled={togglingId === row.id}
-                    >
-                      {togglingId === row.id ? '...' : (isActiveProduct(row) ? 'ACTIVE' : 'INACTIVE')}
-                    </button>
+                    />
                   </td>
                 </tr>
               ))}
-              {!isLoading && data.length === 0 && (
+              {!isLoading && sortedData.length === 0 && (
                 <tr>
                   <td colSpan={7} className="text-center">No data</td>
                 </tr>

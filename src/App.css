@@ -810,6 +810,11 @@ body.has-wallpaper .cash-register {
   border-right: none;
 }
 
+.master-th-sortable {
+  cursor: pointer;
+  user-select: none;
+}
+
 .master-th-content {
   display: flex;
   align-items: center;
