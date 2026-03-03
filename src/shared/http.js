@@ -1,3 +1,5 @@
+import { AUTH_EXPIRED_EVENT } from './auth'
+
 const baseUrl = import.meta.env.VITE_API_BASE_URL || ''
 
 export const ApiResponse = {
@@ -48,7 +50,9 @@ export async function apiFetch(path, opts = {}) {
   if (!res.ok) {
     console.debug('[HTTP] Response error', { url, status: res.status, body: json })
     if (res.status === 401 || res.status === 403) {
-      window.location.href = '/login'
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event(AUTH_EXPIRED_EVENT))
+      }
     }
     const msg =
       json?.error ||

@@ -11,6 +11,7 @@ import {
 import { AuthProvider, useAuth } from './shared/auth'
 import { defaultMenu } from './data'
 import { login } from './features/auth/login.api'
+import { applyTitlebarColors, applyWallpaper } from './utils/colorHelper'
 import { resolveShortcutTool } from './utils/shortcutHelper'
 
 const IMPLEMENTED_TOOLS = new Set(['warehouse', 'satuan', 'categori', 'product', 'customer', 'supplier', 'company', 'theme'])
@@ -40,7 +41,11 @@ function AppContent() {
     if (auth.token) {
       setView('dashboard')
       setActiveMenu(defaultMenu)
+      return
     }
+
+    setView('login')
+    setActiveTool(null)
   }, [auth.token])
 
   useEffect(() => {
@@ -48,14 +53,9 @@ function AppContent() {
     const savedTitleColor = localStorage.getItem('theme-title-color') || import.meta.env.VITE_DEFAULT_TITLEBAR_COLOR
     
     if (savedTitleColor) {
-      document.documentElement.style.setProperty('--titlebar-bg', savedTitleColor)
+      applyTitlebarColors(savedTitleColor)
     }
-    if (savedWallpaper) {
-      document.documentElement.style.setProperty('--app-wallpaper', `url(${savedWallpaper})`)
-      document.body.classList.add('has-wallpaper')
-    } else {
-      document.body.classList.remove('has-wallpaper')
-    }
+    applyWallpaper(savedWallpaper)
   }, [])
 
   useEffect(() => {

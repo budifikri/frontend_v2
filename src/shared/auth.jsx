@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useMemo, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { jwtDecode } from 'jwt-decode'
 
 export const UserRole = {
@@ -8,7 +8,8 @@ export const UserRole = {
   STAFF: 'staff',
 }
 
-const AUTH_STORAGE_KEY = 'pos_retail_auth'
+export const AUTH_STORAGE_KEY = 'pos_retail_auth'
+export const AUTH_EXPIRED_EVENT = 'pos-retail:auth-expired'
 
 const AuthContext = createContext(null)
 
@@ -89,6 +90,17 @@ export function AuthProvider({ children }) {
     setAuthState({ token: null, role: null })
     if (typeof localStorage !== 'undefined') localStorage.removeItem(AUTH_STORAGE_KEY)
   }, [])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined
+
+    const handleAuthExpired = () => {
+      clearAuth()
+    }
+
+    window.addEventListener(AUTH_EXPIRED_EVENT, handleAuthExpired)
+    return () => window.removeEventListener(AUTH_EXPIRED_EVENT, handleAuthExpired)
+  }, [clearAuth])
 
   const value = useMemo(() => ({ auth, setAuth, clearAuth }), [auth, setAuth, clearAuth])
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

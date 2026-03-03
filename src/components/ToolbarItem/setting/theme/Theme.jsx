@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import './Theme.css'
+import { applyTitlebarColors, applyWallpaper } from '../../../../utils/colorHelper'
 
 const COLORS = [
   { name: 'Biru', value: 'linear-gradient(180deg, #60a5fa 0%, #2563eb 100%)' },
@@ -33,12 +34,9 @@ export function Theme({ onExit }) {
     // Apply saved settings on load (localStorage > .env)
     const savedW = localStorage.getItem('theme-wallpaper') || import.meta.env.VITE_DEFAULT_WALLPAPER
     const savedC = localStorage.getItem('theme-title-color') || import.meta.env.VITE_DEFAULT_TITLEBAR_COLOR
-    
-    if (savedW) {
-      document.documentElement.style.setProperty('--app-wallpaper', `url(${savedW})`)
-      document.body.classList.add('has-wallpaper')
-    }
-    if (savedC) document.documentElement.style.setProperty('--titlebar-bg', savedC)
+
+    applyWallpaper(savedW)
+    if (savedC) applyTitlebarColors(savedC)
   }, [])
 
   const handleSave = () => {
@@ -46,7 +44,6 @@ export function Theme({ onExit }) {
     setSavedTitleColor(titleColor)
     localStorage.setItem('theme-wallpaper', wallpaper || '')
     localStorage.setItem('theme-title-color', titleColor)
-    
     // Save to wallpaper history if new wallpaper
     if (wallpaper) {
       const history = getWallpaperHistory()
@@ -56,41 +53,8 @@ export function Theme({ onExit }) {
       }
     }
 
-function extractFirstColor(gradient) {
-  const match = gradient.match(/#([0-9a-fA-F]{6})/);
-  return match ? match[0] : null;
-}
-
-const firstColor = extractFirstColor(titleColor);
-
-document.documentElement.style.setProperty(
-  '--firstcolor-bg',
-  firstColor
-   );
-
-
-   function extractSecondColor(gradient) {
-  const matches = gradient.match(/#([0-9a-fA-F]{6})/g);
-  return matches && matches.length > 1 ? matches[1] : null;
-}
-
-const secondColor = extractSecondColor(titleColor);
-
-document.documentElement.style.setProperty(
-  '--secondcolor-bg',
-  secondColor
-);
-
-
-    
-    document.documentElement.style.setProperty('--titlebar-bg', titleColor)
-    if (wallpaper) {
-      document.documentElement.style.setProperty('--app-wallpaper', `url(${wallpaper})`)
-      document.body.classList.add('has-wallpaper')
-    } else {
-      document.documentElement.style.setProperty('--app-wallpaper', 'none')
-      document.body.classList.remove('has-wallpaper')
-    }
+    applyTitlebarColors(titleColor)
+    applyWallpaper(wallpaper)
 
     if (onExit) onExit()
   }
@@ -99,14 +63,8 @@ document.documentElement.style.setProperty(
     // Revert to saved state
     setWallpaper(savedWallpaper)
     setTitleColor(savedTitleColor)
-    document.documentElement.style.setProperty('--titlebar-bg', savedTitleColor)
-    if (savedWallpaper) {
-      document.documentElement.style.setProperty('--app-wallpaper', `url(${savedWallpaper})`)
-      document.body.classList.add('has-wallpaper')
-    } else {
-      document.documentElement.style.setProperty('--app-wallpaper', 'none')
-      document.body.classList.remove('has-wallpaper')
-    }
+    applyTitlebarColors(savedTitleColor)
+    applyWallpaper(savedWallpaper)
     if (onExit) onExit()
   }
 
