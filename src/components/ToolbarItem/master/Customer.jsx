@@ -525,7 +525,7 @@ export function Customer({ onExit }) {
         onNew={handleNew}
         onEdit={handleEdit}
         onDelete={handleDeleteClick}
-        totalRow={pagination.total || data.length}
+        totalRow={pagination.total}
         onSearch={handleSearchChange}
         onPrint={handlePrint}
         onExit={handleExitClick}

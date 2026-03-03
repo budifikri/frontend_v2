@@ -13,7 +13,16 @@ export async function listUnits(token, params = {}) {
   if (!raw.success) throw new Error(raw.error || raw.message || 'Failed to load units')
 
   const items = Array.isArray(raw.data) ? raw.data : (raw.data?.items ?? raw.data?.data ?? [])
-  return items ?? []
+  const pagination = raw.pagination ?? raw.data?.pagination ?? {}
+
+  return {
+    items: items ?? [],
+    pagination: {
+      limit: params.limit ?? 10,
+      offset: params.offset ?? 0,
+      ...pagination,
+    },
+  }
 }
 
 export async function createUnit(token, input) {

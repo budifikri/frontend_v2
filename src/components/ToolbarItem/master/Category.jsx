@@ -84,17 +84,20 @@ export function Category({ onExit }) {
     }
 
     try {
-      const items = await listCategories(token, {
+      const result = await listCategories(token, {
         search: searchKeyword.trim() || undefined,
         limit,
         offset,
         is_active: isActiveFilter === 'all' ? undefined : isActiveFilter === 'active',
         include_inactive: isActiveFilter === 'all' ? true : undefined,
       })
+      const items = result.items || []
+      const nextPagination = result.pagination || {}
+
       setData(items)
       setPagination({
-        total: offset + items.length + (items.length === limit ? 1 : 0),
-        has_more: items.length === limit,
+        total: Number(nextPagination.total ?? 0),
+        has_more: Boolean(nextPagination.has_more),
       })
     } catch (err) {
       setError(err.message || 'Failed to load categories')
@@ -367,7 +370,7 @@ export function Category({ onExit }) {
         onNew={handleNew}
         onEdit={handleEdit}
         onDelete={handleDeleteClick}
-        totalRow={pagination.total || data.length}
+        totalRow={pagination.total}
         onSearch={handleSearchChange}
         onPrint={handlePrint}
         onExit={handleExitClick}

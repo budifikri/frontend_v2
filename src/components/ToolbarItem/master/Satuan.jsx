@@ -87,10 +87,13 @@ export function Satuan({ onExit }) {
         limit,
         offset,
       })
-      setData(result)
+      const items = result.items || []
+      const nextPagination = result.pagination || {}
+
+      setData(items)
       setPagination({
-        total: offset + result.length + (result.length === limit ? 1 : 0),
-        has_more: result.length === limit,
+        total: Number(nextPagination.total ?? 0),
+        has_more: Boolean(nextPagination.has_more),
       })
     } catch (err) {
       console.warn('Units API failed, fallback to dummy data:', err.message)
@@ -403,7 +406,7 @@ export function Satuan({ onExit }) {
         onNew={handleNew}
         onEdit={handleEdit}
         onDelete={handleDeleteClick}
-        totalRow={pagination.total || data.length}
+        totalRow={pagination.total}
         onSearch={handleSearchChange}
         onPrint={handlePrint}
         onExit={handleExitClick}

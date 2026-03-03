@@ -148,8 +148,8 @@ export function Company({ onExit }) {
 
       setData(items)
       setPagination({
-        total: Number(nextPagination.total ?? (offset + items.length + (items.length === limit ? 1 : 0))),
-        has_more: Boolean(nextPagination.has_more ?? (items.length === limit)),
+        total: Number(nextPagination.total ?? 0),
+        has_more: Boolean(nextPagination.has_more),
       })
     } catch (err) {
       setError(err.message || 'Failed to load companies')
@@ -448,7 +448,7 @@ export function Company({ onExit }) {
         onNew={handleNew}
         onEdit={handleEdit}
         onDelete={handleDeleteClick}
-        totalRow={pagination.total || data.length}
+        totalRow={pagination.total}
         onSearch={handleSearchChange}
         onPrint={handlePrint}
         onExit={handleExitClick}

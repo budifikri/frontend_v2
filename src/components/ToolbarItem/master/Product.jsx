@@ -133,8 +133,8 @@ export function Product({ onExit }) {
         listCategories(token, { limit: 200, offset: 0, include_inactive: true }),
         listUnits(token, { limit: 200, offset: 0, include_inactive: true }),
       ])
-      setCategories(catRes || [])
-      setUnits(unitRes || [])
+      setCategories(catRes.items || [])
+      setUnits(unitRes.items || [])
     } catch {
       setCategories(DUMMY_CATEGORIES)
       setUnits(DUMMY_UNITS)
@@ -539,7 +539,7 @@ export function Product({ onExit }) {
         onNew={handleNew}
         onEdit={handleEdit}
         onDelete={handleDeleteClick}
-        totalRow={pagination.total || data.length}
+        totalRow={pagination.total}
         onSearch={handleSearchChange}
         onPrint={handlePrint}
         onExit={handleExitClick}

@@ -101,10 +101,9 @@ export function Warehouse({ onExit }) {
       const result = await listWarehouses(token, params)
       setData(result.items || [])
       const nextPagination = result.pagination || {}
-      const itemsLength = (result.items || []).length
       setPagination({
-        total: Number(nextPagination.total ?? (offset + itemsLength + (itemsLength === limit ? 1 : 0))),
-        has_more: Boolean(nextPagination.has_more ?? (itemsLength === limit)),
+        total: Number(nextPagination.total ?? 0),
+        has_more: Boolean(nextPagination.has_more),
       })
     } catch (err) {
       console.warn('API failed, using dummy data:', err.message)
@@ -460,7 +459,7 @@ export function Warehouse({ onExit }) {
         onNew={handleNew}
         onEdit={handleEdit}
         onDelete={handleDeleteClick}
-        totalRow={pagination.total || data.length}
+        totalRow={pagination.total}
         onSearch={handleSearchChange}
         onPrint={handlePrint}
         onExit={handleExitClick}
