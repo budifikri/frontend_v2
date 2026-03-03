@@ -6,6 +6,7 @@ import { Customer } from '../ToolbarItem/master/Customer'
 import { Supplier } from '../ToolbarItem/master/Supplier'
 import { Company } from '../ToolbarItem/master/Company'
 import { Theme } from '../ToolbarItem/setting/theme/Theme'
+import { User } from '../ToolbarItem/setting/user/User'
 
 export function DashboardCanvas({ activeTool, onExit }) {
   if (activeTool === 'warehouse') {
@@ -28,6 +29,14 @@ export function DashboardCanvas({ activeTool, onExit }) {
     return (
       <div className="dashboard-canvas">
         <Theme onExit={onExit} />
+      </div>
+    )
+  }
+
+  if (activeTool === 'user') {
+    return (
+      <div className="dashboard-canvas">
+        <User onExit={onExit} />
       </div>
     )
   }

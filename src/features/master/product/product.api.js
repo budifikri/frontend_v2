@@ -2,7 +2,12 @@ import { apiFetch } from '../../../shared/http'
 
 export async function listProducts(token, params = {}) {
   const qs = new URLSearchParams()
-  if (params.search) qs.set('search', params.search)
+  const keyword = params.search?.trim?.()
+  if (keyword) {
+    qs.set('search', keyword)
+    qs.set('keyword', keyword)
+    qs.set('q', keyword)
+  }
   if (params.category_id) qs.set('category_id', params.category_id)
   if (params.include_inactive) qs.set('include_inactive', 'true')
   if (params.is_active !== undefined) qs.set('is_active', String(params.is_active))

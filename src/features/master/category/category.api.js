@@ -2,7 +2,12 @@ import { apiFetch } from '../../../shared/http'
 
 export async function listCategories(token, params = {}) {
   const qs = new URLSearchParams()
-  if (params.search) qs.set('search', params.search)
+  const keyword = params.search?.trim?.()
+  if (keyword) {
+    qs.set('search', keyword)
+    qs.set('keyword', keyword)
+    qs.set('q', keyword)
+  }
   if (params.limit !== undefined) qs.set('limit', String(params.limit))
   if (params.offset !== undefined) qs.set('offset', String(params.offset))
   if (params.include_inactive) qs.set('include_inactive', 'true')

@@ -942,7 +942,7 @@ body.has-wallpaper .cash-register {
 
 .master-form-grid {
   display: grid;
-  grid-template-columns: 100px 2fr 2fr 2fr 2fr   ;
+  grid-template-columns: 150px 2fr 2fr 2fr 2fr   ;
   gap: 8px;
   align-items: end;
 }
@@ -985,6 +985,37 @@ body.has-wallpaper .cash-register {
 
 .master-form-input::placeholder {
   color: #94a3b8;
+}
+
+.user-password-toggle {
+  height: 30px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #e2e8f0;
+  color: #111827;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 12px;
+}
+
+.user-password-toggle:hover {
+  border-color: #94a3b8;
+}
+
+.user-password-toggle.is-off {
+  background: #e2e8f0;
+  color: #111827;
+  border-color: #cbd5e1;
+}
+
+.user-password-toggle.is-on {
+  background: #2563eb;
+  color: #fff;
+  border-color: #1d4ed8;
 }
 
 .master-btn-save-primary {

@@ -1,9 +1,19 @@
 import { useEffect, useState } from 'react'
 
-export function DeleteMaster({ onConfirm, onCancel, itemName, title = '', confirmText, cancelText, isExit = false }) {
-  const bodyText = isExit 
+export function DeleteMaster({
+  onConfirm,
+  onCancel,
+  itemName,
+  title = '',
+  confirmText,
+  cancelText,
+  isExit = false,
+  message,
+  singleAction = false,
+}) {
+  const bodyText = message || (isExit 
     ? `Apakah Anda yakin ingin ${itemName}?`
-    : `Apakah Anda yakin ingin menghapus data "${itemName}"?`
+    : `Apakah Anda yakin ingin menghapus data "${itemName}"?`)
   const headerTitle = title || 'Konfirmasi Hapus'
   const btnConfirmText = confirmText || (isExit ? 'Ya' : 'Hapus')
   const btnCancelText = cancelText || 'Batal'
@@ -11,7 +21,7 @@ export function DeleteMaster({ onConfirm, onCancel, itemName, title = '', confir
 
   useEffect(() => {
     const handleKeyDown = (event) => {
-      if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+      if (!singleAction && (event.key === 'ArrowLeft' || event.key === 'ArrowRight')) {
         event.preventDefault()
         setActiveButton((prev) => (prev === 'confirm' ? 'cancel' : 'confirm'))
         return
@@ -19,7 +29,7 @@ export function DeleteMaster({ onConfirm, onCancel, itemName, title = '', confir
 
       if (event.key === 'Enter') {
         event.preventDefault()
-        if (activeButton === 'confirm') onConfirm()
+        if (singleAction || activeButton === 'confirm') onConfirm()
         else onCancel()
         return
       }
@@ -32,7 +42,7 @@ export function DeleteMaster({ onConfirm, onCancel, itemName, title = '', confir
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [activeButton, onConfirm, onCancel])
+  }, [activeButton, onConfirm, onCancel, singleAction])
 
   return (
     <div className="delete-master-overlay">
@@ -47,18 +57,20 @@ export function DeleteMaster({ onConfirm, onCancel, itemName, title = '', confir
         <div className="delete-master-footer">
           <button
             type="button"
-            className={`btn-confirm ${activeButton === 'confirm' ? 'is-active' : ''}`}
+            className={`btn-confirm ${singleAction || activeButton === 'confirm' ? 'is-active' : ''}`}
             onClick={onConfirm}
           >
             {btnConfirmText}
           </button>
-          <button
-            type="button"
-            className={`btn-cancel ${activeButton === 'cancel' ? 'is-active' : ''}`}
-            onClick={onCancel}
-          >
-            {btnCancelText}
-          </button>
+          {!singleAction && (
+            <button
+              type="button"
+              className={`btn-cancel ${activeButton === 'cancel' ? 'is-active' : ''}`}
+              onClick={onCancel}
+            >
+              {btnCancelText}
+            </button>
+          )}
         </div>
       </div>
     </div>

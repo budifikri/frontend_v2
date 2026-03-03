@@ -8,7 +8,7 @@ function stripUndefined(obj) {
   return out
 }
 
-export async function listCompanies(token, params = {}) {
+export async function listUsers(token, params = {}) {
   const qs = new URLSearchParams()
   const keyword = params.search?.trim?.()
   if (keyword) {
@@ -22,12 +22,10 @@ export async function listCompanies(token, params = {}) {
   if (params.offset !== undefined) qs.set('offset', String(params.offset))
 
   const queryString = qs.toString() ? `?${qs.toString()}` : ''
-  const raw = await apiFetch(`/api/companies${queryString}`, { token })
-  if (!raw.success) throw new Error(raw.error || raw.message || 'Failed to load companies')
+  const raw = await apiFetch(`/api/users${queryString}`, { token })
+  if (!raw.success) throw new Error(raw.error || raw.message || 'Failed to load users')
 
-  const items = Array.isArray(raw.data)
-    ? raw.data
-    : (raw.data?.items ?? raw.data?.data ?? [])
+  const items = Array.isArray(raw.data) ? raw.data : (raw.data?.items ?? raw.data?.data ?? [])
   const pagination = raw.pagination ?? raw.data?.pagination ?? {}
 
   return {
@@ -40,27 +38,27 @@ export async function listCompanies(token, params = {}) {
   }
 }
 
-export async function createCompany(token, input) {
-  const raw = await apiFetch('/api/companies', { method: 'POST', token, body: input })
-  if (!raw.success) throw new Error(raw.error || raw.message || 'Create company failed')
+export async function createUser(token, input) {
+  const raw = await apiFetch('/api/users', { method: 'POST', token, body: input })
+  if (!raw.success) throw new Error(raw.error || raw.message || 'Create user failed')
   return raw
 }
 
-export async function updateCompany(token, id, input) {
-  const raw = await apiFetch(`/api/companies/${encodeURIComponent(id)}`, {
+export async function updateUser(token, id, input) {
+  const raw = await apiFetch(`/api/users/${encodeURIComponent(id)}`, {
     method: 'PUT',
     token,
     body: stripUndefined(input),
   })
-  if (!raw.success) throw new Error(raw.error || raw.message || 'Update company failed')
+  if (!raw.success) throw new Error(raw.error || raw.message || 'Update user failed')
   return raw
 }
 
-export async function deleteCompany(token, id) {
-  const raw = await apiFetch(`/api/companies/${encodeURIComponent(id)}`, {
+export async function deleteUser(token, id) {
+  const raw = await apiFetch(`/api/users/${encodeURIComponent(id)}`, {
     method: 'DELETE',
     token,
   })
-  if (!raw.success) throw new Error(raw.error || raw.message || 'Delete company failed')
+  if (!raw.success) throw new Error(raw.error || raw.message || 'Delete user failed')
   return raw
 }
