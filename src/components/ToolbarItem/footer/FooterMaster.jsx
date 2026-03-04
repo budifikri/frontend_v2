@@ -31,19 +31,26 @@ export function FooterMaster({
           <span className="master-footer-key">F2</span>
         </button>
         <button type="button" className="master-footer-btn" onClick={onDelete}>
-          <span className="material-icons-round master-footer-icon red">remove_circle</span>
+          <span className="material-icons-round master-footer-icon orange">remove_circle</span>
           <span className="master-footer-key">DEL</span>
         </button>
         <button type="button" className="master-footer-btn" onClick={onPrint}>
-          <span className="material-icons-round master-footer-icon">print</span>
+          <span className="material-icons-round master-footer-icon ">print</span>
         </button>
         {onRefresh && (
-          <button type="button" className="master-footer-btn" onClick={onRefresh} disabled={isLoading}>
-            <span className="material-icons-round master-footer-icon">refresh</span>
+          <button type="button" className="master-footer-btn"  onClick={onRefresh} disabled={isLoading}>
+            <span className="material-icons-round master-footer-icon ">refresh</span>
           </button>
         )}
+
+        <button type="button" className="master-footer-btn" onClick={onExit}>
+        <span className="material-icons-round master-footer-icon red">exit_to_app</span>
+      </button>
       </div>
-      {onFilterChange && (
+     
+      <div className="master-footer-search ">
+      
+ {onFilterChange && (
         <div className="master-filter-wrap">
           <label htmlFor="master-status-filter" className="master-filter-label">Status</label>
           <select
@@ -58,7 +65,7 @@ export function FooterMaster({
           </select>
         </div>
       )}
-      <div className="master-footer-search">
+      &nbsp;
         <input 
           type="text" 
           placeholder="Search keyword..." 
@@ -69,7 +76,9 @@ export function FooterMaster({
           <span className="material-icons-round material-icon">search</span>
         </button>
       </div>
-      <div className="master-footer-pagination">
+    
+      <div className="master-footer-info">
+  <div className="master-footer-pagination">
         <button type="button" className="master-page-btn" title="First Page" onClick={onFirstPage} disabled={!canPrev}>
           <span className="material-icons-round master-page-icon">first_page</span>
         </button>
@@ -83,13 +92,12 @@ export function FooterMaster({
         <button type="button" className="master-page-btn" title="Last Page" onClick={onLastPage} disabled={!canNext}>
           <span className="material-icons-round master-page-icon">last_page</span>
         </button>
+        
       </div>
-      <div className="master-footer-info">
+      
         <span>Total Row: {totalRow}</span>
       </div>
-      <button type="button" className="master-exit-btn" onClick={onExit}>
-        <span>EXIT</span>
-      </button>
+      
     </div>
   )
 }
