@@ -298,6 +298,17 @@ export function Category({ onExit }) {
         <div className="master-header-accent"></div>
         <h1 className="master-title">Daftar Kategori</h1>
         <div className="master-header-filters">
+          <div className="master-footer-search">
+            <input
+              type="text"
+              placeholder="Search keyword..."
+              className="master-search-input"
+              onChange={(e) => handleSearchChange(e.target.value)}
+            />
+            <button type="button" className="master-search-btn">
+              <span className="material-icons-round material-icon">search</span>
+            </button>
+          </div>
           <div className="master-filter-wrap">
             <label htmlFor="category-status-filter" className="master-filter-label">Status</label>
             <select
@@ -310,17 +321,6 @@ export function Category({ onExit }) {
               <option value="inactive">Inactive</option>
               <option value="all">All</option>
             </select>
-          </div>
-          <div className="master-footer-search">
-            <input
-              type="text"
-              placeholder="Search keyword..."
-              className="master-search-input"
-              onChange={(e) => handleSearchChange(e.target.value)}
-            />
-            <button type="button" className="master-search-btn">
-              <span className="material-icons-round material-icon">search</span>
-            </button>
           </div>
         </div>
       </div>
