@@ -35,11 +35,11 @@ export function FooterMaster({
           <span className="master-footer-key">DEL</span>
         </button>
         <button type="button" className="master-footer-btn" onClick={onPrint}>
-          <span className="material-icons-round master-footer-icon ">print</span>
+          <span className="material-icons-round master-footer-icon blue">print</span>
         </button>
         {onRefresh && (
           <button type="button" className="master-footer-btn"  onClick={onRefresh} disabled={isLoading}>
-            <span className="material-icons-round master-footer-icon ">refresh</span>
+            <span className="material-icons-round master-footer-icon green">refresh</span>
           </button>
         )}
 

@@ -165,7 +165,7 @@ export function LapStock({ onExit }) {
         has_more: categoryFilter ? false : Boolean(nextPagination.has_more),
       })
     } catch (err) {
-      setError(err.message || 'Failed to load inventory report')
+      // setError(err.message || 'Failed to load inventory report')
       setData([])
       setPagination({ total: 0, has_more: false })
     } finally {
@@ -247,19 +247,26 @@ export function LapStock({ onExit }) {
 
 
               <div className="master-footer-actions">
-          <input
-            type="text"
-            placeholder="Search..."
-            className="master-search-input"
-            value={searchKeyword}
-            onChange={(e) => handleSearchChange(e.target.value)}
-          />
+ 
+              
+      <div className="master-footer-search ">
+    <input 
+          type="text" 
+          placeholder="Search keyword..." 
+          className="master-search-input"
+          value={searchKeyword}
+          onChange={(e) => handleSearchChange(e.target.value)}
+        />
+        <button type="button" className="master-search-btn">
+          <span className="material-icons-round material-icon">search</span>
+        </button>
+          </div>
           <select
             className="master-filter-select"
             value={warehouseFilter}
             onChange={(e) => handleWarehouseFilter(e.target.value)}
           >
-            <option value="">Warehouse</option>
+            <option value="">All Warehouse</option>
             {warehouseSelectOptions.map((item) => (
               <option key={item.id} value={item.id}>{item.name}</option>
             ))}
@@ -269,23 +276,31 @@ export function LapStock({ onExit }) {
             value={categoryFilter}
             onChange={(e) => handleCategoryFilter(e.target.value)}
           >
-            <option value="">Category</option>
+            <option value="">All Category</option>
             {categorySelectOptions.map((item) => (
               <option key={item.id} value={item.id}>{item.name}</option>
             ))}
           </select>
+
+
+
+           <button type="button" className="master-footer-btn" onClick={() => window.print()}>
+              <span className="material-icons-round master-footer-icon blue ">print</span>          
+          </button>
+
+          
+      <button type="button" className="master-footer-btn" onClick={onStockCard}>
+              <span className="material-icons-round master-footer-icon orange">assignment</span>
+           </button>
+
+
             <button type="button" className="master-footer-btn" onClick={fetchData} disabled={isLoading}>
-            
-           <span className="material-icons-round master-footer-icon ">check_box</span>
-            
-            </button>
+                       <span className="material-icons-round master-footer-icon green ">refresh</span>
+             </button>
 
 
        
-          <button type="button" className="master-footer-btn" onClick={() => window.print()}>
-              <span className="material-icons-round master-footer-icon ">print</span>
-          
-          </button>
+         
            <button type="button" className="master-footer-btn" onClick={onExit}>
               <span className="material-icons-round master-footer-icon red">exit_to_app</span>
            </button>

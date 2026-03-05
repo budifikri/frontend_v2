@@ -1186,6 +1186,15 @@ body.has-wallpaper .cash-register {
   color: #dc2626;
 }
 
+.master-footer-icon.green {
+  color: #26C08A;
+}
+
+.master-footer-icon.blue {
+  color: #3677EF;
+}
+
+
 .master-footer-add-icon {
   font-size: 2.5rem;
   font-weight: bold;
