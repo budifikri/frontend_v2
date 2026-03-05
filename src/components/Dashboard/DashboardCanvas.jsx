@@ -5,6 +5,7 @@ import { Product } from '../ToolbarItem/master/Product'
 import { Customer } from '../ToolbarItem/master/Customer'
 import { Supplier } from '../ToolbarItem/master/Supplier'
 import { Company } from '../ToolbarItem/master/Company'
+import { StockOpname } from '../ToolbarItem/master/StockOpname'
 import { Theme } from '../ToolbarItem/setting/theme/Theme'
 import { User } from '../ToolbarItem/setting/user/User'
 import { LapStock } from '../ToolbarItem/laporan/stok/LapStock'
@@ -86,6 +87,14 @@ export function DashboardCanvas({ activeTool, onExit }) {
     return (
       <div className="dashboard-canvas">
         <LapStock onExit={onExit} />
+      </div>
+    )
+  }
+
+  if (activeTool === 'opname') {
+    return (
+      <div className="dashboard-canvas">
+        <StockOpname onExit={onExit} />
       </div>
     )
   }

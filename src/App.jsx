@@ -14,7 +14,7 @@ import { login } from './features/auth/login.api'
 import { applyTitlebarColors, applyWallpaper } from './utils/colorHelper'
 import { resolveShortcutTool } from './utils/shortcutHelper'
 
-const IMPLEMENTED_TOOLS = new Set(['warehouse', 'satuan', 'categori', 'product', 'customer', 'supplier', 'company', 'theme', 'user', 'lapstok'])
+const IMPLEMENTED_TOOLS = new Set(['warehouse', 'satuan', 'categori', 'product', 'customer', 'supplier', 'company', 'theme', 'user', 'lapstok', 'opname'])
 
 function AppContent() {
   const { auth, setAuth, clearAuth } = useAuth()
