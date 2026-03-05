@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useAuth } from '../../../../shared/auth'
-import { listInventory } from '../../../../features/laporan/stock/stock.api'
+import { listInventory, getStockCard } from '../../../../features/laporan/stock/stock.api'
 import { listWarehouses } from '../../../../features/master/warehouse/warehouse.api'
 import { listCategories } from '../../../../features/master/category/category.api'
 import { useMasterTableSort } from '../../../../hooks/useMasterTableSort'
 import { useMasterPagination } from '../../../../hooks/useMasterPagination'
 import { MasterTableHeader } from '../../table/MasterTableHeader'
+import { StockCardModal } from './StockCardModal'
 
 const TABLE_COLUMNS = [
   { key: 'no', label: 'NO', sortable: false },
@@ -20,6 +21,7 @@ const TABLE_COLUMNS = [
 const DUMMY_STOCKS = [
   {
     id: 'INV001',
+    product_id: 'PRD001',
     code: 'PRD001',
     name: 'Kopi Luwak',
     category: 'Minuman',
@@ -31,6 +33,7 @@ const DUMMY_STOCKS = [
   },
   {
     id: 'INV002',
+    product_id: 'PRD002',
     code: 'PRD002',
     name: 'Gula Pasir',
     category: 'Bahan Pokok',
@@ -42,6 +45,7 @@ const DUMMY_STOCKS = [
   },
   {
     id: 'INV003',
+    product_id: 'PRD003',
     code: 'PRD003',
     name: 'Susu Bubuk',
     category: 'Minuman',
@@ -80,6 +84,13 @@ export function LapStock({ onExit }) {
 
   const [warehouseOptions, setWarehouseOptions] = useState([])
   const [categoryOptions, setCategoryOptions] = useState([])
+
+  const [selectedId, setSelectedId] = useState(null)
+
+  const [showStockCardModal, setShowStockCardModal] = useState(false)
+  const [stockCardData, setStockCardData] = useState([])
+  const [stockCardError, setStockCardError] = useState('')
+  const [isLoadingCard, setIsLoadingCard] = useState(false)
 
   const pager = useMasterPagination({ initialLimit: 10, total: pagination.total, hasMore: pagination.has_more })
   const { limit, offset } = pager
@@ -164,8 +175,7 @@ export function LapStock({ onExit }) {
         total: categoryFilter ? items.length : Number(nextPagination.total ?? 0),
         has_more: categoryFilter ? false : Boolean(nextPagination.has_more),
       })
-    } catch (err) {
-      // setError(err.message || 'Failed to load inventory report')
+    } catch {
       setData([])
       setPagination({ total: 0, has_more: false })
     } finally {
@@ -180,6 +190,12 @@ export function LapStock({ onExit }) {
   useEffect(() => {
     fetchData()
   }, [fetchData])
+
+  useEffect(() => {
+    if (sortedData.length > 0 && !selectedId) {
+      setSelectedId(sortedData[0].id)
+    }
+  }, [sortedData, selectedId])
 
   const warehouseSelectOptions = useMemo(() => (
     warehouseOptions.length > 0
@@ -208,6 +224,50 @@ export function LapStock({ onExit }) {
     setCategoryFilter(value)
   }
 
+  const handleRowClick = (row) => {
+    setSelectedId(row.id)
+  }
+
+  const handleStockCard = async () => {
+    const selectedRow = sortedData.find((row) => row.id === selectedId)
+    console.log('[LapStock] handleStockCard - selectedRow:', selectedRow)
+    console.log('[LapStock] handleStockCard - selectedId:', selectedId)
+    console.log('[LapStock] handleStockCard - sortedData:', sortedData)
+    
+    if (!selectedRow) {
+      console.log('[LapStock] No selectedRow, cannot fetch stock card')
+      return
+    }
+
+    setShowStockCardModal(true)
+    setStockCardError('')
+    setStockCardData([])
+    setIsLoadingCard(true)
+
+    try {
+      const result = await getStockCard(token, {
+        product_id: selectedRow.product_id,
+        warehouse_id: selectedRow.warehouse_id,
+      })
+
+      console.log('[LapStock] getStockCard result:', result)
+      setStockCardData(result.items || [])
+    } catch (err) {
+      console.log('[LapStock] getStockCard error:', err)
+      setStockCardError(err.message || 'Failed to load stock card')
+    } finally {
+      setIsLoadingCard(false)
+    }
+  }
+
+  const handleCloseStockCardModal = () => {
+    setShowStockCardModal(false)
+    setStockCardData([])
+    setStockCardError('')
+  }
+
+  const selectedRow = sortedData.find((row) => row.id === selectedId)
+
   return (
     <div className="master-content">
       <div className="master-header">
@@ -223,7 +283,11 @@ export function LapStock({ onExit }) {
             <MasterTableHeader columns={TABLE_COLUMNS} sortConfig={sortConfig} onSort={handleSort} />
             <tbody>
               {sortedData.map((row, index) => (
-                <tr key={row.id || index} className="master-row">
+                <tr
+                  key={row.id || index}
+                  className={selectedId === row.id ? 'master-row-selected' : 'master-row'}
+                  onClick={() => handleRowClick(row)}
+                >
                   <td>{offset + index + 1}</td>
                   <td>{row.code || '-'}</td>
                   <td>{row.name || '-'}</td>
@@ -244,22 +308,18 @@ export function LapStock({ onExit }) {
       </div>
 
       <div className="master-footer">
-
-
-              <div className="master-footer-actions">
- 
-              
-      <div className="master-footer-search ">
-    <input 
-          type="text" 
-          placeholder="Search keyword..." 
-          className="master-search-input"
-          value={searchKeyword}
-          onChange={(e) => handleSearchChange(e.target.value)}
-        />
-        <button type="button" className="master-search-btn">
-          <span className="material-icons-round material-icon">search</span>
-        </button>
+        <div className="master-footer-actions">
+          <div className="master-footer-search">
+            <input
+              type="text"
+              placeholder="Search keyword..."
+              className="master-search-input"
+              value={searchKeyword}
+              onChange={(e) => handleSearchChange(e.target.value)}
+            />
+            <button type="button" className="master-search-btn">
+              <span className="material-icons-round material-icon">search</span>
+            </button>
           </div>
           <select
             className="master-filter-select"
@@ -282,34 +342,24 @@ export function LapStock({ onExit }) {
             ))}
           </select>
 
-
-
-           <button type="button" className="master-footer-btn" onClick={() => window.print()}>
-              <span className="material-icons-round master-footer-icon blue ">print</span>          
+          <button type="button" className="master-footer-btn" onClick={() => window.print()}>
+            <span className="material-icons-round master-footer-icon blue">print</span>
           </button>
 
-          
-      <button type="button" className="master-footer-btn" onClick={onStockCard}>
-              <span className="material-icons-round master-footer-icon orange">assignment</span>
-           </button>
+          <button type="button" className="master-footer-btn" onClick={handleStockCard} disabled={!selectedRow}>
+            <span className="material-icons-round master-footer-icon orange">assignment</span>
+          </button>
 
+          <button type="button" className="master-footer-btn" onClick={fetchData} disabled={isLoading}>
+            <span className="material-icons-round master-footer-icon green">refresh</span>
+          </button>
 
-            <button type="button" className="master-footer-btn" onClick={fetchData} disabled={isLoading}>
-                       <span className="material-icons-round master-footer-icon green ">refresh</span>
-             </button>
+          <button type="button" className="master-footer-btn" onClick={onExit}>
+            <span className="material-icons-round master-footer-icon red">exit_to_app</span>
+          </button>
+        </div>
 
-
-       
-         
-           <button type="button" className="master-footer-btn" onClick={onExit}>
-              <span className="material-icons-round master-footer-icon red">exit_to_app</span>
-           </button>
-    </div>
-
-
-           
-
-              <div className="master-footer-info">
+        <div className="master-footer-info">
           <div className="master-footer-pagination">
             <button type="button" className="master-page-btn" onClick={pager.goFirst} disabled={!pager.canPrev}>|&lt;</button>
             <button type="button" className="master-page-btn" onClick={pager.goPrev} disabled={!pager.canPrev}>&lt;</button>
@@ -318,11 +368,17 @@ export function LapStock({ onExit }) {
             <button type="button" className="master-page-btn" onClick={pager.goLast} disabled={!pager.canNext}>&gt;|</button>
           </div>
           <span className="report-total-row">Total Row: {pagination.total}</span>
-    
         </div>
-        
-    
       </div>
+
+      <StockCardModal
+        isOpen={showStockCardModal}
+        onClose={handleCloseStockCardModal}
+        data={stockCardData}
+        productName={selectedRow?.name}
+        isLoading={isLoadingCard}
+        error={stockCardError}
+      />
     </div>
   )
 }

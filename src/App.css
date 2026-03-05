@@ -1507,8 +1507,149 @@ body.has-wallpaper .cash-register {
   box-shadow: 0 0 0 3px rgba(100, 116, 139, 0.2);
 }
 
+.stock-card-modal {
+  background: #fff;
+  width: min(90vw, 900px);
+  max-height: 80vh;
+  border-radius: 8px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  animation: modal-pop 200ms ease-out;
+}
+
+.stock-card-modal .delete-master-header .material-icon.orange {
+  font-size: 2rem;
+  color: #f97316;
+}
+
+.stock-card-body {
+  flex: 1;
+  overflow: auto;
+  padding: 0;
+}
+
+.stock-card-body .master-table-container {
+  max-height: 400px;
+}
+
+.stock-card-body .master-table {
+  min-width: 700px;
+}
+
+.stock-card-body .master-table th {
+  position: sticky;
+  top: 0;
+  background: #f1f5f9;
+  z-index: 1;
+}
+
+.stock-card-loading,
+.stock-card-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 48px;
+  color: #64748b;
+}
+
+.stock-card-loading .material-icons-round {
+  font-size: 2rem;
+  color: #3b82f6;
+}
+
+.stock-card-error {
+  color: #ef4444;
+}
+
+.type-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.type-badge.type-in {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.type-badge.type-out {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.type-badge.type-adjust {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.stock-card-footer {
+  padding: 12px 16px;
+  background: #f8fafc;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid #e2e8f0;
+}
+
+.stock-card-totals {
+  display: flex;
+  gap: 16px;
+}
+
+.stock-card-total,
+.stock-card-total-in,
+.stock-card-total-out {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #334155;
+}
+
+.stock-card-total-in {
+  color: #16a34a;
+}
+
+.stock-card-total-out {
+  color: #dc2626;
+}
+
+.qty-in-positive {
+  color: #16a34a !important;
+  font-weight: 600;
+}
+
+.qty-out-positive {
+  color: #dc2626 !important;
+  font-weight: 600;
+}
+
 .print-only {
   display: none;
+}
+
+.stock-card-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.master-btn-print {
+  background: #3b82f6;
+  border: none;
+  padding: 8px 20px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #fff;
+  cursor: pointer;
+  border-radius: 6px;
+}
+
+.master-btn-print:hover {
+  background: #2563eb;
 }
 
 @media print {
@@ -1525,6 +1666,25 @@ body.has-wallpaper .cash-register {
     top: 0;
     width: 95%;
     padding: 20px;
+  }
+  .delete-master-overlay,
+  .delete-master-overlay * {
+    visibility: visible;
+  }
+  .delete-master-overlay {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: auto;
+    background: #fff;
+  }
+  .stock-card-modal {
+    box-shadow: none;
+    max-height: none;
+  }
+  .stock-card-footer {
+    display: none;
   }
   .print-only {
     display: block;
@@ -1554,10 +1714,14 @@ body.has-wallpaper .cash-register {
     background: #eee !important;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
-    font-weight: bold;
   }
-  .master-table tr:nth-child(even) {
-    background: #f9f9f9 !important;
+  .qty-in-positive {
+    color: #16a34a !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .qty-out-positive {
+    color: #dc2626 !important;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
