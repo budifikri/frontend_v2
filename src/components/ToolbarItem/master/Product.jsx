@@ -2,7 +2,9 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useAuth } from '../../../shared/auth'
 import { listCategories } from '../../../features/master/category/category.api'
 import { listUnits } from '../../../features/master/unit/unit.api'
+import { listWarehouses } from '../../../features/master/warehouse/warehouse.api'
 import { createProduct, deleteProduct, listProducts, updateProduct } from '../../../features/master/product/product.api'
+import { adjustStock } from '../../../features/laporan/stock/stock.api'
 import { FooterMaster } from '../footer/FooterMaster'
 import { FooterFormMaster } from '../footer/FooterFormMaster'
 import { DeleteMaster } from '../footer/DeleteMaster'
@@ -32,6 +34,11 @@ const DUMMY_CATEGORIES = [
 const DUMMY_UNITS = [
   { id: 'PCS', name: 'Pieces' },
   { id: 'BOX', name: 'Box' },
+]
+
+const DUMMY_WAREHOUSES = [
+  { id: 'WH001', name: 'Main Warehouse', code: 'WH01' },
+  { id: 'WH002', name: 'Branch Warehouse', code: 'WH02' },
 ]
 
 const DUMMY_PRODUCTS = [
@@ -87,6 +94,7 @@ export function Product({ onExit }) {
   const [data, setData] = useState([])
   const [categories, setCategories] = useState([])
   const [units, setUnits] = useState([])
+  const [warehouses, setWarehouses] = useState([])
   const [pagination, setPagination] = useState({ has_more: false, total: 0 })
   const [isLoading, setIsLoading] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
@@ -103,6 +111,8 @@ export function Product({ onExit }) {
   const [showForm, setShowForm] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [showExitConfirm, setShowExitConfirm] = useState(false)
+  const [showAdjustStock, setShowAdjustStock] = useState(false)
+  const [adjustForm, setAdjustForm] = useState({ warehouse_id: '', reason: '', quantity: 0, notes: '' })
   const [togglingId, setTogglingId] = useState(null)
 
   const categoryNameById = useMemo(() => {
@@ -121,23 +131,42 @@ export function Product({ onExit }) {
     return map
   }, [units])
 
-  const fetchLookups = useCallback(async () => {
+  const fetchWarehouses = useCallback(async () => {
     if (!token) {
-      setCategories(DUMMY_CATEGORIES)
-      setUnits(DUMMY_UNITS)
+      setWarehouses(DUMMY_WAREHOUSES)
       return
     }
 
     try {
-      const [catRes, unitRes] = await Promise.all([
+      const res = await listWarehouses(token, { limit: 200, offset: 0 })
+      setWarehouses(res.items || [])
+    } catch (err) {
+      console.error('[Product] Failed to load warehouses:', err)
+      // Keep existing warehouses or set empty? We'll keep whatever was there
+    }
+  }, [token])
+
+  const fetchLookups = useCallback(async () => {
+    if (!token) {
+      setCategories(DUMMY_CATEGORIES)
+      setUnits(DUMMY_UNITS)
+      setWarehouses(DUMMY_WAREHOUSES)
+      return
+    }
+
+    try {
+      const [catRes, unitRes, warehouseRes] = await Promise.all([
         listCategories(token, { limit: 200, offset: 0, include_inactive: true }),
         listUnits(token, { limit: 200, offset: 0, include_inactive: true }),
+        listWarehouses(token, { limit: 200, offset: 0 }),
       ])
       setCategories(catRes.items || [])
       setUnits(unitRes.items || [])
+      setWarehouses(warehouseRes.items || [])
     } catch {
       setCategories(DUMMY_CATEGORIES)
       setUnits(DUMMY_UNITS)
+      setWarehouses(DUMMY_WAREHOUSES)
     }
   }, [token])
 
@@ -252,6 +281,12 @@ export function Product({ onExit }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showDeleteConfirm, showForm, selectedItem, data])
 
+  useEffect(() => {
+    if (showAdjustStock && token && warehouses.length === 0) {
+      fetchWarehouses()
+    }
+  }, [showAdjustStock, token, warehouses.length, fetchWarehouses])
+
   function handleSearchChange(value) {
     pager.reset()
     setSearchKeyword(value)
@@ -291,6 +326,22 @@ export function Product({ onExit }) {
         if (selectedItem) await updateProduct(token, selectedItem.id, payload)
         else await createProduct(token, payload)
         await fetchData()
+
+        if (showAdjustStock && selectedItem && adjustForm.quantity !== 0) {
+          const adjustmentType = adjustForm.quantity > 0 ? 'ADJUSTMENT_IN' : 'ADJUSTMENT_OUT'
+          const warehouseId = selectedItem.warehouse_id || selectedItem.warehouse?.id
+          await adjustStock(token, {
+            product_id: selectedItem.id,
+            warehouse_id: warehouseId || adjustForm.warehouse_id,
+            adjustment_type: adjustmentType,
+            quantity: Math.abs(adjustForm.quantity),
+            reason: adjustForm.reason,
+            notes: adjustForm.notes,
+          })
+          setShowAdjustStock(false)
+          setAdjustForm({ warehouse_id: '', reason: '', quantity: 0, notes: '' })
+          setError('')
+        }
       } else {
         if (selectedItem) {
           setData((prev) => prev.map((row) => (row.id === selectedItem.id ? { ...row, ...payload } : row)))
@@ -390,6 +441,8 @@ export function Product({ onExit }) {
   function handleCancelForm() {
     setShowForm(false)
     setForm(DEFAULT_FORM)
+    setShowAdjustStock(false)
+    setAdjustForm({ warehouse_id: '', reason: '', quantity: 0, notes: '' })
   }
 
   function handlePrint() {
@@ -551,6 +604,80 @@ export function Product({ onExit }) {
               <label className="master-form-label">Reorder :</label>
               <input type="number" value={form.reorder_point} onChange={(e) => setForm({ ...form, reorder_point: Number(e.target.value) })} className="master-form-input" />
             </div>
+            {selectedItem && (
+              <div className="master-form-group">
+                <button
+                  type="button"
+                  className={`master-adjust-stock-btn ${showAdjustStock ? 'is-on' : 'is-off'}`}
+                  onClick={() => {
+                    setShowAdjustStock((prev) => {
+                      const next = !prev
+                      if (!next) {
+                        setAdjustForm((current) => ({
+                          ...current,
+                          warehouse_id: '',
+                          reason: '',
+                          quantity: 0,
+                          notes: '',
+                        }))
+                      }
+                      return next
+                    })
+                  }}
+                >
+                  Adjust Stock
+                </button>
+              </div>
+            )}
+            {(!selectedItem || showAdjustStock) && (
+              <>
+                <div className="master-form-group">
+                  <label className="master-form-label">Stock Difference :</label>
+                  <input
+                    type="number"
+                    value={adjustForm.quantity}
+                    onChange={(e) => setAdjustForm({ ...adjustForm, quantity: Number(e.target.value) })}
+                    className="master-form-input"
+                    placeholder="Jumlah stok"
+                  />
+                </div>
+                <div className="master-form-group">
+                  <label className="master-form-label">Warehouse :</label>
+                  <select
+                    value={adjustForm.warehouse_id}
+                    onChange={(e) => setAdjustForm({ ...adjustForm, warehouse_id: e.target.value })}
+                    className="master-form-input"
+                  >
+                    <option value="">Select warehouse...</option>
+                    {warehouses.map((warehouse) => (
+                      <option key={warehouse.id} value={warehouse.id}>
+                        {warehouse.name || warehouse.code || '-'}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="master-form-group">
+                  <label className="master-form-label">Reason :</label>
+                  <input
+                    type="text"
+                    value={adjustForm.reason}
+                    onChange={(e) => setAdjustForm({ ...adjustForm, reason: e.target.value })}
+                    className="master-form-input"
+                    placeholder="Alasan penyesuaian"
+                  />
+                </div>
+                <div className="master-form-group">
+                  <label className="master-form-label">Notes :</label>
+                  <input
+                    type="text"
+                    value={adjustForm.notes}
+                    onChange={(e) => setAdjustForm({ ...adjustForm, notes: e.target.value })}
+                    className="master-form-input"
+                    placeholder="Catatan (opsional)"
+                  />
+                </div>
+              </>
+            )}
 
             <FooterFormMaster onSave={handleSave} onCancel={handleCancelForm} isSaving={isSaving} />
           </div>

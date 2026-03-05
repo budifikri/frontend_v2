@@ -110,3 +110,19 @@ export async function getStockCard(token, params = {}) {
     total: rows?.length ?? 0,
   }
 }
+
+export async function adjustStock(token, req) {
+  const url = '/api/inventory/adjust'
+  console.log('[AdjustStock] REQUEST URL:', url)
+  console.log('[AdjustStock] PAYLOAD:', req)
+
+  const raw = await apiFetch(url, {
+    method: 'POST',
+    token,
+    body: req,
+  })
+  console.log('[AdjustStock] RESPONSE:', raw)
+
+  if (!raw.success) throw new Error(raw.error || raw.message || 'Failed to adjust stock')
+  return raw
+}
