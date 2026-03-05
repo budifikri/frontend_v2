@@ -411,24 +411,22 @@ export function Product({ onExit }) {
       <div className="master-header">
         <div className="master-header-accent"></div>
         <h1 className="master-title">Daftar Product</h1>
-      </div>
-
-      <div className="master-subheader-controls">
-        <div className="master-filter-wrap">
-          <label htmlFor="product-category-filter" className="master-filter-label">Category</label>
-          <select
-            id="product-category-filter"
-            className="master-filter-select"
-            value={categoryFilter}
-            onChange={(e) => handleCategoryFilter(e.target.value)}
-          >
-            <option value="">All Category</option>
-            {categories.map((item) => (
-              <option key={item.id} value={item.id}>{item.name}</option>
-            ))}
-          </select>
+        <div className="master-header-filters">
+          <div className="master-filter-wrap">
+            <label htmlFor="product-category-filter" className="master-filter-label">Category</label>
+            <select
+              id="product-category-filter"
+              className="master-filter-select"
+              value={categoryFilter}
+              onChange={(e) => handleCategoryFilter(e.target.value)}
+            >
+              <option value="">All Category</option>
+              {categories.map((item) => (
+                <option key={item.id} value={item.id}>{item.name}</option>
+              ))}
+            </select>
+          </div>
         </div>
-
       </div>
 
       {error && <div className="master-error">{error}</div>}

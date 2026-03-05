@@ -388,24 +388,22 @@ export function Supplier({ onExit }) {
       <div className="master-header">
         <div className="master-header-accent"></div>
         <h1 className="master-title">Daftar Supplier</h1>
-      </div>
-
-      <div className="master-subheader-controls">
-        <div className="master-filter-wrap">
-          <label htmlFor="supplier-terms-filter" className="master-filter-label">Terms</label>
-          <select
-            id="supplier-terms-filter"
-            className="master-filter-select"
-            value={paymentTerms}
-            onChange={(e) => handlePaymentTerms(e.target.value)}
-          >
-            <option value="">All Terms</option>
-            {PAYMENT_TERMS.map((term) => (
-              <option key={term} value={term}>{term}</option>
-            ))}
-          </select>
+        <div className="master-header-filters">
+          <div className="master-filter-wrap">
+            <label htmlFor="supplier-terms-filter" className="master-filter-label">Terms</label>
+            <select
+              id="supplier-terms-filter"
+              className="master-filter-select"
+              value={paymentTerms}
+              onChange={(e) => handlePaymentTerms(e.target.value)}
+            >
+              <option value="">All Terms</option>
+              {PAYMENT_TERMS.map((term) => (
+                <option key={term} value={term}>{term}</option>
+              ))}
+            </select>
+          </div>
         </div>
-
       </div>
 
       {error && <div className="master-error">{error}</div>}

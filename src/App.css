@@ -738,12 +738,17 @@ body.has-wallpaper .cash-register {
   min-width: 130px;
 }
 
-.master-subheader-controls {
-  margin: 0 16px 8px;
+.master-header-filters .master-filter-wrap {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  gap: 6px;
+}
+
+.master-header-filters .master-filter-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #334155;
+  white-space: nowrap;
 }
 
 .master-inline-pagination {
