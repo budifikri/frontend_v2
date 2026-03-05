@@ -273,6 +273,40 @@ export function LapStock({ onExit }) {
       <div className="master-header">
         <div className="master-header-accent"></div>
         <h1 className="master-title">Laporan Stok</h1>
+        <div className="master-header-filters">
+          <div className="master-footer-search">
+            <input
+              type="text"
+              placeholder="Search keyword..."
+              className="master-search-input"
+              value={searchKeyword}
+              onChange={(e) => handleSearchChange(e.target.value)}
+            />
+            <button type="button" className="master-search-btn">
+              <span className="material-icons-round material-icon">search</span>
+            </button>
+          </div>
+          <select
+            className="master-filter-select"
+            value={warehouseFilter}
+            onChange={(e) => handleWarehouseFilter(e.target.value)}
+          >
+            <option value="">All Warehouse</option>
+            {warehouseSelectOptions.map((item) => (
+              <option key={item.id} value={item.id}>{item.name}</option>
+            ))}
+          </select>
+          <select
+            className="master-filter-select"
+            value={categoryFilter}
+            onChange={(e) => handleCategoryFilter(e.target.value)}
+          >
+            <option value="">All Category</option>
+            {categorySelectOptions.map((item) => (
+              <option key={item.id} value={item.id}>{item.name}</option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {error && <div className="master-error">{error}</div>}
@@ -309,39 +343,6 @@ export function LapStock({ onExit }) {
 
       <div className="master-footer">
         <div className="master-footer-actions">
-          <div className="master-footer-search">
-            <input
-              type="text"
-              placeholder="Search keyword..."
-              className="master-search-input"
-              value={searchKeyword}
-              onChange={(e) => handleSearchChange(e.target.value)}
-            />
-            <button type="button" className="master-search-btn">
-              <span className="material-icons-round material-icon">search</span>
-            </button>
-          </div>
-          <select
-            className="master-filter-select"
-            value={warehouseFilter}
-            onChange={(e) => handleWarehouseFilter(e.target.value)}
-          >
-            <option value="">All Warehouse</option>
-            {warehouseSelectOptions.map((item) => (
-              <option key={item.id} value={item.id}>{item.name}</option>
-            ))}
-          </select>
-          <select
-            className="master-filter-select"
-            value={categoryFilter}
-            onChange={(e) => handleCategoryFilter(e.target.value)}
-          >
-            <option value="">All Category</option>
-            {categorySelectOptions.map((item) => (
-              <option key={item.id} value={item.id}>{item.name}</option>
-            ))}
-          </select>
-
           <button type="button" className="master-footer-btn" onClick={() => window.print()}>
             <span className="material-icons-round master-footer-icon blue">print</span>
           </button>

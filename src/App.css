@@ -713,8 +713,29 @@ body.has-wallpaper .cash-register {
   align-items: center;
   gap: 12px;
   padding-left:16px;
+  padding-right:16px;
   padding-top:8px;
   
+}
+
+.master-header-filters {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.master-header-filters .master-footer-search {
+  display: flex;
+  align-items: center;
+}
+
+.master-header-filters .master-search-input {
+  width: 150px;
+}
+
+.master-header-filters .master-filter-select {
+  min-width: 130px;
 }
 
 .master-subheader-controls {
@@ -755,6 +776,7 @@ body.has-wallpaper .cash-register {
   text-transform: uppercase;
   color: #1e293b;
   margin: 0;
+   /* padding-right:16px;  */
 }
 
 .master-table-wrapper {
