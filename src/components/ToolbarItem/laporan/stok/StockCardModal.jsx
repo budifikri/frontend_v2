@@ -113,12 +113,16 @@ export function StockCardModal({ isOpen, onClose, data, productName, isLoading, 
             <span className="stock-card-total-out">Total Keluar: {totals.totalOut}</span>
           </div>
           <div className="stock-card-actions">
-            <button type="button" className="master-btn-print" onClick={handlePrint}>
-              PRINT
-            </button>
-            <button type="button" className="master-btn-cancel-secondary" onClick={onClose}>
-              TUTUP
-            </button>
+      
+
+            
+                    <button type="button" className="master-footer-btn"  onClick={handlePrint}>
+              <span className="material-icons-round master-footer-icon blue ">print</span>          
+          </button>
+
+              <button type="button" className="master-footer-btn" onClick={onClose}>
+              <span className="material-icons-round master-footer-icon red">exit_to_app</span>
+           </button>
           </div>
         </div>
       </div>

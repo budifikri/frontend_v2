@@ -5,4 +5,4 @@
  4 maret 2026 
  - penambahan log history CRUD table,error dan summary
  5 Maret 2026
- - stockcard
+ - stockcard 
