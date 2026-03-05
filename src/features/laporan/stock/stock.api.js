@@ -9,8 +9,9 @@ function normalizeInventoryItem(raw, index) {
   const productId = raw?.product_id ?? raw?.product?.id ?? ''
   const warehouseId = raw?.warehouse_id ?? raw?.warehouse?.id ?? ''
 
+  const isValidId = raw?.id && raw?.id !== '00000000-0000-0000-0000-000000000000'
   return {
-    id: raw?.id ?? `${productId || 'product'}-${warehouseId || 'warehouse'}-${index}`,
+    id: isValidId ? raw?.id : `${productId || 'product'}-${warehouseId || 'warehouse'}-${index}`,
     product_id: productId,
     code: raw?.product_code ?? raw?.code ?? raw?.sku ?? raw?.product?.code ?? '-',
     name: raw?.product_name ?? raw?.name ?? raw?.product?.name ?? '-',
@@ -48,13 +49,20 @@ export async function listInventory(token, params = {}) {
   const qs = new URLSearchParams()
   const keyword = params.search?.trim?.()
   if (keyword) qs.set('search', keyword)
+  if (params.stock) qs.set('stock', params.stock)
   if (params.warehouse_id) qs.set('warehouse_id', params.warehouse_id)
   if (params.product_id) qs.set('product_id', params.product_id)
   if (params.limit !== undefined) qs.set('limit', String(params.limit))
   if (params.offset !== undefined) qs.set('offset', String(params.offset))
 
   const queryString = qs.toString() ? `?${qs.toString()}` : ''
-  const raw = await apiFetch(`/api/inventory${queryString}`, { token })
+  const url = `/api/inventory${queryString}`
+  console.log('[LapStockAPI] listInventory REQUEST URL:', url)
+  console.log('[LapStockAPI] listInventory PARAMS:', params)
+
+  const raw = await apiFetch(url, { token })
+  console.log('[LapStockAPI] listInventory RESPONSE:', raw)
+
   if (!raw.success) throw new Error(raw.error || raw.message || 'Failed to load inventory')
 
   const rows = Array.isArray(raw.data) ? raw.data : (raw.data?.items ?? raw.data?.data ?? [])

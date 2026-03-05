@@ -81,6 +81,7 @@ export function LapStock({ onExit }) {
   const [searchKeyword, setSearchKeyword] = useState('')
   const [warehouseFilter, setWarehouseFilter] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('')
+  const [stockFilter, setStockFilter] = useState('available')
 
   const [warehouseOptions, setWarehouseOptions] = useState([])
   const [categoryOptions, setCategoryOptions] = useState([])
@@ -141,6 +142,10 @@ export function LapStock({ onExit }) {
       const filtered = DUMMY_STOCKS.filter((item) => {
         if (warehouseFilter && String(item.warehouse_id || '') !== warehouseFilter) return false
         if (categoryFilter && String(item.category_id || '') !== categoryFilter) return false
+        const stockValue = Number(item.stock || 0)
+        if (stockFilter === 'available' && stockValue <= 0) return false
+        if (stockFilter === 'minus' && stockValue >= 0) return false
+        if (stockFilter === 'empty' && stockValue !== 0) return false
         if (!keyword) return true
 
         return (
@@ -158,15 +163,21 @@ export function LapStock({ onExit }) {
     try {
       const result = await listInventory(token, {
         search: searchKeyword.trim() || undefined,
+        stock: stockFilter,
         warehouse_id: warehouseFilter || undefined,
         limit,
         offset,
       })
 
       const serverItems = result.items || []
-      const items = categoryFilter
-        ? serverItems.filter((item) => String(item.category_id || '') === categoryFilter)
-        : serverItems
+      const items = serverItems.filter((item) => {
+        if (categoryFilter && String(item.category_id || '') !== categoryFilter) return false
+        const stockValue = Number(item.stock || 0)
+        if (stockFilter === 'available' && stockValue <= 0) return false
+        if (stockFilter === 'minus' && stockValue >= 0) return false
+        if (stockFilter === 'empty' && stockValue !== 0) return false
+        return true
+      })
 
       setData(items)
 
@@ -181,7 +192,7 @@ export function LapStock({ onExit }) {
     } finally {
       setIsLoading(false)
     }
-  }, [token, searchKeyword, warehouseFilter, categoryFilter, limit, offset])
+  }, [token, searchKeyword, warehouseFilter, categoryFilter, stockFilter, limit, offset])
 
   useEffect(() => {
     refreshLookups()
@@ -222,6 +233,11 @@ export function LapStock({ onExit }) {
   const handleCategoryFilter = (value) => {
     pager.reset()
     setCategoryFilter(value)
+  }
+
+  const handleStockFilter = (value) => {
+    pager.reset()
+    setStockFilter(value)
   }
 
   const handleRowClick = (row) => {
@@ -305,6 +321,16 @@ export function LapStock({ onExit }) {
             {categorySelectOptions.map((item) => (
               <option key={item.id} value={item.id}>{item.name}</option>
             ))}
+          </select>
+          <select
+            className="master-filter-select"
+            value={stockFilter}
+            onChange={(e) => handleStockFilter(e.target.value)}
+          >
+            <option value="available">Stock Available</option>
+            <option value="all">Stock All</option>
+            <option value="minus">Stock Minus</option>
+            <option value="empty">Stock Empty</option>
           </select>
         </div>
       </div>
