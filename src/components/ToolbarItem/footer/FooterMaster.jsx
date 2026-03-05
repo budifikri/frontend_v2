@@ -19,28 +19,28 @@ export function FooterMaster({
   return (
     <div className="master-footer">
       <div className="master-footer-actions">
-        <button type="button" className="master-footer-btn" onClick={onNew}>
+        <button type="button" className="master-footer-btn" onClick={onNew} title="New" aria-label="New">
           <span className="material-icons-round master-footer-icon orange">add_box</span>
           <span className="master-footer-key">+</span>
         </button>
-        <button type="button" className="master-footer-btn" onClick={onEdit}>
+        <button type="button" className="master-footer-btn" onClick={onEdit} title="Edit" aria-label="Edit">
           <span className="material-icons-round master-footer-icon orange">edit</span>
           <span className="master-footer-key">F2</span>
         </button>
-        <button type="button" className="master-footer-btn" onClick={onDelete}>
+        <button type="button" className="master-footer-btn" onClick={onDelete} title="Delete" aria-label="Delete">
           <span className="material-icons-round master-footer-icon orange">remove_circle</span>
           <span className="master-footer-key">DEL</span>
         </button>
-        <button type="button" className="master-footer-btn" onClick={onPrint}>
+        <button type="button" className="master-footer-btn" onClick={onPrint} title="Print" aria-label="Print">
           <span className="material-icons-round master-footer-icon blue">print</span>
         </button>
         {onRefresh && (
-          <button type="button" className="master-footer-btn" onClick={onRefresh} disabled={isLoading}>
+          <button type="button" className="master-footer-btn" onClick={onRefresh} disabled={isLoading} title="Refresh" aria-label="Refresh">
             <span className="material-icons-round master-footer-icon green">refresh</span>
           </button>
         )}
 
-        <button type="button" className="master-footer-btn" onClick={onExit}>
+        <button type="button" className="master-footer-btn" onClick={onExit} title="Exit" aria-label="Exit">
           <span className="material-icons-round master-footer-icon red">exit_to_app</span>
         </button>
       </div>

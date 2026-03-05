@@ -343,19 +343,19 @@ export function LapStock({ onExit }) {
 
       <div className="master-footer">
         <div className="master-footer-actions">
-          <button type="button" className="master-footer-btn" onClick={() => window.print()}>
+          <button type="button" className="master-footer-btn" onClick={() => window.print()} title="Print" aria-label="Print">
             <span className="material-icons-round master-footer-icon blue">print</span>
           </button>
 
-          <button type="button" className="master-footer-btn" onClick={handleStockCard} disabled={!selectedRow}>
+          <button type="button" className="master-footer-btn" onClick={handleStockCard} disabled={!selectedRow} title="Stock Card" aria-label="Stock Card">
             <span className="material-icons-round master-footer-icon orange">assignment</span>
           </button>
 
-          <button type="button" className="master-footer-btn" onClick={fetchData} disabled={isLoading}>
+          <button type="button" className="master-footer-btn" onClick={fetchData} disabled={isLoading} title="Refresh" aria-label="Refresh">
             <span className="material-icons-round master-footer-icon green">refresh</span>
           </button>
 
-          <button type="button" className="master-footer-btn" onClick={onExit}>
+          <button type="button" className="master-footer-btn" onClick={onExit} title="Exit" aria-label="Exit">
             <span className="material-icons-round master-footer-icon red">exit_to_app</span>
           </button>
         </div>
