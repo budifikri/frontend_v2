@@ -403,6 +403,30 @@ export function Supplier({ onExit }) {
               ))}
             </select>
           </div>
+          <div className="master-filter-wrap">
+            <label htmlFor="supplier-status-filter" className="master-filter-label">Status</label>
+            <select
+              id="supplier-status-filter"
+              className="master-filter-select"
+              value={isActiveFilter}
+              onChange={(e) => handleStatusFilter(e.target.value)}
+            >
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+              <option value="all">All</option>
+            </select>
+          </div>
+          <div className="master-footer-search">
+            <input
+              type="text"
+              placeholder="Search keyword..."
+              className="master-search-input"
+              onChange={(e) => handleSearchChange(e.target.value)}
+            />
+            <button type="button" className="master-search-btn">
+              <span className="material-icons-round material-icon">search</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -514,11 +538,8 @@ export function Supplier({ onExit }) {
         onEdit={handleEdit}
         onDelete={handleDeleteClick}
         totalRow={pagination.total}
-        onSearch={handleSearchChange}
         onPrint={handlePrint}
         onExit={handleExitClick}
-        filter={isActiveFilter}
-        onFilterChange={handleStatusFilter}
         onRefresh={fetchData}
         isLoading={isLoading}
         page={pager.page}
