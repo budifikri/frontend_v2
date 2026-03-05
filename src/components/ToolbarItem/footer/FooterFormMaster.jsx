@@ -4,9 +4,11 @@ export function FooterFormMaster({
   isSaving = false,
   saveLabel = 'Simpan',
   cancelLabel = 'Cancel',
+  leftButtons,
 }) {
   return (
     <div className="master-form-actions">
+      {leftButtons && <>{leftButtons}</>}
       <button
         type="button"
         className="master-btn-save-primary"

@@ -485,31 +485,8 @@ export function User({ onExit }) {
                 ))}
               </select>
             </div>
-            {selectedItem && (
-              <div className="master-form-group">
-                <button
-                  type="button"
-                  className={`user-password-toggle ${showChangePassword ? 'is-on' : 'is-off'}`}
-                  onClick={() => {
-                    setShowChangePassword((prev) => {
-                      const next = !prev
-                      if (!next) {
-                        setForm((current) => ({
-                          ...current,
-                          password: '',
-                          confirm_password: '',
-                        }))
-                      }
-                      return next
-                    })
-                  }}
-                >
-                  Ganti Password
-                </button>
-              </div>
-            )}
             {(!selectedItem || showChangePassword) && (
-              <>
+              <div className="master-form-section">
                 <div className="master-form-group">
                   <label className="master-form-label">Password :</label>
                   <input
@@ -530,9 +507,38 @@ export function User({ onExit }) {
                     placeholder={selectedItem ? 'Ulangi password baru' : 'Ulangi password'}
                   />
                 </div>
-              </>
+                 <div className="master-form-group"></div><div className="master-form-group"></div><div className="master-form-group"></div>
+              </div>
             )}
-            <FooterFormMaster onSave={handleSave} onCancel={handleCancelForm} isSaving={isSaving} />
+
+            <FooterFormMaster
+              onSave={handleSave}
+              onCancel={handleCancelForm}
+              isSaving={isSaving}
+              leftButtons={
+                selectedItem && (
+                  <button
+                    type="button"
+                    className={`user-password-toggle ${showChangePassword ? 'is-on' : 'is-off'}`}
+                    onClick={() => {
+                      setShowChangePassword((prev) => {
+                        const next = !prev
+                        if (!next) {
+                          setForm((current) => ({
+                            ...current,
+                            password: '',
+                            confirm_password: '',
+                          }))
+                        }
+                        return next
+                      })
+                    }}
+                  >
+                    Ganti Password
+                  </button>
+                )
+              }
+            />
           </div>
         </div>
       )}

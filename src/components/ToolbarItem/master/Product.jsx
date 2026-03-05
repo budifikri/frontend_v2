@@ -327,21 +327,31 @@ export function Product({ onExit }) {
         else await createProduct(token, payload)
         await fetchData()
 
-        if (showAdjustStock && selectedItem && adjustForm.quantity !== 0) {
-          const adjustmentType = adjustForm.quantity > 0 ? 'ADJUSTMENT_IN' : 'ADJUSTMENT_OUT'
-          const warehouseId = selectedItem.warehouse_id || selectedItem.warehouse?.id
-          await adjustStock(token, {
-            product_id: selectedItem.id,
-            warehouse_id: warehouseId || adjustForm.warehouse_id,
-            adjustment_type: adjustmentType,
-            quantity: Math.abs(adjustForm.quantity),
-            reason: adjustForm.reason,
-            notes: adjustForm.notes,
-          })
-          setShowAdjustStock(false)
-          setAdjustForm({ warehouse_id: '', reason: '', quantity: 0, notes: '' })
-          setError('')
+      if (showAdjustStock && selectedItem && adjustForm.quantity !== 0) {
+        if (!adjustForm.warehouse_id) {
+          setError('Warehouse is required for stock adjustment')
+          setIsSaving(false)
+          return
         }
+        if (!adjustForm.reason) {
+          setError('Reason is required for stock adjustment')
+          setIsSaving(false)
+          return
+        }
+        const adjustmentType = adjustForm.quantity > 0 ? 'ADJUSTMENT_IN' : 'ADJUSTMENT_OUT'
+        const warehouseId = selectedItem.warehouse_id || selectedItem.warehouse?.id
+        await adjustStock(token, {
+          product_id: selectedItem.id,
+          warehouse_id: warehouseId || adjustForm.warehouse_id,
+          adjustment_type: adjustmentType,
+          quantity: Math.abs(adjustForm.quantity),
+          reason: adjustForm.reason,
+          notes: adjustForm.notes,
+        })
+        setShowAdjustStock(false)
+        setAdjustForm({ warehouse_id: '', reason: '', quantity: 0, notes: '' })
+        setError('')
+      }
       } else {
         if (selectedItem) {
           setData((prev) => prev.map((row) => (row.id === selectedItem.id ? { ...row, ...payload } : row)))
@@ -604,33 +614,8 @@ export function Product({ onExit }) {
               <label className="master-form-label">Reorder :</label>
               <input type="number" value={form.reorder_point} onChange={(e) => setForm({ ...form, reorder_point: Number(e.target.value) })} className="master-form-input" />
             </div>
-            {selectedItem && (
-              <div className="master-form-group">
-                <button
-                  type="button"
-                  className={`master-adjust-stock-btn ${showAdjustStock ? 'is-on' : 'is-off'}`}
-                  onClick={() => {
-                    setShowAdjustStock((prev) => {
-                      const next = !prev
-                      if (!next) {
-                        setAdjustForm((current) => ({
-                          ...current,
-                          warehouse_id: '',
-                          reason: '',
-                          quantity: 0,
-                          notes: '',
-                        }))
-                      }
-                      return next
-                    })
-                  }}
-                >
-                  Adjust Stock
-                </button>
-              </div>
-            )}
-            {(!selectedItem || showAdjustStock) && (
-              <>
+            {showAdjustStock && (
+              <div className="master-form-section">
                 <div className="master-form-group">
                   <label className="master-form-label">Stock Difference :</label>
                   <input
@@ -676,10 +661,34 @@ export function Product({ onExit }) {
                     placeholder="Catatan (opsional)"
                   />
                 </div>
-              </>
+              </div>
             )}
 
-            <FooterFormMaster onSave={handleSave} onCancel={handleCancelForm} isSaving={isSaving} />
+            <FooterFormMaster
+              onSave={handleSave}
+              onCancel={handleCancelForm}
+              isSaving={isSaving}
+              leftButtons={
+                selectedItem && (
+                <button
+                  type="button"
+                  className={`user-password-toggle ${showAdjustStock ? 'is-on' : 'is-off'}`}
+                  onClick={() => {
+                    setShowAdjustStock((prev) => {
+                      const next = !prev
+                      if (next && token) {
+                        fetchWarehouses()
+                      }
+                      return next
+                    })
+                  }}
+                  title="Adjust Stock"
+                >
+                  Adjust Stock
+                </button>
+                )
+              }
+            />
           </div>
         </div>
       )}
