@@ -15,6 +15,7 @@ export function FooterMaster({
   onPrevPage,
   onNextPage,
   onLastPage,
+  extraActions,
 }) {
   return (
     <div className="master-footer">
@@ -39,7 +40,7 @@ export function FooterMaster({
             <span className="material-icons-round master-footer-icon green">refresh</span>
           </button>
         )}
-
+        {extraActions}
         <button type="button" className="master-footer-btn" onClick={onExit} title="Exit" aria-label="Exit">
           <span className="material-icons-round master-footer-icon red">exit_to_app</span>
         </button>

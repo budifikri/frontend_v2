@@ -5,49 +5,102 @@ const DUMMY_WAREHOUSES = [
   { id: 'WH002', code: 'WH-002', name: 'Gudang Cabang' },
 ]
 
+const DUMMY_PRODUCTS = [
+  { id: 'PRD001', code: 'PRD-001', name: 'Kopi Luwak', unit: 'PCS' },
+  { id: 'PRD002', code: 'PRD-002', name: 'Gula Pasir', unit: 'KG' },
+  { id: 'PRD003', code: 'PRD-003', name: 'Teh Botol', unit: 'BOX' },
+  { id: 'PRD004', code: 'PRD-004', name: 'Mineral Water', unit: 'PCS' },
+  { id: 'PRD005', code: 'PRD-005', name: 'Roti Tawar', unit: 'PCS' },
+]
+
+const DUMMY_OPNAME_HEADER = {
+  id: 'OPN001',
+  opname_number: 'OPN-20260305-001',
+  warehouse_id: 'WH001',
+  warehouse: { id: 'WH001', code: 'WH-001', name: 'Gudang Utama' },
+  user_id: 'user1',
+  username: 'Admin Utama',
+  opname_date: '2026-03-05T10:30:00Z',
+  status: 'draft',
+  notes: 'Monthly stock opname',
+  created_at: '2026-03-05T10:30:00Z',
+  updated_at: '2026-03-05T10:30:00Z',
+}
+
+const DUMMY_OPNAME_ITEMS = [
+  {
+    id: 'item-001',
+    opname_id: 'OPN001',
+    product_id: 'PRD001',
+    product: { code: 'PRD-001', name: 'Kopi Luwak', unit: 'PCS' },
+    system_qty: 150,
+    physical_qty: 145,
+    variance: -5,
+    reason: 'counting_error',
+    notes: 'Selisih counting',
+  },
+  {
+    id: 'item-002',
+    opname_id: 'OPN001',
+    product_id: 'PRD002',
+    product: { code: 'PRD-002', name: 'Gula Pasir', unit: 'KG' },
+    system_qty: 80,
+    physical_qty: 80,
+    variance: 0,
+    reason: null,
+    notes: null,
+  },
+  {
+    id: 'item-003',
+    opname_id: 'OPN001',
+    product_id: 'PRD003',
+    product: { code: 'PRD-003', name: 'Teh Botol', unit: 'BOX' },
+    system_qty: 200,
+    physical_qty: 205,
+    variance: 5,
+    reason: 'found',
+    notes: 'Stok ditemukan',
+  },
+]
+
 const DUMMY_OPNAME_RECORDS = [
   {
-    id: 'OPN001',
-    opname_number: 'OPN-20260305-001',
-    warehouse_id: 'WH001',
-    warehouse: { id: 'WH001', code: 'WH-001', name: 'Gudang Utama' },
-    user_id: 'user1',
-    opname_date: '2026-03-05T10:30:00Z',
-    status: 'posted',
-    notes: 'Stock opname bulanan',
-    created_at: '2026-03-05T10:30:00Z',
-    updated_at: '2026-03-05T10:30:00Z',
-  },
-  {
-    id: 'OPN002',
-    opname_number: 'OPN-20260305-002',
-    warehouse_id: 'WH001',
-    warehouse: { id: 'WH001', code: 'WH-001', name: 'Gudang Utama' },
-    user_id: 'user1',
-    opname_date: '2026-03-05T14:00:00Z',
-    status: 'draft',
-    notes: 'Stock opname mingguan',
-    created_at: '2026-03-05T14:00:00Z',
-    updated_at: '2026-03-05T14:00:00Z',
-  },
-  {
-    id: 'OPN003',
-    opname_number: 'OPN-20260305-003',
-    warehouse_id: 'WH002',
-    warehouse: { id: 'WH002', code: 'WH-002', name: 'Gudang Cabang' },
-    user_id: 'user2',
-    opname_date: '2026-03-05T15:00:00Z',
-    status: 'draft',
-    notes: 'Stock opname cabang',
-    created_at: '2026-03-05T15:00:00Z',
-    updated_at: '2026-03-05T15:00:00Z',
+    ...DUMMY_OPNAME_HEADER,
+    items: DUMMY_OPNAME_ITEMS,
+    summary: {
+      total_items: 3,
+      variance_positive: 1,
+      variance_negative: 1,
+      variance_zero: 1,
+    },
   },
 ]
 
 function normalizeOpnameItem(raw, index) {
   return {
-    id: raw?.id || `opname-${index}`,
-    opname_number: raw?.opname_number || raw?.reference || `OPN-${Date.now()}-${index}`,
+    id: raw?.id || `item-${index}`,
+    opname_id: raw?.opname_id || '',
+    product_id: raw?.product_id || '',
+    product: {
+      code: raw?.product?.code || raw?.product_code || '-',
+      name: raw?.product?.name || raw?.product_name || '-',
+      unit: raw?.product?.unit || raw?.product_unit || '-',
+    },
+    system_qty: Number(raw?.system_qty ?? raw?.system_quantity ?? 0),
+    physical_qty: Number(raw?.physical_qty ?? raw?.actual_quantity ?? 0),
+    variance: Number(raw?.variance ?? (raw?.physical_qty ?? raw?.actual_quantity ?? 0) - (raw?.system_qty ?? raw?.system_quantity ?? 0)),
+    reason: raw?.reason || '',
+    notes: raw?.notes || '',
+    status: raw?.status || '',
+  }
+}
+
+function normalizeOpnameHeader(raw) {
+  const items = (raw?.items ?? []).map((item, index) => normalizeOpnameItem(item, index))
+  
+  return {
+    id: raw?.id || '',
+    opname_number: raw?.opname_number || raw?.reference || '',
     warehouse_id: raw?.warehouse_id || '',
     warehouse: {
       id: raw?.warehouse?.id || raw?.warehouse_id || '',
@@ -56,11 +109,18 @@ function normalizeOpnameItem(raw, index) {
     },
     user_id: raw?.user_id || raw?.created_by || '',
     username: raw?.user?.username || raw?.created_by_name || raw?.username || '',
-    opname_date: raw?.opname_date || raw?.date || raw?.created_at || '',
+    opname_date: raw?.opname_date ? raw.opname_date.split('T')[0] : '',
     status: raw?.status || 'draft',
     notes: raw?.notes || '',
     created_at: raw?.created_at || '',
     updated_at: raw?.updated_at || '',
+    items,
+    summary: raw?.summary || {
+      total_items: items.length,
+      variance_positive: items.filter(i => i.variance > 0).length,
+      variance_negative: items.filter(i => i.variance < 0).length,
+      variance_zero: items.filter(i => i.variance === 0).length,
+    },
   }
 }
 
@@ -69,6 +129,8 @@ export async function listStockOpname(token, params = {}) {
   if (params.search) qs.set('search', params.search)
   if (params.warehouse_id) qs.set('warehouse_id', params.warehouse_id)
   if (params.status) qs.set('status', params.status)
+  if (params.from_date) qs.set('from_date', params.from_date)
+  if (params.to_date) qs.set('to_date', params.to_date)
   if (params.limit !== undefined) qs.set('limit', String(params.limit))
   if (params.offset !== undefined) qs.set('offset', String(params.offset))
 
@@ -102,7 +164,7 @@ export async function listStockOpname(token, params = {}) {
     const sliced = items.slice(offset, offset + limit)
 
     return {
-      items: sliced.map((item, index) => normalizeOpnameItem(item, index)),
+      items: sliced.map((item) => normalizeOpnameHeader(item)),
       pagination: {
         total,
         limit,
@@ -121,13 +183,34 @@ export async function listStockOpname(token, params = {}) {
   const pagination = raw.pagination ?? raw.data?.pagination ?? {}
 
   return {
-    items: (rows ?? []).map((item, index) => normalizeOpnameItem(item, index)),
+    items: (rows ?? []).map((item) => normalizeOpnameHeader(item)),
     pagination: {
       limit: params.limit || 10,
       offset: params.offset || 0,
       ...pagination,
     },
   }
+}
+
+export async function getStockOpnameById(token, id) {
+  const url = `/api/stock-opname/${encodeURIComponent(id)}`
+  console.log('[StockOpnameAPI] getStockOpnameById REQUEST URL:', url)
+
+  if (!token) {
+    console.log('[StockOpnameAPI] No token - using DUMMY data')
+    const record = DUMMY_OPNAME_RECORDS.find(r => r.id === id || r.opname_number === id)
+    if (!record) {
+      throw new Error('Stock opname not found')
+    }
+    return normalizeOpnameHeader(record)
+  }
+
+  const raw = await apiFetch(url, { token })
+  console.log('[StockOpnameAPI] getStockOpnameById RESPONSE:', raw)
+
+  if (!raw.success) throw new Error(raw.error || raw.message || 'Failed to get stock opname')
+
+  return normalizeOpnameHeader(raw.data || raw)
 }
 
 export async function createStockOpname(token, input) {
@@ -139,15 +222,28 @@ export async function createStockOpname(token, input) {
     console.log('[StockOpnameAPI] No token - simulating create')
     const newRecord = {
       id: `OPN${Date.now()}`,
+      opname_number: input.opname_number || generateReference(),
       ...input,
       user_id: 'user',
+      username: 'Current User',
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
+      items: (input.items || []).map((item, index) => ({
+        id: `item-${Date.now()}-${index}`,
+        ...item,
+        variance: (item.physical_qty || item.actual_quantity || 0) - (item.system_qty || item.system_quantity || 0),
+      })),
+    }
+    newRecord.summary = {
+      total_items: newRecord.items.length,
+      variance_positive: newRecord.items.filter(i => i.variance > 0).length,
+      variance_negative: newRecord.items.filter(i => i.variance < 0).length,
+      variance_zero: newRecord.items.filter(i => i.variance === 0).length,
     }
     DUMMY_OPNAME_RECORDS.unshift(newRecord)
     return {
       success: true,
-      data: newRecord,
+      data: normalizeOpnameHeader(newRecord),
       message: 'Stock opname created successfully',
     }
   }
@@ -171,14 +267,29 @@ export async function updateStockOpname(token, id, input) {
 
   if (!token) {
     console.log('[StockOpnameAPI] No token - simulating update')
-    const index = DUMMY_OPNAME_RECORDS.findIndex(r => r.id === id)
+    const index = DUMMY_OPNAME_RECORDS.findIndex(r => r.id === id || r.opname_number === id)
     if (index === -1) {
-      throw new Error('Record not found')
+      throw new Error('Stock opname not found')
     }
-    DUMMY_OPNAME_RECORDS[index] = { ...DUMMY_OPNAME_RECORDS[index], ...input, updated_at: new Date().toISOString() }
+    const updatedRecord = {
+      ...DUMMY_OPNAME_RECORDS[index],
+      ...input,
+      updated_at: new Date().toISOString(),
+      items: (input.items || DUMMY_OPNAME_RECORDS[index].items).map((item) => ({
+        ...item,
+        variance: (item.physical_qty || item.actual_quantity || 0) - (item.system_qty || item.system_quantity || 0),
+      })),
+    }
+    updatedRecord.summary = {
+      total_items: updatedRecord.items.length,
+      variance_positive: updatedRecord.items.filter(i => i.variance > 0).length,
+      variance_negative: updatedRecord.items.filter(i => i.variance < 0).length,
+      variance_zero: updatedRecord.items.filter(i => i.variance === 0).length,
+    }
+    DUMMY_OPNAME_RECORDS[index] = updatedRecord
     return {
       success: true,
-      data: DUMMY_OPNAME_RECORDS[index],
+      data: normalizeOpnameHeader(updatedRecord),
       message: 'Stock opname updated successfully',
     }
   }
@@ -195,15 +306,47 @@ export async function updateStockOpname(token, id, input) {
   return raw
 }
 
+export async function updateStockOpnameStatus(token, id, status) {
+  const url = `/api/stock-opname/${encodeURIComponent(id)}/status`
+  console.log('[StockOpnameAPI] updateStockOpnameStatus REQUEST URL:', url)
+  console.log('[StockOpnameAPI] updateStockOpnameStatus PAYLOAD:', { status })
+
+  if (!token) {
+    console.log('[StockOpnameAPI] No token - simulating status update')
+    const index = DUMMY_OPNAME_RECORDS.findIndex(r => r.id === id || r.opname_number === id)
+    if (index === -1) {
+      throw new Error('Stock opname not found')
+    }
+    DUMMY_OPNAME_RECORDS[index].status = status
+    DUMMY_OPNAME_RECORDS[index].updated_at = new Date().toISOString()
+    return {
+      success: true,
+      data: normalizeOpnameHeader(DUMMY_OPNAME_RECORDS[index]),
+      message: `Stock opname status updated to ${status}`,
+    }
+  }
+
+  const raw = await apiFetch(url, {
+    method: 'POST',
+    token,
+    body: { status },
+  })
+  console.log('[StockOpnameAPI] updateStockOpnameStatus RESPONSE:', raw)
+
+  if (!raw.success) throw new Error(raw.error || raw.message || 'Failed to update stock opname status')
+
+  return raw
+}
+
 export async function deleteStockOpname(token, id) {
   const url = `/api/stock-opname/${encodeURIComponent(id)}`
   console.log('[StockOpnameAPI] deleteStockOpname REQUEST URL:', url)
 
   if (!token) {
     console.log('[StockOpnameAPI] No token - simulating delete')
-    const index = DUMMY_OPNAME_RECORDS.findIndex(r => r.id === id)
+    const index = DUMMY_OPNAME_RECORDS.findIndex(r => r.id === id || r.opname_number === id)
     if (index === -1) {
-      throw new Error('Record not found')
+      throw new Error('Stock opname not found')
     }
     DUMMY_OPNAME_RECORDS.splice(index, 1)
     return {
@@ -223,6 +366,45 @@ export async function deleteStockOpname(token, id) {
   return raw
 }
 
+export async function getProductStock(token, params = {}) {
+  const qs = new URLSearchParams()
+  if (params.product_id) qs.set('product_id', params.product_id)
+  if (params.warehouse_id) qs.set('warehouse_id', params.warehouse_id)
+
+  const queryString = qs.toString() ? `?${qs.toString()}` : ''
+  const url = `/api/inventory/stock${queryString}`
+  console.log('[StockOpnameAPI] getProductStock REQUEST URL:', url)
+
+  if (!token) {
+    const key = `${params.product_id}-${params.warehouse_id}`
+    const stockLevels = {
+      'PRD001-WH001': 150,
+      'PRD002-WH001': 80,
+      'PRD003-WH001': 200,
+      'PRD004-WH001': 500,
+      'PRD005-WH001': 50,
+    }
+    const stock = stockLevels[key] || 0
+    const product = DUMMY_PRODUCTS.find(p => p.id === params.product_id) || { id: params.product_id, code: '-', name: 'Unknown', unit: 'PCS' }
+    const warehouse = DUMMY_WAREHOUSES.find(w => w.id === params.warehouse_id) || { id: params.warehouse_id, code: '-', name: 'Unknown' }
+
+    return {
+      product_id: params.product_id,
+      warehouse_id: params.warehouse_id,
+      current_stock: stock,
+      product,
+      warehouse,
+    }
+  }
+
+  const raw = await apiFetch(url, { token })
+  console.log('[StockOpnameAPI] getProductStock RESPONSE:', raw)
+
+  if (!raw.success) throw new Error(raw.error || raw.message || 'Failed to get stock')
+
+  return raw.data || raw
+}
+
 export function getReasonOptions() {
   return [
     { value: 'damage', label: 'Barang Rusak' },
@@ -233,6 +415,15 @@ export function getReasonOptions() {
     { value: 'return', label: 'Retur' },
     { value: 'adjustment', label: 'Penyesuaian' },
     { value: 'other', label: 'Lainnya' },
+  ]
+}
+
+export function getStatusOptions() {
+  return [
+    { value: 'draft', label: 'Draft' },
+    { value: 'approved', label: 'Approved' },
+    { value: 'posted', label: 'Posted' },
+    { value: 'rejected', label: 'Rejected' },
   ]
 }
 

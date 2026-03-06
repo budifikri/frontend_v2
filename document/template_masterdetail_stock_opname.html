@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Modern Stock Opname Interface</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#1e3a8a", // Deep Blue
+                        "background-light": "#f3f4f6",
+                        "background-dark": "#111827",
+                        "slate-header": "#1e293b",
+                    },
+                    fontFamily: {
+                        display: ["Inter", "sans-serif"],
+                    },
+                    borderRadius: {
+                        DEFAULT: "4px",
+                    },
+                },
+            },
+        };
+    </script>
+<style type="text/tailwindcss">
+        @layer base {
+            body {
+                @apply font-['Inter'] antialiased;
+            }
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        .dark .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #475569;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .status-button {
+            @apply px-4 py-1.5 text-xs font-bold uppercase tracking-wider transition-all border flex items-center justify-center min-w-[100px];
+        }
+        .status-button-active {
+            @apply bg-primary text-white border-primary shadow-sm;
+        }
+        .status-button-inactive {
+            @apply bg-white dark:bg-slate-800 text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen flex flex-col overflow-hidden relative">
+<header class="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shrink-0">
+<div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800/50 flex flex-col md:flex-row md:items-center justify-between gap-4">
+<div class="flex items-center gap-3">
+<div class="w-1.5 h-8 bg-orange-500 rounded-full shadow-[0_0_8px_rgba(249,115,22,0.4)]"></div>
+<h1 class="text-xl font-bold text-primary dark:text-blue-400 uppercase tracking-tight">
+                    STOCK OPNAME - OPN-20260306-584
+                </h1>
+</div>
+<div class="flex items-center p-1 bg-slate-100 dark:bg-slate-800/50 rounded border border-slate-200 dark:border-slate-700 shadow-inner">
+<button class="status-button status-button-active rounded-l">
+                    Draft
+                </button>
+<button class="status-button status-button-inactive border-l-0">
+                    Approve
+                </button>
+<button class="status-button status-button-inactive border-l-0 rounded-r">
+                    Rejected
+                </button>
+</div>
+</div>
+<div class="px-6 py-4 bg-slate-50/50 dark:bg-slate-900/50">
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+<div class="flex flex-col gap-1.5">
+<label class="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Reference</label>
+<input class="bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-sm py-2 px-3 rounded focus:ring-primary focus:border-primary cursor-not-allowed font-medium" readonly="" type="text" value="OPN-20260306-58"/>
+</div>
+<div class="flex flex-col gap-1.5">
+<label class="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Warehouse *</label>
+<select class="bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-sm py-2 px-3 rounded focus:ring-primary focus:border-primary">
+<option>Select warehouse...</option>
+<option selected="">Main Warehouse</option>
+<option>South Storage</option>
+</select>
+</div>
+<div class="flex flex-col gap-1.5">
+<label class="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Tanggal Opname *</label>
+<input class="bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-sm py-2 px-3 rounded focus:ring-primary focus:border-primary" type="date" value="2026-03-06"/>
+</div>
+<div class="flex flex-col gap-1.5">
+<label class="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Notes</label>
+<textarea class="bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-sm py-2 px-3 rounded focus:ring-primary focus:border-primary resize-none h-[38px]" placeholder="Add remarks..." rows="1"></textarea>
+</div>
+</div>
+</div>
+</header>
+<main class="flex-grow p-4 md:p-6 flex flex-col bg-slate-100 dark:bg-slate-950 overflow-hidden mb-24">
+<div class="bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-slate-200 dark:border-slate-800 flex-grow flex flex-col overflow-hidden">
+<div class="overflow-x-auto custom-scrollbar flex-grow">
+<table class="w-full text-left border-collapse">
+<thead class="sticky top-0 z-10">
+<tr class="bg-slate-header dark:bg-slate-800 text-white text-[12px] uppercase font-bold tracking-wider">
+<th class="p-4 w-12 text-center">
+<input class="rounded border-slate-400 text-orange-500 focus:ring-orange-500 w-4 h-4" type="checkbox"/>
+</th>
+<th class="p-4">Product</th>
+<th class="p-4 w-28 text-center">Unit</th>
+<th class="p-4 w-28 text-center">System</th>
+<th class="p-4 w-28 text-center">Physical</th>
+<th class="p-4 w-28 text-center">Variance</th>
+<th class="p-4">Reason</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+<tr class="hover:bg-blue-50/50 dark:hover:bg-blue-900/10 transition-colors">
+<td class="p-4 text-center">
+<input class="rounded border-slate-300 dark:border-slate-600 text-orange-500 focus:ring-orange-500 w-4 h-4" type="checkbox"/>
+</td>
+<td class="p-4">
+<div class="font-semibold text-slate-900 dark:text-slate-100">Test Product 20260304T06254</div>
+<div class="text-[11px] font-medium text-slate-400 dark:text-slate-500 uppercase">SKU: TP-001</div>
+</td>
+<td class="p-4 text-center text-slate-500 dark:text-slate-400">-</td>
+<td class="p-4 text-center font-bold">0</td>
+<td class="p-4 text-center">
+<input class="w-20 text-center border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded text-sm py-1.5 px-2 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none" type="number" value="0"/>
+</td>
+<td class="p-4 text-center font-black text-slate-900 dark:text-slate-100">0</td>
+<td class="p-4">
+<input class="w-full border-transparent focus:border-slate-200 bg-transparent text-sm py-1.5 px-2 focus:ring-0 focus:bg-slate-50 dark:focus:bg-slate-800 rounded transition-all" placeholder="Add reason..." type="text"/>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="bg-slate-100 dark:bg-slate-800/80 px-6 py-3 border-t border-slate-200 dark:border-slate-700 flex flex-wrap gap-x-10 gap-y-2 items-center">
+<span class="text-[12px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest">Summary</span>
+<div class="flex items-center gap-6 text-[12px] font-bold">
+<span class="flex items-center gap-2 text-slate-900 dark:text-slate-100">
+                        TOTAL ITEMS: <span class="text-primary dark:text-blue-400 font-black">1</span>
+</span>
+<span class="h-4 w-[1px] bg-slate-300 dark:bg-slate-600"></span>
+<span class="flex items-center gap-2 text-green-600 dark:text-green-400">
+                        VARIANCE POSITIVE: <span class="font-black">0</span>
+</span>
+<span class="h-4 w-[1px] bg-slate-300 dark:bg-slate-600"></span>
+<span class="flex items-center gap-2 text-red-600 dark:text-red-400">
+                        VARIANCE NEGATIVE: <span class="font-black">0</span>
+</span>
+<span class="h-4 w-[1px] bg-slate-300 dark:bg-slate-600"></span>
+<span class="flex items-center gap-2 text-slate-600 dark:text-slate-400">
+                        VARIANCE ZERO: <span class="font-black">1</span>
+</span>
+</div>
+</div>
+</div>
+</main>
+<footer class="fixed bottom-0 left-0 right-0 bg-[#dbeafe] dark:bg-slate-900 border-t border-blue-200 dark:border-slate-800 p-4 z-50 shadow-[0_-4px_12px_rgba(0,0,0,0.05)]">
+<div class="flex items-center justify-between max-w-screen-2xl mx-auto">
+<div class="flex items-center gap-4">
+<button class="relative group flex flex-col items-center justify-center w-14 h-14 bg-orange-500 hover:bg-orange-600 text-white rounded shadow-md transition-all active:scale-95">
+<span class="material-symbols-outlined text-3xl">add</span>
+<span class="absolute -bottom-1 -right-1 bg-yellow-400 text-slate-900 text-[10px] font-black px-1.5 rounded border-2 border-white dark:border-slate-900 shadow-sm">F1</span>
+</button>
+<button class="relative group flex flex-col items-center justify-center w-14 h-14 bg-red-500 hover:bg-red-600 text-white rounded shadow-md transition-all active:scale-95">
+<span class="material-symbols-outlined text-3xl">remove</span>
+<span class="absolute -bottom-1 -right-1 bg-yellow-400 text-slate-900 text-[10px] font-black px-1.5 rounded border-2 border-white dark:border-slate-900 shadow-sm">DEL</span>
+</button>
+</div>
+<div class="flex items-center gap-4">
+<button class="flex items-center gap-3 px-8 py-3 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 border border-slate-300 dark:border-slate-700 rounded font-bold text-sm shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition-all active:translate-y-px">
+<span class="material-symbols-outlined text-xl">save</span>
+                    Save (Ctrl+S)
+                </button>
+<button class="flex items-center gap-3 px-8 py-3 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 border border-slate-300 dark:border-slate-700 rounded font-bold text-sm shadow-sm hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-400 transition-all active:translate-y-px">
+<span class="material-symbols-outlined text-xl">logout</span>
+                    Exit (Esc)
+                </button>
+</div>
+</div>
+</footer>
+<button class="fixed bottom-28 right-6 p-3 bg-white dark:bg-slate-800 shadow-xl rounded-full border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:text-primary dark:hover:text-blue-400 transition-all z-[60] active:scale-90" onclick="document.documentElement.classList.toggle('dark')">
+<span class="material-symbols-outlined">dark_mode</span>
+</button>
+
+</body></html>

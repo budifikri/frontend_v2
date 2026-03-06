@@ -15,6 +15,7 @@ import { DeleteMaster } from '../footer/DeleteMaster'
 import { MasterTableHeader } from '../table/MasterTableHeader'
 import { useMasterTableSort } from '../../../hooks/useMasterTableSort'
 import { useMasterPagination } from '../../../hooks/useMasterPagination'
+import { StockOpnameDetail } from './StockOpnameDetail'
 
 const REASON_OPTIONS = getReasonOptions()
 
@@ -125,6 +126,7 @@ export function StockOpname({ onExit }) {
   const [showForm, setShowForm] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [showExitConfirm, setShowExitConfirm] = useState(false)
+  const [showDetail, setShowDetail] = useState(false)
 
   const [warehouseOptions, setWarehouseOptions] = useState([])
   const [reasonOptions] = useState(REASON_OPTIONS)
@@ -215,63 +217,16 @@ export function StockOpname({ onExit }) {
     },
   })
 
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (showDeleteConfirm) {
-        if (e.key === 'Escape') {
-          e.preventDefault()
-          setShowDeleteConfirm(false)
-        }
-        return
-      }
-
-      if (showForm) {
-        if (e.key === 'Escape') {
-          e.preventDefault()
-          setShowForm(false)
-        }
-        return
-      }
-
-      if (e.key === 'F2') {
-        e.preventDefault()
-        handleEdit()
-      } else if (e.key === 'Delete') {
-        e.preventDefault()
-        handleDeleteClick()
-      } else if (e.key === '+' || e.key === 'F1') {
-        e.preventDefault()
-        handleNew()
-      } else if (e.key === 'Escape') {
-        e.preventDefault()
-        setShowExitConfirm(true)
-      }
-    }
-
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showDeleteConfirm, showForm, selectedId, data])
-
   const selectedItem = selectedId == null ? null : data.find((row) => row.id === selectedId) || null
-
-  const handleSearchChange = (value) => {
-    pager.reset()
-    setSearchKeyword(value)
-  }
-
-  const handleWarehouseFilter = (value) => {
-    pager.reset()
-    setWarehouseFilter(value)
-  }
-
-  const handleStatusFilter = (value) => {
-    pager.reset()
-    setStatusFilter(value)
-  }
 
   const handleSelect = (row) => {
     setSelectedId(row.id)
+  }
+
+  const handleViewDetail = (row) => {
+    console.log('[StockOpname] handleViewDetail called, row:', row)
+    setSelectedId(row.id)
+    setShowDetail(true)
   }
 
   const handleNew = () => {
@@ -425,7 +380,17 @@ export function StockOpname({ onExit }) {
   }, [])
 
   return (
-    <div className="master-content">
+    <>
+      {showDetail ? (
+        <StockOpnameDetail
+          selectedId={selectedId}
+          onExit={() => {
+            setShowDetail(false)
+            setSelectedId(null)
+          }}
+        />
+      ) : (
+        <div className="master-content">
       <div className="master-header">
         <div className="master-header-accent"></div>
         <h1 className="master-title">Stock Opname</h1>
@@ -486,6 +451,8 @@ export function StockOpname({ onExit }) {
                   key={row.id || index}
                   className={selectedId === row.id ? 'master-row-selected' : 'master-row'}
                   onClick={() => handleSelect(row)}
+                  onDoubleClick={() => handleViewDetail(row)}
+                  title="Double-click to view/edit detail"
                 >
                   <td>{offset + index + 1}</td>
                   <td>{formatDate(row.opname_date)}</td>
@@ -599,6 +566,17 @@ export function StockOpname({ onExit }) {
         onPrevPage={pager.goPrev}
         onNextPage={pager.goNext}
         onLastPage={pager.goLast}
+        extraActions={
+          <button
+            type="button"
+            className="master-footer-btn"
+            onClick={() => handleViewDetail(selectedItem || sortedData[0])}
+            disabled={!selectedItem && sortedData.length === 0}
+            title="View Detail (Double-click row)"
+          >
+            <span className="material-icons-round master-footer-icon blue">visibility</span>
+          </button>
+        }
       />
 
       {showDeleteConfirm && (
@@ -623,6 +601,8 @@ export function StockOpname({ onExit }) {
           onCancel={() => setShowExitConfirm(false)}
         />
       )}
-    </div>
+        </div>
+      )}
+    </>
   )
 }

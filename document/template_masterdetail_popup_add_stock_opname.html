@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Add Product Modal - POS System</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet"/>
+<script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#0D9488", // Teal-ish color from the screenshot inspiration
+                        secondary: "#1E293B", // Dark blue for headings
+                        "background-light": "#F1F5F9",
+                        "background-dark": "#0F172A",
+                    },
+                    fontFamily: {
+                        display: ["Inter", "sans-serif"],
+                    },
+                    borderRadius: {
+                        DEFAULT: "0.5rem",
+                    },
+                },
+            },
+        };
+    </script>
+<style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .modal-shadow {
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04), 0 0 0 1px rgba(0, 0, 0, 0.05);
+        }
+    </style>
+</head>
+<body class="bg-slate-200 dark:bg-slate-900 min-h-screen flex items-center justify-center p-4">
+<div class="w-full max-w-xl bg-white dark:bg-slate-800 rounded-xl modal-shadow overflow-hidden">
+<div class="px-6 py-4 border-b border-slate-100 dark:border-slate-700 flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-orange-500 flex items-center justify-center text-white">
+<span class="material-icons-round text-xl">add</span>
+</div>
+<h2 class="text-xl font-bold text-secondary dark:text-slate-100">Add Product to Opname</h2>
+</div>
+<div class="p-6 bg-slate-50 dark:bg-slate-800/50 space-y-5">
+<div class="space-y-1.5">
+<label class="block text-sm font-semibold text-slate-700 dark:text-slate-300">
+                    Product <span class="text-red-500">*</span>
+</label>
+<div class="relative">
+<select class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none appearance-none transition-all dark:text-white">
+<option disabled="" selected="" value="">Select Product...</option>
+<option value="1">Premium Espresso Beans (1kg)</option>
+<option value="2">Oat Milk Alternative (1L)</option>
+<option value="3">Artisanal Paper Cups (Small)</option>
+<option value="4">Cinnamon Powder Shaker</option>
+</select>
+<div class="absolute inset-y-0 right-3 flex items-center pointer-events-none text-slate-400">
+<span class="material-icons-round">expand_more</span>
+</div>
+</div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+<div class="space-y-1.5">
+<label class="block text-sm font-semibold text-slate-700 dark:text-slate-300">
+                        Physical Stock <span class="text-red-500">*</span>
+</label>
+<input class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all dark:text-white" placeholder="0" type="number"/>
+</div>
+<div class="space-y-1.5">
+<label class="block text-sm font-semibold text-slate-700 dark:text-slate-300">
+                        Variance
+                    </label>
+<div class="w-full bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg px-4 py-2.5 text-slate-500 dark:text-slate-400 font-medium">
+                        -2
+                    </div>
+</div>
+</div>
+<div class="space-y-1.5">
+<label class="block text-sm font-semibold text-slate-700 dark:text-slate-300">
+                    Reason
+                </label>
+<div class="relative">
+<select class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none appearance-none transition-all dark:text-white">
+<option value="">Select Reason...</option>
+<option value="broken">Broken / Damaged</option>
+<option value="expired">Expired</option>
+<option value="lost">Lost / Stolen</option>
+<option value="mismatch">Inventory Mismatch</option>
+<option value="other">Other</option>
+</select>
+<div class="absolute inset-y-0 right-3 flex items-center pointer-events-none text-slate-400">
+<span class="material-icons-round">expand_more</span>
+</div>
+</div>
+</div>
+<div class="space-y-1.5">
+<label class="block text-sm font-semibold text-slate-700 dark:text-slate-300">
+                    Notes
+                </label>
+<textarea class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all dark:text-white resize-none" placeholder="Enter any additional details..." rows="2"></textarea>
+</div>
+</div>
+<div class="p-6 bg-white dark:bg-slate-800 border-t border-slate-100 dark:border-slate-700 flex gap-8">
+<button class="flex flex-col items-center group transition-transform active:scale-95">
+<div class="w-14 h-14 rounded-xl bg-teal-50 dark:bg-teal-900/30 flex items-center justify-center border-2 border-primary/20 group-hover:border-primary/50 transition-colors">
+<span class="material-icons-round text-primary text-3xl">check</span>
+</div>
+<span class="mt-2 text-sm font-semibold text-slate-600 dark:text-slate-400 group-hover:text-primary transition-colors">Add</span>
+</button>
+<button class="flex flex-col items-center group transition-transform active:scale-95">
+<div class="w-14 h-14 rounded-xl bg-red-50 dark:bg-red-900/30 flex items-center justify-center border-2 border-red-200 dark:border-red-900/50 group-hover:border-red-400 transition-colors">
+<span class="material-icons-round text-red-500 text-3xl">close</span>
+</div>
+<span class="mt-2 text-sm font-semibold text-slate-600 dark:text-slate-400 group-hover:text-red-500 transition-colors">Cancel</span>
+</button>
+</div>
+</div>
+<button class="fixed bottom-4 right-4 p-3 bg-white dark:bg-slate-800 rounded-full shadow-lg border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:scale-110 transition-transform" onclick="document.documentElement.classList.toggle('dark')">
+<span class="material-icons-round">dark_mode</span>
+</button>
+
+</body></html>
