@@ -261,7 +261,7 @@ export async function createStockOpname(token, input) {
 export async function updateStockOpname(token, id, input) {
   const url = `/api/stock-opname/${encodeURIComponent(id)}`
   console.log('[StockOpnameAPI] updateStockOpname REQUEST URL:', url)
-  console.log('[StockOpnameAPI] updateStockOpname PAYLOAD:', input)
+  console.log('[StockOpnameAPI] updateStockOpname PAYLOAD:', JSON.stringify(input, null, 2))
 
   if (!token) {
     console.log('[StockOpnameAPI] No token - simulating update')
@@ -297,9 +297,16 @@ export async function updateStockOpname(token, id, input) {
     token,
     body: input,
   })
-  console.log('[StockOpnameAPI] updateStockOpname RESPONSE:', raw)
+  console.log('[StockOpnameAPI] updateStockOpname RAW RESPONSE:', raw)
+  console.log('[StockOpnameAPI] updateStockOpname RESPONSE success:', raw.success)
+  console.log('[StockOpnameAPI] updateStockOpname RESPONSE error:', raw.error)
+  console.log('[StockOpnameAPI] updateStockOpname RESPONSE message:', raw.message)
 
-  if (!raw.success) throw new Error(raw.error || raw.message || 'Failed to update stock opname')
+  if (!raw.success) {
+    const errorMsg = raw.error || raw.message || 'Failed to update stock opname'
+    console.error('[StockOpnameAPI] updateStockOpname ERROR:', errorMsg)
+    throw new Error(errorMsg)
+  }
 
   return raw
 }

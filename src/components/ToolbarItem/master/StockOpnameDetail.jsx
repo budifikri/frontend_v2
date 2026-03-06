@@ -232,15 +232,23 @@ export function StockOpnameDetail({ selectedId: propSelectedId, onExit, onSaveSu
       opname_date: header.opname_date,
       status: header.status,
       notes: header.notes || '',
-      items: items.map((item) => ({
-        id: item.id || '',  // Empty for new items
-        product_id: item.product_id,
-        system_quantity: item.system_quantity,
-        actual_quantity: item.actual_quantity,
-        difference: item.difference,
-        status: item.status || 'pending',
-        notes: item.notes || item.reason || '',
-      })),
+      items: items.map((item) => {
+        const itemPayload = {
+          product_id: item.product_id,
+          system_quantity: item.system_quantity,
+          actual_quantity: item.actual_quantity,
+          status: item.status || 'pending',
+          notes: item.notes || item.reason || '',
+        }
+        
+        // Only include id if it's a valid UUID (existing item)
+        // For new items (id starts with "item-"), don't include id field
+        if (item.id && !item.id.startsWith('item-')) {
+          itemPayload.id = item.id
+        }
+        
+        return itemPayload
+      }),
     }
 
     try {
