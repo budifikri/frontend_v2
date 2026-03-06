@@ -16,6 +16,7 @@ import { MasterTableHeader } from '../table/MasterTableHeader'
 import { useMasterTableSort } from '../../../hooks/useMasterTableSort'
 import { useMasterPagination } from '../../../hooks/useMasterPagination'
 import { StockOpnameDetail } from './StockOpnameDetail'
+import { Toast } from '../../Toast'
 
 const REASON_OPTIONS = getReasonOptions()
 
@@ -128,6 +129,13 @@ export function StockOpname({ onExit }) {
   const [showExitConfirm, setShowExitConfirm] = useState(false)
   const [showDetail, setShowDetail] = useState(false)
 
+  // Toast state
+  const [toast, setToast] = useState({
+    isOpen: false,
+    message: '',
+    type: 'info',
+  })
+
   const [warehouseOptions, setWarehouseOptions] = useState([])
   const [reasonOptions] = useState(REASON_OPTIONS)
 
@@ -227,6 +235,11 @@ export function StockOpname({ onExit }) {
     console.log('[StockOpname] handleViewDetail called, row:', row)
     setSelectedId(row.id)
     setShowDetail(true)
+  }
+
+  // Handle save success from detail component
+  const handleSaveSuccess = (message, type = 'success') => {
+    setToast({ isOpen: true, message, type })
   }
 
   const handleNew = () => {
@@ -383,6 +396,7 @@ export function StockOpname({ onExit }) {
             setShowDetail(false)
             setSelectedId(null)
           }}
+          onSaveSuccess={handleSaveSuccess}
         />
       ) : (
         <div className="master-content">
@@ -587,6 +601,15 @@ export function StockOpname({ onExit }) {
       )}
         </div>
       )}
+
+      {/* Toast Notification */}
+      <Toast
+        message={toast.message}
+        type={toast.type}
+        isOpen={toast.isOpen}
+        onClose={() => setToast({ ...toast, isOpen: false })}
+        duration={3000}
+      />
     </>
   )
 }

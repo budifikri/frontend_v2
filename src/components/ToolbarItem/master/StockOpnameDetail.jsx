@@ -14,11 +14,12 @@ import { listProducts } from '../../../features/master/product/product.api'
 import { listWarehouses } from '../../../features/master/warehouse/warehouse.api'
 import { MasterDetailTable, MasterDetailFooter, AddItemModal } from '../../templates'
 import { DeleteMaster } from '../footer/DeleteMaster'
+import { Toast } from '../../Toast'
 
 const REASON_OPTIONS = getReasonOptions()
 const STATUS_OPTIONS = getStatusOptions()
 
-export function StockOpnameDetail({ selectedId: propSelectedId, onExit }) {
+export function StockOpnameDetail({ selectedId: propSelectedId, onExit, onSaveSuccess }) {
   const { auth } = useAuth()
   const token = auth?.token
   
@@ -45,6 +46,13 @@ export function StockOpnameDetail({ selectedId: propSelectedId, onExit }) {
   const [items, setItems] = useState([])
   const [selectedIds, setSelectedIds] = useState([])
   const [editingId, setEditingId] = useState(null)
+
+  // Toast state
+  const [toast, setToast] = useState({
+    isOpen: false,
+    message: '',
+    type: 'info',
+  })
 
   // Fetch lookups
   const fetchLookups = useCallback(async () => {
@@ -214,6 +222,7 @@ export function StockOpnameDetail({ selectedId: propSelectedId, onExit }) {
       status: header.status,
       notes: header.notes || '',
       items: items.map((item) => ({
+        id: item.id || '',  // Empty for new items
         product_id: item.product_id,
         system_quantity: item.system_quantity,
         actual_quantity: item.actual_quantity,
@@ -225,19 +234,38 @@ export function StockOpnameDetail({ selectedId: propSelectedId, onExit }) {
 
     try {
       if (token) {
-        await createStockOpname(token, payload)
+        if (propSelectedId) {
+          // UPDATE existing stock opname
+          console.log('[StockOpnameDetail] Updating existing:', propSelectedId)
+          await updateStockOpname(token, propSelectedId, payload)
+          // Close first, then show toast in parent
+          onExit()
+          if (onSaveSuccess) onSaveSuccess('Stock Opname berhasil disimpan', 'success')
+        } else {
+          // CREATE new stock opname
+          console.log('[StockOpnameDetail] Creating new')
+          await createStockOpname(token, payload)
+          // Close first, then show toast in parent
+          onExit()
+          if (onSaveSuccess) onSaveSuccess('Stock Opname berhasil dibuat', 'success')
+        }
       } else {
         // Offline mode - just simulate
-        console.log('Saving offline:', payload)
+        console.log('[StockOpnameDetail] Offline mode save')
+        onExit()
+        if (onSaveSuccess) onSaveSuccess('Stock Opname berhasil disimpan (offline mode)', 'success')
       }
-      
-      // Navigate back to list
-      onExit()
     } catch (err) {
+      console.error('[StockOpnameDetail] Save error:', err)
       setError(err.message || 'Failed to save stock opname')
     } finally {
       setIsSaving(false)
     }
+  }
+
+  // Show toast helper
+  const showToast = (message, type = 'info') => {
+    setToast({ isOpen: true, message, type })
   }
 
   // Handle keyboard shortcuts
@@ -568,6 +596,15 @@ export function StockOpnameDetail({ selectedId: propSelectedId, onExit }) {
           onCancel={() => setShowExitConfirm(false)}
         />
       )}
+
+      {/* Toast Notification */}
+      <Toast
+        message={toast.message}
+        type={toast.type}
+        isOpen={toast.isOpen}
+        onClose={() => setToast({ ...toast, isOpen: false })}
+        duration={3000}
+      />
     </div>
   )
 }
