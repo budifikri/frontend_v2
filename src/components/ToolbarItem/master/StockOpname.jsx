@@ -231,12 +231,7 @@ export function StockOpname({ onExit }) {
 
   const handleNew = () => {
     setSelectedId(null)
-    setForm({
-      ...DEFAULT_FORM,
-      reference: generateReference(),
-      opname_date: new Date().toISOString().split('T')[0],
-    })
-    setShowForm(true)
+    setShowDetail(true)
   }
 
   const handleEdit = () => {
@@ -551,7 +546,7 @@ export function StockOpname({ onExit }) {
 
       <FooterMaster
         onNew={handleNew}
-        onEdit={handleEdit}
+        onEdit={() => handleViewDetail(selectedItem || sortedData[0])}
         onDelete={handleDeleteClick}
         totalRow={pagination.total}
         onPrint={handlePrint}
@@ -566,17 +561,6 @@ export function StockOpname({ onExit }) {
         onPrevPage={pager.goPrev}
         onNextPage={pager.goNext}
         onLastPage={pager.goLast}
-        extraActions={
-          <button
-            type="button"
-            className="master-footer-btn"
-            onClick={() => handleViewDetail(selectedItem || sortedData[0])}
-            disabled={!selectedItem && sortedData.length === 0}
-            title="View Detail (Double-click row)"
-          >
-            <span className="material-icons-round master-footer-icon blue">visibility</span>
-          </button>
-        }
       />
 
       {showDeleteConfirm && (

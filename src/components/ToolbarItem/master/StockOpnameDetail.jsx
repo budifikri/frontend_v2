@@ -79,6 +79,7 @@ export function StockOpnameDetail({ selectedId: propSelectedId, onExit }) {
 
   // Load selected stock opname data
   useEffect(() => {
+    // If no propSelectedId, this is a new stock opname - don't load anything
     if (!propSelectedId) return
 
     const loadStockOpname = async () => {
