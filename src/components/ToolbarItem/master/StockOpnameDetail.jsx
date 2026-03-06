@@ -74,9 +74,19 @@ export function StockOpnameDetail({ selectedId: propSelectedId, onExit, onSaveSu
         listProducts(token, { limit: 200, offset: 0 }),
         listWarehouses(token, { limit: 200, offset: 0 }),
       ])
-      setProductOptions(productRes.items || [])
+      
+      // Normalize product options
+      const normalizedProducts = (productRes.items || []).map(item => ({
+        id: item.id || '',
+        code: item.sku || item.code || item.product_code || '-',
+        name: item.name || item.product_name || '-',
+        unit: item.unit_name || item.unit || item.product_unit || '-',
+      }))
+      
+      setProductOptions(normalizedProducts)
       setWarehouseOptions(warehouseRes.items || [])
-    } catch {
+    } catch (err) {
+      console.error('[StockOpnameDetail] Failed to load lookups:', err)
       setError('Failed to load lookups')
     }
   }, [token])
@@ -152,6 +162,7 @@ export function StockOpnameDetail({ selectedId: propSelectedId, onExit, onSaveSu
       notes: newItem.notes || null,
       _isNew: true,
     }
+    console.log('[StockOpnameDetail] Adding item:', itemWithId)
     setItems((prev) => [...prev, itemWithId])
     setShowAddModal(false)
   }, [productOptions])
@@ -307,6 +318,9 @@ export function StockOpnameDetail({ selectedId: propSelectedId, onExit, onSaveSu
     return productOptions.map((item) => ({
       id: item.id,
       name: `${item.code || '-'} - ${item.name || '-'}`,
+      code: item.code || '-',
+      name_only: item.name || '-',
+      unit: item.unit || '-',
     }))
   }, [productOptions])
 
@@ -578,6 +592,27 @@ export function StockOpnameDetail({ selectedId: propSelectedId, onExit, onSaveSu
               options: productOptionsForSelect,
             },
           ],
+        }}
+        onProductSelect={(productId, callback) => {
+          // Fetch system stock for selected product
+          if (token && header.warehouse_id) {
+            getProductStock(token, {
+              product_id: productId,
+              warehouse_id: header.warehouse_id,
+            }).then((result) => {
+              callback(result.current_stock || 0)
+            }).catch(() => {
+              callback(0)
+            })
+          } else {
+            // Offline mode - use dummy data
+            const dummyStocks = {
+              'PRD001': 150,
+              'PRD002': 80,
+              'PRD003': 200,
+            }
+            callback(dummyStocks[productId] || 0)
+          }
         }}
       />
 

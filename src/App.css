@@ -2723,3 +2723,49 @@ body.has-wallpaper .cash-register {
 .toast-close .material-icons-round {
   font-size: 18px;
 }
+
+/* ========================================
+   Add Item Modal - Product Info
+   ======================================== */
+
+.product-info-display {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.product-info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+}
+
+.product-info-label {
+  color: #64748b;
+  font-weight: 500;
+}
+
+.product-info-value {
+  color: #0f172a;
+  font-weight: 600;
+}
+
+.product-info-value.font-bold {
+  font-weight: 700;
+  color: #1e3a8a;
+}
+
+.variance-positive {
+  color: #16a34a;
+  font-weight: 700;
+}
+
+.variance-negative {
+  color: #dc2626;
+  font-weight: 700;
+}

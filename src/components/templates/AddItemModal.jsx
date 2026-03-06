@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 export function AddItemModal({
   isOpen,
@@ -6,12 +6,29 @@ export function AddItemModal({
   onAdd,
   itemConfig,
   title = 'Add Product to Opname',
+  onProductSelect,  // Callback to fetch system stock
 }) {
   const [selectedId, setSelectedId] = useState('')
+  const [selectedProduct, setSelectedProduct] = useState(null)
   const [physicalQty, setPhysicalQty] = useState('')
+  const [systemQty, setSystemQty] = useState(0)
   const [reason, setReason] = useState('')
   const [notes, setNotes] = useState('')
   const [isAdding, setIsAdding] = useState(false)
+
+  // Handle product selection
+  useEffect(() => {
+    if (selectedId && onProductSelect) {
+      const product = itemConfig?.selectFields?.[0]?.options?.find(opt => opt.id === selectedId)
+      setSelectedProduct(product)
+      onProductSelect(selectedId, (stock) => {
+        setSystemQty(stock || 0)
+      })
+    } else {
+      setSelectedProduct(null)
+      setSystemQty(0)
+    }
+  }, [selectedId, onProductSelect, itemConfig])
 
   if (!isOpen) return null
 
@@ -20,13 +37,16 @@ export function AddItemModal({
     setIsAdding(true)
     onAdd({
       product_id: selectedId,
-      physical_qty: Number(physicalQty) || 0,
+      system_quantity: systemQty,
+      actual_quantity: Number(physicalQty) || 0,
       reason: reason || null,
       notes: notes || null,
     })
     setIsAdding(false)
     setSelectedId('')
+    setSelectedProduct(null)
     setPhysicalQty('')
+    setSystemQty(0)
     setReason('')
     setNotes('')
   }
@@ -83,6 +103,24 @@ export function AddItemModal({
             </div>
           </div>
 
+          {/* Product Info Display */}
+          {selectedProduct && (
+            <div className="product-info-display">
+              <div className="product-info-row">
+                <span className="product-info-label">SKU:</span>
+                <span className="product-info-value">{selectedProduct.code || selectedProduct.id || '-'}</span>
+              </div>
+              <div className="product-info-row">
+                <span className="product-info-label">Unit:</span>
+                <span className="product-info-value">{selectedProduct.unit || '-'}</span>
+              </div>
+              <div className="product-info-row">
+                <span className="product-info-label">System Stock:</span>
+                <span className="product-info-value font-bold">{systemQty}</span>
+              </div>
+            </div>
+          )}
+
           <div className="form-row">
             <div className="form-section">
               <label className="form-label">
@@ -99,8 +137,8 @@ export function AddItemModal({
             </div>
             <div className="form-section">
               <label className="form-label">Variance</label>
-              <div className="variance-display">
-                {physicalQty ? Number(physicalQty) : 0}
+              <div className={`variance-display ${(Number(physicalQty) - systemQty) < 0 ? 'variance-negative' : (Number(physicalQty) - systemQty) > 0 ? 'variance-positive' : ''}`}>
+                {physicalQty ? (Number(physicalQty) - systemQty) : 0}
               </div>
             </div>
           </div>
