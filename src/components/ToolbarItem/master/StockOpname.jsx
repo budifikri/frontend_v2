@@ -5,11 +5,9 @@ import {
   createStockOpname,
   updateStockOpname,
   deleteStockOpname,
-  getProductStock,
   getReasonOptions,
   generateReference,
 } from '../../../features/master/stock-opname/stockOpname.api'
-import { listProducts } from '../../../features/master/product/product.api'
 import { listWarehouses } from '../../../features/master/warehouse/warehouse.api'
 import { FooterMaster } from '../footer/FooterMaster'
 import { FooterFormMaster } from '../footer/FooterFormMaster'
@@ -21,22 +19,12 @@ import { useMasterPagination } from '../../../hooks/useMasterPagination'
 const REASON_OPTIONS = getReasonOptions()
 
 const DEFAULT_FORM = {
-  product_id: '',
   warehouse_id: '',
-  system_qty: 0,
-  physical_qty: 0,
-  reason: '',
+  opname_date: '',
+  status: 'draft',
   notes: '',
   reference: '',
 }
-
-const DUMMY_PRODUCTS = [
-  { id: 'PRD001', code: 'PRD-001', name: 'Kopi Luwak', unit: 'PCS' },
-  { id: 'PRD002', code: 'PRD-002', name: 'Gula Pasir', unit: 'KG' },
-  { id: 'PRD003', code: 'PRD-003', name: 'Teh Botol', unit: 'BOX' },
-  { id: 'PRD004', code: 'PRD-004', name: 'Mineral Water', unit: 'PCS' },
-  { id: 'PRD005', code: 'PRD-005', name: 'Roti Tawar', unit: 'PCS' },
-]
 
 const DUMMY_WAREHOUSES = [
   { id: 'WH001', code: 'WH-001', name: 'Gudang Utama' },
@@ -46,70 +34,55 @@ const DUMMY_WAREHOUSES = [
 const DUMMY_OPNAME_RECORDS = [
   {
     id: 'OPN001',
-    reference: 'OPN-20260305-001',
-    product_id: 'PRD001',
-    product: { code: 'PRD-001', name: 'Kopi Luwak', unit: 'PCS' },
+    opname_number: 'OPN-20260305-001',
     warehouse_id: 'WH001',
-    warehouse: { code: 'WH-001', name: 'Gudang Utama' },
-    system_qty: 150,
-    physical_qty: 145,
-    variance: -5,
-    reason: 'counting_error',
-    notes: 'Selisih saat stock opname bulanan',
+    warehouse: { id: 'WH001', code: 'WH-001', name: 'Gudang Utama' },
+    user_id: 'user1',
+    username: 'Admin Utama',
+    opname_date: '2026-03-05T10:30:00Z',
     status: 'posted',
-    created_by: 'admin',
+    notes: 'Stock opname bulanan',
     created_at: '2026-03-05T10:30:00Z',
   },
   {
     id: 'OPN002',
-    reference: 'OPN-20260305-002',
-    product_id: 'PRD002',
-    product: { code: 'PRD-002', name: 'Gula Pasir', unit: 'KG' },
+    opname_number: 'OPN-20260305-002',
     warehouse_id: 'WH001',
-    warehouse: { code: 'WH-001', name: 'Gudang Utama' },
-    system_qty: 80,
-    physical_qty: 75,
-    variance: -5,
-    reason: 'expired',
-    notes: 'Gula kadaluarsa, perlu dibuang',
-    status: 'pending',
-    created_by: 'admin',
+    warehouse: { id: 'WH001', code: 'WH-001', name: 'Gudang Utama' },
+    user_id: 'user1',
+    username: 'Admin Utama',
+    opname_date: '2026-03-05T14:00:00Z',
+    status: 'draft',
+    notes: 'Stock opname mingguan',
     created_at: '2026-03-05T14:00:00Z',
   },
   {
     id: 'OPN003',
-    reference: 'OPN-20260305-003',
-    product_id: 'PRD003',
-    product: { code: 'PRD-003', name: 'Teh Botol', unit: 'BOX' },
-    warehouse_id: 'WH001',
-    warehouse: { code: 'WH-001', name: 'Gudang Utama' },
-    system_qty: 200,
-    physical_qty: 205,
-    variance: 5,
-    reason: 'found',
-    notes: 'Stok ditemukan saat pengecekan',
-    status: 'approved',
-    created_by: 'admin',
+    opname_number: 'OPN-20260305-003',
+    warehouse_id: 'WH002',
+    warehouse: { id: 'WH002', code: 'WH-002', name: 'Gudang Cabang' },
+    user_id: 'user2',
+    username: 'Admin Cabang',
+    opname_date: '2026-03-05T15:00:00Z',
+    status: 'draft',
+    notes: 'Stock opname cabang',
     created_at: '2026-03-05T15:00:00Z',
   },
 ]
 
 const TABLE_COLUMNS = [
   { key: 'no', label: 'NO', sortable: false, width: '50px' },
-  { key: 'reference', label: 'REFERENSI', sortable: true },
-  { key: 'product_name', label: 'PRODUK', sortable: true },
-  { key: 'warehouse_name', label: 'GUDANG', sortable: true },
-  { key: 'system_qty', label: 'STOK SISTEM', sortable: true },
-  { key: 'physical_qty', label: 'STOK FISIK', sortable: true },
-  { key: 'variance', label: 'SELISIH', sortable: true },
-  { key: 'reason', label: 'ALASAN', sortable: true },
+  { key: 'opname_date', label: 'TANGGAL', sortable: true, width: '120px' },
+  { key: 'opname_number', label: 'REFERENSI', sortable: true },
+  { key: 'warehouse_name', label: 'WAREHOUSE', sortable: true },
+  { key: 'notes', label: 'NOTES', sortable: true },
+  { key: 'username', label: 'USERNAME', sortable: true },
   { key: 'status', label: 'STATUS', sortable: true },
-  { key: 'created_at', label: 'TANGGAL', sortable: true, width: '120px' },
 ]
 
 function getStatusBadgeClass(status) {
   switch (status?.toLowerCase()) {
-    case 'pending':
+    case 'draft':
       return 'status-badge-pending'
     case 'approved':
       return 'status-badge-approved'
@@ -120,12 +93,6 @@ function getStatusBadgeClass(status) {
     default:
       return 'status-badge-pending'
   }
-}
-
-function getVarianceClass(variance) {
-  if (variance > 0) return 'variance-positive'
-  if (variance < 0) return 'variance-negative'
-  return 'variance-zero'
 }
 
 function formatDate(dateStr) {
@@ -146,7 +113,6 @@ export function StockOpname({ onExit }) {
   const [pagination, setPagination] = useState({ has_more: false, total: 0 })
   const [isLoading, setIsLoading] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
-  const [isFetchingStock, setIsFetchingStock] = useState(false)
   const [error, setError] = useState('')
 
   const [searchKeyword, setSearchKeyword] = useState('')
@@ -160,48 +126,22 @@ export function StockOpname({ onExit }) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [showExitConfirm, setShowExitConfirm] = useState(false)
 
-  const [productOptions, setProductOptions] = useState([])
   const [warehouseOptions, setWarehouseOptions] = useState([])
   const [reasonOptions] = useState(REASON_OPTIONS)
 
   const [form, setForm] = useState(DEFAULT_FORM)
-  const [currentStock, setCurrentStock] = useState(0)
-  const [variance, setVariance] = useState(0)
 
-  const fetchLookups = useCallback(async () => {
+  const fetchWarehouses = useCallback(async () => {
     if (!token) {
-      setProductOptions(DUMMY_PRODUCTS)
       setWarehouseOptions(DUMMY_WAREHOUSES)
       return
     }
 
     try {
-      const [productRes, warehouseRes] = await Promise.all([
-        listProducts(token, { limit: 200, offset: 0 }),
-        listWarehouses(token, { limit: 200, offset: 0 }),
-      ])
-      setProductOptions(productRes.items || [])
-      setWarehouseOptions(warehouseRes.items || [])
+      const res = await listWarehouses(token, { limit: 200, offset: 0 })
+      setWarehouseOptions(res.items || [])
     } catch {
-      setProductOptions(DUMMY_PRODUCTS)
       setWarehouseOptions(DUMMY_WAREHOUSES)
-    }
-  }, [token])
-
-  const fetchCurrentStock = useCallback(async (productId, warehouseId) => {
-    if (!productId || !warehouseId) {
-      setCurrentStock(0)
-      return
-    }
-
-    setIsFetchingStock(true)
-    try {
-      const result = await getProductStock(token, { product_id: productId, warehouse_id: warehouseId })
-      setCurrentStock(result.current_stock || 0)
-    } catch {
-      setCurrentStock(0)
-    } finally {
-      setIsFetchingStock(false)
     }
   }, [token])
 
@@ -215,8 +155,9 @@ export function StockOpname({ onExit }) {
       if (searchKeyword.trim()) {
         const keyword = searchKeyword.trim().toLowerCase()
         items = items.filter(item =>
-          item.reference.toLowerCase().includes(keyword) ||
-          item.product.name.toLowerCase().includes(keyword)
+          item.opname_number.toLowerCase().includes(keyword) ||
+          item.warehouse.name.toLowerCase().includes(keyword) ||
+          item.notes.toLowerCase().includes(keyword)
         )
       }
       if (warehouseFilter) {
@@ -259,33 +200,18 @@ export function StockOpname({ onExit }) {
   }, [token, searchKeyword, warehouseFilter, statusFilter, limit, offset])
 
   useEffect(() => {
-    fetchLookups()
-  }, [fetchLookups])
+    fetchWarehouses()
+  }, [fetchWarehouses])
 
   useEffect(() => {
     fetchData()
   }, [fetchData])
 
-  useEffect(() => {
-    if (form.product_id && form.warehouse_id && showForm) {
-      fetchCurrentStock(form.product_id, form.warehouse_id)
-    }
-  }, [form.product_id, form.warehouse_id, showForm, fetchCurrentStock])
-
-  useEffect(() => {
-    const physicalQty = Number(form.physical_qty || 0)
-    setVariance(physicalQty - currentStock)
-  }, [form.physical_qty, currentStock])
-
   const { sortConfig, sortedData, handleSort } = useMasterTableSort(data, {
-    initialKey: 'created_at',
+    initialKey: 'opname_date',
     direction: 'desc',
     valueGetters: {
-      product_name: (row) => row?.product?.name || row?.product_name || '',
       warehouse_name: (row) => row?.warehouse?.name || row?.warehouse_name || '',
-      system_qty: (row) => Number(row?.system_qty || 0),
-      physical_qty: (row) => Number(row?.physical_qty || 0),
-      variance: (row) => Number(row?.variance || 0),
     },
   })
 
@@ -353,9 +279,8 @@ export function StockOpname({ onExit }) {
     setForm({
       ...DEFAULT_FORM,
       reference: generateReference(),
+      opname_date: new Date().toISOString().split('T')[0],
     })
-    setCurrentStock(0)
-    setVariance(0)
     setShowForm(true)
   }
 
@@ -365,16 +290,12 @@ export function StockOpname({ onExit }) {
 
     setSelectedId(target.id)
     setForm({
-      product_id: target.product_id || '',
       warehouse_id: target.warehouse_id || '',
-      system_qty: target.system_qty || 0,
-      physical_qty: target.physical_qty || 0,
-      reason: target.reason || '',
+      opname_date: target.opname_date ? target.opname_date.split('T')[0] : '',
+      status: target.status || 'draft',
       notes: target.notes || '',
-      reference: target.reference || '',
+      reference: target.opname_number || '',
     })
-    setCurrentStock(target.system_qty || 0)
-    setVariance(target.variance || 0)
     setShowForm(true)
   }
 
@@ -408,24 +329,16 @@ export function StockOpname({ onExit }) {
   }
 
   const handleSave = async () => {
-    if (!form.product_id) {
-      setError('Product harus dipilih')
-      return
-    }
     if (!form.warehouse_id) {
       setError('Warehouse harus dipilih')
       return
     }
-    if (!form.physical_qty || Number(form.physical_qty) < 0) {
-      setError('Stok fisik harus diisi dan tidak boleh negatif')
+    if (!form.opname_date) {
+      setError('Tanggal harus diisi')
       return
     }
-    if (!form.reason) {
-      setError('Alasan harus dipilih')
-      return
-    }
-    if (form.notes && form.notes.length > 500) {
-      setError('Catatan maksimal 500 karakter')
+    if (!form.status) {
+      setError('Status harus dipilih')
       return
     }
 
@@ -433,26 +346,23 @@ export function StockOpname({ onExit }) {
     setError('')
 
     const payload = {
-      product_id: form.product_id,
       warehouse_id: form.warehouse_id,
-      system_qty: currentStock,
-      physical_qty: Number(form.physical_qty),
-      variance: variance,
-      reason: form.reason,
+      opname_date: form.opname_date,
+      status: form.status,
       notes: form.notes || undefined,
-      reference: form.reference || generateReference(),
+      opname_number: form.reference || generateReference(),
     }
 
     try {
       if (token) {
-        if (selectedItem && selectedItem.status === 'pending') {
+        if (selectedItem && selectedItem.status === 'draft') {
           await updateStockOpname(token, selectedItem.id, payload)
         } else {
           await createStockOpname(token, payload)
         }
         await fetchData()
       } else {
-        if (selectedItem && selectedItem.status === 'pending') {
+        if (selectedItem && selectedItem.status === 'draft') {
           setData((prev) => prev.map((row) =>
             row.id === selectedItem.id ? { ...row, ...payload } : row
           ))
@@ -460,10 +370,9 @@ export function StockOpname({ onExit }) {
           const newItem = {
             id: `OPN${Date.now()}`,
             ...payload,
-            status: 'pending',
-            created_by: 'user',
+            opname_number: payload.opname_number || generateReference(),
+            user_id: 'user',
             created_at: new Date().toISOString(),
-            product: productOptions.find(p => p.id === form.product_id) || { id: form.product_id, code: '-', name: 'Unknown' },
             warehouse: warehouseOptions.find(w => w.id === form.warehouse_id) || { id: form.warehouse_id, code: '-', name: 'Unknown' },
           }
           setData([newItem, ...data])
@@ -483,8 +392,6 @@ export function StockOpname({ onExit }) {
   const handleCancelForm = () => {
     setShowForm(false)
     setForm(DEFAULT_FORM)
-    setCurrentStock(0)
-    setVariance(0)
   }
 
   const handlePrint = () => {
@@ -500,28 +407,22 @@ export function StockOpname({ onExit }) {
     onExit()
   }
 
-  const productOptionsForSelect = useMemo(() => {
-    const opts = productOptions.length > 0 ? productOptions : DUMMY_PRODUCTS
-    return opts.map((item) => ({
-      id: String(item.id || ''),
-      name: `${item.code || '-'} - ${item.name || '-'}`,
-    }))
-  }, [productOptions])
-
   const warehouseOptionsForSelect = useMemo(() => {
     const opts = warehouseOptions.length > 0 ? warehouseOptions : DUMMY_WAREHOUSES
     return opts.map((item) => ({
       id: String(item.id || ''),
-      name: `${item.code || '-'} - ${item.name || '-'}`,
+      name: item.name || '-',
     }))
   }, [warehouseOptions])
 
-  const reasonOptionsForSelect = useMemo(() => {
-    return reasonOptions.map((item) => ({
-      id: item.value,
-      name: item.label,
-    }))
-  }, [reasonOptions])
+  const statusOptionsForSelect = useMemo(() => {
+    return [
+      { id: 'draft', name: 'Draft' },
+      { id: 'approved', name: 'Approved' },
+      { id: 'posted', name: 'Posted' },
+      { id: 'rejected', name: 'Rejected' },
+    ]
+  }, [])
 
   return (
     <div className="master-content">
@@ -532,7 +433,7 @@ export function StockOpname({ onExit }) {
           <div className="master-footer-search">
             <input
               type="text"
-              placeholder="Search reference or product..."
+              placeholder="Search reference, warehouse, or notes..."
               className="master-search-input"
               value={searchKeyword}
               onChange={(e) => handleSearchChange(e.target.value)}
@@ -564,7 +465,7 @@ export function StockOpname({ onExit }) {
               onChange={(e) => handleStatusFilter(e.target.value)}
             >
               <option value="all">All Status</option>
-              <option value="pending">Pending</option>
+              <option value="draft">Draft</option>
               <option value="approved">Approved</option>
               <option value="posted">Posted</option>
               <option value="rejected">Rejected</option>
@@ -587,26 +488,21 @@ export function StockOpname({ onExit }) {
                   onClick={() => handleSelect(row)}
                 >
                   <td>{offset + index + 1}</td>
-                  <td>{row.reference || '-'}</td>
-                  <td>{row.product?.name || row.product_name || '-'}</td>
+                  <td>{formatDate(row.opname_date)}</td>
+                  <td>{row.opname_number || row.reference || '-'}</td>
                   <td>{row.warehouse?.name || row.warehouse_name || '-'}</td>
-                  <td className="text-right">{Number(row.system_qty || 0).toLocaleString()}</td>
-                  <td className="text-right">{Number(row.physical_qty || 0).toLocaleString()}</td>
-                  <td className={`text-right ${getVarianceClass(row.variance)}`}>
-                    {row.variance > 0 ? '+' : ''}{Number(row.variance || 0).toLocaleString()}
-                  </td>
-                  <td>{REASON_OPTIONS.find(r => r.value === row.reason)?.label || row.reason || '-'}</td>
+                  <td>{row.notes || '-'}</td>
+                  <td>{row.username || row.user_id || '-'}</td>
                   <td>
                     <span className={`status-badge ${getStatusBadgeClass(row.status)}`}>
                       {row.status || '-'}
                     </span>
                   </td>
-                  <td>{formatDate(row.created_at)}</td>
                 </tr>
               ))}
               {!isLoading && sortedData.length === 0 && (
                 <tr>
-                  <td colSpan={10} className="text-center">No data</td>
+                  <td colSpan={7} className="text-center">No data</td>
                 </tr>
               )}
             </tbody>
@@ -622,18 +518,14 @@ export function StockOpname({ onExit }) {
           </div>
           <div className="master-form-grid">
             <div className="master-form-group-wide">
-              <label className="master-form-label">Product *</label>
-              <select
-                value={form.product_id}
-                onChange={(e) => setForm({ ...form, product_id: e.target.value })}
+              <label className="master-form-label">Reference</label>
+              <input
+                type="text"
+                value={form.reference}
+                onChange={(e) => setForm({ ...form, reference: e.target.value })}
                 className="master-form-input"
-                disabled={!!selectedItem}
-              >
-                <option value="">Select product...</option>
-                {productOptionsForSelect.map((item) => (
-                  <option key={item.id} value={item.id}>{item.name}</option>
-                ))}
-              </select>
+                placeholder="Auto-generated"
+              />
             </div>
             <div className="master-form-group-wide">
               <label className="master-form-label">Warehouse *</label>
@@ -641,7 +533,6 @@ export function StockOpname({ onExit }) {
                 value={form.warehouse_id}
                 onChange={(e) => setForm({ ...form, warehouse_id: e.target.value })}
                 className="master-form-input"
-                disabled={!!selectedItem}
               >
                 <option value="">Select warehouse...</option>
                 {warehouseOptionsForSelect.map((item) => (
@@ -650,45 +541,23 @@ export function StockOpname({ onExit }) {
               </select>
             </div>
             <div className="master-form-group">
-              <label className="master-form-label">Current Stock</label>
+              <label className="master-form-label">Tanggal Opname *</label>
               <input
-                type="number"
-                value={currentStock}
-                readOnly
-                className="master-form-input master-form-input-readonly"
-              />
-              {isFetchingStock && (
-                <span className="material-icons-round animate-spin" style={{ fontSize: '16px' }}>sync</span>
-              )}
-            </div>
-            <div className="master-form-group">
-              <label className="master-form-label">Physical Qty *</label>
-              <input
-                type="number"
-                value={form.physical_qty}
-                onChange={(e) => setForm({ ...form, physical_qty: Number(e.target.value) })}
+                type="date"
+                value={form.opname_date}
+                onChange={(e) => setForm({ ...form, opname_date: e.target.value })}
                 className="master-form-input"
-                placeholder="Enter counted quantity"
               />
             </div>
             <div className="master-form-group">
-              <label className="master-form-label">Variance</label>
-              <input
-                type="number"
-                value={variance}
-                readOnly
-                className={`master-form-input master-form-input-readonly ${getVarianceClass(variance)}`}
-              />
-            </div>
-            <div className="master-form-group-wide">
-              <label className="master-form-label">Reason *</label>
+              <label className="master-form-label">Status *</label>
               <select
-                value={form.reason}
-                onChange={(e) => setForm({ ...form, reason: e.target.value })}
+                value={form.status}
+                onChange={(e) => setForm({ ...form, status: e.target.value })}
                 className="master-form-input"
               >
-                <option value="">Select reason...</option>
-                {reasonOptionsForSelect.map((item) => (
+                <option value="">Select status...</option>
+                {statusOptionsForSelect.map((item) => (
                   <option key={item.id} value={item.id}>{item.name}</option>
                 ))}
               </select>
@@ -699,19 +568,8 @@ export function StockOpname({ onExit }) {
                 value={form.notes}
                 onChange={(e) => setForm({ ...form, notes: e.target.value })}
                 className="master-form-input master-form-textarea"
-                placeholder="Additional notes (optional, max 500 chars)"
-                rows={3}
-                maxLength={500}
-              />
-            </div>
-            <div className="master-form-group-wide">
-              <label className="master-form-label">Reference</label>
-              <input
-                type="text"
-                value={form.reference}
-                onChange={(e) => setForm({ ...form, reference: e.target.value })}
-                className="master-form-input"
-                placeholder="Auto-generated"
+                placeholder="Catatan (opsional)"
+                rows={4}
               />
             </div>
             <FooterFormMaster
@@ -745,7 +603,7 @@ export function StockOpname({ onExit }) {
 
       {showDeleteConfirm && (
         <DeleteMaster
-          itemName={selectedItem?.reference || 'this record'}
+          itemName={selectedItem?.opname_number || 'this record'}
           title="Konfirmasi Hapus"
           confirmText="Hapus"
           cancelText="Batal"
