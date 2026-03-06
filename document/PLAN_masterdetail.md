@@ -959,7 +959,864 @@ const DUMMY_OPNAME_ITEMS = [
 
 ---
 
-**Document Version:** 1.0  
+## 12. Reusable Master-Detail Form Template
+
+### 12.1 Overview
+
+Untuk meningkatkan reusability dan konsistensi, dibuat **template form master-detail** yang dapat digunakan untuk berbagai modul (Stock Opname, Purchase Order, Sales Order, dll).
+
+### 12.2 Template Structure
+
+```
+src/
+├── components/
+│   └── templates/
+│       ├── MasterDetail/
+│       │   ├── MasterDetailForm.jsx       # Base template component
+│       │   ├── MasterDetailItem.jsx       # Item row renderer
+│       │   ├── MasterDetailTable.jsx      # Items table wrapper
+│       │   ├── MasterDetailFooter.jsx     # Summary + actions
+│       │   └── index.js                   # Exports
+│       │
+│       └── Modal/
+│           ├── AddItemModal.jsx           # Generic add item modal
+│           └── ConfirmDialog.jsx          # Generic confirm dialog
+│
+└── hooks/
+    └── useMasterDetail.js                 # Base hook for master-detail logic
+```
+
+---
+
+### 12.3 Base Template Component
+
+**File:** `src/components/templates/MasterDetail/MasterDetailForm.jsx`
+
+```jsx
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useMasterDetail } from '../../../hooks/useMasterDetail'
+
+/**
+ * Reusable Master-Detail Form Template
+ * 
+ * @param {Object} props
+ * @param {string} props.title - Form title
+ * @param {Object} props.headerConfig - Header field configuration
+ * @param {Object} props.itemConfig - Item column configuration
+ * @param {Function} props.onSubmit - Submit handler
+ * @param {Function} props.onExit - Exit handler
+ * @param {Object} props.initialData - Initial data for edit mode
+ * @param {boolean} props.isLoading - Loading state
+ * @param {boolean} props.isSaving - Saving state
+ * @param {string} props.error - Error message
+ */
+export function MasterDetailForm({
+  title,
+  headerConfig,
+  itemConfig,
+  onSubmit,
+  onExit,
+  initialData = null,
+  isLoading = false,
+  isSaving = false,
+  error = '',
+}) {
+  // Use base hook
+  const {
+    header,
+    setHeader,
+    items,
+    addItem,
+    updateItem,
+    removeItem,
+    clearItems,
+    summary,
+    selectedIds,
+    setSelectedIds,
+    editingId,
+    setEditingId,
+    validationErrors,
+    validate,
+    handleSubmit,
+  } = useMasterDetail({
+    initialData,
+    onSubmit,
+    headerConfig,
+    itemConfig,
+  })
+
+  // Local state
+  const [showAddModal, setShowAddModal] = useState(false)
+  const [localError, setLocalError] = useState('')
+
+  // Handle submit with validation
+  const handleSave = async () => {
+    const { isValid, errors } = validate()
+    if (!isValid) {
+      setLocalError(errors.join(', '))
+      return
+    }
+    await handleSubmit()
+  }
+
+  // Handle keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'F1' && !showAddModal) {
+        e.preventDefault()
+        setShowAddModal(true)
+      }
+      if (e.key === 'Delete' && selectedIds.length > 0) {
+        e.preventDefault()
+        removeItem(selectedIds)
+      }
+      if (e.key === 'F2' && selectedIds.length === 1) {
+        e.preventDefault()
+        setEditingId(selectedIds[0])
+      }
+      if (e.key === 'Escape' && !showAddModal) {
+        e.preventDefault()
+        onExit()
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault()
+        handleSave()
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [showAddModal, selectedIds, onExit, handleSave])
+
+  // Render header fields dynamically
+  const renderHeaderFields = useMemo(() => {
+    return headerConfig.fields.map((field) => (
+      <div key={field.name} className={`master-form-group ${field.width || ''}`}>
+        <label className="master-form-label">
+          {field.label} {field.required && '*'}
+        </label>
+        {field.type === 'select' ? (
+          <select
+            value={header[field.name] || ''}
+            onChange={(e) => setHeader({ ...header, [field.name]: e.target.value })}
+            className="master-form-input"
+            disabled={field.readOnly}
+          >
+            <option value="">Select...</option>
+            {field.options.map((opt) => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
+          </select>
+        ) : field.type === 'textarea' ? (
+          <textarea
+            value={header[field.name] || ''}
+            onChange={(e) => setHeader({ ...header, [field.name]: e.target.value })}
+            className="master-form-input master-form-textarea"
+            rows={field.rows || 3}
+            disabled={field.readOnly}
+          />
+        ) : field.type === 'date' ? (
+          <input
+            type="date"
+            value={header[field.name] || ''}
+            onChange={(e) => setHeader({ ...header, [field.name]: e.target.value })}
+            className="master-form-input"
+            disabled={field.readOnly}
+          />
+        ) : (
+          <input
+            type={field.type || 'text'}
+            value={header[field.name] || ''}
+            onChange={(e) => setHeader({ ...header, [field.name]: e.target.value })}
+            className="master-form-input"
+            disabled={field.readOnly}
+          />
+        )}
+      </div>
+    ))
+  }, [header, headerConfig])
+
+  return (
+    <div className="master-detail-form">
+      {/* Header Section */}
+      <div className="master-detail-header">
+        <div className="master-header-accent"></div>
+        <h1 className="master-title">{title}</h1>
+        {renderHeaderFields}
+      </div>
+
+      {/* Error Display */}
+      {(error || localError) && (
+        <div className="master-error">{error || localError}</div>
+      )}
+
+      {/* Items Section */}
+      <div className="master-detail-items">
+        <div className="master-detail-toolbar">
+          <button type="button" className="master-btn-primary" onClick={() => setShowAddModal(true)}>
+            <span className="material-icons-round">add</span> Add Item
+          </button>
+          <button 
+            type="button" 
+            className="master-btn-danger" 
+            onClick={() => removeItem(selectedIds)}
+            disabled={selectedIds.length === 0}
+          >
+            <span className="material-icons-round">delete</span> Remove Selected
+          </button>
+        </div>
+
+        <MasterDetailTable
+          items={items}
+          columns={itemConfig.columns}
+          selectedIds={selectedIds}
+          setSelectedIds={setSelectedIds}
+          editingId={editingId}
+          setEditingId={setEditingId}
+          updateItem={updateItem}
+          itemConfig={itemConfig}
+        />
+
+        <MasterDetailFooter summary={summary} />
+      </div>
+
+      {/* Action Footer */}
+      <MasterDetailActionFooter
+        onSave={handleSave}
+        onExit={onExit}
+        isSaving={isSaving}
+        isLoading={isLoading}
+      />
+
+      {/* Add Item Modal */}
+      {showAddModal && (
+        <AddItemModal
+          isOpen={showAddModal}
+          onClose={() => setShowAddModal(false)}
+          onAdd={(item) => {
+            addItem(item)
+            setShowAddModal(false)
+          }}
+          itemConfig={itemConfig}
+        />
+      )}
+    </div>
+  )
+}
+```
+
+---
+
+### 12.4 Base Hook
+
+**File:** `src/hooks/useMasterDetail.js`
+
+```javascript
+import { useCallback, useMemo, useState } from 'react'
+
+/**
+ * Base hook for Master-Detail form logic
+ * 
+ * @param {Object} config
+ * @param {Object} config.initialData - Initial header + items data
+ * @param {Function} config.onSubmit - Submit handler
+ * @param {Object} config.headerConfig - Header field configuration
+ * @param {Object} config.itemConfig - Item column configuration
+ * @param {Function} config.validateItem - Custom item validator
+ * @param {Function} config.calculateField - Auto-calculate field handler
+ */
+export function useMasterDetail({
+  initialData,
+  onSubmit,
+  headerConfig,
+  itemConfig,
+  validateItem,
+  calculateField,
+}) {
+  // Header state
+  const [header, setHeader] = useState(initialData?.header || {})
+  
+  // Items state
+  const [items, setItems] = useState(initialData?.items || [])
+  
+  // UI state
+  const [selectedIds, setSelectedIds] = useState([])
+  const [editingId, setEditingId] = useState(null)
+  const [validationErrors, setValidationErrors] = useState({})
+
+  // Add item
+  const addItem = useCallback((newItem) => {
+    const itemWithId = {
+      ...newItem,
+      id: newItem.id || `item-${Date.now()}`,
+      _isNew: true,
+    }
+    
+    // Auto-calculate fields if configured
+    if (calculateField) {
+      Object.keys(calculateField).forEach((field) => {
+        itemWithId[field] = calculateField[field](itemWithId, items, header)
+      })
+    }
+    
+    setItems((prev) => [...prev, itemWithId])
+  }, [items, header, calculateField])
+
+  // Update item
+  const updateItem = useCallback((itemId, updates) => {
+    setItems((prev) => prev.map((item) => {
+      if (item.id === itemId) {
+        const updated = { ...item, ...updates }
+        
+        // Auto-calculate fields if configured
+        if (calculateField) {
+          Object.keys(calculateField).forEach((field) => {
+            updated[field] = calculateField[field](updated, prev, header)
+          })
+        }
+        
+        return updated
+      }
+      return item
+    }))
+  }, [header, calculateField])
+
+  // Remove item
+  const removeItem = useCallback((ids) => {
+    const idsToRemove = Array.isArray(ids) ? ids : [ids]
+    setItems((prev) => prev.filter((item) => !idsToRemove.includes(item.id)))
+    setSelectedIds((prev) => prev.filter((id) => !idsToRemove.includes(id)))
+  }, [])
+
+  // Clear all items
+  const clearItems = useCallback(() => {
+    setItems([])
+    setSelectedIds([])
+    setEditingId(null)
+  }, [])
+
+  // Validate header
+  const validateHeader = useCallback(() => {
+    const errors = []
+    headerConfig.fields.forEach((field) => {
+      if (field.required && !header[field.name]) {
+        errors.push(`${field.label} is required`)
+      }
+    })
+    return errors
+  }, [header, headerConfig])
+
+  // Validate items
+  const validateItems = useCallback(() => {
+    const errors = []
+    items.forEach((item, index) => {
+      if (validateItem) {
+        const itemErrors = validateItem(item, items, header)
+        errors.push(...itemErrors)
+      }
+      
+      // Default validation
+      itemConfig.columns.forEach((col) => {
+        if (col.required && !item[col.key]) {
+          errors.push(`Row ${index + 1}: ${col.label} is required`)
+        }
+      })
+    })
+    return errors
+  }, [items, header, itemConfig, validateItem])
+
+  // Validate all
+  const validate = useCallback(() => {
+    const headerErrors = validateHeader()
+    const itemsErrors = validateItems()
+    const allErrors = [...headerErrors, ...itemsErrors]
+    
+    setValidationErrors({
+      header: headerErrors,
+      items: itemsErrors,
+    })
+    
+    return {
+      isValid: allErrors.length === 0,
+      errors: allErrors,
+    }
+  }, [validateHeader, validateItems])
+
+  // Handle submit
+  const handleSubmit = useCallback(async () => {
+    const { isValid } = validate()
+    if (!isValid) return
+    
+    await onSubmit({
+      header,
+      items: items.map(({ _isNew, ...item }) => item), // Remove internal flags
+    })
+  }, [header, items, validate, onSubmit])
+
+  // Calculate summary
+  const summary = useMemo(() => {
+    if (!itemConfig.summary) return {}
+    
+    return itemConfig.summary.reduce((acc, calc) => {
+      acc[calc.key] = calc.calculate(items)
+      return acc
+    }, {})
+  }, [items, itemConfig])
+
+  return {
+    // State
+    header,
+    setHeader,
+    items,
+    selectedIds,
+    setSelectedIds,
+    editingId,
+    setEditingId,
+    validationErrors,
+    summary,
+    
+    // Actions
+    addItem,
+    updateItem,
+    removeItem,
+    clearItems,
+    validate,
+    handleSubmit,
+  }
+}
+```
+
+---
+
+### 12.5 Configuration Examples
+
+#### Example 1: Stock Opname Configuration
+
+```javascript
+// StockOpnameForm.jsx
+
+const HEADER_CONFIG = {
+  fields: [
+    { 
+      name: 'warehouse_id', 
+      label: 'Warehouse', 
+      type: 'select', 
+      required: true,
+      options: warehouseOptions,
+      width: 'master-form-group-wide',
+    },
+    { 
+      name: 'opname_date', 
+      label: 'Tanggal', 
+      type: 'date', 
+      required: true,
+      width: 'master-form-group',
+    },
+    { 
+      name: 'status', 
+      label: 'Status', 
+      type: 'select', 
+      required: true,
+      options: STATUS_OPTIONS,
+      width: 'master-form-group',
+    },
+    { 
+      name: 'notes', 
+      label: 'Notes', 
+      type: 'textarea', 
+      required: false,
+      rows: 3,
+      width: 'master-form-group-wide',
+    },
+  ],
+}
+
+const ITEM_CONFIG = {
+  columns: [
+    { key: 'select', label: '', type: 'checkbox', width: '40px' },
+    { 
+      key: 'product_name', 
+      label: 'Product', 
+      type: 'text',
+      display: (item) => `${item.code} - ${item.name}`,
+    },
+    { key: 'unit', label: 'Unit', type: 'text', width: '80px' },
+    { 
+      key: 'system_qty', 
+      label: 'System', 
+      type: 'number', 
+      readOnly: true,
+      width: '100px',
+    },
+    { 
+      key: 'physical_qty', 
+      label: 'Physical', 
+      type: 'number', 
+      editable: true,
+      width: '100px',
+    },
+    { 
+      key: 'variance', 
+      label: 'Variance', 
+      type: 'number', 
+      readOnly: true,
+      className: (item) => getVarianceClass(item.variance),
+      width: '100px',
+    },
+    { 
+      key: 'reason', 
+      label: 'Reason', 
+      type: 'select',
+      options: REASON_OPTIONS,
+      showIf: (item) => item.variance !== 0,
+      width: '150px',
+    },
+  ],
+  summary: [
+    { 
+      key: 'total_items', 
+      label: 'Total Items', 
+      calculate: (items) => items.length,
+    },
+    { 
+      key: 'variance_positive', 
+      label: 'Variance +', 
+      calculate: (items) => items.filter(i => i.variance > 0).length,
+    },
+    { 
+      key: 'variance_negative', 
+      label: 'Variance -', 
+      calculate: (items) => items.filter(i => i.variance < 0).length,
+    },
+    { 
+      key: 'variance_zero', 
+      label: 'Variance 0', 
+      calculate: (items) => items.filter(i => i.variance === 0).length,
+    },
+  ],
+}
+
+const CALCULATE_FIELD = {
+  variance: (item) => (item.physical_qty || 0) - (item.system_qty || 0),
+}
+
+// Usage
+<MasterDetailForm
+  title="Stock Opname"
+  headerConfig={HEADER_CONFIG}
+  itemConfig={ITEM_CONFIG}
+  onSubmit={handleSave}
+  onExit={handleExit}
+  initialData={initialData}
+  isLoading={isLoading}
+  isSaving={isSaving}
+  error={error}
+/>
+```
+
+---
+
+#### Example 2: Purchase Order Configuration
+
+```javascript
+// PurchaseOrderForm.jsx
+
+const HEADER_CONFIG = {
+  fields: [
+    { 
+      name: 'supplier_id', 
+      label: 'Supplier', 
+      type: 'select', 
+      required: true,
+      options: supplierOptions,
+    },
+    { 
+      name: 'order_date', 
+      label: 'Order Date', 
+      type: 'date', 
+      required: true,
+    },
+    { 
+      name: 'expected_date', 
+      label: 'Expected Date', 
+      type: 'date', 
+      required: true,
+    },
+    { 
+      name: 'warehouse_id', 
+      label: 'Deliver To', 
+      type: 'select', 
+      required: true,
+      options: warehouseOptions,
+    },
+  ],
+}
+
+const ITEM_CONFIG = {
+  columns: [
+    { key: 'select', label: '', type: 'checkbox', width: '40px' },
+    { key: 'product_name', label: 'Product', type: 'text' },
+    { key: 'qty_ordered', label: 'Ordered', type: 'number', editable: true },
+    { key: 'qty_received', label: 'Received', type: 'number', readOnly: true },
+    { key: 'unit_price', label: 'Unit Price', type: 'number', editable: true },
+    { 
+      key: 'total', 
+      label: 'Total', 
+      type: 'number', 
+      readOnly: true,
+      className: 'text-right',
+    },
+  ],
+  summary: [
+    { 
+      key: 'total_items', 
+      label: 'Total Items', 
+      calculate: (items) => items.length,
+    },
+    { 
+      key: 'grand_total', 
+      label: 'Grand Total', 
+      calculate: (items) => items.reduce((sum, i) => sum + (i.total || 0), 0),
+    },
+  ],
+}
+
+const CALCULATE_FIELD = {
+  total: (item) => (item.qty_ordered || 0) * (item.unit_price || 0),
+}
+```
+
+---
+
+### 12.6 Supporting Components
+
+#### MasterDetailTable.jsx
+
+```jsx
+export function MasterDetailTable({
+  items,
+  columns,
+  selectedIds,
+  setSelectedIds,
+  editingId,
+  setEditingId,
+  updateItem,
+  itemConfig,
+}) {
+  const handleSelect = (itemId) => {
+    setSelectedIds((prev) =>
+      prev.includes(itemId)
+        ? prev.filter((id) => id !== itemId)
+        : [...prev, itemId]
+    )
+  }
+
+  const handleSelectAll = () => {
+    if (selectedIds.length === items.length) {
+      setSelectedIds([])
+    } else {
+      setSelectedIds(items.map((i) => i.id))
+    }
+  }
+
+  return (
+    <div className="master-table-wrapper">
+      <table className="master-table">
+        <thead>
+          <tr>
+            {columns.map((col) => (
+              <th key={col.key} style={{ width: col.width }}>
+                {col.type === 'checkbox' ? (
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.length === items.length && items.length > 0}
+                    onChange={handleSelectAll}
+                  />
+                ) : (
+                  col.label
+                )}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {items.map((item) => (
+            <MasterDetailItem
+              key={item.id}
+              item={item}
+              columns={columns}
+              isSelected={selectedIds.includes(item.id)}
+              isEditing={editingId === item.id}
+              onSelect={() => handleSelect(item.id)}
+              onEdit={() => setEditingId(item.id)}
+              onUpdate={(updates) => updateItem(item.id, updates)}
+              itemConfig={itemConfig}
+            />
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+```
+
+---
+
+#### MasterDetailItem.jsx
+
+```jsx
+export function MasterDetailItem({
+  item,
+  columns,
+  isSelected,
+  isEditing,
+  onSelect,
+  onEdit,
+  onUpdate,
+  itemConfig,
+}) {
+  const handleDoubleClick = () => {
+    onEdit()
+  }
+
+  return (
+    <tr
+      className={`master-row ${isSelected ? 'master-row-selected' : ''} ${isEditing ? 'item-row-editing' : ''}`}
+      onDoubleClick={handleDoubleClick}
+    >
+      {columns.map((col) => (
+        <td key={col.key}>
+          {col.type === 'checkbox' ? (
+            <input
+              type="checkbox"
+              checked={isSelected}
+              onChange={onSelect}
+            />
+          ) : col.editable && isEditing ? (
+            <input
+              type={col.type || 'text'}
+              value={item[col.key] || ''}
+              onChange={(e) => onUpdate({ [col.key]: e.target.value })}
+              className="master-form-input"
+            />
+          ) : col.display ? (
+            col.display(item)
+          ) : (
+            item[col.key] || '-'
+          )}
+        </td>
+      ))}
+    </tr>
+  )
+}
+```
+
+---
+
+#### MasterDetailFooter.jsx
+
+```jsx
+export function MasterDetailFooter({ summary }) {
+  if (!summary || Object.keys(summary).length === 0) return null
+
+  return (
+    <div className="master-detail-summary">
+      <div className="summary-bar">
+        <span className="summary-title">Summary:</span>
+        {Object.entries(summary).map(([key, value]) => (
+          <span key={key} className="summary-item">
+            {key.replace(/_/g, ' ').toUpperCase()}: <strong>{value}</strong>
+          </span>
+        ))}
+      </div>
+    </div>
+  )
+}
+```
+
+---
+
+#### MasterDetailActionFooter.jsx
+
+```jsx
+export function MasterDetailActionFooter({
+  onSave,
+  onExit,
+  onPrint,
+  isSaving,
+  isLoading,
+}) {
+  return (
+    <div className="master-footer">
+      <div className="master-footer-actions">
+        <button
+          type="button"
+          className="master-btn-save"
+          onClick={onSave}
+          disabled={isSaving || isLoading}
+        >
+          <span className="material-icons-round">save</span>
+          {isSaving ? 'Saving...' : 'Save'}
+        </button>
+        
+        {onPrint && (
+          <button
+            type="button"
+            className="master-btn-secondary"
+            onClick={onPrint}
+            disabled={isLoading}
+          >
+            <span className="material-icons-round">print</span>
+            Print
+          </button>
+        )}
+        
+        <button
+          type="button"
+          className="master-btn-secondary"
+          onClick={onExit}
+          disabled={isSaving}
+        >
+          <span className="material-icons-round">exit_to_app</span>
+          Exit
+        </button>
+      </div>
+    </div>
+  )
+}
+```
+
+---
+
+### 12.7 Benefits of Template Approach
+
+| Benefit | Description |
+|---------|-------------|
+| **Consistency** | All master-detail forms have same look & feel |
+| **Reusability** | Write once, use multiple times |
+| **Maintainability** | Fix bug in template = fix all forms |
+| **Faster Development** | New forms = configuration only |
+| **Type Safety** | Consistent validation across forms |
+| **Testing** | Test template once, all forms benefit |
+
+---
+
+### 12.8 Usage Checklist for New Forms
+
+- [ ] Define `HEADER_CONFIG` (fields, types, validation)
+- [ ] Define `ITEM_CONFIG` (columns, summary calculations)
+- [ ] Define `CALCULATE_FIELD` (auto-calculated fields)
+- [ ] Create `handleSave` function (API call)
+- [ ] Create `handleExit` function
+- [ ] Prepare `initialData` (for edit mode)
+- [ ] Pass config to `<MasterDetailForm />`
+- [ ] Test CRUD operations
+- [ ] Test keyboard shortcuts
+- [ ] Test validation
+
+---
+
+**Document Version:** 1.1 (with reusable template)  
 **Last Updated:** 5 March 2026  
 **Author:** AI Assistant  
 **Status:** Ready for Implementation
