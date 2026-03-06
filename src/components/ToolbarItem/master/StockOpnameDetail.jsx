@@ -80,6 +80,8 @@ export function StockOpnameDetail({ selectedId: propSelectedId, onExit }) {
   // Add item
   const addItem = useCallback((newItem) => {
     const product = productOptions.find(p => p.id === newItem.product_id)
+    const systemQty = newItem.system_qty || 0
+    const physicalQty = newItem.physical_qty || 0
     const itemWithId = {
       id: `item-${Date.now()}`,
       product_id: newItem.product_id,
@@ -88,11 +90,11 @@ export function StockOpnameDetail({ selectedId: propSelectedId, onExit }) {
         name: product?.name || '-',
         unit: product?.unit || '-',
       },
-      system_qty: 0,
-      physical_qty: 0,
-      variance: 0,
-      reason: '',
-      notes: '',
+      system_qty: systemQty,
+      physical_qty: physicalQty,
+      variance: physicalQty - systemQty,
+      reason: newItem.reason || null,
+      notes: newItem.notes || null,
       _isNew: true,
     }
     setItems((prev) => [...prev, itemWithId])
