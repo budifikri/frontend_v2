@@ -77,6 +77,50 @@ export function StockOpnameDetail({ selectedId: propSelectedId, onExit }) {
     fetchLookups()
   }, [fetchLookups])
 
+  // Load selected stock opname data
+  useEffect(() => {
+    if (!propSelectedId) return
+
+    const loadStockOpname = async () => {
+      setIsLoading(true)
+      try {
+        const data = await getStockOpnameById(token, propSelectedId)
+        console.log('[StockOpnameDetail] Loaded data:', data)
+        
+        // Set header
+        setHeader({
+          opname_number: data.opname_number || data.reference || generateReference(),
+          warehouse_id: data.warehouse_id || data.warehouse?.id || '',
+          opname_date: data.opname_date ? data.opname_date.split('T')[0] : new Date().toISOString().split('T')[0],
+          status: data.status || 'draft',
+          notes: data.notes || '',
+        })
+
+        // Set items
+        if (data.items && data.items.length > 0) {
+          const formattedItems = data.items.map((item, index) => ({
+            id: item.id || `item-${index}`,
+            product_id: item.product_id,
+            product: item.product || { code: '-', name: '-', unit: '-' },
+            system_qty: item.system_qty || 0,
+            physical_qty: item.physical_qty || 0,
+            variance: item.variance || 0,
+            reason: item.reason || '',
+            notes: item.notes || '',
+          }))
+          setItems(formattedItems)
+        }
+      } catch (err) {
+        console.error('[StockOpnameDetail] Error loading data:', err)
+        setError('Failed to load stock opname data')
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    loadStockOpname()
+  }, [propSelectedId, token])
+
   // Add item
   const addItem = useCallback((newItem) => {
     const product = productOptions.find(p => p.id === newItem.product_id)
@@ -348,6 +392,7 @@ export function StockOpnameDetail({ selectedId: propSelectedId, onExit }) {
                       }}
                     />
                   </th>
+                  <th className="table-center" style={{ width: '60px' }}>No</th>
                   <th>Product</th>
                   <th className="table-center">Unit</th>
                   <th className="table-center">System</th>
@@ -357,7 +402,7 @@ export function StockOpnameDetail({ selectedId: propSelectedId, onExit }) {
                 </tr>
               </thead>
               <tbody className="table-body">
-                {items.map((item) => (
+                {items.map((item, index) => (
                   <tr key={item.id} className="table-row">
                     <td className="table-checkbox">
                       <input
@@ -373,6 +418,7 @@ export function StockOpnameDetail({ selectedId: propSelectedId, onExit }) {
                         }}
                       />
                     </td>
+                    <td className="table-center text-muted">{index + 1}</td>
                     <td className="table-product">
                       <div className="product-name">{item.product?.name || item.product_name || '-'}</div>
                       <div className="product-sku">SKU: {item.product?.code || '-'}</div>
