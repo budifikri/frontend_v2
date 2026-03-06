@@ -81,17 +81,15 @@ function normalizeOpnameItem(raw, index) {
     id: raw?.id || `item-${index}`,
     opname_id: raw?.opname_id || '',
     product_id: raw?.product_id || '',
-    product: {
-      code: raw?.product?.code || raw?.product_code || '-',
-      name: raw?.product?.name || raw?.product_name || '-',
-      unit: raw?.product?.unit || raw?.product_unit || '-',
-    },
-    system_qty: Number(raw?.system_qty ?? raw?.system_quantity ?? 0),
-    physical_qty: Number(raw?.physical_qty ?? raw?.actual_quantity ?? 0),
-    variance: Number(raw?.variance ?? (raw?.physical_qty ?? raw?.actual_quantity ?? 0) - (raw?.system_qty ?? raw?.system_quantity ?? 0)),
+    product_sku: raw?.product_sku || raw?.product?.sku || raw?.product_code || '-',
+    product_name: raw?.product_name || raw?.product?.name || '-',
+    product_unit_name: raw?.product_unit_name || raw?.product?.unit || '-',
+    system_quantity: Number(raw?.system_quantity ?? raw?.system_qty ?? 0),
+    actual_quantity: Number(raw?.actual_quantity ?? raw?.physical_qty ?? 0),
+    difference: Number(raw?.difference ?? ((raw?.actual_quantity ?? raw?.physical_qty ?? 0) - (raw?.system_quantity ?? raw?.system_qty ?? 0))),
+    status: raw?.status || '',
     reason: raw?.reason || '',
     notes: raw?.notes || '',
-    status: raw?.status || '',
   }
 }
 

@@ -102,12 +102,15 @@ export function StockOpnameDetail({ selectedId: propSelectedId, onExit }) {
           const formattedItems = data.items.map((item, index) => ({
             id: item.id || `item-${index}`,
             product_id: item.product_id,
-            product: item.product || { code: '-', name: '-', unit: '-' },
-            system_qty: item.system_qty || 0,
-            physical_qty: item.physical_qty || 0,
-            variance: item.variance || 0,
-            reason: item.reason || '',
+            product_sku: item.product_sku || '',
+            product_name: item.product_name || '',
+            product_unit_name: item.product_unit_name || '',
+            system_quantity: item.system_quantity || 0,
+            actual_quantity: item.actual_quantity || 0,
+            difference: item.difference || 0,
+            status: item.status || '',
             notes: item.notes || '',
+            reason: item.reason || '',
           }))
           setItems(formattedItems)
         }
@@ -125,19 +128,18 @@ export function StockOpnameDetail({ selectedId: propSelectedId, onExit }) {
   // Add item
   const addItem = useCallback((newItem) => {
     const product = productOptions.find(p => p.id === newItem.product_id)
-    const systemQty = newItem.system_qty || 0
-    const physicalQty = newItem.physical_qty || 0
+    const systemQty = newItem.system_quantity || 0
+    const actualQty = newItem.actual_quantity || 0
     const itemWithId = {
       id: `item-${Date.now()}`,
       product_id: newItem.product_id,
-      product: {
-        code: product?.code || '-',
-        name: product?.name || '-',
-        unit: product?.unit || '-',
-      },
-      system_qty: systemQty,
-      physical_qty: physicalQty,
-      variance: physicalQty - systemQty,
+      product_sku: product?.code || '-',
+      product_name: product?.name || '-',
+      product_unit_name: product?.unit || '-',
+      system_quantity: systemQty,
+      actual_quantity: actualQty,
+      difference: actualQty - systemQty,
+      status: 'pending',
       reason: newItem.reason || null,
       notes: newItem.notes || null,
       _isNew: true,
@@ -151,7 +153,10 @@ export function StockOpnameDetail({ selectedId: propSelectedId, onExit }) {
     setItems((prev) => prev.map((item) => {
       if (item.id === itemId) {
         const updated = { ...item, ...updates }
-        updated.variance = (updated.physical_qty || 0) - (updated.system_qty || 0)
+        // Recalculate difference if actual_quantity changed
+        if (updates.actual_quantity !== undefined) {
+          updated.difference = updated.actual_quantity - updated.system_quantity
+        }
         return updated
       }
       return item
@@ -210,11 +215,11 @@ export function StockOpnameDetail({ selectedId: propSelectedId, onExit }) {
       notes: header.notes || '',
       items: items.map((item) => ({
         product_id: item.product_id,
-        system_qty: item.system_qty,
-        physical_qty: item.physical_qty,
-        variance: item.variance,
-        reason: item.reason || null,
-        notes: item.notes || null,
+        system_quantity: item.system_quantity,
+        actual_quantity: item.actual_quantity,
+        difference: item.difference,
+        status: item.status || 'pending',
+        notes: item.notes || item.reason || '',
       })),
     }
 
@@ -265,9 +270,9 @@ export function StockOpnameDetail({ selectedId: propSelectedId, onExit }) {
   // Calculate summary
   const summary = useMemo(() => ({
     total_items: items.length,
-    variance_positive: items.filter(i => i.variance > 0).length,
-    variance_negative: items.filter(i => i.variance < 0).length,
-    variance_zero: items.filter(i => i.variance === 0).length,
+    variance_positive: items.filter(i => i.difference > 0).length,
+    variance_negative: items.filter(i => i.difference < 0).length,
+    variance_zero: items.filter(i => i.difference === 0).length,
   }), [items])
 
   const productOptionsForSelect = useMemo(() => {
@@ -376,7 +381,7 @@ export function StockOpnameDetail({ selectedId: propSelectedId, onExit }) {
       <main className="stock-opname-items">
         <div className="stock-opname-table-container">
           <div className="table-wrapper custom-scrollbar">
-            <table className="stock-opname-table">
+            <table className="stock-opname-table master-table">
               <thead className="table-header">
                 <tr>
                   <th className="table-checkbox">
@@ -394,6 +399,7 @@ export function StockOpnameDetail({ selectedId: propSelectedId, onExit }) {
                     />
                   </th>
                   <th className="table-center" style={{ width: '60px' }}>No</th>
+                  <th>SKU</th>
                   <th>Product</th>
                   <th className="table-center">Unit</th>
                   <th className="table-center">System</th>
@@ -402,7 +408,7 @@ export function StockOpnameDetail({ selectedId: propSelectedId, onExit }) {
                   <th>Reason</th>
                 </tr>
               </thead>
-              <tbody className="table-body">
+              <tbody>
                 {items.map((item, index) => (
                   <tr key={item.id} className="table-row">
                     <td className="table-checkbox">
@@ -420,22 +426,22 @@ export function StockOpnameDetail({ selectedId: propSelectedId, onExit }) {
                       />
                     </td>
                     <td className="table-center text-muted">{index + 1}</td>
+                    <td className="font-bold">{item.product_sku || item.product?.sku || '-'}</td>
                     <td className="table-product">
-                      <div className="product-name">{item.product?.name || item.product_name || '-'}</div>
-                      <div className="product-sku">SKU: {item.product?.code || '-'}</div>
+                      <div className="product-name">{item.product_name || item.product?.name || '-'}</div>
                     </td>
-                    <td className="table-center text-muted">{item.product?.unit || '-'}</td>
-                    <td className="table-center font-bold">{Number(item.system_qty || 0)}</td>
+                    <td className="table-center text-muted">{item.product_unit_name || item.product?.unit || '-'}</td>
+                    <td className="table-center font-bold">{Number(item.system_quantity || item.system_qty || 0)}</td>
                     <td className="table-center">
                       <input
                         type="number"
-                        value={item.physical_qty || 0}
-                        onChange={(e) => updateItem(item.id, { physical_qty: Number(e.target.value) })}
+                        value={item.actual_quantity !== undefined ? item.actual_quantity : (item.physical_qty || 0)}
+                        onChange={(e) => updateItem(item.id, { actual_quantity: Number(e.target.value) })}
                         className="physical-input"
                       />
                     </td>
-                    <td className={`table-center font-black ${item.variance > 0 ? 'variance-positive' : item.variance < 0 ? 'variance-negative' : ''}`}>
-                      {Number(item.variance || 0)}
+                    <td className={`table-center font-black ${item.difference !== undefined ? (item.difference > 0 ? 'variance-positive' : item.difference < 0 ? 'variance-negative' : '') : (item.variance > 0 ? 'variance-positive' : item.variance < 0 ? 'variance-negative' : '')}`}>
+                      {Number(item.difference !== undefined ? item.difference : (item.variance || 0))}
                     </td>
                     <td>
                       <input
@@ -450,7 +456,7 @@ export function StockOpnameDetail({ selectedId: propSelectedId, onExit }) {
                 ))}
                 {items.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="text-center py-8 text-muted">
+                    <td colSpan={9} className="text-center py-8 text-muted">
                       No items added yet. Click "Add" (F1) to start.
                     </td>
                   </tr>
