@@ -194,11 +194,36 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
 
     try {
       if (token) {
+        // Swagger spec: Create/Update Purchase Order
+        // Required fields: supplier_id, warehouse_id, expected_date, items
+        const payload = {
+          supplier_id: header.supplier_id,
+          warehouse_id: header.warehouse_id,
+          expected_date: header.expected_date || null,
+          notes: header.notes || '',
+          items: items.map(item => ({
+            // For update: include item id if it exists
+            // For create: don't include id (backend will generate)
+            ...(item.id && !item.id.startsWith('item-') ? { id: item.id } : {}),
+            product_id: item.product_id,
+            quantity: item.quantity,
+            unit_price: item.unit_price,
+            discount: item.discount || 0,
+            tax_rate: item.tax_rate || 0,
+          })),
+        }
+
+        console.log('[PurchaseDetail] === SAVE REQUEST ===')
+        console.log('[PurchaseDetail] URL:', propSelectedId ? `/api/purchases/${propSelectedId}` : '/api/purchases')
+        console.log('[PurchaseDetail] Method:', propSelectedId ? 'PUT' : 'POST')
+        console.log('[PurchaseDetail] Payload:', JSON.stringify(payload, null, 2))
+
         if (propSelectedId) {
           // UPDATE existing
           const result = await updatePurchase(token, propSelectedId, payload)
           console.log('[PurchaseDetail] === UPDATE RESPONSE ===')
           console.log('[PurchaseDetail] Response:', result)
+          console.log('[PurchaseDetail] Response data.items:', result.data?.items?.length || 0)
           // Close first, then show toast from parent
           console.log('[PurchaseDetail] Calling onExit()...')
           onExit()
@@ -215,6 +240,7 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
           console.log('[PurchaseDetail] === CREATE RESPONSE ===')
           console.log('[PurchaseDetail] Response:', result)
           console.log('[PurchaseDetail] Created ID:', result.data?.id)
+          console.log('[PurchaseDetail] Response data.items:', result.data?.items?.length || 0)
           // Close first, then show toast from parent
           console.log('[PurchaseDetail] Calling onExit()...')
           onExit()
@@ -344,7 +370,7 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
                   <th style={{ width: '60px' }}>No</th>
                   <th>SKU</th>
                   <th>Product</th>
-                  <th className="table-center" style={{ width: '100px' }}>Qty</th>
+                  <th className="table-center" style={{ width: '100px' }}>QTY PO</th>
                   <th className="table-center" style={{ width: '120px' }}>Unit Price</th>
                   <th className="table-center" style={{ width: '100px' }}>Discount</th>
                   <th className="table-center" style={{ width: '80px' }}>Tax %</th>

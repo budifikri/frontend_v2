@@ -156,6 +156,9 @@ export function StockOpname({ onExit }) {
   }, [token])
 
   const fetchData = useCallback(async () => {
+    console.log('[StockOpname.jsx] fetchData() called')
+    console.log('[StockOpname.jsx] fetchData params:', { searchKeyword, warehouseFilter, statusFilter, limit, offset })
+    
     setError('')
     setIsLoading(true)
 
@@ -239,6 +242,7 @@ export function StockOpname({ onExit }) {
 
   // Handle save success from detail component
   const handleSaveSuccess = (message, type = 'success') => {
+    console.log('[StockOpname.jsx] handleSaveSuccess() called:', { message, type })
     setToast({ isOpen: true, message, type })
   }
 
@@ -393,8 +397,11 @@ export function StockOpname({ onExit }) {
         <StockOpnameDetail
           selectedId={selectedId}
           onExit={() => {
+            console.log('[StockOpname.jsx] onExit called - closing detail view')
             setShowDetail(false)
             setSelectedId(null)
+            console.log('[StockOpname.jsx] Calling fetchData() to refresh list...')
+            fetchData()
           }}
           onSaveSuccess={handleSaveSuccess}
         />

@@ -51,17 +51,26 @@ const DUMMY_PURCHASES = [
 ]
 
 function normalizePurchaseItem(raw, index) {
-  return {
+  console.log('[PurchaseAPI] normalizePurchaseItem INPUT:', raw)
+  console.log('[PurchaseAPI] normalizePurchaseItem raw.quantity:', raw?.quantity, 'raw.qty_po:', raw?.qty_po, 'type:', typeof raw?.quantity)
+  
+  const result = {
     id: raw?.id || `item-${index}`,
     product_id: raw?.product_id || '',
     product_name: raw?.product_name || raw?.product?.name || '-',
     sku: raw?.sku || raw?.product_sku || '-',
-    quantity: Number(raw?.quantity || 0),
+    // Backend returns qty_po, map to quantity
+    quantity: Number(raw?.qty_po ?? (raw?.quantity || 0)),
     unit_price: Number(raw?.unit_price || 0),
     discount: Number(raw?.discount || 0),
     tax_rate: Number(raw?.tax_rate || 0),
-    line_total: Number(raw?.line_total || (raw?.quantity || 0) * (raw?.unit_price || 0)),
+    line_total: Number(raw?.line_total || ((raw?.qty_po ?? (raw?.quantity || 0)) * (raw?.unit_price || 0))),
+    // Also keep receive qty for reference
+    qty_receive: Number(raw?.qty_receive || 0),
   }
+  
+  console.log('[PurchaseAPI] normalizePurchaseItem OUTPUT:', result)
+  return result
 }
 
 function normalizePurchase(raw) {
