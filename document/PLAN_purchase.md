@@ -1,54 +1,380 @@
 # PLAN PEMBELIAN (PURCHASE ORDER)
 
-## 1. Referensi Design Form
+## 1. Design System Reference
 
-### 1.1 Pola Master-Detail (Template: Stock Opname)
+### 1.1 Master-Detail Template (Stock Opname Pattern)
 
-Gunakan **StockOpnameDetail.jsx** sebagai referensi utama untuk implementsi Master-Detail表单:
+Implement exactly the same visual and structural pattern as **StockOpnameDetail.jsx**:
 
-```jsx
-├── Header Section (sticky top)
-│   ├── Title & Status
-│   ├── Primary Fields (inline)
-│   │   ├── Warehouse (select)
-│   │   ├── Date (date picker)
-│   │   └── Status (badge)
-│   └── Action Buttons
-│       ├── [Add Item] ← Button untuk membuka modal add product
-│       ├── [Save] (if draft)
-│       ├── [Verify] (if pending)
-│       └── [Cancel] (if pending)
-│
-├── Main Content
-│   └── Items Table
-│       ├── Columns: No, SKU, Product Name, Qty, Unit Price, Discount, Tax, Total
-│       ├── Inline actions: Remove item
-│       └── Summary row (subtotal, tax, grand total)
-│
-├── Modal Add Item (optional: separate component)
-│   ├── Search Product (autocomplete)
-│   ├── System Price display (readonly)
-│   ├── Quantity input
-│   ├── Unit Price input (editable)
-│   ├── Discount input
-│   ├── Tax Rate input
-│   └── Action: [Add] [Cancel]
-│
-└── Footer (MasterDetailFooter)
-    ├── Navigation: First/Prev/Next/Last
-    ├── Page info: "Page X of Y"
-    └── Total row count
+```
+┌─────────────────────────────────────────────────────┐
+│  ┌─────────────────────────────────────────────┐  │
+│  │ HEADER (sticky top)                          │  │
+│  │ ├─ Title Section: "PURCHASE ORDER - PO-001" │  │
+│  │ ├─ Status Buttons (Draft|Pending|Approved)  │  │
+│  │ └─ Form Fields (grid layout):                │  │
+│  │    • Supplier (required, select)             │  │
+│  │    • Warehouse (required, select)            │  │
+│  │    • PO Date (date picker)                   │  │
+│  │    • Expected Date (optional, date picker)  │  │
+│  │    • Notes (textarea)                        │  │
+│  └─────────────────────────────────────────────┘  │
+├─────────────────────────────────────────────────────┤
+│  MAIN CONTENT (scrollable)                         │
+│  ┌─────────────────────────────────────────────┐  │
+│  │ Items Table                                 │  │
+│  │ ├─ Checkbox column                          │  │
+│  │ ├─ No                                       │  │
+│  │ ├─ SKU                                      │  │
+│  │ ├─ Product Name                             │  │
+│  │ ├─ Qty (editable in table? or modal only?) │  │
+│  │ ├─ Unit Price (editable)                    │  │
+│  │ ├─ Discount                                │  │
+│  │ ├─ Tax %                                   │  │
+│  │ ├─ Line Total (computed)                    │  │
+│  │ └─ Actions (Remove button)                  │  │
+│  └─────────────────────────────────────────────┘  │
+│  ┌─────────────────────────────────────────────┐  │
+│  │ Summary Bar (below table)                   │  │
+│  │ • Total Items: 5                            │  │
+│  │ • Subtotal: Rp 500,000                      │  │
+│  │ • Discount: Rp 50,000                       │  │
+│  │ • Tax: Rp 55,000                           │  │
+│  │ • Grand Total: Rp 555,000                  │  │
+│  └─────────────────────────────────────────────┘  │
+├─────────────────────────────────────────────────────┤
+│  FOOTER (sticky bottom)                            │
+│  ┌─────────────────────────────────────────────┐  │
+│  │ [Add Item] [Remove] [Save Draft] [Submit]  │  │
+│  │ [Cancel] [Exit]                             │  │
+│  │ + shortcut hints                            │  │
+│  └─────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────┘
 ```
 
-**Key Features from StockOpname:**
-- ✅ Sticky header with inline form fields
-- ✅ Items in MasterDetailTable (expandable/collapsible rows)
-- ✅ Separate `AddItemModal` for product selection
-- ✅ `MasterDetailFooter` with pagination
-- ✅ Status-based button rendering (draft → pending → verified)
-- ✅ Computed totals (subtotal, tax, total)
-- ✅ Warehouse context (all items belong to selected warehouse)
-- ✅ Keyboard navigation support (for add modal)
+### 1.2 CSS Class Naming Convention
+
+Follow Stock Opname naming pattern:
+
+```css
+/* Container */
+.purchase-container
+
+/* Header */
+.purchase-header
+.purchase-header-top
+.purchase-title-section
+.purchase-accent-bar (optional decorative bar)
+.purchase-title
+.purchase-status-group (if using status buttons)
+
+/* Header Form Grid */
+.purchase-header-form
+.form-group (reusable)
+.form-label (reusable)
+.form-input (reusable)
+.form-input-readonly (reusable)
+.form-textarea (reusable)
+
+/* Items Section */
+.purchase-items
+.purchase-table-container
+.purchase-table (extends .master-table)
+
+/* Table Styles */
+.purchase-table .table-header th { ... }
+.purchase-table tbody tr.table-row { ... }
+.purchase-table .table-checkbox { ... }
+.purchase-table .table-center { ... }
+.purchase-table .table-product { ... }
+.purchase-table .text-muted { ... }
+.purchase-table .font-bold { ... }
+.purchase-table .variance-positive { ... } /* if needed */
+.purchase-table .variance-negative { ... } /* if needed */
+
+/* Summary */
+.purchase-summary
+.summary-title
+.summary-items
+.summary-item
+.summary-value
+.summary-positive (if showing positive amount)
+.summary-negative (if showing negative amount)
+.summary-divider
+
+/* Footer */
+.purchase-footer
+.footer-content
+.footer-actions-left
+.footer-actions-right (optional)
+.master-footer-btn (reusable)
+.master-footer-icon (reusable)
+.master-footer-key (reusable shortcut hint)
+```
+
+### 1.3 Component Structure
+
+```jsx
+// File: src/components/ToolbarItem/transaksi/PurchaseDetail.jsx
+export function PurchaseDetail({ selectedId, onExit, onSaveSuccess }) {
+  // State
+  const [header, setHeader] = useState({
+    po_number: generatePOReference(),
+    supplier_id: '',
+    warehouse_id: '',
+    po_date: new Date().toISOString().split('T')[0],
+    expected_date: '',
+    notes: '',
+    status: 'draft'
+  })
+  const [items, setItems] = useState([])
+  const [suppliers, setSuppliers] = useState([])
+  const [warehouses, setWarehouses] = useState([])
+  
+  // Computed
+  const subtotal = useMemo(() => ...
+  const taxTotal = useMemo(() => ...
+  const discountTotal = useMemo(() => ...
+  const grandTotal = useMemo(() => subtotal - discountTotal + taxTotal
+  
+  // Handlers
+  const addItem = useCallback((item) => { ... })
+  const removeItem = useCallback((ids) => { ... })
+  const updateItem = useCallback((id, updates) => { ... })
+  const handleSave = useCallback(async () => { ... })
+  const handleSubmit = useCallback(async () => { ... })
+  
+  // Render
+  return (
+    <div className="purchase-container">
+      <header className="purchase-header">
+        {/* Title & Status */}
+        <div className="purchase-header-top">
+          <div className="purchase-title-section">
+            <div className="purchase-accent-bar"></div>
+            <h1 className="purchase-title">PURCHASE ORDER - {header.po_number}</h1>
+          </div>
+          <div className="purchase-status-group">
+            {/* Status buttons if needed, or just display badge */}
+          </div>
+        </div>
+        
+        {/* Form Fields */}
+        <div className="purchase-header-form">
+          <div className="form-group">
+            <label className="form-label">Supplier *</label>
+            <select value={header.supplier_id} onChange={...} className="form-input">
+              <option value="">Select supplier...</option>
+              {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+            </select>
+          </div>
+          <div className="form-group">
+            <label className="form-label">Warehouse *</label>
+            <select value={header.warehouse_id} onChange={...} className="form-input">
+              <option value="">Select warehouse...</option>
+              {warehouses.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
+            </select>
+          </div>
+          <div className="form-group">
+            <label className="form-label">PO Date *</label>
+            <input type="date" value={header.po_date} onChange={...} className="form-input" />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Expected Date</label>
+            <input type="date" value={header.expected_date} onChange={...} className="form-input" />
+          </div>
+          <div className="form-group form-group-full"> {/* full width */}
+            <label className="form-label">Notes</label>
+            <textarea 
+              value={header.notes} 
+              onChange={...} 
+              className="form-input form-textarea" 
+              rows={1}
+              placeholder="Add notes..."
+            />
+          </div>
+        </div>
+      </header>
+
+      {error && <div className="master-error">{error}</div>}
+
+      <main className="purchase-items">
+        <div className="purchase-table-container">
+          <div className="table-wrapper custom-scrollbar">
+            <table className="purchase-table master-table">
+              <thead className="table-header">
+                <tr>
+                  <th className="table-checkbox">...</th>
+                  <th className="table-center" style={{width:'60px'}}>No</th>
+                  <th>SKU</th>
+                  <th>Product</th>
+                  <th className="table-center">Unit</th>
+                  <th className="table-center">Qty</th>
+                  <th className="table-right">Unit Price</th>
+                  <th className="table-right">Discount</th>
+                  <th className="table-center">Tax %</th>
+                  <th className="table-right">Total</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {items.map((item, index) => (
+                  <tr key={item.id} className="table-row">
+                    {/* checkbox */}
+                    <td className="table-checkbox">...</td>
+                    <td className="table-center text-muted">{index + 1}</td>
+                    <td className="font-bold">{item.sku}</td>
+                    <td className="table-product">
+                      <div className="product-name">{item.product_name}</div>
+                    </td>
+                    <td className="table-center text-muted">{item.unit}</td>
+                    <td className="table-center">
+                      <input 
+                        type="number" 
+                        value={item.quantity} 
+                        onChange={(e) => updateItem(item.id, { quantity: Number(e.target.value) })}
+                        className="quantity-input"
+                        min="0"
+                      />
+                    </td>
+                    <td className="table-right">
+                      <input 
+                        type="number" 
+                        value={item.unit_price} 
+                        onChange={(e) => updateItem(item.id, { unit_price: Number(e.target.value) })}
+                        className="price-input"
+                        min="0"
+                        step="0.01"
+                      />
+                    </td>
+                    <td className="table-right">
+                      <input 
+                        type="number" 
+                        value={item.discount || 0} 
+                        onChange={(e) => updateItem(item.id, { discount: Number(e.target.value) })}
+                        className="discount-input"
+                        min="0"
+                        step="0.01"
+                      />
+                    </td>
+                    <td className="table-center">
+                      <input 
+                        type="number" 
+                        value={item.tax_rate || 0} 
+                        onChange={(e) => updateItem(item.id, { tax_rate: Number(e.target.value) })}
+                        className="tax-input"
+                        min="0"
+                        max="100"
+                      />
+                    </td>
+                    <td className="table-right font-bold">
+                      {formatCurrency(
+                        (item.quantity * item.unit_price) - (item.discount || 0) + 
+                        ((item.quantity * item.unit_price - (item.discount || 0)) * (item.tax_rate || 0) / 100)
+                      )}
+                    </td>
+                    <td className="table-center">
+                      <button 
+                        type="button"
+                        className="remove-btn"
+                        onClick={() => removeItem([item.id])}
+                        title="Remove item"
+                      >
+                        <span className="material-icons-round">delete</span>
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Summary Bar */}
+        <div className="purchase-summary">
+          <span className="summary-title">Summary</span>
+          <div className="summary-items">
+            <span className="summary-item">
+              TOTAL ITEMS: <span className="summary-value">{items.length}</span>
+            </span>
+            <span className="summary-divider"></span>
+            <span className="summary-item">
+              SUBTOTAL: <span className="summary-value">{formatCurrency(subtotal)}</span>
+            </span>
+            <span className="summary-divider"></span>
+            <span className="summary-item summary-negative">
+              DISCOUNT: <span className="summary-value">{formatCurrency(discountTotal)}</span>
+            </span>
+            <span className="summary-divider"></span>
+            <span className="summary-item">
+              TAX: <span className="summary-value">{formatCurrency(taxTotal)}</span>
+            </span>
+            <span className="summary-divider"></span>
+            <span className="summary-item summary-total">
+              GRAND TOTAL: <span className="summary-value">{formatCurrency(grandTotal)}</span>
+            </span>
+          </div>
+        </div>
+      </main>
+
+      {/* Footer */}
+      <footer className="purchase-footer">
+        <div className="footer-content">
+          <div className="footer-actions-left">
+            <button
+              type="button"
+              className="master-footer-btn"
+              onClick={() => setShowAddModal(true)}
+              disabled={isSaving}
+              title="Add Product (F1)"
+            >
+              <span className="material-icons-round master-footer-icon orange">add_box</span>
+              <span className="master-footer-key">+</span>
+            </button>
+            <button
+              type="button"
+              className="master-footer-btn"
+              onClick={() => removeItem(selectedIds)}
+              disabled={selectedIds.length === 0 || isSaving}
+              title="Remove Selected (DEL)"
+            >
+              <span className="material-icons-round master-footer-icon orange">remove_circle</span>
+              <span className="master-footer-key">DEL</span>
+            </button>
+            <button
+              type="button"
+              className="master-footer-btn"
+              onClick={handleSave}
+              disabled={isSaving || !canSave}
+              title="Save Draft (Ctrl+S)"
+            >
+              <span className="material-icons-round master-footer-icon green">save</span>
+            </button>
+            <button
+              type="button"
+              className="master-footer-btn"
+              onClick={handleSubmit}
+              disabled={isSaving || !canSubmit}
+              title="Submit for Approval"
+            >
+              <span className="material-icons-round master-footer-icon blue">send</span>
+            </button>
+            <button
+              type="button"
+              className="master-footer-btn"
+              onClick={() => setShowExitConfirm(true)}
+              disabled={isSaving}
+              title="Exit (Esc)"
+            >
+              <span className="material-icons-round master-footer-icon red">exit_to_app</span>
+            </button>
+          </div>
+        </div>
+      </footer>
+    </div>
+  )
+}
+```
 
 ---
 

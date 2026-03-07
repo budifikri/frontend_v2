@@ -15,7 +15,7 @@ const STATUS_OPTIONS = [
   { value: 'completed', label: 'Completed' },
 ]
 
-export function PurchaseDetail({ selectedId: propSelectedId, onExit }) {
+export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSuccess }) {
   const { auth } = useAuth()
   const token = auth?.token
 
@@ -163,7 +163,7 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit }) {
   }, [items])
 
   // Handle save
-  const handleSave = async () => {
+  const handleSave = useCallback(async () => {
     if (!header.supplier_id) { setError('Supplier harus dipilih'); return }
     if (!header.warehouse_id) { setError('Warehouse harus dipilih'); return }
     if (items.length === 0) { setError('Minimal 1 item harus ditambahkan'); return }
@@ -206,7 +206,7 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit }) {
     } finally {
       setIsSaving(false)
     }
-  }
+  }, [header, items, token, propSelectedId, onExit])
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -219,64 +219,68 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit }) {
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [showAddModal, showExitConfirm, selectedIds, items])
+  }, [showAddModal, showExitConfirm, selectedIds, handleSave, removeItem])
 
-  const supplierOptionsForSelect = useMemo(() => 
+  const supplierOptionsForSelect = useMemo(() =>
     supplierOptions.map(item => ({ id: item.id, name: item.name })), [supplierOptions])
 
-  const warehouseOptionsForSelect = useMemo(() => 
+  const warehouseOptionsForSelect = useMemo(() =>
     warehouseOptions.map(item => ({ id: item.id, name: item.name })), [warehouseOptions])
 
   const formatCurrency = (amount) =>
     new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(amount)
 
   return (
-    <div className="purchase-detail-container">
+    <div className="stock-opname-container">
       {/* Header */}
-      <header className="purchase-header">
-        <div className="purchase-header-top">
-          <div className="purchase-title-section">
-            <div className="purchase-accent-bar"></div>
-            <h1 className="purchase-title">PURCHASE ORDER - {header.po_number}</h1>
+      <header className="stock-opname-header">
+        <div className="stock-opname-header-top">
+          <div className="stock-opname-title-section">
+            <div className="stock-opname-accent-bar"></div>
+            <h1 className="stock-opname-title">PURCHASE ORDER - {header.po_number}</h1>
           </div>
-          <div className="purchase-status-badge">
-            <span className={`status-badge status-badge-${header.status}`}>{header.status}</span>
+          <div className="stock-opname-status-group">
+            <button type="button" className={`status-button ${header.status === 'draft' ? 'status-button-active' : 'status-button-inactive'}`} onClick={() => setHeader({ ...header, status: 'draft' })}>
+              Draft
+            </button>
+            <button type="button" className={`status-button ${header.status === 'pending' ? 'status-button-active' : 'status-button-inactive'}`} onClick={() => setHeader({ ...header, status: 'pending' })}>
+              Pending
+            </button>
+            <button type="button" className={`status-button ${header.status === 'approved' ? 'status-button-active' : 'status-button-inactive'}`} onClick={() => setHeader({ ...header, status: 'approved' })}>
+              Approve
+            </button>
           </div>
         </div>
-        <div className="purchase-header-form">
-          <div className="form-row">
-            <div className="form-group">
-              <label className="form-label">PO Number</label>
-              <input type="text" value={header.po_number} readOnly className="form-input form-input-readonly" />
-            </div>
-            <div className="form-group">
-              <label className="form-label">PO Date *</label>
-              <input type="date" value={header.po_date} onChange={(e) => setHeader({ ...header, po_date: e.target.value })} className="form-input" />
-            </div>
-            <div className="form-group">
-              <label className="form-label">Expected Date</label>
-              <input type="date" value={header.expected_date} onChange={(e) => setHeader({ ...header, expected_date: e.target.value })} className="form-input" />
-            </div>
-          </div>
-          <div className="form-row">
-            <div className="form-group-wide">
-              <label className="form-label">Supplier *</label>
-              <select value={header.supplier_id} onChange={(e) => setHeader({ ...header, supplier_id: e.target.value })} className="form-input">
-                <option value="">Select supplier...</option>
-                {supplierOptionsForSelect.map(item => (<option key={item.id} value={item.id}>{item.name}</option>))}
-              </select>
-            </div>
-            <div className="form-group-wide">
-              <label className="form-label">Warehouse *</label>
-              <select value={header.warehouse_id} onChange={(e) => setHeader({ ...header, warehouse_id: e.target.value })} className="form-input">
-                <option value="">Select warehouse...</option>
-                {warehouseOptionsForSelect.map(item => (<option key={item.id} value={item.id}>{item.name}</option>))}
-              </select>
-            </div>
+        <div className="stock-opname-header-form">
+          <div className="form-group-wide">
+            <label className="master-form-label">PO Number</label>
+            <input type="text" value={header.po_number} readOnly className="master-form-input master-form-input-readonly" />
           </div>
           <div className="form-group-wide">
-            <label className="form-label">Notes</label>
-            <textarea value={header.notes} onChange={(e) => setHeader({ ...header, notes: e.target.value })} className="form-input form-textarea" rows={2} />
+            <label className="master-form-label">Supplier *</label>
+            <select value={header.supplier_id} onChange={(e) => setHeader({ ...header, supplier_id: e.target.value })} className="master-form-input">
+              <option value="">Select supplier...</option>
+              {supplierOptionsForSelect.map(item => (<option key={item.id} value={item.id}>{item.name}</option>))}
+            </select>
+          </div>
+          <div className="form-group">
+            <label className="master-form-label">PO Date *</label>
+            <input type="date" value={header.po_date} onChange={(e) => setHeader({ ...header, po_date: e.target.value })} className="master-form-input" />
+          </div>
+          <div className="form-group">
+            <label className="master-form-label">Expected Date</label>
+            <input type="date" value={header.expected_date} onChange={(e) => setHeader({ ...header, expected_date: e.target.value })} className="master-form-input" />
+          </div>
+          <div className="form-group-wide">
+            <label className="master-form-label">Warehouse *</label>
+            <select value={header.warehouse_id} onChange={(e) => setHeader({ ...header, warehouse_id: e.target.value })} className="master-form-input">
+              <option value="">Select warehouse...</option>
+              {warehouseOptionsForSelect.map(item => (<option key={item.id} value={item.id}>{item.name}</option>))}
+            </select>
+          </div>
+          <div className="form-group-wide">
+            <label className="master-form-label">Notes</label>
+            <textarea value={header.notes} onChange={(e) => setHeader({ ...header, notes: e.target.value })} className="master-form-input master-form-textarea" rows={2} placeholder="Add remarks..." />
           </div>
         </div>
       </header>
@@ -284,81 +288,173 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit }) {
       {error && <div className="master-error">{error}</div>}
 
       {/* Items Table */}
-      <main className="purchase-items">
-        <div className="purchase-items-header">
-          <h2>Items ({items.length})</h2>
-          <button type="button" className="btn-add-item" onClick={() => setShowAddModal(true)}>
-            <span className="material-icons-round">add</span> Add Item (F1)
-          </button>
-        </div>
-
-        <div className="purchase-table-container">
-          <table className="purchase-table">
-            <thead>
-              <tr>
-                <th style={{ width: '40px' }}></th>
-                <th>SKU</th>
-                <th>Product</th>
-                <th style={{ width: '100px' }}>Qty</th>
-                <th style={{ width: '120px' }}>Unit Price</th>
-                <th style={{ width: '100px' }}>Discount</th>
-                <th style={{ width: '80px' }}>Tax %</th>
-                <th style={{ width: '120px' }}>Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((item, index) => (
-                <tr key={item.id} className={selectedIds.includes(item.id) ? 'master-row-selected' : ''} onClick={() => setSelectedIds([item.id])}>
-                  <td><input type="checkbox" checked={selectedIds.includes(item.id)} onChange={() => setSelectedIds(selectedIds.includes(item.id) ? [] : [item.id])} /></td>
-                  <td className="sku-cell">{item.sku}</td>
-                  <td>{item.product_name}</td>
-                  <td><input type="number" value={item.quantity} onChange={(e) => updateItem(item.id, { quantity: Number(e.target.value) })} className="qty-input" /></td>
-                  <td><input type="number" value={item.unit_price} onChange={(e) => updateItem(item.id, { unit_price: Number(e.target.value) })} className="price-input" /></td>
-                  <td><input type="number" value={item.discount} onChange={(e) => updateItem(item.id, { discount: Number(e.target.value) })} className="discount-input" /></td>
-                  <td><input type="number" value={item.tax_rate} onChange={(e) => updateItem(item.id, { tax_rate: Number(e.target.value) })} className="tax-input" /></td>
-                  <td className="total-cell">{formatCurrency(item.line_total)}</td>
+      <main className="stock-opname-items">
+        <div className="stock-opname-table-container">
+          <div className="table-wrapper custom-scrollbar">
+            <table className="stock-opname-table master-table">
+              <thead className="table-header">
+                <tr>
+                  <th className="table-checkbox" style={{ width: '40px' }}>
+                    <input
+                      type="checkbox"
+                      className="table-checkbox-input"
+                      checked={selectedIds.length === items.length && items.length > 0}
+                      onChange={(e) => setSelectedIds(e.target.checked ? items.map(i => i.id) : [])}
+                    />
+                  </th>
+                  <th style={{ width: '60px' }}>No</th>
+                  <th>SKU</th>
+                  <th>Product</th>
+                  <th className="table-center" style={{ width: '100px' }}>Qty</th>
+                  <th className="table-center" style={{ width: '120px' }}>Unit Price</th>
+                  <th className="table-center" style={{ width: '100px' }}>Discount</th>
+                  <th className="table-center" style={{ width: '80px' }}>Tax %</th>
+                  <th className="table-center" style={{ width: '120px' }}>Total</th>
                 </tr>
-              ))}
-              {items.length === 0 && <tr><td colSpan={8} className="text-center py-8">No items. Click "Add Item" to start.</td></tr>}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {items.map((item, index) => (
+                  <tr
+                    key={item.id}
+                    className={selectedIds.includes(item.id) ? 'master-row-selected' : 'master-row'}
+                    onClick={() => setSelectedIds([item.id])}
+                  >
+                    <td className="table-checkbox">
+                      <input
+                        type="checkbox"
+                        className="table-checkbox-input"
+                        checked={selectedIds.includes(item.id)}
+                        onChange={(e) => setSelectedIds(e.target.checked ? [item.id] : [])}
+                      />
+                    </td>
+                    <td className="table-center text-muted">{index + 1}</td>
+                    <td className="font-bold">{item.sku || '-'}</td>
+                    <td className="table-product">
+                      <div className="product-name">{item.product_name || '-'}</div>
+                    </td>
+                    <td className="table-center">
+                      <input
+                        type="number"
+                        value={item.quantity}
+                        onChange={(e) => updateItem(item.id, { quantity: Number(e.target.value) })}
+                        className="physical-input"
+                      />
+                    </td>
+                    <td className="table-center">
+                      <input
+                        type="number"
+                        value={item.unit_price}
+                        onChange={(e) => updateItem(item.id, { unit_price: Number(e.target.value) })}
+                        className="physical-input"
+                      />
+                    </td>
+                    <td className="table-center">
+                      <input
+                        type="number"
+                        value={item.discount}
+                        onChange={(e) => updateItem(item.id, { discount: Number(e.target.value) })}
+                        className="physical-input"
+                      />
+                    </td>
+                    <td className="table-center">
+                      <input
+                        type="number"
+                        value={item.tax_rate}
+                        onChange={(e) => updateItem(item.id, { tax_rate: Number(e.target.value) })}
+                        className="physical-input"
+                      />
+                    </td>
+                    <td className="table-center font-bold">{formatCurrency(item.line_total)}</td>
+                  </tr>
+                ))}
+                {items.length === 0 && (
+                  <tr>
+                    <td colSpan={9} className="text-center py-8 text-muted">
+                      No items added yet. Click "Add" (F1) to start.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
 
         {/* Summary */}
-        <div className="purchase-summary">
-          <div className="summary-row"><span>Subtotal:</span><span>{formatCurrency(summary.subtotal)}</span></div>
-          <div className="summary-row"><span>Discount:</span><span>{formatCurrency(summary.discountTotal)}</span></div>
-          <div className="summary-row"><span>Tax:</span><span>{formatCurrency(summary.taxTotal)}</span></div>
-          <div className="summary-row summary-grand-total"><span>Grand Total:</span><span>{formatCurrency(summary.grandTotal)}</span></div>
+        <div className="stock-opname-summary">
+          <span className="summary-title">Summary</span>
+          <div className="summary-items">
+            <span className="summary-item">
+              TOTAL ITEMS: <span className="summary-value">{summary.itemCount}</span>
+            </span>
+            <span className="summary-divider"></span>
+            <span className="summary-item">
+              SUBTOTAL: <span className="summary-value">{formatCurrency(summary.subtotal)}</span>
+            </span>
+            <span className="summary-divider"></span>
+            <span className="summary-item">
+              DISCOUNT: <span className="summary-value">{formatCurrency(summary.discountTotal)}</span>
+            </span>
+            <span className="summary-divider"></span>
+            <span className="summary-item">
+              TAX: <span className="summary-value">{formatCurrency(summary.taxTotal)}</span>
+            </span>
+            <span className="summary-divider"></span>
+            <span className="summary-item summary-positive">
+              GRAND TOTAL: <span className="summary-value">{formatCurrency(summary.grandTotal)}</span>
+            </span>
+          </div>
         </div>
       </main>
 
-      {/* Footer */}
-      <footer className="purchase-footer">
-        <div className="purchase-footer-actions">
-          <button type="button" className="footer-btn footer-btn-add" onClick={() => setShowAddModal(true)}>
-            <span className="material-icons-round">add</span> Add Item
-          </button>
-          <button type="button" className="footer-btn footer-btn-remove" onClick={() => removeItem(selectedIds)} disabled={selectedIds.length === 0}>
-            <span className="material-icons-round">remove</span> Remove
-          </button>
-          <button type="button" className="footer-btn footer-btn-save" onClick={handleSave} disabled={isSaving}>
-            <span className="material-icons-round">save</span> {isSaving ? 'Saving...' : 'Save (Ctrl+S)'}
-          </button>
-          <button type="button" className="footer-btn footer-btn-exit" onClick={() => setShowExitConfirm(true)}>
-            <span className="material-icons-round">exit_to_app</span> Exit
-          </button>
+      {/* Action Footer - Sticky Bottom */}
+      <footer className="stock-opname-footer">
+        <div className="footer-content">
+          <div className="footer-actions-left">
+            <button type="button" className="master-footer-btn" onClick={() => setShowAddModal(true)} title="Add Item (F1)" aria-label="New">
+              <span className="material-icons-round master-footer-icon orange">add_box</span>
+              <span className="master-footer-key">+</span>
+            </button>
+            <button type="button" className="master-footer-btn" onClick={() => removeItem(selectedIds)} disabled={selectedIds.length === 0} title="Remove Selected (DEL)" aria-label="Delete">
+              <span className="material-icons-round master-footer-icon orange">remove_circle</span>
+              <span className="master-footer-key">DEL</span>
+            </button>
+            <button type="button" className="master-footer-btn" onClick={handleSave} disabled={isSaving || isLoading} title="Save (Ctrl+S)" aria-label="Save">
+              <span className="material-icons-round master-footer-icon green">save</span>
+            </button>
+            <button type="button" className="master-footer-btn" onClick={() => setShowExitConfirm(true)} disabled={isSaving} title="Exit (Esc)" aria-label="Exit">
+              <span className="material-icons-round master-footer-icon red">exit_to_app</span>
+            </button>
+          </div>
         </div>
       </footer>
 
       {/* Modals */}
-      <AddPurchaseItemModal isOpen={showAddModal} onClose={() => setShowAddModal(false)} onAdd={addItem} />
-      
+      <AddPurchaseItemModal
+        isOpen={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        onAdd={addItem}
+        token={token}
+      />
+
       {showExitConfirm && (
-        <DeleteMaster itemName="keluar dari halaman ini" title="Konfirmasi Keluar" confirmText="Ya" cancelText="Tidak" isExit onConfirm={() => { setShowExitConfirm(false); onExit() }} onCancel={() => setShowExitConfirm(false)} />
+        <DeleteMaster
+          itemName="keluar dari halaman ini"
+          title="Konfirmasi Keluar"
+          confirmText="Ya"
+          cancelText="Tidak"
+          isExit={true}
+          onConfirm={() => { setShowExitConfirm(false); onExit() }}
+          onCancel={() => setShowExitConfirm(false)}
+        />
       )}
 
-      <Toast message={toast.message} type={toast.type} isOpen={toast.isOpen} onClose={() => setToast({ ...toast, isOpen: false })} duration={3000} />
+      <Toast
+        message={toast.message}
+        type={toast.type}
+        isOpen={toast.isOpen}
+        onClose={() => setToast({ ...toast, isOpen: false })}
+        duration={3000}
+      />
     </div>
   )
 }

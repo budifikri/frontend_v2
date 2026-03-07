@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { listProducts } from '../../../features/master/product/product.api'
 
-export function AddPurchaseItemModal({ isOpen, onClose, onAdd }) {
+export function AddPurchaseItemModal({ isOpen, onClose, onAdd, token }) {
   const [selectedId, setSelectedId] = useState('')
   const [selectedProduct, setSelectedProduct] = useState(null)
   const [searchQuery, setSearchQuery] = useState('')
@@ -19,7 +19,7 @@ export function AddPurchaseItemModal({ isOpen, onClose, onAdd }) {
     if (!isOpen) return
     const fetchProducts = async () => {
       try {
-        const res = await listProducts('', { limit: 200 })
+        const res = await listProducts(token, { limit: 200 })
         const normalized = (res.items || []).map(item => ({
           id: item.id || '',
           code: item.sku || item.code || '-',
@@ -33,7 +33,7 @@ export function AddPurchaseItemModal({ isOpen, onClose, onAdd }) {
       }
     }
     fetchProducts()
-  }, [isOpen])
+  }, [isOpen, token])
 
   // Filter products
   const filteredProducts = useMemo(() => {
