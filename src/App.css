@@ -3190,3 +3190,42 @@ body.has-wallpaper .cash-register {
   font-size: 1.125rem;
   color: #16a34a;
 }
+
+/* ========================================
+   Status Buttons (Purchase Detail)
+   ======================================== */
+
+.stock-opname-status-group {
+  display: flex;
+  gap: 8px;
+}
+
+.status-button {
+  padding: 6px 16px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: all 200ms;
+}
+
+.status-button-active {
+  background: #16a34a;
+  color: #fff;
+  border-color: #15803d;
+  box-shadow: 0 2px 8px rgba(22, 163, 74, 0.3);
+}
+
+.status-button-inactive {
+  background: #f1f5f9;
+  color: #64748b;
+  border-color: #e2e8f0;
+}
+
+.status-button-inactive:hover {
+  background: #e2e8f0;
+  color: #475569;
+}

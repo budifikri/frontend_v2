@@ -82,6 +82,8 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
       setIsLoading(true)
       try {
         const data = await getPurchase(token, propSelectedId)
+        console.log('[PurchaseDetail] Loaded data:', data)
+        console.log('[PurchaseDetail] Data status:', data.status)
         setHeader({
           po_number: data.po_number || generatePONumber(),
           supplier_id: data.supplier_id || '',
@@ -104,6 +106,7 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
             line_total: item.line_total,
           })))
         }
+        console.log('[PurchaseDetail] Header after load:', { status: data.status || 'draft' })
       } catch (err) {
         console.error('[PurchaseDetail] Error loading data:', err)
         setError('Failed to load purchase order')
@@ -172,22 +175,21 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
     setError('')
 
     const payload = {
-      po_number: header.po_number,
       supplier_id: header.supplier_id,
       warehouse_id: header.warehouse_id,
       po_date: header.po_date,
-      expected_date: header.expected_date,
-      status: header.status,
-      notes: header.notes,
+      expected_date: header.expected_date || null,
+      notes: header.notes || '',
       items: items.map(item => ({
-        id: item.id.startsWith('item-') ? '' : item.id,
         product_id: item.product_id,
         quantity: item.quantity,
         unit_price: item.unit_price,
-        discount: item.discount,
-        tax_rate: item.tax_rate,
+        discount: item.discount || 0,
+        tax_rate: item.tax_rate || 0,
       })),
     }
+
+    console.log('[PurchaseDetail] Sending payload:', JSON.stringify(payload, null, 2))
 
     try {
       if (token) {
@@ -201,6 +203,7 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
       }
       setTimeout(() => onExit(), 1500)
     } catch (err) {
+      console.error('[PurchaseDetail] Save error:', err)
       setError(err.message || 'Failed to save purchase order')
       handleSaveSuccess(err.message || 'Failed to save', 'error')
     } finally {
@@ -435,6 +438,7 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
         onAdd={addItem}
         token={token}
       />
+      {showAddModal && console.log('[PurchaseDetail] AddModal open, token:', !!token)}
 
       {showExitConfirm && (
         <DeleteMaster

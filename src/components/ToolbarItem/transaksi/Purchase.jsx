@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useAuth } from '../../../shared/auth'
-import { listPurchases } from '../../../features/transaksi/purchase/purchase.api'
+import { listPurchases, deletePurchase } from '../../../features/transaksi/purchase/purchase.api'
 import { FooterMaster } from '../footer/FooterMaster'
 import { DeleteMaster } from '../footer/DeleteMaster'
 import { MasterTableHeader } from '../table/MasterTableHeader'
@@ -68,6 +68,7 @@ export function Purchase({ onExit }) {
   const { limit, offset } = pager
 
   const [selectedId, setSelectedId] = useState(null)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [showExitConfirm, setShowExitConfirm] = useState(false)
   const [showDetail, setShowDetail] = useState(false)
 
@@ -128,7 +129,7 @@ export function Purchase({ onExit }) {
 
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (showExitConfirm) return
+      if (showDeleteConfirm || showExitConfirm) return
       if (e.key === 'F2') {
         e.preventDefault()
         handleViewDetail()
@@ -145,7 +146,7 @@ export function Purchase({ onExit }) {
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [showExitConfirm])
+  }, [showDeleteConfirm, showExitConfirm])
 
   const selectedItem = selectedId == null ? null : data.find((row) => row.id === selectedId) || null
 
@@ -165,7 +166,26 @@ export function Purchase({ onExit }) {
 
   const handleDeleteClick = () => {
     if (selectedItem) {
-      setError('Delete functionality not yet implemented')
+      setShowDeleteConfirm(true)
+    }
+  }
+
+  const handleConfirmDelete = async () => {
+    if (!selectedItem) {
+      setShowDeleteConfirm(false)
+      return
+    }
+    try {
+      if (token) {
+        await deletePurchase(token, selectedItem.id)
+        await fetchData()
+      } else {
+        setData((prev) => prev.filter((row) => row.id !== selectedItem.id))
+      }
+      setShowDeleteConfirm(false)
+      setSelectedId(null)
+    } catch (err) {
+      setError(err.message || 'Failed to delete purchase')
     }
   }
 
@@ -278,6 +298,17 @@ export function Purchase({ onExit }) {
         onNextPage={pager.goNext}
         onLastPage={pager.goLast}
       />
+
+      {showDeleteConfirm && (
+        <DeleteMaster
+          itemName={selectedItem?.po_number || 'this record'}
+          title="Konfirmasi Hapus"
+          confirmText="Hapus"
+          cancelText="Batal"
+          onConfirm={handleConfirmDelete}
+          onCancel={() => setShowDeleteConfirm(false)}
+        />
+      )}
 
       {showExitConfirm && (
         <DeleteMaster

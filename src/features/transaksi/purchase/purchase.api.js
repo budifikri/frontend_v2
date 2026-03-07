@@ -323,6 +323,34 @@ export async function cancelPurchase(token, id) {
   return raw
 }
 
+export async function deletePurchase(token, id) {
+  const url = `/api/purchases/${encodeURIComponent(id)}`
+  console.log('[PurchaseAPI] deletePurchase REQUEST URL:', url)
+
+  if (!token) {
+    console.log('[PurchaseAPI] No token - simulating delete')
+    const index = DUMMY_PURCHASES.findIndex(r => r.id === id || r.po_number === id)
+    if (index === -1) {
+      throw new Error('Purchase order not found')
+    }
+    DUMMY_PURCHASES.splice(index, 1)
+    return {
+      success: true,
+      message: 'Purchase order deleted successfully',
+    }
+  }
+
+  const raw = await apiFetch(url, {
+    method: 'DELETE',
+    token,
+  })
+  console.log('[PurchaseAPI] deletePurchase RESPONSE:', raw)
+
+  if (!raw.success) throw new Error(raw.error || raw.message || 'Failed to delete purchase')
+
+  return raw
+}
+
 export async function listSuppliers(token, params = {}) {
   const qs = new URLSearchParams()
   if (params.search) qs.set('search', params.search)

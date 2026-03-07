@@ -17,9 +17,11 @@ export function AddPurchaseItemModal({ isOpen, onClose, onAdd, token }) {
   // Fetch products
   useEffect(() => {
     if (!isOpen) return
+    console.log('[AddPurchaseItemModal] Fetching products, token:', !!token)
     const fetchProducts = async () => {
       try {
         const res = await listProducts(token, { limit: 200 })
+        console.log('[AddPurchaseItemModal] Products loaded:', res.items?.length)
         const normalized = (res.items || []).map(item => ({
           id: item.id || '',
           code: item.sku || item.code || '-',
