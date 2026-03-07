@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 
 export function AddItemModal({
   isOpen,
@@ -10,25 +10,78 @@ export function AddItemModal({
 }) {
   const [selectedId, setSelectedId] = useState('')
   const [selectedProduct, setSelectedProduct] = useState(null)
+  const [searchQuery, setSearchQuery] = useState('')
   const [physicalQty, setPhysicalQty] = useState('')
   const [systemQty, setSystemQty] = useState(0)
   const [reason, setReason] = useState('')
   const [notes, setNotes] = useState('')
   const [isAdding, setIsAdding] = useState(false)
+  const [highlightedIndex, setHighlightedIndex] = useState(-1)
+  const [isProductSelected, setIsProductSelected] = useState(false)
+
+  // Filter products based on search query
+  const filteredProducts = useMemo(() => {
+    const products = itemConfig?.selectFields?.[0]?.options || []
+    if (!searchQuery.trim()) return products.slice(0, 50) // Limit initial display
+    
+    const query = searchQuery.toLowerCase().trim()
+    return products.filter(product => {
+      const sku = (product.code || product.sku || '').toLowerCase()
+      const name = (product.name || product.name_only || '').toLowerCase()
+      const barcode = (product.barcode || '').toLowerCase()
+      
+      return sku.includes(query) || name.includes(query) || barcode.includes(query)
+    }).slice(0, 100) // Limit results
+  }, [itemConfig, searchQuery])
 
   // Handle product selection
   useEffect(() => {
-    if (selectedId && onProductSelect) {
-      const product = itemConfig?.selectFields?.[0]?.options?.find(opt => opt.id === selectedId)
-      setSelectedProduct(product)
-      onProductSelect(selectedId, (stock) => {
+    if (selectedId && onProductSelect && !isProductSelected) {
+      const product = filteredProducts.find(opt => opt.id === selectedId)
+      if (product) {
+        setSelectedProduct(product)
+        onProductSelect(selectedId, (stock) => {
+          setSystemQty(stock || 0)
+        })
+      }
+    } else if (isProductSelected && selectedProduct) {
+      onProductSelect(selectedProduct.id, (stock) => {
         setSystemQty(stock || 0)
       })
     } else {
       setSelectedProduct(null)
       setSystemQty(0)
     }
-  }, [selectedId, onProductSelect, itemConfig])
+  }, [selectedId, onProductSelect, filteredProducts, isProductSelected, selectedProduct])
+
+  // Handle keyboard navigation
+  const handleKeyDown = useCallback((e) => {
+    if (!searchQuery.trim() || filteredProducts.length === 0 || isProductSelected) return
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      setHighlightedIndex(prev => 
+        prev < filteredProducts.length - 1 ? prev + 1 : 0
+      )
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      setHighlightedIndex(prev => 
+        prev > 0 ? prev - 1 : filteredProducts.length - 1
+      )
+    } else if (e.key === 'Enter') {
+      e.preventDefault()
+      if (highlightedIndex >= 0 && highlightedIndex < filteredProducts.length) {
+        const product = filteredProducts[highlightedIndex]
+        setSelectedId(product.id)
+        setSelectedProduct(product)
+        setSearchQuery(product.name)  // Show only product name
+        setIsProductSelected(true)
+        setHighlightedIndex(-1)
+      }
+    } else if (e.key === 'Escape') {
+      setHighlightedIndex(-1)
+    }
+  }, [searchQuery, filteredProducts, highlightedIndex, isProductSelected])
 
   if (!isOpen) return null
 
@@ -45,16 +98,13 @@ export function AddItemModal({
     setIsAdding(false)
     setSelectedId('')
     setSelectedProduct(null)
+    setSearchQuery('')
     setPhysicalQty('')
     setSystemQty(0)
     setReason('')
     setNotes('')
-  }
-
-  const handleKeyDown = (e) => {
-    if (e.key === 'Escape') {
-      onClose()
-    }
+    setIsProductSelected(false)
+    setHighlightedIndex(-1)
   }
 
   const REASON_OPTIONS = [
@@ -67,10 +117,16 @@ export function AddItemModal({
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div 
-        className="modal-container" 
-        onClick={(e) => e.stopPropagation()} 
-        onKeyDown={handleKeyDown}
+      <div
+        className="modal-container"
+        onClick={(e) => e.stopPropagation()}
+        onKeyDown={(e) => {
+          if (!isProductSelected) {
+            handleKeyDown(e)
+          } else if (e.key === 'Escape') {
+            onClose()
+          }
+        }}
         tabIndex={-1}
       >
         {/* Modal Header */}
@@ -85,23 +141,81 @@ export function AddItemModal({
         <div className="modal-body">
           <div className="form-section">
             <label className="form-label">
-              Product <span className="required-mark">*</span>
+              Search Product <span className="required-mark">*</span>
             </label>
-            <div className="select-wrapper">
-              <select
-                value={selectedId}
-                onChange={(e) => setSelectedId(e.target.value)}
-                className="form-select"
+            <div className="search-wrapper">
+              <span className="material-icons-round search-icon">search</span>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value)
+                  setSelectedId('')
+                  setIsProductSelected(false)
+                }}
+                className="form-input search-input"
+                placeholder="Search by SKU, barcode, or product name..."
                 autoFocus
-              >
-                <option disabled value="">Select Product...</option>
-                {itemConfig?.selectFields?.[0]?.options?.map((opt) => (
-                  <option key={opt.id} value={opt.id}>{opt.name}</option>
-                ))}
-              </select>
-              <span className="select-arrow material-icons-round">expand_more</span>
+                disabled={isProductSelected}
+              />
+              {isProductSelected && (
+                <button
+                  type="button"
+                  className="search-clear-btn"
+                  onClick={() => {
+                    setSearchQuery('')
+                    setSelectedId('')
+                    setSelectedProduct(null)
+                    setIsProductSelected(false)
+                  }}
+                  title="Clear selection"
+                >
+                  <span className="material-icons-round">close</span>
+                </button>
+              )}
             </div>
           </div>
+
+          {/* Product List - Only show if not selected */}
+          {!isProductSelected && searchQuery.trim() && filteredProducts.length > 0 && (
+            <div className="product-list">
+              <div className="product-list-container">
+                {filteredProducts.map((product, index) => (
+                  <div
+                    key={product.id}
+                    className={`product-list-item ${selectedId === product.id ? 'selected' : ''} ${highlightedIndex === index ? 'highlighted' : ''}`}
+                    onClick={() => {
+                      setSelectedId(product.id)
+                      setSelectedProduct(product)
+                      setSearchQuery(product.name)  // Show only product name
+                      setIsProductSelected(true)
+                      setHighlightedIndex(-1)
+                    }}
+                    onMouseEnter={() => setHighlightedIndex(index)}
+                  >
+                    <div className="product-list-sku">{product.code || product.sku || '-'}</div>
+                    <div className="product-list-name">{product.name || product.name_only || '-'}</div>
+                    {product.retail_price && (
+                      <div className="product-list-price">
+                        Rp {Number(product.retail_price).toLocaleString('id-ID')}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+              <p className="product-list-hint">
+                Use <kbd>↑</kbd> <kbd>↓</kbd> to navigate, <kbd>Enter</kbd> to select
+              </p>
+            </div>
+          )}
+
+          {/* No Results */}
+          {!isProductSelected && searchQuery.trim() && filteredProducts.length === 0 && (
+            <div className="no-results">
+              <span className="material-icons-round">search_off</span>
+              <p>No products found matching "{searchQuery}"</p>
+            </div>
+          )}
 
           <div className="form-row">
             <div className="form-section">

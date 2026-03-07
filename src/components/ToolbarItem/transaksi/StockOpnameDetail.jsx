@@ -56,7 +56,10 @@ export function StockOpnameDetail({ selectedId: propSelectedId, onExit, onSaveSu
 
   // Fetch lookups
   const fetchLookups = useCallback(async () => {
+    console.log('[StockOpnameDetail] fetchLookups called, token:', !!token)
+    
     if (!token) {
+      console.log('[StockOpnameDetail] No token - using dummy data')
       setProductOptions([
         { id: 'PRD001', code: 'PRD-001', name: 'Kopi Luwak', unit: 'PCS' },
         { id: 'PRD002', code: 'PRD-002', name: 'Gula Pasir', unit: 'KG' },
@@ -75,14 +78,36 @@ export function StockOpnameDetail({ selectedId: propSelectedId, onExit, onSaveSu
         listWarehouses(token, { limit: 200, offset: 0 }),
       ])
       
-      // Normalize product options
-      const normalizedProducts = (productRes.items || []).map(item => ({
-        id: item.id || '',
-        code: item.sku || item.code || item.product_code || '-',
-        name: item.name || item.product_name || '-',
-        unit: item.unit_name || item.unit || item.product_unit || '-',
-      }))
+      console.log('[StockOpnameDetail] Raw product items:', productRes.items?.slice(0, 3))
+
+      // Normalize product options - CLEAN NAME HERE
+      const normalizedProducts = (productRes.items || []).map((item, idx) => {
+        // Extract clean name (remove SKU prefix if present)
+        let cleanName = item.name || item.product_name || '-'
+        
+        // If name contains " - " split and check if first part looks like SKU
+        if (cleanName.includes(' - ')) {
+          const parts = cleanName.split(' - ')
+          const firstPart = parts[0].trim()
+          // SKU pattern: contains letters and numbers, typically all caps or mixed
+          // Examples: PROD-001, PRD-20260219T10233, ABC123
+          if (/^[A-Z0-9_-]+$/i.test(firstPart) && firstPart.length < 50) {
+            cleanName = parts.slice(1).join(' - ').trim()
+            console.log(`[StockOpnameDetail] Item ${idx}: Cleaned "${item.name || item.product_name}" → "${cleanName}"`)
+          }
+        }
+        
+        return {
+          id: item.id || '',
+          code: item.sku || item.code || item.product_code || '-',
+          name: cleanName,
+          unit: item.unit_name || item.unit || item.product_unit || '-',
+          barcode: item.barcode || '',
+          retail_price: item.retail_price || 0,
+        }
+      })
       
+      console.log('[StockOpnameDetail] First 5 normalized products:', normalizedProducts.slice(0, 5).map(p => ({ id: p.id, code: p.code, name: p.name })))
       setProductOptions(normalizedProducts)
       setWarehouseOptions(warehouseRes.items || [])
     } catch (err) {
@@ -325,7 +350,7 @@ export function StockOpnameDetail({ selectedId: propSelectedId, onExit, onSaveSu
   const productOptionsForSelect = useMemo(() => {
     return productOptions.map((item) => ({
       id: item.id,
-      name: `${item.code || '-'} - ${item.name || '-'}`,
+      name: item.name || '-',
       code: item.code || '-',
       name_only: item.name || '-',
       unit: item.unit || '-',
