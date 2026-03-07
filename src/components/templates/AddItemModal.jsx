@@ -103,24 +103,6 @@ export function AddItemModal({
             </div>
           </div>
 
-          {/* Product Info Display */}
-          {selectedProduct && (
-            <div className="product-info-display">
-              <div className="product-info-row">
-                <span className="product-info-label">SKU:</span>
-                <span className="product-info-value">{selectedProduct.code || selectedProduct.id || '-'}</span>
-              </div>
-              <div className="product-info-row">
-                <span className="product-info-label">Unit:</span>
-                <span className="product-info-value">{selectedProduct.unit || '-'}</span>
-              </div>
-              <div className="product-info-row">
-                <span className="product-info-label">System Stock:</span>
-                <span className="product-info-value font-bold">{systemQty}</span>
-              </div>
-            </div>
-          )}
-
           <div className="form-row">
             <div className="form-section">
               <label className="form-label">
@@ -174,6 +156,9 @@ export function AddItemModal({
 
         {/* Modal Footer */}
         <div className="modal-footer">
+  
+
+        
           <button
             type="button"
             className="action-btn action-btn-add"

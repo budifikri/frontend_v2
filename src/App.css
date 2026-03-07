@@ -2593,7 +2593,7 @@ body.has-wallpaper .cash-register {
 .action-btn-icon {
   width: 56px;
   height: 56px;
-  border-radius: 12px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2601,25 +2601,25 @@ body.has-wallpaper .cash-register {
 }
 
 .action-btn-add .action-btn-icon {
-  background: rgba(30, 58, 138, 0.1);
-  border: 2px solid rgba(30, 58, 138, 0.2);
+  background: rgba(30, 58, 138, 0.2);
+  border: 2px solid rgba(30, 58, 138, 0.9);
   color: #1e3a8a;
 }
 
 .action-btn-add:hover .action-btn-icon {
   border-color: #1e3a8a;
-  background: rgba(30, 58, 138, 0.15);
+  background: rgba(30, 58, 138, 0.9);
 }
 
 .action-btn-cancel .action-btn-icon {
-  background: rgba(239, 68, 68, 0.1);
-  border: 2px solid rgba(239, 68, 68, 0.2);
+  background: rgba(239, 68, 68, 0.2);
+  border: 2px solid rgba(239, 68, 68, 0.9);
   color: #ef4444;
 }
 
 .action-btn-cancel:hover .action-btn-icon {
   border-color: #ef4444;
-  background: rgba(239, 68, 68, 0.15);
+  background: rgba(239, 68, 68, 0.9);
 }
 
 .action-btn-label {

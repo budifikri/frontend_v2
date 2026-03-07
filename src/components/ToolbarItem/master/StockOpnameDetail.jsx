@@ -292,7 +292,7 @@ export function StockOpnameDetail({ selectedId: propSelectedId, onExit, onSaveSu
     const handleKeyDown = (e) => {
       if (showAddModal || showDeleteConfirm || showExitConfirm) return
 
-      if (e.key === 'F1') {
+      if (e.key === '+') {
         e.preventDefault()
         setShowAddModal(true)
       } else if (e.key === 'Delete' && selectedIds.length > 0) {
@@ -542,7 +542,32 @@ export function StockOpnameDetail({ selectedId: propSelectedId, onExit, onSaveSu
       <footer className="stock-opname-footer">
         <div className="footer-content">
           <div className="footer-actions-left">
-            <button
+
+              <button type="button" className="master-footer-btn"    onClick={() => setShowAddModal(true)}
+              title="Add Product (F1)" aria-label="New">
+          <span className="material-icons-round master-footer-icon orange">add_box</span>
+          <span className="master-footer-key">+</span>
+        </button>
+
+   <button type="button" className="master-footer-btn" onClick={() => removeItem(selectedIds)}     disabled={selectedIds.length === 0}  title="Remove Selected (DEL)" aria-label="Delete">
+          <span className="material-icons-round master-footer-icon orange">remove_circle</span>
+          <span className="master-footer-key">DEL</span>
+        </button>
+
+
+             <button type="button" className="master-footer-btn"         onClick={handleSave}
+              disabled={isSaving || isLoading} title="Save (Ctrl+S)" aria-label="Exit">
+          <span className="material-icons-round master-footer-icon green">save</span>
+        
+        </button>
+
+
+             <button type="button" className="master-footer-btn"       onClick={() => setShowExitConfirm(true)}
+              disabled={isSaving} title="Exit" aria-label="Exit">
+          <span className="material-icons-round master-footer-icon red">exit_to_app</span>
+        </button>
+          
+           {/*  +     <button
               type="button"
               className="footer-btn footer-btn-add"
               onClick={() => setShowAddModal(true)}
@@ -551,7 +576,9 @@ export function StockOpnameDetail({ selectedId: propSelectedId, onExit, onSaveSu
               <span className="material-icons-round">add</span>
               <span className="footer-btn-shortcut">F1</span>
             </button>
-            <button
+
+            
+          <button
               type="button"
               className="footer-btn footer-btn-remove"
               onClick={() => removeItem(selectedIds)}
@@ -560,9 +587,9 @@ export function StockOpnameDetail({ selectedId: propSelectedId, onExit, onSaveSu
             >
               <span className="material-icons-round">remove</span>
               <span className="footer-btn-shortcut">DEL</span>
-            </button>
+            </button>      */}
           </div>
-          <div className="footer-actions-right">
+          {/* <div className="footer-actions-right">
             <button
               type="button"
               className="footer-btn footer-btn-save"
@@ -581,7 +608,7 @@ export function StockOpnameDetail({ selectedId: propSelectedId, onExit, onSaveSu
               <span className="material-icons-round">logout</span>
               Exit (Esc)
             </button>
-          </div>
+          </div>   */}
         </div>
       </footer>
 
