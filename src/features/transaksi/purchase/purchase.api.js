@@ -65,7 +65,12 @@ function normalizePurchaseItem(raw, index) {
 }
 
 function normalizePurchase(raw) {
+  console.log('[PurchaseAPI] normalizePurchase INPUT:', raw)
+  console.log('[PurchaseAPI] normalizePurchase INPUT.items:', raw?.items)
+  
   const items = (raw?.items ?? []).map((item, index) => normalizePurchaseItem(item, index))
+  
+  console.log('[PurchaseAPI] normalizePurchase OUTPUT items:', items)
   
   return {
     id: raw?.id || '',
@@ -74,14 +79,14 @@ function normalizePurchase(raw) {
     supplier_name: raw?.supplier_name || raw?.supplier?.name || '-',
     warehouse_id: raw?.warehouse_id || '',
     warehouse_name: raw?.warehouse_name || raw?.warehouse?.name || '-',
-    status: raw?.status || 'draft',
-    po_date: raw?.po_date ? raw.po_date.split('T')[0] : '',
-    expected_date: raw?.expected_date ? raw.expected_date.split('T')[0] : '',
+    status: (raw?.status || 'draft').toLowerCase(), // Normalize to lowercase
+    po_date: raw?.po_date || raw?.order_date || '',
+    expected_date: raw?.expected_date || raw?.expected_delivery || '',
     notes: raw?.notes || '',
     subtotal: Number(raw?.subtotal || 0),
-    discount_total: Number(raw?.discount_total || 0),
-    tax_total: Number(raw?.tax_total || 0),
-    grand_total: Number(raw?.grand_total || 0),
+    discount_total: Number(raw?.discount_total || raw?.discount_amount || 0),
+    tax_total: Number(raw?.tax_total || raw?.tax_amount || 0),
+    grand_total: Number(raw?.grand_total || raw?.total_amount || 0),
     created_at: raw?.created_at || '',
     updated_at: raw?.updated_at || '',
     items,
@@ -174,7 +179,12 @@ export async function getPurchase(token, id) {
 export async function createPurchase(token, input) {
   const url = '/api/purchases'
   console.log('[PurchaseAPI] createPurchase REQUEST URL:', url)
-  console.log('[PurchaseAPI] createPurchase PAYLOAD:', input)
+  console.log('[PurchaseAPI] createPurchase PAYLOAD:')
+  console.log('  - supplier_id:', input.supplier_id)
+  console.log('  - warehouse_id:', input.warehouse_id)
+  console.log('  - expected_date:', input.expected_date)
+  console.log('  - items count:', input.items?.length || 0)
+  console.log('  - items:', JSON.stringify(input.items, null, 2))
 
   if (!token) {
     console.log('[PurchaseAPI] No token - simulating create')
@@ -191,7 +201,7 @@ export async function createPurchase(token, input) {
         line_total: (item.quantity || 0) * (item.unit_price || 0),
       })),
     }
-    
+
     // Calculate totals
     const subtotal = newRecord.items.reduce((sum, item) => sum + item.line_total, 0)
     const discountTotal = newRecord.items.reduce((sum, item) => sum + (item.discount || 0), 0)
@@ -199,12 +209,13 @@ export async function createPurchase(token, input) {
       const lineTotal = item.line_total - (item.discount || 0)
       return sum + (lineTotal * (item.tax_rate || 0) / 100)
     }, 0)
-    
+
     newRecord.subtotal = subtotal
     newRecord.discount_total = discountTotal
     newRecord.tax_total = taxTotal
     newRecord.grand_total = subtotal - discountTotal + taxTotal
     
+    console.log('[PurchaseAPI] Simulated created record:', newRecord)
     DUMMY_PURCHASES.unshift(newRecord)
     return {
       success: true,
@@ -219,6 +230,9 @@ export async function createPurchase(token, input) {
     body: input,
   })
   console.log('[PurchaseAPI] createPurchase RESPONSE:', raw)
+  console.log('[PurchaseAPI] createPurchase RESPONSE data:', raw.data)
+  console.log('[PurchaseAPI] createPurchase RESPONSE data.items:', raw.data?.items)
+  console.log('[PurchaseAPI] createPurchase RESPONSE data.items count:', raw.data?.items?.length)
 
   if (!raw.success) throw new Error(raw.error || raw.message || 'Failed to create purchase')
 
@@ -227,8 +241,21 @@ export async function createPurchase(token, input) {
 
 export async function updatePurchase(token, id, input) {
   const url = `/api/purchases/${encodeURIComponent(id)}`
-  console.log('[PurchaseAPI] updatePurchase REQUEST URL:', url)
-  console.log('[PurchaseAPI] updatePurchase PAYLOAD:', input)
+  console.log('[PurchaseAPI] === updatePurchase REQUEST ===')
+  console.log('[PurchaseAPI] URL:', url)
+  console.log('[PurchaseAPI] Method: PUT')
+  
+  // Transform frontend field names to backend field names
+  const backendPayload = {
+    supplier_id: input.supplier_id,
+    warehouse_id: input.warehouse_id,
+    expected_date: input.expected_date || input.expected_delivery,
+    notes: input.notes,
+    items: input.items,
+  }
+  
+  console.log('[PurchaseAPI] Backend Payload:')
+  console.log(JSON.stringify(backendPayload, null, 2))
 
   if (!token) {
     console.log('[PurchaseAPI] No token - simulating update')
@@ -252,11 +279,16 @@ export async function updatePurchase(token, id, input) {
   const raw = await apiFetch(url, {
     method: 'PUT',
     token,
-    body: input,
+    body: backendPayload,
   })
-  console.log('[PurchaseAPI] updatePurchase RESPONSE:', raw)
+  
+  console.log('[PurchaseAPI] === updatePurchase RESPONSE ===')
+  console.log('[PurchaseAPI] Response:', raw)
 
-  if (!raw.success) throw new Error(raw.error || raw.message || 'Failed to update purchase')
+  if (!raw.success) {
+    console.error('[PurchaseAPI] Error:', raw.error || raw.message)
+    throw new Error(raw.error || raw.message || 'Failed to update purchase')
+  }
 
   return raw
 }

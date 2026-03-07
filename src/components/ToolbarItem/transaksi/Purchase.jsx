@@ -7,6 +7,7 @@ import { MasterTableHeader } from '../table/MasterTableHeader'
 import { useMasterTableSort } from '../../../hooks/useMasterTableSort'
 import { useMasterPagination } from '../../../hooks/useMasterPagination'
 import { PurchaseDetail } from './PurchaseDetail'
+import { Toast } from '../../Toast'
 
 const TABLE_COLUMNS = [
   { key: 'no', label: 'NO', sortable: false, width: '50px' },
@@ -71,6 +72,13 @@ export function Purchase({ onExit }) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [showExitConfirm, setShowExitConfirm] = useState(false)
   const [showDetail, setShowDetail] = useState(false)
+  
+  // Toast state
+  const [toast, setToast] = useState({ isOpen: false, message: '', type: 'info' })
+
+  const handleSaveSuccess = (message, type = 'success') => {
+    setToast({ isOpen: true, message, type })
+  }
 
   const fetchData = useCallback(async () => {
     setError('')
@@ -199,10 +207,13 @@ export function Purchase({ onExit }) {
       <PurchaseDetail
         selectedId={selectedId}
         onExit={() => {
+          console.log('[Purchase.jsx] onExit called - closing detail view')
           setShowDetail(false)
           setSelectedId(null)
+          console.log('[Purchase.jsx] Calling fetchData() to refresh list...')
           fetchData()
         }}
+        onSaveSuccess={handleSaveSuccess}
       />
     )
   }
@@ -321,6 +332,14 @@ export function Purchase({ onExit }) {
           onCancel={() => setShowExitConfirm(false)}
         />
       )}
+
+      <Toast
+        message={toast.message}
+        type={toast.type}
+        isOpen={toast.isOpen}
+        onClose={() => setToast({ ...toast, isOpen: false })}
+        duration={3000}
+      />
     </div>
   )
 }

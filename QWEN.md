@@ -198,3 +198,7 @@ if (!result.success) {
 ```
 
 Query parameters are built with `URLSearchParams`. Pagination uses `limit`/`offset`. Responses include `items` array and `pagination` object.
+
+## Fix or add feature use Task Management
+-  Create Plan
+-  Task write code 

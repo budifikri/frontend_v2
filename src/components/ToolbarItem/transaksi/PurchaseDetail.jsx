@@ -4,7 +4,6 @@ import { getPurchase, createPurchase, updatePurchase, listSuppliers, generatePON
 import { listWarehouses } from '../../../features/master/warehouse/warehouse.api'
 import { AddPurchaseItemModal } from './AddPurchaseItemModal'
 import { DeleteMaster } from '../footer/DeleteMaster'
-import { Toast } from '../../Toast'
 
 const STATUS_OPTIONS = [
   { value: 'draft', label: 'Draft' },
@@ -40,13 +39,6 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
   const [items, setItems] = useState([])
   const [selectedIds, setSelectedIds] = useState([])
   const [editingId, setEditingId] = useState(null)
-
-  // Toast state
-  const [toast, setToast] = useState({ isOpen: false, message: '', type: 'info' })
-
-  const handleSaveSuccess = (message, type = 'success') => {
-    setToast({ isOpen: true, message, type })
-  }
 
   // Fetch lookups
   const fetchLookups = useCallback(async () => {
@@ -84,15 +76,21 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
         const data = await getPurchase(token, propSelectedId)
         console.log('[PurchaseDetail] Loaded data:', data)
         console.log('[PurchaseDetail] Data status:', data.status)
+        
+        // Normalize status to lowercase for consistency
+        const normalizedStatus = (data.status || 'draft').toLowerCase()
+        
         setHeader({
           po_number: data.po_number || generatePONumber(),
           supplier_id: data.supplier_id || '',
           warehouse_id: data.warehouse_id || '',
-          po_date: data.po_date || new Date().toISOString().split('T')[0],
-          expected_date: data.expected_date || '',
-          status: data.status || 'draft',
+          po_date: data.po_date || data.order_date || new Date().toISOString().split('T')[0],
+          expected_date: data.expected_date || data.expected_delivery || '',
+          status: normalizedStatus,
           notes: data.notes || '',
         })
+        console.log('[PurchaseDetail] Normalized status:', normalizedStatus)
+        
         if (data.items && data.items.length > 0) {
           setItems(data.items.map(item => ({
             id: item.id,
@@ -106,7 +104,7 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
             line_total: item.line_total,
           })))
         }
-        console.log('[PurchaseDetail] Header after load:', { status: data.status || 'draft' })
+        console.log('[PurchaseDetail] Header after load:', { status: normalizedStatus })
       } catch (err) {
         console.error('[PurchaseDetail] Error loading data:', err)
         setError('Failed to load purchase order')
@@ -174,10 +172,11 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
     setIsSaving(true)
     setError('')
 
+    // Swagger spec: UpdatePurchaseOrderRequest
+    // Required: supplier_id, warehouse_id, expected_date, items
     const payload = {
       supplier_id: header.supplier_id,
       warehouse_id: header.warehouse_id,
-      po_date: header.po_date,
       expected_date: header.expected_date || null,
       notes: header.notes || '',
       items: items.map(item => ({
@@ -189,27 +188,64 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
       })),
     }
 
-    console.log('[PurchaseDetail] Sending payload:', JSON.stringify(payload, null, 2))
+    console.log('[PurchaseDetail] === UPDATE REQUEST ===')
+    console.log('[PurchaseDetail] URL:', `/api/purchases/${propSelectedId}`)
+    console.log('[PurchaseDetail] Payload:', JSON.stringify(payload, null, 2))
 
     try {
       if (token) {
         if (propSelectedId) {
-          await updatePurchase(token, propSelectedId, payload)
-          handleSaveSuccess('Purchase Order berhasil diupdate', 'success')
+          // UPDATE existing
+          const result = await updatePurchase(token, propSelectedId, payload)
+          console.log('[PurchaseDetail] === UPDATE RESPONSE ===')
+          console.log('[PurchaseDetail] Response:', result)
+          // Close first, then show toast from parent
+          console.log('[PurchaseDetail] Calling onExit()...')
+          onExit()
+          if (onSaveSuccess) {
+            setTimeout(() => {
+              console.log('[PurchaseDetail] Showing success toast...')
+              onSaveSuccess('Purchase Order berhasil diupdate', 'success')
+            }, 300)
+          }
         } else {
-          await createPurchase(token, payload)
-          handleSaveSuccess('Purchase Order berhasil dibuat', 'success')
+          // CREATE new
+          console.log('[PurchaseDetail] Creating NEW purchase order...')
+          const result = await createPurchase(token, payload)
+          console.log('[PurchaseDetail] === CREATE RESPONSE ===')
+          console.log('[PurchaseDetail] Response:', result)
+          console.log('[PurchaseDetail] Created ID:', result.data?.id)
+          // Close first, then show toast from parent
+          console.log('[PurchaseDetail] Calling onExit()...')
+          onExit()
+          if (onSaveSuccess) {
+            setTimeout(() => {
+              console.log('[PurchaseDetail] Showing success toast...')
+              onSaveSuccess('Purchase Order berhasil dibuat', 'success')
+            }, 300)
+          }
+        }
+      } else {
+        // Offline mode
+        console.log('[PurchaseDetail] Offline mode - simulating save')
+        onExit()
+        if (onSaveSuccess) {
+          setTimeout(() => {
+            onSaveSuccess('Purchase Order berhasil disimpan (offline)', 'success')
+          }, 300)
         }
       }
-      setTimeout(() => onExit(), 1500)
     } catch (err) {
-      console.error('[PurchaseDetail] Save error:', err)
+      console.error('[PurchaseDetail] === SAVE ERROR ===')
+      console.error('[PurchaseDetail] Error:', err)
       setError(err.message || 'Failed to save purchase order')
-      handleSaveSuccess(err.message || 'Failed to save', 'error')
+      if (onSaveSuccess) {
+        onSaveSuccess(err.message || 'Failed to save', 'error')
+      }
     } finally {
       setIsSaving(false)
     }
-  }, [header, items, token, propSelectedId, onExit])
+  }, [header, items, token, propSelectedId, onExit, onSaveSuccess])
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -451,14 +487,6 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
           onCancel={() => setShowExitConfirm(false)}
         />
       )}
-
-      <Toast
-        message={toast.message}
-        type={toast.type}
-        isOpen={toast.isOpen}
-        onClose={() => setToast({ ...toast, isOpen: false })}
-        duration={3000}
-      />
     </div>
   )
 }
