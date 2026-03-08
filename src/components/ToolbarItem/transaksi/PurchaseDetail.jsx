@@ -317,11 +317,11 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
           </div>
         </div>
         <div className="stock-opname-header-form">
-          <div className="form-group-wide">
+          <div className="form-group">
             <label className="master-form-label">PO Number</label>
             <input type="text" value={header.po_number} readOnly className="master-form-input master-form-input-readonly" />
           </div>
-          <div className="form-group-wide">
+          <div className="form-group">
             <label className="master-form-label">Supplier *</label>
             <select value={header.supplier_id} onChange={(e) => setHeader({ ...header, supplier_id: e.target.value })} className="master-form-input">
               <option value="">Select supplier...</option>
@@ -336,14 +336,14 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
             <label className="master-form-label">Expected Date</label>
             <input type="date" value={header.expected_date} onChange={(e) => setHeader({ ...header, expected_date: e.target.value })} className="master-form-input" />
           </div>
-          <div className="form-group-wide">
+          <div className="form-group">
             <label className="master-form-label">Warehouse *</label>
             <select value={header.warehouse_id} onChange={(e) => setHeader({ ...header, warehouse_id: e.target.value })} className="master-form-input">
               <option value="">Select warehouse...</option>
               {warehouseOptionsForSelect.map(item => (<option key={item.id} value={item.id}>{item.name}</option>))}
             </select>
           </div>
-          <div className="form-group-wide">
+          <div className="form-group">
             <label className="master-form-label">Notes</label>
             <textarea value={header.notes} onChange={(e) => setHeader({ ...header, notes: e.target.value })} className="master-form-input master-form-textarea" rows={2} placeholder="Add remarks..." />
           </div>
