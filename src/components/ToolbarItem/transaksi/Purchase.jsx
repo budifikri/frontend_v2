@@ -54,6 +54,44 @@ function formatCurrency(amount) {
   return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(amount)
 }
 
+// Helper functions for date filter
+function getDateRange(filterType, customFrom, customTo) {
+  const now = new Date()
+  let date_from = ''
+  let date_to = ''
+
+  if (filterType === 'all') {
+    return { date_from: '', date_to: '' }
+  } else if (filterType === 'this_month') {
+    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1)
+    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+    date_from = formatDateISO(firstDay)
+    date_to = formatDateISO(lastDay)
+  } else if (filterType === 'this_year') {
+    const firstDay = new Date(now.getFullYear(), 0, 1)
+    const lastDay = new Date(now.getFullYear(), 11, 31)
+    date_from = formatDateISO(firstDay)
+    date_to = formatDateISO(lastDay)
+  } else if (filterType === 'custom' && customFrom && customTo) {
+    date_from = formatDateISO(new Date(customFrom))
+    date_to = formatDateISO(new Date(customTo))
+  }
+
+  return { date_from, date_to }
+}
+
+function formatDateISO(date) {
+  if (!date || isNaN(date.getTime())) return ''
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+function isDateFilterActive(filterType) {
+  return filterType !== 'all'
+}
+
 export function Purchase({ onExit }) {
   const { auth } = useAuth()
   const token = auth?.token
@@ -72,7 +110,13 @@ export function Purchase({ onExit }) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [showExitConfirm, setShowExitConfirm] = useState(false)
   const [showDetail, setShowDetail] = useState(false)
-  
+
+  // Date filter state
+  const [dateFilter, setDateFilter] = useState('this_month') // 'all', 'this_month', 'this_year', 'custom'
+  const [showDateModal, setShowDateModal] = useState(false)
+  const [customDateFrom, setCustomDateFrom] = useState('')
+  const [customDateTo, setCustomDateTo] = useState('')
+
   // Toast state
   const [toast, setToast] = useState({ isOpen: false, message: '', type: 'info' })
   const fetchDataRef = useRef(false)
@@ -84,6 +128,9 @@ export function Purchase({ onExit }) {
   const fetchData = useCallback(async () => {
     setError('')
     setIsLoading(true)
+
+    // Get date range from filter
+    const { date_from, date_to } = getDateRange(dateFilter, customDateFrom, customDateTo)
 
     if (!token) {
       let items = [...DUMMY_PURCHASES]
@@ -97,6 +144,15 @@ export function Purchase({ onExit }) {
       if (statusFilter !== 'all') {
         items = items.filter(item => item.status === statusFilter)
       }
+      // Apply date filter for dummy data
+      if (date_from && date_to) {
+        const from = new Date(date_from)
+        const to = new Date(date_to)
+        items = items.filter(item => {
+          const itemDate = new Date(item.po_date)
+          return itemDate >= from && itemDate <= to
+        })
+      }
       const total = items.length
       const sliced = items.slice(offset, offset + limit)
       setData(sliced)
@@ -109,6 +165,8 @@ export function Purchase({ onExit }) {
       const result = await listPurchases(token, {
         search: searchKeyword.trim() || undefined,
         status: statusFilter !== 'all' ? statusFilter : undefined,
+        date_from: date_from || undefined,
+        date_to: date_to || undefined,
         limit,
         offset,
       })
@@ -125,7 +183,7 @@ export function Purchase({ onExit }) {
     } finally {
       setIsLoading(false)
     }
-  }, [token, searchKeyword, statusFilter, limit, offset])
+  }, [token, searchKeyword, statusFilter, dateFilter, customDateFrom, customDateTo, limit, offset])
 
   useEffect(() => {
     if (fetchDataRef.current) return
@@ -204,6 +262,45 @@ export function Purchase({ onExit }) {
   const handleExitClick = () => setShowExitConfirm(true)
   const handleConfirmExit = () => { setShowExitConfirm(false); onExit() }
 
+  // Date filter handlers
+  const handleDateFilterChange = (value) => {
+    pager.reset()
+    if (value === 'custom') {
+      setShowDateModal(true)
+    } else {
+      setDateFilter(value)
+    }
+  }
+
+  const handleApplyCustomDate = () => {
+    if (!customDateFrom || !customDateTo) {
+      setToast({ isOpen: true, message: 'Please select both from and to dates', type: 'info' })
+      return
+    }
+    const from = new Date(customDateFrom)
+    const to = new Date(customDateTo)
+    if (from > to) {
+      setToast({ isOpen: true, message: 'From date must be before to date', type: 'info' })
+      return
+    }
+    setShowDateModal(false)
+    setDateFilter('custom')
+  }
+
+  const handleClearDateFilter = () => {
+    setDateFilter('all')
+    setCustomDateFrom('')
+    setCustomDateTo('')
+  }
+
+  const handleCancelDateModal = () => {
+    // Revert to previous filter if modal is cancelled
+    if (dateFilter === 'custom' && (!customDateFrom || !customDateTo)) {
+      setDateFilter('this_month')
+    }
+    setShowDateModal(false)
+  }
+
   // If showing detail view, render only that
   if (showDetail) {
     return (
@@ -238,6 +335,30 @@ export function Purchase({ onExit }) {
             <button type="button" className="master-search-btn">
               <span className="material-icons-round material-icon">search</span>
             </button>
+          </div>
+          <div className="master-filter-wrap">
+            <label htmlFor="purchase-date-filter" className="master-filter-label">Date</label>
+            <select
+              id="purchase-date-filter"
+              className="master-filter-select"
+              value={dateFilter}
+              onChange={(e) => handleDateFilterChange(e.target.value)}
+            >
+              <option value="all">All Dates</option>
+              <option value="this_month">This Month</option>
+              <option value="this_year">This Year</option>
+              <option value="custom">Custom</option>
+            </select>
+            {isDateFilterActive(dateFilter) && (
+              <button
+                type="button"
+                className="master-filter-clear-btn"
+                onClick={handleClearDateFilter}
+                title="Clear date filter"
+              >
+                <span className="material-icons-round material-icon">close</span>
+              </button>
+            )}
           </div>
           <div className="master-filter-wrap">
             <label htmlFor="purchase-status-filter" className="master-filter-label">Status</label>
@@ -334,6 +455,56 @@ export function Purchase({ onExit }) {
           onConfirm={handleConfirmExit}
           onCancel={() => setShowExitConfirm(false)}
         />
+      )}
+
+      {showDateModal && (
+        <div className="delete-master-overlay">
+          <div className="delete-master-modal date-filter-modal">
+            <div className="delete-master-header">
+              <span className="material-icons-round material-icon red">calendar_today</span>
+              <h2>Custom Date Range</h2>
+            </div>
+            <div className="delete-master-body">
+              <div className="date-filter-group">
+                <label htmlFor="date-from" className="master-form-label">From Date</label>
+                <input
+                  id="date-from"
+                  type="date"
+                  className="master-form-input date-input"
+                  value={customDateFrom}
+                  onChange={(e) => setCustomDateFrom(e.target.value)}
+                />
+              </div>
+              <div className="date-filter-group">
+                <label htmlFor="date-to" className="master-form-label">To Date</label>
+                <input
+                  id="date-to"
+                  type="date"
+                  className="master-form-input date-input"
+                  value={customDateTo}
+                  onChange={(e) => setCustomDateTo(e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="delete-master-footer">
+              <button
+                type="button"
+                className="master-btn-cancel-secondary"
+                onClick={handleCancelDateModal}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="master-btn-save-primary"
+                onClick={handleApplyCustomDate}
+              >
+                <span className="material-icons-round">check</span>
+                Apply
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       <Toast

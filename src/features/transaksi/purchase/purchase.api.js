@@ -118,6 +118,8 @@ export async function listPurchases(token, params = {}) {
   if (params.status) qs.set('status', params.status)
   if (params.supplier_id) qs.set('supplier_id', params.supplier_id)
   if (params.warehouse_id) qs.set('warehouse_id', params.warehouse_id)
+  if (params.date_from) qs.set('date_from', params.date_from)
+  if (params.date_to) qs.set('date_to', params.date_to)
   if (params.limit !== undefined) qs.set('limit', String(params.limit))
   if (params.offset !== undefined) qs.set('offset', String(params.offset))
 
