@@ -137,7 +137,6 @@ export function StockOpname({ onExit }) {
   })
 
   const [warehouseOptions, setWarehouseOptions] = useState([])
-  const [reasonOptions] = useState(REASON_OPTIONS)
 
   const [form, setForm] = useState(DEFAULT_FORM)
 
@@ -249,21 +248,6 @@ export function StockOpname({ onExit }) {
   const handleNew = () => {
     setSelectedId(null)
     setShowDetail(true)
-  }
-
-  const handleEdit = () => {
-    const target = selectedItem || sortedData[0]
-    if (!target) return
-
-    setSelectedId(target.id)
-    setForm({
-      warehouse_id: target.warehouse_id || '',
-      opname_date: target.opname_date ? target.opname_date.split('T')[0] : '',
-      status: target.status || 'draft',
-      notes: target.notes || '',
-      reference: target.opname_number || '',
-    })
-    setShowForm(true)
   }
 
   const handleDeleteClick = () => {
@@ -417,7 +401,7 @@ export function StockOpname({ onExit }) {
               placeholder="Search reference, warehouse, or notes..."
               className="master-search-input"
               value={searchKeyword}
-              onChange={(e) => handleSearchChange(e.target.value)}
+              onChange={(e) => { pager.reset(); setSearchKeyword(e.target.value) }}
             />
             <button type="button" className="master-search-btn">
               <span className="material-icons-round material-icon">search</span>
@@ -429,7 +413,7 @@ export function StockOpname({ onExit }) {
               id="opname-warehouse-filter"
               className="master-filter-select"
               value={warehouseFilter}
-              onChange={(e) => handleWarehouseFilter(e.target.value)}
+              onChange={(e) => { pager.reset(); setWarehouseFilter(e.target.value) }}
             >
               <option value="">All Warehouse</option>
               {warehouseOptionsForSelect.map((item) => (
@@ -443,7 +427,7 @@ export function StockOpname({ onExit }) {
               id="opname-status-filter"
               className="master-filter-select"
               value={statusFilter}
-              onChange={(e) => handleStatusFilter(e.target.value)}
+              onChange={(e) => { pager.reset(); setStatusFilter(e.target.value) }}
             >
               <option value="all">All Status</option>
               <option value="draft">Draft</option>

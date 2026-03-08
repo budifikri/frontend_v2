@@ -9,7 +9,6 @@ export function AddItemModal({
   onProductSelect,  // Callback to fetch system stock
 }) {
   const [selectedId, setSelectedId] = useState('')
-  const [selectedProduct, setSelectedProduct] = useState(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [physicalQty, setPhysicalQty] = useState('')
   const [systemQty, setSystemQty] = useState(0)
@@ -23,36 +22,32 @@ export function AddItemModal({
   const filteredProducts = useMemo(() => {
     const products = itemConfig?.selectFields?.[0]?.options || []
     if (!searchQuery.trim()) return products.slice(0, 50) // Limit initial display
-    
+
     const query = searchQuery.toLowerCase().trim()
     return products.filter(product => {
       const sku = (product.code || product.sku || '').toLowerCase()
       const name = (product.name || product.name_only || '').toLowerCase()
       const barcode = (product.barcode || '').toLowerCase()
-      
+
       return sku.includes(query) || name.includes(query) || barcode.includes(query)
     }).slice(0, 100) // Limit results
   }, [itemConfig, searchQuery])
 
-  // Handle product selection
+  // Handle product selection - derive state instead of using useEffect
+  const derivedProduct = useMemo(() => {
+    if (selectedId && onProductSelect) {
+      return filteredProducts.find(opt => opt.id === selectedId) || null
+    }
+    return null
+  }, [selectedId, filteredProducts, onProductSelect])
+
   useEffect(() => {
-    if (selectedId && onProductSelect && !isProductSelected) {
-      const product = filteredProducts.find(opt => opt.id === selectedId)
-      if (product) {
-        setSelectedProduct(product)
-        onProductSelect(selectedId, (stock) => {
-          setSystemQty(stock || 0)
-        })
-      }
-    } else if (isProductSelected && selectedProduct) {
-      onProductSelect(selectedProduct.id, (stock) => {
+    if (derivedProduct) {
+      onProductSelect?.(derivedProduct.id, (stock) => {
         setSystemQty(stock || 0)
       })
-    } else {
-      setSelectedProduct(null)
-      setSystemQty(0)
     }
-  }, [selectedId, onProductSelect, filteredProducts, isProductSelected, selectedProduct])
+  }, [derivedProduct, onProductSelect])
 
   // Handle keyboard navigation
   const handleKeyDown = useCallback((e) => {
@@ -60,12 +55,12 @@ export function AddItemModal({
 
     if (e.key === 'ArrowDown') {
       e.preventDefault()
-      setHighlightedIndex(prev => 
+      setHighlightedIndex(prev =>
         prev < filteredProducts.length - 1 ? prev + 1 : 0
       )
     } else if (e.key === 'ArrowUp') {
       e.preventDefault()
-      setHighlightedIndex(prev => 
+      setHighlightedIndex(prev =>
         prev > 0 ? prev - 1 : filteredProducts.length - 1
       )
     } else if (e.key === 'Enter') {
@@ -73,7 +68,6 @@ export function AddItemModal({
       if (highlightedIndex >= 0 && highlightedIndex < filteredProducts.length) {
         const product = filteredProducts[highlightedIndex]
         setSelectedId(product.id)
-        setSelectedProduct(product)
         setSearchQuery(product.name)  // Show only product name
         setIsProductSelected(true)
         setHighlightedIndex(-1)
@@ -97,7 +91,6 @@ export function AddItemModal({
     })
     setIsAdding(false)
     setSelectedId('')
-    setSelectedProduct(null)
     setSearchQuery('')
     setPhysicalQty('')
     setSystemQty(0)
@@ -165,7 +158,6 @@ export function AddItemModal({
                   onClick={() => {
                     setSearchQuery('')
                     setSelectedId('')
-                    setSelectedProduct(null)
                     setIsProductSelected(false)
                   }}
                   title="Clear selection"
@@ -186,7 +178,6 @@ export function AddItemModal({
                     className={`product-list-item ${selectedId === product.id ? 'selected' : ''} ${highlightedIndex === index ? 'highlighted' : ''}`}
                     onClick={() => {
                       setSelectedId(product.id)
-                      setSelectedProduct(product)
                       setSearchQuery(product.name)  // Show only product name
                       setIsProductSelected(true)
                       setHighlightedIndex(-1)

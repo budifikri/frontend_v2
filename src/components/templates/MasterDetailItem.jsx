@@ -6,7 +6,6 @@ export function MasterDetailItem({
   onSelect,
   onEdit,
   onUpdate,
-  itemConfig,
 }) {
   const handleDoubleClick = () => {
     if (onEdit) onEdit()

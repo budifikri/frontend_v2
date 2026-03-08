@@ -3,7 +3,6 @@ import { listProducts } from '../../../features/master/product/product.api'
 
 export function AddPurchaseItemModal({ isOpen, onClose, onAdd, token }) {
   const [selectedId, setSelectedId] = useState('')
-  const [selectedProduct, setSelectedProduct] = useState(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [quantity, setQuantity] = useState(1)
   const [unitPrice, setUnitPrice] = useState(0)
@@ -48,18 +47,16 @@ export function AddPurchaseItemModal({ isOpen, onClose, onAdd, token }) {
     }).slice(0, 100)
   }, [productOptions, searchQuery])
 
-  // Handle product selection
-  useEffect(() => {
-    if (selectedId && !isProductSelected) {
-      const product = filteredProducts.find(opt => opt.id === selectedId)
-      if (product) {
-        setSelectedProduct(product)
-        setUnitPrice(product.retail_price || 0)
-      }
-    } else if (isProductSelected && selectedProduct) {
-      setUnitPrice(selectedProduct.retail_price || 0)
+  // Handle product selection - derive state directly instead of using useEffect
+  const derivedProduct = useMemo(() => {
+    if (selectedId) {
+      return filteredProducts.find(opt => opt.id === selectedId) || null
     }
-  }, [selectedId, filteredProducts, isProductSelected, selectedProduct])
+    return null
+  }, [selectedId, filteredProducts])
+
+  // Derive unit price from selected product instead of using setState in effect
+  const unitPriceValue = derivedProduct ? derivedProduct.retail_price || 0 : unitPrice
 
   // Keyboard navigation
   const handleKeyDown = useCallback((e) => {
@@ -71,7 +68,6 @@ export function AddPurchaseItemModal({ isOpen, onClose, onAdd, token }) {
       if (highlightedIndex >= 0 && highlightedIndex < filteredProducts.length) {
         const product = filteredProducts[highlightedIndex]
         setSelectedId(product.id)
-        setSelectedProduct(product)
         setSearchQuery(product.name)
         setIsProductSelected(true)
         setHighlightedIndex(-1)
@@ -84,11 +80,12 @@ export function AddPurchaseItemModal({ isOpen, onClose, onAdd, token }) {
   const handleAdd = () => {
     if (!selectedId) return
     setIsAdding(true)
+    const product = derivedProduct
     onAdd({
-      id: selectedProduct?.id || '',
+      id: product?.id || '',
       product_id: selectedId,
-      product_name: selectedProduct?.name || '',
-      sku: selectedProduct?.code || '',
+      product_name: product?.name || '',
+      sku: product?.code || '',
       quantity: Number(quantity) || 1,
       unit_price: Number(unitPrice) || 0,
       discount: Number(discount) || 0,
@@ -96,7 +93,6 @@ export function AddPurchaseItemModal({ isOpen, onClose, onAdd, token }) {
     })
     setIsAdding(false)
     setSelectedId('')
-    setSelectedProduct(null)
     setSearchQuery('')
     setQuantity(1)
     setUnitPrice(0)
@@ -106,7 +102,7 @@ export function AddPurchaseItemModal({ isOpen, onClose, onAdd, token }) {
     setHighlightedIndex(-1)
   }
 
-  const lineTotal = (Number(quantity) || 0) * (Number(unitPrice) || 0)
+  const lineTotal = (Number(quantity) || 0) * (Number(unitPriceValue) || 0)
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -122,7 +118,7 @@ export function AddPurchaseItemModal({ isOpen, onClose, onAdd, token }) {
             <div className="search-wrapper">
               <span className="material-icons-round search-icon">search</span>
               <input type="text" value={searchQuery} onChange={(e) => { setSearchQuery(e.target.value); setSelectedId(''); setIsProductSelected(false) }} className="form-input search-input" placeholder="Search by SKU or product name..." autoFocus disabled={isProductSelected} />
-              {isProductSelected && (<button type="button" className="search-clear-btn" onClick={() => { setSearchQuery(''); setSelectedId(''); setSelectedProduct(null); setIsProductSelected(false) }} title="Clear"><span className="material-icons-round">close</span></button>)}
+              {isProductSelected && (<button type="button" className="search-clear-btn" onClick={() => { setSearchQuery(''); setSelectedId(''); setIsProductSelected(false) }} title="Clear"><span className="material-icons-round">close</span></button>)}
             </div>
           </div>
 
@@ -130,7 +126,7 @@ export function AddPurchaseItemModal({ isOpen, onClose, onAdd, token }) {
             <div className="product-list">
               <div className="product-list-container">
                 {filteredProducts.map((product, index) => (
-                  <div key={product.id} className={`product-list-item ${selectedId === product.id ? 'selected' : ''} ${highlightedIndex === index ? 'highlighted' : ''}`} onClick={() => { setSelectedId(product.id); setSelectedProduct(product); setSearchQuery(product.name); setIsProductSelected(true); setHighlightedIndex(-1) }} onMouseEnter={() => setHighlightedIndex(index)}>
+                  <div key={product.id} className={`product-list-item ${selectedId === product.id ? 'selected' : ''} ${highlightedIndex === index ? 'highlighted' : ''}`} onClick={() => { setSelectedId(product.id); setSearchQuery(product.name); setIsProductSelected(true); setHighlightedIndex(-1) }} onMouseEnter={() => setHighlightedIndex(index)}>
                     <div className="product-list-sku">{product.code}</div>
                     <div className="product-list-name">{product.name}</div>
                     <div className="product-list-price">Rp {Number(product.retail_price).toLocaleString('id-ID')}</div>
@@ -145,7 +141,7 @@ export function AddPurchaseItemModal({ isOpen, onClose, onAdd, token }) {
             <div className="no-results"><span className="material-icons-round">search_off</span><p>No products found</p></div>
           )}
 
-          {selectedProduct && (
+          {derivedProduct && (
             <div className="purchase-item-form">
               <div className="form-row">
                 <div className="form-group">
@@ -154,7 +150,7 @@ export function AddPurchaseItemModal({ isOpen, onClose, onAdd, token }) {
                 </div>
                 <div className="form-group">
                   <label className="form-label">Unit Price *</label>
-                  <input type="number" value={unitPrice} onChange={(e) => setUnitPrice(Number(e.target.value))} className="form-input" min="0" />
+                  <input type="number" value={unitPriceValue} onChange={(e) => setUnitPrice(Number(e.target.value))} className="form-input" min="0" />
                 </div>
               </div>
               <div className="form-row">

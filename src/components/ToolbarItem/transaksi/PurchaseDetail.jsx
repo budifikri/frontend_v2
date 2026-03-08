@@ -38,7 +38,6 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
 
   const [items, setItems] = useState([])
   const [selectedIds, setSelectedIds] = useState([])
-  const [editingId, setEditingId] = useState(null)
 
   // Fetch lookups
   const fetchLookups = useCallback(async () => {

@@ -135,6 +135,28 @@ export function Purchase({ onExit }) {
     direction: 'desc',
   })
 
+  const selectedItem = selectedId == null ? null : data.find((row) => row.id === selectedId) || null
+
+  const handleSelect = (row) => setSelectedId(row.id)
+
+  const handleViewDetail = useCallback(() => {
+    const target = selectedItem || sortedData[0]
+    if (!target) return
+    setSelectedId(target.id)
+    setShowDetail(true)
+  }, [selectedItem, sortedData])
+
+  const handleNew = useCallback(() => {
+    setSelectedId(null)
+    setShowDetail(true)
+  }, [])
+
+  const handleDeleteClick = useCallback(() => {
+    if (selectedItem) {
+      setShowDeleteConfirm(true)
+    }
+  }, [selectedItem])
+
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (showDeleteConfirm || showExitConfirm) return
@@ -154,29 +176,7 @@ export function Purchase({ onExit }) {
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [showDeleteConfirm, showExitConfirm])
-
-  const selectedItem = selectedId == null ? null : data.find((row) => row.id === selectedId) || null
-
-  const handleSelect = (row) => setSelectedId(row.id)
-
-  const handleViewDetail = () => {
-    const target = selectedItem || sortedData[0]
-    if (!target) return
-    setSelectedId(target.id)
-    setShowDetail(true)
-  }
-
-  const handleNew = () => {
-    setSelectedId(null)
-    setShowDetail(true)
-  }
-
-  const handleDeleteClick = () => {
-    if (selectedItem) {
-      setShowDeleteConfirm(true)
-    }
-  }
+  }, [showDeleteConfirm, showExitConfirm, handleViewDetail, handleDeleteClick, handleNew])
 
   const handleConfirmDelete = async () => {
     if (!selectedItem) {

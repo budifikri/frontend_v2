@@ -4,7 +4,6 @@ import {
   getStockOpnameById,
   createStockOpname,
   updateStockOpname,
-  deleteStockOpname,
   getProductStock,
   getReasonOptions,
   getStatusOptions,
@@ -29,11 +28,9 @@ export function StockOpnameDetail({ selectedId: propSelectedId, onExit, onSaveSu
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState('')
   const [showAddModal, setShowAddModal] = useState(false)
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [showExitConfirm, setShowExitConfirm] = useState(false)
   const [productOptions, setProductOptions] = useState([])
   const [warehouseOptions, setWarehouseOptions] = useState([])
-  const [isFetchingStock, setIsFetchingStock] = useState(false)
 
   const [header, setHeader] = useState({
     opname_number: generateReference(),
@@ -45,7 +42,6 @@ export function StockOpnameDetail({ selectedId: propSelectedId, onExit, onSaveSu
 
   const [items, setItems] = useState([])
   const [selectedIds, setSelectedIds] = useState([])
-  const [editingId, setEditingId] = useState(null)
 
   // Toast state
   const [toast, setToast] = useState({
@@ -241,7 +237,7 @@ export function StockOpnameDetail({ selectedId: propSelectedId, onExit, onSaveSu
   }, [header, items])
 
   // Handle save
-  const handleSave = async () => {
+  const handleSave = useCallback(async () => {
     const { isValid, errors } = validate()
     if (!isValid) {
       setError(errors.join(', '))
@@ -265,13 +261,13 @@ export function StockOpnameDetail({ selectedId: propSelectedId, onExit, onSaveSu
           status: item.status || 'pending',
           notes: item.notes || item.reason || '',
         }
-        
+
         // Only include id if it's a valid UUID (existing item)
         // For new items (id starts with "item-"), don't include id field
         if (item.id && !item.id.startsWith('item-')) {
           itemPayload.id = item.id
         }
-        
+
         return itemPayload
       }),
     }
@@ -305,17 +301,12 @@ export function StockOpnameDetail({ selectedId: propSelectedId, onExit, onSaveSu
     } finally {
       setIsSaving(false)
     }
-  }
-
-  // Show toast helper
-  const showToast = (message, type = 'info') => {
-    setToast({ isOpen: true, message, type })
-  }
+  }, [header, items, validate, token, propSelectedId, onExit, onSaveSuccess])
 
   // Handle keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (showAddModal || showDeleteConfirm || showExitConfirm) return
+      if (showAddModal || showExitConfirm) return
 
       if (e.key === '+') {
         e.preventDefault()
@@ -323,9 +314,6 @@ export function StockOpnameDetail({ selectedId: propSelectedId, onExit, onSaveSu
       } else if (e.key === 'Delete' && selectedIds.length > 0) {
         e.preventDefault()
         removeItem(selectedIds)
-      } else if (e.key === 'F2' && selectedIds.length === 1) {
-        e.preventDefault()
-        setEditingId(selectedIds[0])
       } else if (e.key === 'Escape') {
         e.preventDefault()
         setShowExitConfirm(true)
@@ -337,7 +325,7 @@ export function StockOpnameDetail({ selectedId: propSelectedId, onExit, onSaveSu
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [showAddModal, showDeleteConfirm, showExitConfirm, selectedIds, handleSave])
+  }, [showAddModal, showExitConfirm, selectedIds, handleSave, removeItem])
 
   // Calculate summary
   const summary = useMemo(() => ({
@@ -363,10 +351,6 @@ export function StockOpnameDetail({ selectedId: propSelectedId, onExit, onSaveSu
       name: item.name || '-',
     }))
   }, [warehouseOptions])
-
-  const statusOptionsForSelect = useMemo(() => {
-    return STATUS_OPTIONS
-  }, [])
 
   return (
     <div className="stock-opname-container">

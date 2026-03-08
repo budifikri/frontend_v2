@@ -35,16 +35,15 @@ export function useMasterDetail({
     const itemWithId = {
       ...newItem,
       id: newItem.id || `item-${Date.now()}`,
-      _isNew: true,
     }
-    
+
     // Auto-calculate fields if configured
     if (calculateField) {
       Object.keys(calculateField).forEach((field) => {
         itemWithId[field] = calculateField[field](itemWithId, items, header)
       })
     }
-    
+
     setItems((prev) => [...prev, itemWithId])
   }, [items, header, calculateField])
 
@@ -132,10 +131,10 @@ export function useMasterDetail({
   const handleSubmit = useCallback(async () => {
     const { isValid } = validate()
     if (!isValid) return
-    
+
     await onSubmit({
       header,
-      items: items.map(({ _isNew, ...item }) => item), // Remove internal flags
+      items,
     })
   }, [header, items, validate, onSubmit])
 
