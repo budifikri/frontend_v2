@@ -75,16 +75,29 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
         const data = await getPurchase(token, propSelectedId)
         console.log('[PurchaseDetail] Loaded data:', data)
         console.log('[PurchaseDetail] Data status:', data.status)
-        
+
         // Normalize status to lowercase for consistency
         const normalizedStatus = (data.status || 'draft').toLowerCase()
-        
+
+        // Helper to extract date portion from ISO datetime
+        const normalizeDate = (dateStr) => {
+          if (!dateStr) return ''
+          // If already in YYYY-MM-DD format, return as-is
+          if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr
+          // If ISO datetime, extract date portion
+          if (/^\d{4}-\d{2}-\d{2}T/.test(dateStr)) return dateStr.split('T')[0]
+          // Try to parse as Date and format
+          const d = new Date(dateStr)
+          if (isNaN(d.getTime())) return dateStr
+          return d.toISOString().split('T')[0]
+        }
+
         setHeader({
           po_number: data.po_number || generatePONumber(),
           supplier_id: data.supplier_id || '',
           warehouse_id: data.warehouse_id || '',
-          po_date: data.po_date || data.order_date || new Date().toISOString().split('T')[0],
-          expected_date: data.expected_date || data.expected_delivery || '',
+          po_date: normalizeDate(data.po_date || data.order_date),
+          expected_date: normalizeDate(data.expected_date || data.expected_delivery),
           status: normalizedStatus,
           notes: data.notes || '',
         })
@@ -171,34 +184,16 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
     setIsSaving(true)
     setError('')
 
-    // Swagger spec: UpdatePurchaseOrderRequest
-    // Required: supplier_id, warehouse_id, expected_date, items
-    const payload = {
-      supplier_id: header.supplier_id,
-      warehouse_id: header.warehouse_id,
-      expected_date: header.expected_date || null,
-      notes: header.notes || '',
-      items: items.map(item => ({
-        product_id: item.product_id,
-        quantity: item.quantity,
-        unit_price: item.unit_price,
-        discount: item.discount || 0,
-        tax_rate: item.tax_rate || 0,
-      })),
-    }
-
-    console.log('[PurchaseDetail] === UPDATE REQUEST ===')
-    console.log('[PurchaseDetail] URL:', `/api/purchases/${propSelectedId}`)
-    console.log('[PurchaseDetail] Payload:', JSON.stringify(payload, null, 2))
-
     try {
       if (token) {
         // Swagger spec: Create/Update Purchase Order
-        // Required fields: supplier_id, warehouse_id, expected_date, items
+        // Required fields: supplier_id, warehouse_id, po_date, expected_date, items
         const payload = {
           supplier_id: header.supplier_id,
           warehouse_id: header.warehouse_id,
+          po_date: header.po_date || null,
           expected_date: header.expected_date || null,
+          status: header.status || 'draft',
           notes: header.notes || '',
           items: items.map(item => ({
             // For update: include item id if it exists
@@ -213,6 +208,7 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
         }
 
         console.log('[PurchaseDetail] === SAVE REQUEST ===')
+        console.log('[PurchaseDetail] Current header status:', header.status)
         console.log('[PurchaseDetail] URL:', propSelectedId ? `/api/purchases/${propSelectedId}` : '/api/purchases')
         console.log('[PurchaseDetail] Method:', propSelectedId ? 'PUT' : 'POST')
         console.log('[PurchaseDetail] Payload:', JSON.stringify(payload, null, 2))
@@ -222,7 +218,7 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
           const result = await updatePurchase(token, propSelectedId, payload)
           console.log('[PurchaseDetail] === UPDATE RESPONSE ===')
           console.log('[PurchaseDetail] Response:', result)
-          console.log('[PurchaseDetail] Response data.items:', result.data?.items?.length || 0)
+          console.log('[PurchaseDetail] Response data.status:', result.data?.status)
           // Close first, then show toast from parent
           console.log('[PurchaseDetail] Calling onExit()...')
           onExit()
@@ -239,7 +235,7 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
           console.log('[PurchaseDetail] === CREATE RESPONSE ===')
           console.log('[PurchaseDetail] Response:', result)
           console.log('[PurchaseDetail] Created ID:', result.data?.id)
-          console.log('[PurchaseDetail] Response data.items:', result.data?.items?.length || 0)
+          console.log('[PurchaseDetail] Response data.status:', result.data?.status)
           // Close first, then show toast from parent
           console.log('[PurchaseDetail] Calling onExit()...')
           onExit()
@@ -294,6 +290,16 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
   const formatCurrency = (amount) =>
     new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(amount)
 
+  // Handle status change with logging
+  const handleStatusChange = (newStatus) => {
+    console.log('[PurchaseDetail] Status button clicked, changing from', header.status, 'to', newStatus)
+    setHeader(prev => {
+      const updated = { ...prev, status: newStatus }
+      console.log('[PurchaseDetail] Status updated, new header:', updated)
+      return updated
+    })
+  }
+
   return (
     <div className="stock-opname-container">
       {/* Header */}
@@ -304,13 +310,13 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
             <h1 className="stock-opname-title">PURCHASE ORDER - {header.po_number}</h1>
           </div>
           <div className="stock-opname-status-group">
-            <button type="button" className={`status-button ${header.status === 'draft' ? 'status-button-active' : 'status-button-inactive'}`} onClick={() => setHeader({ ...header, status: 'draft' })}>
+            <button type="button" className={`status-button ${header.status === 'draft' ? 'status-button-active' : 'status-button-inactive'}`} onClick={() => handleStatusChange('draft')}>
               Draft
             </button>
-            <button type="button" className={`status-button ${header.status === 'pending' ? 'status-button-active' : 'status-button-inactive'}`} onClick={() => setHeader({ ...header, status: 'pending' })}>
+            <button type="button" className={`status-button ${header.status === 'pending' ? 'status-button-active' : 'status-button-inactive'}`} onClick={() => handleStatusChange('pending')}>
               Pending
             </button>
-            <button type="button" className={`status-button ${header.status === 'approved' ? 'status-button-active' : 'status-button-inactive'}`} onClick={() => setHeader({ ...header, status: 'approved' })}>
+            <button type="button" className={`status-button ${header.status === 'approved' ? 'status-button-active' : 'status-button-inactive'}`} onClick={() => handleStatusChange('approved')}>
               Approve
             </button>
           </div>

@@ -1,5 +1,7 @@
+analyze swagger documentation purchase order di folder document\swagger.json
 fix menu -> transaksi -> pembelian
 open localhost:5173
 login username:budifikri password:486456 
-find console errors
+update menu purchase order, change date order,status order, add item product. 
+check value update. price item product
 fix the bug automatically

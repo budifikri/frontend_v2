@@ -76,11 +76,16 @@ function normalizePurchaseItem(raw, index) {
 function normalizePurchase(raw) {
   console.log('[PurchaseAPI] normalizePurchase INPUT:', raw)
   console.log('[PurchaseAPI] normalizePurchase INPUT.items:', raw?.items)
-  
+  console.log('[PurchaseAPI] normalizePurchase raw.status:', raw?.status, 'raw.status_po:', raw?.status_po)
+
   const items = (raw?.items ?? []).map((item, index) => normalizePurchaseItem(item, index))
-  
+
   console.log('[PurchaseAPI] normalizePurchase OUTPUT items:', items)
-  
+
+  // Backend returns status_po, map to status for frontend use
+  // Also support raw.status for backwards compatibility
+  const statusValue = raw?.status_po || raw?.status || 'draft'
+
   return {
     id: raw?.id || '',
     po_number: raw?.po_number || raw?.purchase_number || '',
@@ -88,7 +93,7 @@ function normalizePurchase(raw) {
     supplier_name: raw?.supplier_name || raw?.supplier?.name || '-',
     warehouse_id: raw?.warehouse_id || '',
     warehouse_name: raw?.warehouse_name || raw?.warehouse?.name || '-',
-    status: (raw?.status || 'draft').toLowerCase(), // Normalize to lowercase
+    status: statusValue.toLowerCase(), // Normalize to lowercase
     po_date: raw?.po_date || raw?.order_date || '',
     expected_date: raw?.expected_date || raw?.expected_delivery || '',
     notes: raw?.notes || '',
@@ -253,16 +258,19 @@ export async function updatePurchase(token, id, input) {
   console.log('[PurchaseAPI] === updatePurchase REQUEST ===')
   console.log('[PurchaseAPI] URL:', url)
   console.log('[PurchaseAPI] Method: PUT')
-  
+
   // Transform frontend field names to backend field names
+  // Backend expects status_po, not status
   const backendPayload = {
     supplier_id: input.supplier_id,
     warehouse_id: input.warehouse_id,
+    po_date: input.po_date || input.order_date,
     expected_date: input.expected_date || input.expected_delivery,
+    status_po: input.status || 'draft', // Map status to status_po
     notes: input.notes,
     items: input.items,
   }
-  
+
   console.log('[PurchaseAPI] Backend Payload:')
   console.log(JSON.stringify(backendPayload, null, 2))
 
@@ -290,7 +298,7 @@ export async function updatePurchase(token, id, input) {
     token,
     body: backendPayload,
   })
-  
+
   console.log('[PurchaseAPI] === updatePurchase RESPONSE ===')
   console.log('[PurchaseAPI] Response:', raw)
 

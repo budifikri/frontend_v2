@@ -1,0 +1,7 @@
+fix error 
+.env sudah di setting VITE_DEFAULT_TITLEBAR_COLOR=linear-gradient(180deg, #c084fc 0%, #7c3aed 100%)
+tetapi warna tidak berubah
+open localhost:5173
+login username:budifikri password:486456 
+screenshot desktop apakah sudah berubah
+fix the bug automatically

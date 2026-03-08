@@ -51,7 +51,7 @@ function AppContent() {
   useEffect(() => {
     const savedWallpaper = localStorage.getItem('theme-wallpaper') || import.meta.env.VITE_DEFAULT_WALLPAPER
     const savedTitleColor = localStorage.getItem('theme-title-color') || import.meta.env.VITE_DEFAULT_TITLEBAR_COLOR
-    
+
     if (savedTitleColor) {
       applyTitlebarColors(savedTitleColor)
     }
