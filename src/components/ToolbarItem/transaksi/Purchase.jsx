@@ -116,6 +116,7 @@ export function Purchase({ onExit }) {
   const [showDateModal, setShowDateModal] = useState(false)
   const [customDateFrom, setCustomDateFrom] = useState('')
   const [customDateTo, setCustomDateTo] = useState('')
+  const [forceRefresh, setForceRefresh] = useState(0) // Trigger for date filter apply
 
   // Toast state
   const [toast, setToast] = useState({ isOpen: false, message: '', type: 'info' })
@@ -183,7 +184,8 @@ export function Purchase({ onExit }) {
     } finally {
       setIsLoading(false)
     }
-  }, [token, searchKeyword, statusFilter, dateFilter, customDateFrom, customDateTo, limit, offset])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token, searchKeyword, statusFilter, dateFilter, customDateFrom, customDateTo, limit, offset, forceRefresh])
 
   useEffect(() => {
     if (fetchDataRef.current) return
@@ -264,10 +266,11 @@ export function Purchase({ onExit }) {
 
   // Date filter handlers
   const handleDateFilterChange = (value) => {
-    pager.reset()
     if (value === 'custom') {
       setShowDateModal(true)
+      // Don't change dateFilter yet - wait for user to apply dates
     } else {
+      pager.reset()
       setDateFilter(value)
     }
   }
@@ -285,6 +288,8 @@ export function Purchase({ onExit }) {
     }
     setShowDateModal(false)
     setDateFilter('custom')
+    setForceRefresh(prev => prev + 1) // Trigger fetchData with new dates
+    pager.reset()
   }
 
   const handleClearDateFilter = () => {
