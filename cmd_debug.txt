@@ -1,0 +1,6 @@
+buatkan fungsi debug
+jika url = {base_url}/?debug 
+1. semua request url , body request dan response url akan disimpan di debug.txt
+2. di menu setting ada tombol baru debug, ini akan menampilkan debug.txt
+3. untuk tauri fitur ini bypass saja karena di tauri tidak bisa edit url
+buatkan Plan_debug.md di folder document
