@@ -53,22 +53,26 @@ const DUMMY_PURCHASES = [
 function normalizePurchaseItem(raw, index) {
   console.log('[PurchaseAPI] normalizePurchaseItem INPUT:', raw)
   console.log('[PurchaseAPI] normalizePurchaseItem raw.quantity:', raw?.quantity, 'raw.qty_po:', raw?.qty_po, 'type:', typeof raw?.quantity)
-  
+
+  // Backend returns qty_po for purchase order quantity
+  const qtyPo = Number(raw?.qty_po ?? (raw?.quantity || 0))
+  // Backend returns qty_receive for received quantity
+  const qtyReceive = Number(raw?.qty_receive || 0)
+
   const result = {
     id: raw?.id || `item-${index}`,
     product_id: raw?.product_id || '',
     product_name: raw?.product_name || raw?.product?.name || '-',
     sku: raw?.sku || raw?.product_sku || '-',
-    // Backend returns qty_po, map to quantity
-    quantity: Number(raw?.qty_po ?? (raw?.quantity || 0)),
+    quantity: qtyPo,
+    qty_receive: qtyReceive,
     unit_price: Number(raw?.unit_price || 0),
     discount: Number(raw?.discount || 0),
     tax_rate: Number(raw?.tax_rate || 0),
-    line_total: Number(raw?.line_total || ((raw?.qty_po ?? (raw?.quantity || 0)) * (raw?.unit_price || 0))),
-    // Also keep receive qty for reference
-    qty_receive: Number(raw?.qty_receive || 0),
+    // Calculate line_total based on qty_po * unit_price
+    line_total: Number(raw?.line_total || (qtyPo * (raw?.unit_price || 0))),
   }
-  
+
   console.log('[PurchaseAPI] normalizePurchaseItem OUTPUT:', result)
   return result
 }
@@ -94,6 +98,7 @@ function normalizePurchase(raw) {
     warehouse_id: raw?.warehouse_id || '',
     warehouse_name: raw?.warehouse_name || raw?.warehouse?.name || '-',
     status: statusValue.toLowerCase(), // Normalize to lowercase
+    // Backend returns po_date or order_date, map to po_date for frontend
     po_date: raw?.po_date || raw?.order_date || '',
     expected_date: raw?.expected_date || raw?.expected_delivery || '',
     notes: raw?.notes || '',
@@ -228,7 +233,7 @@ export async function createPurchase(token, input) {
     newRecord.discount_total = discountTotal
     newRecord.tax_total = taxTotal
     newRecord.grand_total = subtotal - discountTotal + taxTotal
-    
+
     console.log('[PurchaseAPI] Simulated created record:', newRecord)
     DUMMY_PURCHASES.unshift(newRecord)
     return {
@@ -238,10 +243,19 @@ export async function createPurchase(token, input) {
     }
   }
 
+  // Swagger spec: CreatePurchaseOrderRequest
+  // Required: supplier_id, warehouse_id, expected_date, items, notes
+  // Note: order_date and status are NOT part of CreatePurchaseOrderRequest
   const raw = await apiFetch(url, {
     method: 'POST',
     token,
-    body: input,
+    body: {
+      supplier_id: input.supplier_id,
+      warehouse_id: input.warehouse_id,
+      expected_date: input.expected_date,
+      notes: input.notes,
+      items: input.items,
+    },
   })
   console.log('[PurchaseAPI] createPurchase RESPONSE:', raw)
   console.log('[PurchaseAPI] createPurchase RESPONSE data:', raw.data)
@@ -259,14 +273,14 @@ export async function updatePurchase(token, id, input) {
   console.log('[PurchaseAPI] URL:', url)
   console.log('[PurchaseAPI] Method: PUT')
 
-  // Transform frontend field names to backend field names
-  // Backend expects status_po, not status
+  // Swagger spec: UpdatePurchaseOrderRequest
+  // Fields: supplier_id, warehouse_id, order_date, expected_date, items, notes
+  // Note: status is NOT part of UpdatePurchaseOrderRequest - use /status endpoint instead
   const backendPayload = {
     supplier_id: input.supplier_id,
     warehouse_id: input.warehouse_id,
-    po_date: input.po_date || input.order_date,
+    order_date: input.po_date || input.order_date,  // Map po_date to order_date
     expected_date: input.expected_date || input.expected_delivery,
-    status_po: input.status || 'draft', // Map status to status_po
     notes: input.notes,
     items: input.items,
   }

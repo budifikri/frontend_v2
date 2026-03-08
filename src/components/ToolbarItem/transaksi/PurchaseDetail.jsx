@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useAuth } from '../../../shared/auth'
-import { getPurchase, createPurchase, updatePurchase, listSuppliers, generatePONumber } from '../../../features/transaksi/purchase/purchase.api'
+import { getPurchase, createPurchase, updatePurchase, updatePurchaseStatus, listSuppliers, generatePONumber } from '../../../features/transaksi/purchase/purchase.api'
 import { listWarehouses } from '../../../features/master/warehouse/warehouse.api'
 import { AddPurchaseItemModal } from './AddPurchaseItemModal'
 import { DeleteMaster } from '../footer/DeleteMaster'
@@ -165,11 +165,18 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
 
   // Calculations
   const summary = useMemo(() => {
-    const subtotal = items.reduce((sum, item) => sum + (item.quantity * item.unit_price), 0)
-    const discountTotal = items.reduce((sum, item) => sum + (item.discount || 0), 0)
+    const subtotal = items.reduce((sum, item) => sum + ((item.quantity || 0) * (item.unit_price || 0)), 0)
+    // Discount is stored as percentage, calculate the actual discount amount
+    const discountTotal = items.reduce((sum, item) => {
+      const lineSubtotal = (item.quantity || 0) * (item.unit_price || 0)
+      return sum + (lineSubtotal * ((item.discount || 0) / 100))
+    }, 0)
+    // Tax is calculated on (line subtotal - discount amount)
     const taxTotal = items.reduce((sum, item) => {
-      const lineTotal = (item.quantity * item.unit_price) - (item.discount || 0)
-      return sum + (lineTotal * (item.tax_rate || 0) / 100)
+      const lineSubtotal = (item.quantity || 0) * (item.unit_price || 0)
+      const lineDiscount = lineSubtotal * ((item.discount || 0) / 100)
+      const taxableAmount = lineSubtotal - lineDiscount
+      return sum + (taxableAmount * ((item.tax_rate || 0) / 100))
     }, 0)
     const grandTotal = subtotal - discountTotal + taxTotal
     return { subtotal, discountTotal, taxTotal, grandTotal, itemCount: items.length }
@@ -193,7 +200,6 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
           warehouse_id: header.warehouse_id,
           po_date: header.po_date || null,
           expected_date: header.expected_date || null,
-          status: header.status || 'draft',
           notes: header.notes || '',
           items: items.map(item => ({
             // For update: include item id if it exists
@@ -213,38 +219,40 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
         console.log('[PurchaseDetail] Method:', propSelectedId ? 'PUT' : 'POST')
         console.log('[PurchaseDetail] Payload:', JSON.stringify(payload, null, 2))
 
+        let result
         if (propSelectedId) {
           // UPDATE existing
-          const result = await updatePurchase(token, propSelectedId, payload)
+          result = await updatePurchase(token, propSelectedId, payload)
           console.log('[PurchaseDetail] === UPDATE RESPONSE ===')
           console.log('[PurchaseDetail] Response:', result)
           console.log('[PurchaseDetail] Response data.status:', result.data?.status)
-          // Close first, then show toast from parent
-          console.log('[PurchaseDetail] Calling onExit()...')
-          onExit()
-          if (onSaveSuccess) {
-            setTimeout(() => {
-              console.log('[PurchaseDetail] Showing success toast...')
-              onSaveSuccess('Purchase Order berhasil diupdate', 'success')
-            }, 300)
-          }
         } else {
           // CREATE new
           console.log('[PurchaseDetail] Creating NEW purchase order...')
-          const result = await createPurchase(token, payload)
+          result = await createPurchase(token, payload)
           console.log('[PurchaseDetail] === CREATE RESPONSE ===')
           console.log('[PurchaseDetail] Response:', result)
           console.log('[PurchaseDetail] Created ID:', result.data?.id)
           console.log('[PurchaseDetail] Response data.status:', result.data?.status)
-          // Close first, then show toast from parent
-          console.log('[PurchaseDetail] Calling onExit()...')
-          onExit()
-          if (onSaveSuccess) {
-            setTimeout(() => {
-              console.log('[PurchaseDetail] Showing success toast...')
-              onSaveSuccess('Purchase Order berhasil dibuat', 'success')
-            }, 300)
-          }
+        }
+
+        // Update status separately if not draft (default status is draft)
+        const targetStatus = header.status || 'draft'
+        if (targetStatus !== 'draft' && result.data?.id) {
+          console.log('[PurchaseDetail] Updating status to:', targetStatus)
+          const purchaseId = result.data.id || propSelectedId
+          await updatePurchaseStatus(token, purchaseId, targetStatus)
+          console.log('[PurchaseDetail] Status updated successfully')
+        }
+
+        // Close first, then show toast from parent
+        console.log('[PurchaseDetail] Calling onExit()...')
+        onExit()
+        if (onSaveSuccess) {
+          setTimeout(() => {
+            console.log('[PurchaseDetail] Showing success toast...')
+            onSaveSuccess('Purchase Order berhasil disimpan', 'success')
+          }, 300)
         }
       } else {
         // Offline mode
@@ -377,7 +385,7 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
                   <th>Product</th>
                   <th className="table-center" style={{ width: '100px' }}>QTY PO</th>
                   <th className="table-center" style={{ width: '120px' }}>Unit Price</th>
-                  <th className="table-center" style={{ width: '100px' }}>Discount</th>
+                  <th className="table-center" style={{ width: '100px' }}>Discount %</th>
                   <th className="table-center" style={{ width: '80px' }}>Tax %</th>
                   <th className="table-center" style={{ width: '120px' }}>Total</th>
                 </tr>
