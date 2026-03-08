@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState, useRef } from 'react'
 import { useAuth } from '../../../shared/auth'
 import { listPurchases, deletePurchase } from '../../../features/transaksi/purchase/purchase.api'
 import { FooterMaster } from '../footer/FooterMaster'
@@ -75,6 +75,7 @@ export function Purchase({ onExit }) {
   
   // Toast state
   const [toast, setToast] = useState({ isOpen: false, message: '', type: 'info' })
+  const fetchDataRef = useRef(false)
 
   const handleSaveSuccess = (message, type = 'success') => {
     setToast({ isOpen: true, message, type })
@@ -127,6 +128,8 @@ export function Purchase({ onExit }) {
   }, [token, searchKeyword, statusFilter, limit, offset])
 
   useEffect(() => {
+    if (fetchDataRef.current) return
+    fetchDataRef.current = true
     fetchData()
   }, [fetchData])
 

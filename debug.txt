@@ -1,9 +1,7 @@
-analyze swagger documentation purchase order di folder document\swagger.json
-fix menu -> transaksi -> pembelian
-open localhost:5173
+open http://localhost:5173/?debug
 login username:budifikri password:486456 
-1. change status order to approve, 
-2. add item product nasi pecel. 
-3. check unit price item product nasi pecel , fix it
-4. status not save. fix it
+1. menu -> purchase -> double klik data -> save
+2. menu -> setting -> theme -> view debug log, 
+3. cek data request url,body request dan request url 
+4. cek body request and body response fungsi expanse/collapse. default collapse
 fix the bug automatically

@@ -380,6 +380,28 @@
   background: #f1f5f9;
 }
 
+.theme-btn-debug {
+  background: #7c3aed;
+  color: #fff;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-right: auto;
+}
+
+.theme-btn-debug .material-icons {
+  font-size: 18px;
+}
+
+.theme-btn-debug:hover {
+  background: #6d28d9;
+}
+
 /* Browse Popup */
 .browse-popup-overlay {
   position: fixed;

@@ -1,4 +1,5 @@
 import { AUTH_EXPIRED_EVENT } from './auth'
+import { isDebugEnabled, logRequest, logResponse, logError } from '../utils/debugLogger'
 
 const baseUrl = import.meta.env.VITE_API_BASE_URL || ''
 
@@ -21,6 +22,7 @@ export class ApiError extends Error {
 
 export async function apiFetch(path, opts = {}) {
   const url = `${baseUrl}${path.startsWith('/') ? '' : '/'}${path}`
+  const method = opts?.method ?? (opts?.body !== undefined ? 'POST' : 'GET')
 
   const headers = {
     Accept: 'application/json',
@@ -28,14 +30,15 @@ export async function apiFetch(path, opts = {}) {
   if (opts?.body !== undefined) headers['Content-Type'] = 'application/json'
   if (opts?.token) headers['Authorization'] = `Bearer ${opts.token}`
 
-  console.debug('[HTTP] Request', {
-    url,
-    method: opts?.method ?? (opts?.body !== undefined ? 'POST' : 'GET'),
-    body: opts?.body,
-  })
+  // Debug logging for request
+  if (isDebugEnabled()) {
+    logRequest(url, method, opts?.body)
+  } else {
+    console.debug('[HTTP] Request', { url, method, body: opts?.body })
+  }
 
   const res = await fetch(url, {
-    method: opts?.method ?? (opts?.body !== undefined ? 'POST' : 'GET'),
+    method,
     headers,
     body: opts?.body === undefined ? undefined : JSON.stringify(opts.body),
     signal: opts?.signal,
@@ -48,7 +51,13 @@ export async function apiFetch(path, opts = {}) {
   }
 
   if (!res.ok) {
-    console.debug('[HTTP] Response error', { url, status: res.status, body: json })
+    // Debug logging for error response
+    if (isDebugEnabled()) {
+      logError(url, new ApiError(json?.error || json?.message || `HTTP ${res.status}`, { status: res.status, details: json }))
+    } else {
+      console.debug('[HTTP] Response error', { url, status: res.status, body: json })
+    }
+
     if (res.status === 401 || res.status === 403) {
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new Event(AUTH_EXPIRED_EVENT))
@@ -59,6 +68,11 @@ export async function apiFetch(path, opts = {}) {
       json?.message ||
       `HTTP ${res.status}`
     throw new ApiError(msg, { status: res.status, details: json })
+  }
+
+  // Debug logging for successful response
+  if (isDebugEnabled()) {
+    logResponse(url, res.status, res.statusText, json)
   }
 
   return json ?? { success: true }

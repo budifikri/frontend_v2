@@ -1,0 +1,23 @@
+  "body": "{\n  \"supplier_id\": \"474a9674-122b-4f92-b6ab-7f9c683b2063\",\n  \"warehouse_id\": \"ba5226d8-4b25-4a2b-ac61-ab90c495f8bd\",\n  \"order_date\": \"2026-03-08\",\n  \"expected_date\": \"2026-03-31\",\n  \"notes\": \"\",\n  \"items\": [\n    {\n      \"id\": \"fb75705d-4442-4a9d-9adb-8b43aaf3eeed\",\n      \"product_id\": \"13d0c813-2d92-4945-9c17-528a516fbb03\",\n      \"quantity\": 3,\n      \"unit_price\": 150000,\n      \"discount\": 10,\n      \"tax_rate\": 0\n    }\n  ]\n}"
+di Debug Log Viewer,masih ada  \n \"  ,
+Parse JSON sebelum ditampilkan
+
+Saat menampilkan log di Debug Log Viewer, lakukan parsing.
+
+function formatJson(data) {
+  if (!data) return "(empty)";
+
+  if (typeof data === "string") {
+    try {
+      return JSON.stringify(JSON.parse(data), null, 2);
+    } catch {
+      return data;
+    }
+  }
+
+  return JSON.stringify(data, null, 2);
+}
+
+Lalu di UI:
+
+<pre>{formatJson(log.body)}</pre>

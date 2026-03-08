@@ -112,21 +112,21 @@ export function AddPurchaseItemModal({ isOpen, onClose, onAdd, token }) {
           <h2 className="modal-title">Add Item to Purchase Order</h2>
         </div>
 
-        <div className="modal-body">
+    <div className="modal-body">
           <div className="form-section">
             <label className="form-label">Search Product <span className="required-mark">*</span></label>
             <div className="search-wrapper">
               <span className="material-icons-round search-icon">search</span>
-              <input type="text" value={searchQuery} onChange={(e) => { setSearchQuery(e.target.value); setSelectedId(''); setIsProductSelected(false) }} className="form-input search-input" placeholder="Search by SKU or product name..." autoFocus disabled={isProductSelected} />
+              <input data-testid="po-add-item-search" type="text" value={searchQuery} onChange={(e) => { setSearchQuery(e.target.value); setSelectedId(''); setIsProductSelected(false) }} className="form-input search-input" placeholder="Search by SKU or product name..." autoFocus disabled={isProductSelected} />
               {isProductSelected && (<button type="button" className="search-clear-btn" onClick={() => { setSearchQuery(''); setSelectedId(''); setIsProductSelected(false) }} title="Clear"><span className="material-icons-round">close</span></button>)}
             </div>
           </div>
 
-          {!isProductSelected && searchQuery.trim() && filteredProducts.length > 0 && (
+            {!isProductSelected && searchQuery.trim() && filteredProducts.length > 0 && (
             <div className="product-list">
               <div className="product-list-container">
-                {filteredProducts.map((product, index) => (
-                  <div key={product.id} className={`product-list-item ${selectedId === product.id ? 'selected' : ''} ${highlightedIndex === index ? 'highlighted' : ''}`} onClick={() => { setSelectedId(product.id); setSearchQuery(product.name); setIsProductSelected(true); setHighlightedIndex(-1) }} onMouseEnter={() => setHighlightedIndex(index)}>
+              {filteredProducts.map((product, index) => (
+                  <div data-testid={`po-product-item-${product.id}`} key={product.id} className={`product-list-item ${selectedId === product.id ? 'selected' : ''} ${highlightedIndex === index ? 'highlighted' : ''}`} onClick={() => { setSelectedId(product.id); setSearchQuery(product.name); setIsProductSelected(true); setHighlightedIndex(-1) }} onMouseEnter={() => setHighlightedIndex(index)}>
                     <div className="product-list-sku">{product.code}</div>
                     <div className="product-list-name">{product.name}</div>
                     <div className="product-list-price">Rp {Number(product.retail_price).toLocaleString('id-ID')}</div>
@@ -171,8 +171,8 @@ export function AddPurchaseItemModal({ isOpen, onClose, onAdd, token }) {
           )}
         </div>
 
-        <div className="modal-footer">
-          <button type="button" className="action-btn action-btn-add" onClick={handleAdd} disabled={!selectedId || isAdding}>
+          <div className="modal-footer">
+          <button data-testid="po-add-item-add" type="button" className="action-btn action-btn-add" onClick={handleAdd} disabled={!selectedId || isAdding}>
             <div className="action-btn-icon"><span className="material-icons-round">check</span></div>
             <span className="action-btn-label">Add</span>
           </button>

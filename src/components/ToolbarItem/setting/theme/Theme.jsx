@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import './Theme.css'
 import { applyTitlebarColors, applyWallpaper } from '../../../../utils/colorHelper'
+import { isDebugEnabled } from '../../../../utils/debugLogger'
+import { DebugLogViewer } from '../../../Settings/DebugLogViewer'
 
 const COLORS = [
   { name: 'Biru', value: 'linear-gradient(180deg, #60a5fa 0%, #2563eb 100%)' },
@@ -24,6 +26,8 @@ export function Theme({ onExit }) {
   const [savedWallpaper, setSavedWallpaper] = useState(wallpaper)
   const [savedTitleColor, setSavedTitleColor] = useState(titleColor)
   const [showBrowse, setShowBrowse] = useState(false)
+  const [showDebugLog, setShowDebugLog] = useState(false)
+  const debugEnabled = isDebugEnabled()
 
   const getWallpaperHistory = () => {
     const history = localStorage.getItem('wallpaper-history')
@@ -201,6 +205,12 @@ export function Theme({ onExit }) {
         </div>
       </div>
       <div className="theme-footer">
+        {debugEnabled && (
+          <button className="theme-btn-debug" onClick={() => setShowDebugLog(true)}>
+            <span className="material-icons">bug_report</span>
+            View Debug Log
+          </button>
+        )}
         <button className="theme-btn-cancel" onClick={handleCancel}>Cancel</button>
         <button className="theme-btn-save" onClick={handleSave}>Save</button>
       </div>
@@ -219,8 +229,8 @@ export function Theme({ onExit }) {
               ) : (
                 <div className="browse-grid">
                   {getWallpaperHistory().map((img, index) => (
-                    <div 
-                      key={index} 
+                    <div
+                      key={index}
                       className={`browse-item ${wallpaper === img ? 'selected' : ''}`}
                       onClick={() => { setWallpaper(img); setShowBrowse(false); }}
                     >
@@ -233,6 +243,9 @@ export function Theme({ onExit }) {
           </div>
         </div>
       )}
+
+      {/* Debug Log Viewer */}
+      {showDebugLog && <DebugLogViewer onClose={() => setShowDebugLog(false)} />}
     </div>
   )
 }

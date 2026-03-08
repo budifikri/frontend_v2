@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useAuth } from '../../../shared/auth'
-import { getPurchase, createPurchase, updatePurchase, updatePurchaseStatus, listSuppliers, generatePONumber } from '../../../features/transaksi/purchase/purchase.api'
+import { getPurchase, createPurchase, updatePurchase, listSuppliers, generatePONumber } from '../../../features/transaksi/purchase/purchase.api'
 import { listWarehouses } from '../../../features/master/warehouse/warehouse.api'
 import { AddPurchaseItemModal } from './AddPurchaseItemModal'
 import { DeleteMaster } from '../footer/DeleteMaster'
@@ -195,26 +195,29 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
       if (token) {
         // Swagger spec: Create/Update Purchase Order
         // Required fields: supplier_id, warehouse_id, po_date, expected_date, items
+        const targetStatus = header.status || 'DRAFT'
+        // Copy items to avoid mutating shared references
+        const itemsCopy = items.map(it => ({ ...it }))
         const payload = {
           supplier_id: header.supplier_id,
           warehouse_id: header.warehouse_id,
           po_date: header.po_date || null,
           expected_date: header.expected_date || null,
           notes: header.notes || '',
-          items: items.map(item => ({
-            // For update: include item id if it exists
-            // For create: don't include id (backend will generate)
-            ...(item.id && !item.id.startsWith('item-') ? { id: item.id } : {}),
+          status_po: targetStatus,
+          status_receive: header.status_receive || 'DRAFT',
+          items: itemsCopy.map(item => ({
+            ...(item.id && !String(item.id).startsWith('item-') ? { id: item.id } : {}),
             product_id: item.product_id,
             quantity: item.quantity,
-            unit_price: item.unit_price,
-            discount: item.discount || 0,
-            tax_rate: item.tax_rate || 0,
+            unit_price: item.unit_price ?? item.price ?? item.unitPrice ?? 0,
+            discount: item.discount ?? 0,
+            tax_rate: item.tax_rate ?? 0,
           })),
         }
 
         console.log('[PurchaseDetail] === SAVE REQUEST ===')
-        console.log('[PurchaseDetail] Current header status:', header.status)
+        console.log('[PurchaseDetail] Current header status:', targetStatus)
         console.log('[PurchaseDetail] URL:', propSelectedId ? `/api/purchases/${propSelectedId}` : '/api/purchases')
         console.log('[PurchaseDetail] Method:', propSelectedId ? 'PUT' : 'POST')
         console.log('[PurchaseDetail] Payload:', JSON.stringify(payload, null, 2))
@@ -231,19 +234,12 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
           console.log('[PurchaseDetail] Creating NEW purchase order...')
           result = await createPurchase(token, payload)
           console.log('[PurchaseDetail] === CREATE RESPONSE ===')
-          console.log('[PurchaseDetail] Response:', result)
           console.log('[PurchaseDetail] Created ID:', result.data?.id)
           console.log('[PurchaseDetail] Response data.status:', result.data?.status)
         }
 
-        // Update status separately if not draft (default status is draft)
-        const targetStatus = header.status || 'draft'
-        if (targetStatus !== 'draft' && result.data?.id) {
-          console.log('[PurchaseDetail] Updating status to:', targetStatus)
-          const purchaseId = result.data.id || propSelectedId
-          await updatePurchaseStatus(token, purchaseId, targetStatus)
-          console.log('[PurchaseDetail] Status updated successfully')
-        }
+        // Status is now included in the main PUT request - no separate status update needed
+        console.log('[PurchaseDetail] Status included in main request, no separate update needed')
 
         // Close first, then show toast from parent
         console.log('[PurchaseDetail] Calling onExit()...')

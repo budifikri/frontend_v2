@@ -1,7 +1,244 @@
-fix error 
-.env sudah di setting VITE_DEFAULT_TITLEBAR_COLOR=linear-gradient(180deg, #c084fc 0%, #7c3aed 100%)
-tetapi warna tidak berubah
-open localhost:5173
-login username:budifikri password:486456 
-screenshot desktop apakah sudah berubah
-fix the bug automatically
+PurchaseDetail.jsx:216 [PurchaseDetail] === SAVE REQUEST ===
+PurchaseDetail.jsx:217 [PurchaseDetail] Current header status: approved
+PurchaseDetail.jsx:218 [PurchaseDetail] URL: /api/purchases/e740c55d-51ca-45dc-9510-0765342945ae
+PurchaseDetail.jsx:219 [PurchaseDetail] Method: PUT
+PurchaseDetail.jsx:220 [PurchaseDetail] Payload: {
+  "supplier_id": "474a9674-122b-4f92-b6ab-7f9c683b2063",
+  "warehouse_id": "ba5226d8-4b25-4a2b-ac61-ab90c495f8bd",
+  "po_date": "2026-03-08",
+  "expected_date": "2026-03-31",
+  "notes": "",
+  "items": [
+    {
+      "id": "78e86550-4280-4869-bdc7-6c5dc8412b37",
+      "product_id": "13d0c813-2d92-4945-9c17-528a516fbb03",
+      "quantity": 3,
+      "unit_price": 150000,
+      "discount": 10,
+      "tax_rate": 0
+    }
+  ]
+}
+purchase.api.js:272 [PurchaseAPI] === updatePurchase REQUEST ===
+purchase.api.js:273 [PurchaseAPI] URL: /api/purchases/e740c55d-51ca-45dc-9510-0765342945ae
+purchase.api.js:274 [PurchaseAPI] Method: PUT
+purchase.api.js:288 [PurchaseAPI] Backend Payload:
+purchase.api.js:289 {
+  "supplier_id": "474a9674-122b-4f92-b6ab-7f9c683b2063",
+  "warehouse_id": "ba5226d8-4b25-4a2b-ac61-ab90c495f8bd",
+  "order_date": "2026-03-08",
+  "expected_date": "2026-03-31",
+  "notes": "",
+  "items": [
+    {
+      "id": "78e86550-4280-4869-bdc7-6c5dc8412b37",
+      "product_id": "13d0c813-2d92-4945-9c17-528a516fbb03",
+      "quantity": 3,
+      "unit_price": 150000,
+      "discount": 10,
+      "tax_rate": 0
+    }
+  ]
+}
+purchase.api.js:316 [PurchaseAPI] === updatePurchase RESPONSE ===
+purchase.api.js:317 [PurchaseAPI] Response: {success: true, data: {…}}
+PurchaseDetail.jsx:226 [PurchaseDetail] === UPDATE RESPONSE ===
+PurchaseDetail.jsx:227 [PurchaseDetail] Response: {success: true, data: {…}}
+PurchaseDetail.jsx:228 [PurchaseDetail] Response data.status: undefined
+PurchaseDetail.jsx:242 [PurchaseDetail] Updating status to: approved
+purchase.api.js:329 [PurchaseAPI] updatePurchaseStatus REQUEST URL: /api/purchases/e740c55d-51ca-45dc-9510-0765342945ae/status
+purchase.api.js:330 [PurchaseAPI] updatePurchaseStatus PAYLOAD: {status: 'approved'}
+PurchaseDetail.jsx:268 [PurchaseDetail] === SAVE ERROR ===
+(anonymous) @ PurchaseDetail.jsx:268
+await in (anonymous)
+executeDispatch @ react-dom_client.js?v=8e72fb43:13622
+runWithFiberInDEV @ react-dom_client.js?v=8e72fb43:997
+processDispatchQueue @ react-dom_client.js?v=8e72fb43:13658
+(anonymous) @ react-dom_client.js?v=8e72fb43:14071
+batchedUpdates$1 @ react-dom_client.js?v=8e72fb43:2626
+dispatchEventForPluginEventSystem @ react-dom_client.js?v=8e72fb43:13763
+dispatchEvent @ react-dom_client.js?v=8e72fb43:16784
+dispatchDiscreteEvent @ react-dom_client.js?v=8e72fb43:16765
+<button>
+exports.jsxDEV @ react_jsx-dev-runtime.js?v=8e72fb43:247
+PurchaseDetail @ PurchaseDetail.jsx:499
+react_stack_bottom_frame @ react-dom_client.js?v=8e72fb43:18509
+renderWithHooksAgain @ react-dom_client.js?v=8e72fb43:5729
+renderWithHooks @ react-dom_client.js?v=8e72fb43:5665
+updateFunctionComponent @ react-dom_client.js?v=8e72fb43:7475
+beginWork @ react-dom_client.js?v=8e72fb43:8525
+runWithFiberInDEV @ react-dom_client.js?v=8e72fb43:997
+performUnitOfWork @ react-dom_client.js?v=8e72fb43:12561
+workLoopSync @ react-dom_client.js?v=8e72fb43:12424
+renderRootSync @ react-dom_client.js?v=8e72fb43:12408
+performWorkOnRoot @ react-dom_client.js?v=8e72fb43:11766
+performSyncWorkOnRoot @ react-dom_client.js?v=8e72fb43:13517
+flushSyncWorkAcrossRoots_impl @ react-dom_client.js?v=8e72fb43:13414
+processRootScheduleInMicrotask @ react-dom_client.js?v=8e72fb43:13437
+(anonymous) @ react-dom_client.js?v=8e72fb43:13531
+<PurchaseDetail>
+exports.jsxDEV @ react_jsx-dev-runtime.js?v=8e72fb43:247
+Purchase @ Purchase.jsx:207
+react_stack_bottom_frame @ react-dom_client.js?v=8e72fb43:18509
+renderWithHooksAgain @ react-dom_client.js?v=8e72fb43:5729
+renderWithHooks @ react-dom_client.js?v=8e72fb43:5665
+updateFunctionComponent @ react-dom_client.js?v=8e72fb43:7475
+beginWork @ react-dom_client.js?v=8e72fb43:8525
+runWithFiberInDEV @ react-dom_client.js?v=8e72fb43:997
+performUnitOfWork @ react-dom_client.js?v=8e72fb43:12561
+workLoopSync @ react-dom_client.js?v=8e72fb43:12424
+renderRootSync @ react-dom_client.js?v=8e72fb43:12408
+performWorkOnRoot @ react-dom_client.js?v=8e72fb43:11766
+performSyncWorkOnRoot @ react-dom_client.js?v=8e72fb43:13517
+flushSyncWorkAcrossRoots_impl @ react-dom_client.js?v=8e72fb43:13414
+processRootScheduleInMicrotask @ react-dom_client.js?v=8e72fb43:13437
+(anonymous) @ react-dom_client.js?v=8e72fb43:13531
+<Purchase>
+exports.jsxDEV @ react_jsx-dev-runtime.js?v=8e72fb43:247
+DashboardCanvas @ DashboardCanvas.jsx:106
+react_stack_bottom_frame @ react-dom_client.js?v=8e72fb43:18509
+renderWithHooksAgain @ react-dom_client.js?v=8e72fb43:5729
+renderWithHooks @ react-dom_client.js?v=8e72fb43:5665
+updateFunctionComponent @ react-dom_client.js?v=8e72fb43:7475
+beginWork @ react-dom_client.js?v=8e72fb43:8525
+runWithFiberInDEV @ react-dom_client.js?v=8e72fb43:997
+performUnitOfWork @ react-dom_client.js?v=8e72fb43:12561
+workLoopSync @ react-dom_client.js?v=8e72fb43:12424
+renderRootSync @ react-dom_client.js?v=8e72fb43:12408
+performWorkOnRoot @ react-dom_client.js?v=8e72fb43:11766
+performSyncWorkOnRoot @ react-dom_client.js?v=8e72fb43:13517
+flushSyncWorkAcrossRoots_impl @ react-dom_client.js?v=8e72fb43:13414
+processRootScheduleInMicrotask @ react-dom_client.js?v=8e72fb43:13437
+(anonymous) @ react-dom_client.js?v=8e72fb43:13531
+<DashboardCanvas>
+exports.jsxDEV @ react_jsx-dev-runtime.js?v=8e72fb43:247
+AppContent @ App.jsx:158
+react_stack_bottom_frame @ react-dom_client.js?v=8e72fb43:18509
+renderWithHooksAgain @ react-dom_client.js?v=8e72fb43:5729
+renderWithHooks @ react-dom_client.js?v=8e72fb43:5665
+updateFunctionComponent @ react-dom_client.js?v=8e72fb43:7475
+beginWork @ react-dom_client.js?v=8e72fb43:8525
+runWithFiberInDEV @ react-dom_client.js?v=8e72fb43:997
+performUnitOfWork @ react-dom_client.js?v=8e72fb43:12561
+workLoopSync @ react-dom_client.js?v=8e72fb43:12424
+renderRootSync @ react-dom_client.js?v=8e72fb43:12408
+performWorkOnRoot @ react-dom_client.js?v=8e72fb43:11766
+performWorkOnRootViaSchedulerTask @ react-dom_client.js?v=8e72fb43:13505
+performWorkUntilDeadline @ react-dom_client.js?v=8e72fb43:36
+<AppContent>
+exports.jsxDEV @ react_jsx-dev-runtime.js?v=8e72fb43:247
+App @ App.jsx:182
+react_stack_bottom_frame @ react-dom_client.js?v=8e72fb43:18509
+renderWithHooksAgain @ react-dom_client.js?v=8e72fb43:5729
+renderWithHooks @ react-dom_client.js?v=8e72fb43:5665
+updateFunctionComponent @ react-dom_client.js?v=8e72fb43:7475
+beginWork @ react-dom_client.js?v=8e72fb43:8525
+runWithFiberInDEV @ react-dom_client.js?v=8e72fb43:997
+performUnitOfWork @ react-dom_client.js?v=8e72fb43:12561
+workLoopSync @ react-dom_client.js?v=8e72fb43:12424
+renderRootSync @ react-dom_client.js?v=8e72fb43:12408
+performWorkOnRoot @ react-dom_client.js?v=8e72fb43:11766
+performWorkOnRootViaSchedulerTask @ react-dom_client.js?v=8e72fb43:13505
+performWorkUntilDeadline @ react-dom_client.js?v=8e72fb43:36
+<App>
+exports.jsxDEV @ react_jsx-dev-runtime.js?v=8e72fb43:247
+(anonymous) @ main.jsx:8
+PurchaseDetail.jsx:269 [PurchaseDetail] Error: ApiError: Method Not Allowed
+    at apiFetch (http.js:70:11)
+    at async updatePurchaseStatus (purchase.api.js:347:15)
+    at async PurchaseDetail.jsx:244:11
+(anonymous) @ PurchaseDetail.jsx:269
+await in (anonymous)
+executeDispatch @ react-dom_client.js?v=8e72fb43:13622
+runWithFiberInDEV @ react-dom_client.js?v=8e72fb43:997
+processDispatchQueue @ react-dom_client.js?v=8e72fb43:13658
+(anonymous) @ react-dom_client.js?v=8e72fb43:14071
+batchedUpdates$1 @ react-dom_client.js?v=8e72fb43:2626
+dispatchEventForPluginEventSystem @ react-dom_client.js?v=8e72fb43:13763
+dispatchEvent @ react-dom_client.js?v=8e72fb43:16784
+dispatchDiscreteEvent @ react-dom_client.js?v=8e72fb43:16765
+<button>
+exports.jsxDEV @ react_jsx-dev-runtime.js?v=8e72fb43:247
+PurchaseDetail @ PurchaseDetail.jsx:499
+react_stack_bottom_frame @ react-dom_client.js?v=8e72fb43:18509
+renderWithHooksAgain @ react-dom_client.js?v=8e72fb43:5729
+renderWithHooks @ react-dom_client.js?v=8e72fb43:5665
+updateFunctionComponent @ react-dom_client.js?v=8e72fb43:7475
+beginWork @ react-dom_client.js?v=8e72fb43:8525
+runWithFiberInDEV @ react-dom_client.js?v=8e72fb43:997
+performUnitOfWork @ react-dom_client.js?v=8e72fb43:12561
+workLoopSync @ react-dom_client.js?v=8e72fb43:12424
+renderRootSync @ react-dom_client.js?v=8e72fb43:12408
+performWorkOnRoot @ react-dom_client.js?v=8e72fb43:11766
+performSyncWorkOnRoot @ react-dom_client.js?v=8e72fb43:13517
+flushSyncWorkAcrossRoots_impl @ react-dom_client.js?v=8e72fb43:13414
+processRootScheduleInMicrotask @ react-dom_client.js?v=8e72fb43:13437
+(anonymous) @ react-dom_client.js?v=8e72fb43:13531
+<PurchaseDetail>
+exports.jsxDEV @ react_jsx-dev-runtime.js?v=8e72fb43:247
+Purchase @ Purchase.jsx:207
+react_stack_bottom_frame @ react-dom_client.js?v=8e72fb43:18509
+renderWithHooksAgain @ react-dom_client.js?v=8e72fb43:5729
+renderWithHooks @ react-dom_client.js?v=8e72fb43:5665
+updateFunctionComponent @ react-dom_client.js?v=8e72fb43:7475
+beginWork @ react-dom_client.js?v=8e72fb43:8525
+runWithFiberInDEV @ react-dom_client.js?v=8e72fb43:997
+performUnitOfWork @ react-dom_client.js?v=8e72fb43:12561
+workLoopSync @ react-dom_client.js?v=8e72fb43:12424
+renderRootSync @ react-dom_client.js?v=8e72fb43:12408
+performWorkOnRoot @ react-dom_client.js?v=8e72fb43:11766
+performSyncWorkOnRoot @ react-dom_client.js?v=8e72fb43:13517
+flushSyncWorkAcrossRoots_impl @ react-dom_client.js?v=8e72fb43:13414
+processRootScheduleInMicrotask @ react-dom_client.js?v=8e72fb43:13437
+(anonymous) @ react-dom_client.js?v=8e72fb43:13531
+<Purchase>
+exports.jsxDEV @ react_jsx-dev-runtime.js?v=8e72fb43:247
+DashboardCanvas @ DashboardCanvas.jsx:106
+react_stack_bottom_frame @ react-dom_client.js?v=8e72fb43:18509
+renderWithHooksAgain @ react-dom_client.js?v=8e72fb43:5729
+renderWithHooks @ react-dom_client.js?v=8e72fb43:5665
+updateFunctionComponent @ react-dom_client.js?v=8e72fb43:7475
+beginWork @ react-dom_client.js?v=8e72fb43:8525
+runWithFiberInDEV @ react-dom_client.js?v=8e72fb43:997
+performUnitOfWork @ react-dom_client.js?v=8e72fb43:12561
+workLoopSync @ react-dom_client.js?v=8e72fb43:12424
+renderRootSync @ react-dom_client.js?v=8e72fb43:12408
+performWorkOnRoot @ react-dom_client.js?v=8e72fb43:11766
+performSyncWorkOnRoot @ react-dom_client.js?v=8e72fb43:13517
+flushSyncWorkAcrossRoots_impl @ react-dom_client.js?v=8e72fb43:13414
+processRootScheduleInMicrotask @ react-dom_client.js?v=8e72fb43:13437
+(anonymous) @ react-dom_client.js?v=8e72fb43:13531
+<DashboardCanvas>
+exports.jsxDEV @ react_jsx-dev-runtime.js?v=8e72fb43:247
+AppContent @ App.jsx:158
+react_stack_bottom_frame @ react-dom_client.js?v=8e72fb43:18509
+renderWithHooksAgain @ react-dom_client.js?v=8e72fb43:5729
+renderWithHooks @ react-dom_client.js?v=8e72fb43:5665
+updateFunctionComponent @ react-dom_client.js?v=8e72fb43:7475
+beginWork @ react-dom_client.js?v=8e72fb43:8525
+runWithFiberInDEV @ react-dom_client.js?v=8e72fb43:997
+performUnitOfWork @ react-dom_client.js?v=8e72fb43:12561
+workLoopSync @ react-dom_client.js?v=8e72fb43:12424
+renderRootSync @ react-dom_client.js?v=8e72fb43:12408
+performWorkOnRoot @ react-dom_client.js?v=8e72fb43:11766
+performWorkOnRootViaSchedulerTask @ react-dom_client.js?v=8e72fb43:13505
+performWorkUntilDeadline @ react-dom_client.js?v=8e72fb43:36
+<AppContent>
+exports.jsxDEV @ react_jsx-dev-runtime.js?v=8e72fb43:247
+App @ App.jsx:182
+react_stack_bottom_frame @ react-dom_client.js?v=8e72fb43:18509
+renderWithHooksAgain @ react-dom_client.js?v=8e72fb43:5729
+renderWithHooks @ react-dom_client.js?v=8e72fb43:5665
+updateFunctionComponent @ react-dom_client.js?v=8e72fb43:7475
+beginWork @ react-dom_client.js?v=8e72fb43:8525
+runWithFiberInDEV @ react-dom_client.js?v=8e72fb43:997
+performUnitOfWork @ react-dom_client.js?v=8e72fb43:12561
+workLoopSync @ react-dom_client.js?v=8e72fb43:12424
+renderRootSync @ react-dom_client.js?v=8e72fb43:12408
+performWorkOnRoot @ react-dom_client.js?v=8e72fb43:11766
+performWorkOnRootViaSchedulerTask @ react-dom_client.js?v=8e72fb43:13505
+performWorkUntilDeadline @ react-dom_client.js?v=8e72fb43:36
+<App>
+exports.jsxDEV @ react_jsx-dev-runtime.js?v=8e72fb43:247
+(anonymous) @ main.jsx:8
+

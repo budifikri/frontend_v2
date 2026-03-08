@@ -274,8 +274,7 @@ export async function updatePurchase(token, id, input) {
   console.log('[PurchaseAPI] Method: PUT')
 
   // Swagger spec: UpdatePurchaseOrderRequest
-  // Fields: supplier_id, warehouse_id, order_date, expected_date, items, notes
-  // Note: status is NOT part of UpdatePurchaseOrderRequest - use /status endpoint instead
+  // Fields: supplier_id, warehouse_id, order_date, expected_date, items, notes, status_po, status_receive
   const backendPayload = {
     supplier_id: input.supplier_id,
     warehouse_id: input.warehouse_id,
@@ -283,6 +282,14 @@ export async function updatePurchase(token, id, input) {
     expected_date: input.expected_date || input.expected_delivery,
     notes: input.notes,
     items: input.items,
+  }
+
+  // Include status if provided (for updating status via PUT /api/purchases/{id})
+  if (input.status_po) {
+    backendPayload.status_po = input.status_po
+  }
+  if (input.status_receive) {
+    backendPayload.status_receive = input.status_receive
   }
 
   console.log('[PurchaseAPI] Backend Payload:')
