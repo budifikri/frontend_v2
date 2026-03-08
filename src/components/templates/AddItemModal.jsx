@@ -208,55 +208,70 @@ export function AddItemModal({
             </div>
           )}
 
-          <div className="form-row">
-            <div className="form-section">
-              <label className="form-label">
-                Physical Stock <span className="required-mark">*</span>
-              </label>
-              <input
-                type="number"
-                value={physicalQty}
-                onChange={(e) => setPhysicalQty(e.target.value)}
-                className="form-input"
-                placeholder="0"
-                min="0"
-              />
-            </div>
-            <div className="form-section">
-              <label className="form-label">Variance</label>
-              <div className={`variance-display ${(Number(physicalQty) - systemQty) < 0 ? 'variance-negative' : (Number(physicalQty) - systemQty) > 0 ? 'variance-positive' : ''}`}>
-                {physicalQty ? (Number(physicalQty) - systemQty) : 0}
+          {/* Form Fields - Only show after product is selected */}
+          {isProductSelected && derivedProduct && (
+            <>
+              <div className="selected-product-info">
+                <div className="selected-product-sku">{derivedProduct.code || derivedProduct.sku || '-'}</div>
+                <div className="selected-product-name">{derivedProduct.name || derivedProduct.name_only || '-'}</div>
+                <div className="selected-product-stock">
+                  <span className="material-icons-round">inventory</span>
+                  System Stock: <strong>{systemQty}</strong>
+                </div>
               </div>
-            </div>
-          </div>
 
-          <div className="form-section">
-            <label className="form-label">Reason</label>
-            <div className="select-wrapper">
-              <select
-                value={reason}
-                onChange={(e) => setReason(e.target.value)}
-                className="form-select"
-              >
-                <option value="">Select Reason...</option>
-                {REASON_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>{opt.label}</option>
-                ))}
-              </select>
-              <span className="select-arrow material-icons-round">expand_more</span>
-            </div>
-          </div>
+              <div className="form-row">
+                <div className="form-section">
+                  <label className="form-label">
+                    Physical Stock <span className="required-mark">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    value={physicalQty}
+                    onChange={(e) => setPhysicalQty(e.target.value)}
+                    className="form-input"
+                    placeholder="0"
+                    min="0"
+                    autoFocus
+                  />
+                </div>
+                <div className="form-section">
+                  <label className="form-label">Variance</label>
+                  <div className={`variance-display ${(Number(physicalQty) - systemQty) < 0 ? 'variance-negative' : (Number(physicalQty) - systemQty) > 0 ? 'variance-positive' : ''}`}>
+                    {physicalQty ? (Number(physicalQty) - systemQty) : 0}
+                  </div>
+                </div>
+              </div>
 
-          <div className="form-section">
-            <label className="form-label">Notes</label>
-            <textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              className="form-textarea"
-              placeholder="Enter any additional details..."
-              rows={2}
-            />
-          </div>
+              <div className="form-section">
+                <label className="form-label">Reason</label>
+                <div className="select-wrapper">
+                  <select
+                    value={reason}
+                    onChange={(e) => setReason(e.target.value)}
+                    className="form-select"
+                  >
+                    <option value="">Select Reason...</option>
+                    {REASON_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                  <span className="select-arrow material-icons-round">expand_more</span>
+                </div>
+              </div>
+
+              <div className="form-section">
+                <label className="form-label">Notes</label>
+                <textarea
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  className="form-textarea"
+                  placeholder="Enter any additional details..."
+                  rows={2}
+                />
+              </div>
+            </>
+          )}
         </div>
 
         {/* Modal Footer */}
