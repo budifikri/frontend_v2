@@ -1,0 +1,16 @@
+[GET] http://localhost:3000/api/categories?limit=200&offset=0&include_inactive=true => [200] OK
+[GET] http://localhost:3000/api/units?include_inactive=true&limit=200&offset=0 => [200] OK
+[GET] http://localhost:3000/api/warehouses?limit=200&offset=0 => [200] OK
+[GET] http://localhost:3000/api/products?is_active=true&limit=10&offset=0 => [200] OK
+[GET] http://localhost:3000/api/categories?limit=200&offset=0&include_inactive=true => [200] OK
+[GET] http://localhost:3000/api/units?include_inactive=true&limit=200&offset=0 => [200] OK
+[GET] http://localhost:3000/api/warehouses?limit=200&offset=0 => [200] OK
+[GET] http://localhost:3000/api/products?is_active=true&limit=10&offset=0 => [200] OK
+[GET] http://localhost:3000/api/purchases?limit=10&offset=0 => [200] OK
+[GET] http://localhost:3000/api/suppliers?limit=200 => [200] OK
+[GET] http://localhost:3000/api/warehouses?limit=200 => [200] OK
+[GET] http://localhost:3000/api/suppliers?limit=200 => [200] OK
+[GET] http://localhost:3000/api/warehouses?limit=200 => [200] OK
+[GET] http://localhost:3000/api/products?limit=200 => [200] OK
+[POST] http://localhost:3000/api/purchases => [201] Created
+[GET] http://localhost:3000/api/purchases?limit=10&offset=0 => [200] OK

@@ -87,7 +87,7 @@ export function AddPurchaseItemModal({ isOpen, onClose, onAdd, token }) {
       product_name: product?.name || '',
       sku: product?.code || '',
       quantity: Number(quantity) || 1,
-      unit_price: Number(unitPrice) || 0,
+      unit_price: Number(unitPriceValue) || 0,
       discount: Number(discount) || 0,
       tax_rate: Number(taxRate) || 0,
     })
