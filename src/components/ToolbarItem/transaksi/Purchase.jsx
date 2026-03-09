@@ -116,7 +116,6 @@ export function Purchase({ onExit }) {
   const [showDateModal, setShowDateModal] = useState(false)
   const [customDateFrom, setCustomDateFrom] = useState('')
   const [customDateTo, setCustomDateTo] = useState('')
-  const [forceRefresh, setForceRefresh] = useState(0) // Trigger for date filter apply
 
   // Toast state
   const [toast, setToast] = useState({ isOpen: false, message: '', type: 'info' })
@@ -126,12 +125,14 @@ export function Purchase({ onExit }) {
     setToast({ isOpen: true, message, type })
   }
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (overrides = {}) => {
     setError('')
     setIsLoading(true)
 
-    // Get date range from filter
-    const { date_from, date_to } = getDateRange(dateFilter, customDateFrom, customDateTo)
+    // Get date range from filter - use overrides if provided (for immediate refresh scenarios)
+    const { date_from: df, date_to: dt } = getDateRange(dateFilter, customDateFrom, customDateTo)
+    const date_from = overrides.date_from ?? df
+    const date_to = overrides.date_to ?? dt
 
     if (!token) {
       let items = [...DUMMY_PURCHASES]
@@ -184,8 +185,7 @@ export function Purchase({ onExit }) {
     } finally {
       setIsLoading(false)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token, searchKeyword, statusFilter, dateFilter, customDateFrom, customDateTo, limit, offset, forceRefresh])
+  }, [token, searchKeyword, statusFilter, dateFilter, customDateFrom, customDateTo, limit, offset])
 
   useEffect(() => {
     if (fetchDataRef.current) return
@@ -268,10 +268,10 @@ export function Purchase({ onExit }) {
   const handleDateFilterChange = (value) => {
     if (value === 'custom') {
       setShowDateModal(true)
-      // Don't change dateFilter yet - wait for user to apply dates
     } else {
       pager.reset()
       setDateFilter(value)
+      fetchData()
     }
   }
 
@@ -288,14 +288,17 @@ export function Purchase({ onExit }) {
     }
     setShowDateModal(false)
     setDateFilter('custom')
-    setForceRefresh(prev => prev + 1) // Trigger fetchData with new dates
     pager.reset()
+    // Pass 'custom' directly to getDateRange since state hasn't updated yet
+    const { date_from, date_to } = getDateRange('custom', customDateFrom, customDateTo)
+    fetchData({ date_from, date_to })
   }
 
   const handleClearDateFilter = () => {
     setDateFilter('all')
     setCustomDateFrom('')
     setCustomDateTo('')
+    fetchData()
   }
 
   const handleCancelDateModal = () => {
@@ -336,8 +339,9 @@ export function Purchase({ onExit }) {
               className="master-search-input"
               value={searchKeyword}
               onChange={(e) => { pager.reset(); setSearchKeyword(e.target.value) }}
+              onKeyDown={(e) => { if (e.key === 'Enter') fetchData() }}
             />
-            <button type="button" className="master-search-btn">
+            <button type="button" className="master-search-btn" onClick={() => fetchData()}>
               <span className="material-icons-round material-icon">search</span>
             </button>
           </div>
@@ -371,7 +375,7 @@ export function Purchase({ onExit }) {
               id="purchase-status-filter"
               className="master-filter-select"
               value={statusFilter}
-              onChange={(e) => { pager.reset(); setStatusFilter(e.target.value) }}
+              onChange={(e) => { pager.reset(); setStatusFilter(e.target.value); fetchData() }}
             >
               <option value="all">All Status</option>
               <option value="draft">Draft</option>
