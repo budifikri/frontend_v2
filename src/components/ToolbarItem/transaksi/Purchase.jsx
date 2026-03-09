@@ -15,7 +15,8 @@ const TABLE_COLUMNS = [
   { key: 'supplier_name', label: 'SUPPLIER', sortable: true },
   { key: 'warehouse_name', label: 'WAREHOUSE', sortable: true },
   { key: 'po_date', label: 'DATE', sortable: true, width: '120px' },
-  { key: 'status', label: 'STATUS', sortable: true },
+  { key: 'status', label: 'STATUS PO', sortable: true },
+  { key: 'status_receive', label: 'STATUS RECEIVE', sortable: true },
   { key: 'grand_total', label: 'TOTAL', sortable: true },
 ]
 
@@ -27,20 +28,31 @@ const DUMMY_PURCHASES = [
     warehouse_name: 'Gudang Utama',
     po_date: '2026-03-07T10:00:00Z',
     status: 'draft',
+    status_receive: 'draft',
     grand_total: 1110000,
   },
 ]
 
 function getStatusBadgeClass(status) {
-  const classes = {
-    draft: 'status-badge-pending',
-    pending: 'status-badge-approved',
+  const statusLower = status?.toLowerCase()
+  
+  // Handle STATUS PO enum: draft, approve, pending
+  if (statusLower === 'draft') return 'status-badge-pending'
+  if (statusLower === 'approve') return 'status-badge-approved'
+  if (statusLower === 'pending') return 'status-badge-approved'
+  
+  // Handle STATUS RECEIVE enum: draft, reject, receive
+  if (statusLower === 'reject') return 'status-badge-rejected'
+  if (statusLower === 'receive') return 'status-badge-posted'
+  
+  // Fallback for old/legacy statuses
+  const legacyClasses = {
     approved: 'status-badge-posted',
     rejected: 'status-badge-rejected',
     cancelled: 'status-badge-rejected',
     completed: 'status-badge-posted',
   }
-  return classes[status?.toLowerCase()] || 'status-badge-pending'
+  return legacyClasses[statusLower] || 'status-badge-pending'
 }
 
 function formatDate(dateStr) {
@@ -88,10 +100,6 @@ function formatDateISO(date) {
   return `${year}-${month}-${day}`
 }
 
-function isDateFilterActive(filterType) {
-  return filterType !== 'all'
-}
-
 export function Purchase({ onExit }) {
   const { auth } = useAuth()
   const token = auth?.token
@@ -103,6 +111,7 @@ export function Purchase({ onExit }) {
 
   const [searchKeyword, setSearchKeyword] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
+  const [statusReceiveFilter, setStatusReceiveFilter] = useState('all')
   const pager = useMasterPagination({ initialLimit: 10, total: pagination.total, hasMore: pagination.has_more })
   const { limit, offset } = pager
 
@@ -138,6 +147,7 @@ export function Purchase({ onExit }) {
     // Use override status if provided (check with 'in' to distinguish undefined from not provided)
     // When status is 'all', we pass undefined to clear the filter
     const filterStatus = 'status' in overrides ? overrides.status : (statusFilter !== 'all' ? statusFilter : undefined)
+    const filterStatusReceive = statusReceiveFilter !== 'all' ? statusReceiveFilter : undefined
 
     if (!token) {
       let items = [...DUMMY_PURCHASES]
@@ -150,6 +160,9 @@ export function Purchase({ onExit }) {
       }
       if (filterStatus) {
         items = items.filter(item => item.status === filterStatus)
+      }
+      if (filterStatusReceive) {
+        items = items.filter(item => item.status_receive === filterStatusReceive)
       }
       // Apply date filter for dummy data
       if (date_from && date_to) {
@@ -172,6 +185,7 @@ export function Purchase({ onExit }) {
       const result = await listPurchases(token, {
         search: searchKeyword.trim() || undefined,
         status: filterStatus,
+        status_receive: filterStatusReceive,
         date_from: date_from || undefined,
         date_to: date_to || undefined,
         limit,
@@ -190,7 +204,7 @@ export function Purchase({ onExit }) {
     } finally {
       setIsLoading(false)
     }
-  }, [token, searchKeyword, statusFilter, dateFilter, customDateFrom, customDateTo, limit, offset])
+  }, [token, searchKeyword, statusFilter, statusReceiveFilter, dateFilter, customDateFrom, customDateTo, limit, offset])
 
   useEffect(() => {
     if (fetchDataRef.current) return
@@ -272,11 +286,21 @@ export function Purchase({ onExit }) {
   // Date filter handlers
   const handleDateFilterChange = (value) => {
     if (value === 'custom') {
+      // Set default dates to today when opening custom date modal
+      const today = new Date().toISOString().split('T')[0]
+      setCustomDateFrom(today)
+      setCustomDateTo(today)
       setShowDateModal(true)
     } else {
-      pager.reset()
+      // Clear custom dates when switching to non-custom filter
+      setCustomDateFrom('')
+      setCustomDateTo('')
       setDateFilter(value)
-      fetchData()
+      // Manually trigger fetch since useEffect won't run due to fetchDataRef guard
+      // Pass 'all' to getDateRange to get empty date range
+      const { date_from, date_to } = getDateRange(value, '', '')
+      fetchData({ date_from, date_to })
+      pager.reset()
     }
   }
 
@@ -297,13 +321,6 @@ export function Purchase({ onExit }) {
     // Pass 'custom' directly to getDateRange since state hasn't updated yet
     const { date_from, date_to } = getDateRange('custom', customDateFrom, customDateTo)
     fetchData({ date_from, date_to })
-  }
-
-  const handleClearDateFilter = () => {
-    setDateFilter('all')
-    setCustomDateFrom('')
-    setCustomDateTo('')
-    fetchData()
   }
 
   const handleCancelDateModal = () => {
@@ -363,19 +380,9 @@ export function Purchase({ onExit }) {
               <option value="this_year">This Year</option>
               <option value="custom">Custom</option>
             </select>
-            {isDateFilterActive(dateFilter) && (
-              <button
-                type="button"
-                className="master-filter-clear-btn"
-                onClick={handleClearDateFilter}
-                title="Clear date filter"
-              >
-                <span className="material-icons-round material-icon">close</span>
-              </button>
-            )}
           </div>
           <div className="master-filter-wrap">
-            <label htmlFor="purchase-status-filter" className="master-filter-label">Status</label>
+            <label htmlFor="purchase-status-filter" className="master-filter-label">Status PO</label>
             <select
               id="purchase-status-filter"
               className="master-filter-select"
@@ -388,13 +395,28 @@ export function Purchase({ onExit }) {
                 fetchData({ status: newStatus === 'all' ? undefined : newStatus })
               }}
             >
-              <option value="all">All Status</option>
+              <option value="all">All Status PO</option>
               <option value="draft">Draft</option>
+              <option value="approve">Approve</option>
               <option value="pending">Pending</option>
-              <option value="approved">Approved</option>
-              <option value="rejected">Rejected</option>
-              <option value="cancelled">Cancelled</option>
-              <option value="completed">Completed</option>
+            </select>
+          </div>
+          <div className="master-filter-wrap">
+            <label htmlFor="purchase-status-receive-filter" className="master-filter-label">Status Receive</label>
+            <select
+              id="purchase-status-receive-filter"
+              className="master-filter-select"
+              value={statusReceiveFilter}
+              onChange={(e) => {
+                const newStatus = e.target.value
+                pager.reset()
+                setStatusReceiveFilter(newStatus)
+              }}
+            >
+              <option value="all">All Status Receive</option>
+              <option value="draft">Draft</option>
+              <option value="reject">Reject</option>
+              <option value="receive">Receive</option>
             </select>
           </div>
         </div>
@@ -424,11 +446,16 @@ export function Purchase({ onExit }) {
                       {row.status || '-'}
                     </span>
                   </td>
+                  <td>
+                    <span className={`status-badge ${getStatusBadgeClass(row.status_receive)}`}>
+                      {row.status_receive || '-'}
+                    </span>
+                  </td>
                   <td className="text-right">{formatCurrency(row.grand_total)}</td>
                 </tr>
               ))}
               {!isLoading && sortedData.length === 0 && (
-                <tr><td colSpan={7} className="text-center">No data</td></tr>
+                <tr><td colSpan={8} className="text-center">No data</td></tr>
               )}
             </tbody>
           </table>

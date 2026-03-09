@@ -81,6 +81,7 @@ function normalizePurchase(raw) {
   console.log('[PurchaseAPI] normalizePurchase INPUT:', raw)
   console.log('[PurchaseAPI] normalizePurchase INPUT.items:', raw?.items)
   console.log('[PurchaseAPI] normalizePurchase raw.status:', raw?.status, 'raw.status_po:', raw?.status_po)
+  console.log('[PurchaseAPI] normalizePurchase raw.status_receive:', raw?.status_receive)
 
   const items = (raw?.items ?? []).map((item, index) => normalizePurchaseItem(item, index))
 
@@ -89,6 +90,8 @@ function normalizePurchase(raw) {
   // Backend returns status_po, map to status for frontend use
   // Also support raw.status for backwards compatibility
   const statusValue = raw?.status_po || raw?.status || 'draft'
+  // Backend returns status_receive, normalize to lowercase
+  const statusReceiveValue = raw?.status_receive || 'draft'
 
   return {
     id: raw?.id || '',
@@ -98,6 +101,7 @@ function normalizePurchase(raw) {
     warehouse_id: raw?.warehouse_id || '',
     warehouse_name: raw?.warehouse_name || raw?.warehouse?.name || '-',
     status: statusValue.toLowerCase(), // Normalize to lowercase
+    status_receive: statusReceiveValue.toLowerCase(), // Normalize to lowercase
     // Backend returns po_date or order_date, map to po_date for frontend
     po_date: raw?.po_date || raw?.order_date || '',
     expected_date: raw?.expected_date || raw?.expected_delivery || '',
@@ -116,6 +120,7 @@ export async function listPurchases(token, params = {}) {
   const qs = new URLSearchParams()
   if (params.search) qs.set('search', params.search)
   if (params.status) qs.set('status', params.status)
+  if (params.status_receive) qs.set('status_receive', params.status_receive)
   if (params.supplier_id) qs.set('supplier_id', params.supplier_id)
   if (params.warehouse_id) qs.set('warehouse_id', params.warehouse_id)
   if (params.date_from) qs.set('date_from', params.date_from)
@@ -140,6 +145,9 @@ export async function listPurchases(token, params = {}) {
     }
     if (params.status) {
       items = items.filter(item => item.status === params.status)
+    }
+    if (params.status_receive) {
+      items = items.filter(item => item.status_receive === params.status_receive)
     }
 
     const total = items.length
