@@ -311,7 +311,7 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
         <div className="stock-opname-header-top">
           <div className="stock-opname-title-section">
             <div className="stock-opname-accent-bar"></div>
-            <h1 className="stock-opname-title">PURCHASE ORDER - {header.po_number}</h1>
+            <h1 className="stock-opname-title">PURCHASE ORDER - {propSelectedId ? header.po_number : 'NEW'}</h1>
           </div>
           <div className="stock-opname-status-group">
             <button type="button" className={`status-button ${header.status === 'draft' ? 'status-button-active' : 'status-button-inactive'}`} onClick={() => handleStatusChange('draft')}>
@@ -326,10 +326,6 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
           </div>
         </div>
         <div className="stock-opname-header-form">
-          <div className="form-group">
-            <label className="master-form-label">PO Number</label>
-            <input type="text" value={header.po_number} readOnly className="master-form-input master-form-input-readonly" />
-          </div>
           <div className="form-group">
             <label className="master-form-label">Supplier *</label>
             <select value={header.supplier_id} onChange={(e) => setHeader({ ...header, supplier_id: e.target.value })} className="master-form-input">

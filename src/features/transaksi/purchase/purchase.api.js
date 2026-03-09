@@ -469,6 +469,6 @@ export async function listSuppliers(token, params = {}) {
 export function generatePONumber() {
   const today = new Date()
   const dateStr = today.toISOString().split('T')[0].replace(/-/g, '')
-  const randomNum = Math.floor(Math.random() * 999) + 1
-  return `PO-${dateStr}-${String(randomNum).padStart(3, '0')}`
+  const timestamp = Date.now()
+  return `PO-${dateStr}-${timestamp}`
 }
