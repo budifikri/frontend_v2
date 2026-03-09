@@ -114,8 +114,10 @@ export function Purchase({ onExit }) {
   // Date filter state
   const [dateFilter, setDateFilter] = useState('this_month') // 'all', 'this_month', 'this_year', 'custom'
   const [showDateModal, setShowDateModal] = useState(false)
-  const [customDateFrom, setCustomDateFrom] = useState('')
-  const [customDateTo, setCustomDateTo] = useState('')
+  const today = new Date()
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
+  const [customDateFrom, setCustomDateFrom] = useState(todayStr)
+  const [customDateTo, setCustomDateTo] = useState(todayStr)
 
   // Toast state
   const [toast, setToast] = useState({ isOpen: false, message: '', type: 'info' })
@@ -133,6 +135,9 @@ export function Purchase({ onExit }) {
     const { date_from: df, date_to: dt } = getDateRange(dateFilter, customDateFrom, customDateTo)
     const date_from = overrides.date_from ?? df
     const date_to = overrides.date_to ?? dt
+    // Use override status if provided (check with 'in' to distinguish undefined from not provided)
+    // When status is 'all', we pass undefined to clear the filter
+    const filterStatus = 'status' in overrides ? overrides.status : (statusFilter !== 'all' ? statusFilter : undefined)
 
     if (!token) {
       let items = [...DUMMY_PURCHASES]
@@ -143,8 +148,8 @@ export function Purchase({ onExit }) {
           item.supplier_name.toLowerCase().includes(keyword)
         )
       }
-      if (statusFilter !== 'all') {
-        items = items.filter(item => item.status === statusFilter)
+      if (filterStatus) {
+        items = items.filter(item => item.status === filterStatus)
       }
       // Apply date filter for dummy data
       if (date_from && date_to) {
@@ -166,7 +171,7 @@ export function Purchase({ onExit }) {
     try {
       const result = await listPurchases(token, {
         search: searchKeyword.trim() || undefined,
-        status: statusFilter !== 'all' ? statusFilter : undefined,
+        status: filterStatus,
         date_from: date_from || undefined,
         date_to: date_to || undefined,
         limit,
@@ -375,7 +380,13 @@ export function Purchase({ onExit }) {
               id="purchase-status-filter"
               className="master-filter-select"
               value={statusFilter}
-              onChange={(e) => { pager.reset(); setStatusFilter(e.target.value); fetchData() }}
+              onChange={(e) => {
+                const newStatus = e.target.value
+                pager.reset()
+                setStatusFilter(newStatus)
+                // Always pass the new status value explicitly (use undefined for 'all')
+                fetchData({ status: newStatus === 'all' ? undefined : newStatus })
+              }}
             >
               <option value="all">All Status</option>
               <option value="draft">Draft</option>
