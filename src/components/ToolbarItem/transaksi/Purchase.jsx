@@ -147,7 +147,7 @@ export function Purchase({ onExit }) {
     // Use override status if provided (check with 'in' to distinguish undefined from not provided)
     // When status is 'all', we pass undefined to clear the filter
     const filterStatus = 'status' in overrides ? overrides.status : (statusFilter !== 'all' ? statusFilter : undefined)
-    const filterStatusReceive = statusReceiveFilter !== 'all' ? statusReceiveFilter : undefined
+    const filterStatusReceive = 'status_receive' in overrides ? overrides.status_receive : (statusReceiveFilter !== 'all' ? statusReceiveFilter : undefined)
 
     if (!token) {
       let items = [...DUMMY_PURCHASES]
@@ -411,6 +411,7 @@ export function Purchase({ onExit }) {
                 const newStatus = e.target.value
                 pager.reset()
                 setStatusReceiveFilter(newStatus)
+                fetchData({ status_receive: newStatus === 'all' ? undefined : newStatus })
               }}
             >
               <option value="all">All Status Receive</option>
