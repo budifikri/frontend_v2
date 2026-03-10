@@ -93,14 +93,22 @@ function normalizePurchase(raw) {
   // Backend returns status_receive, normalize to lowercase
   const statusReceiveValue = raw?.status_receive || 'draft'
 
+  const normalizeStatusPo = (value) => {
+    const v = String(value || '').toLowerCase()
+    // UI uses 'approved' (PurchaseDetail), but some APIs may return/accept 'approve'
+    if (v === 'approve') return 'approved'
+    return v
+  }
+
   return {
     id: raw?.id || '',
     po_number: raw?.po_number || raw?.purchase_number || '',
+    receive_number: raw?.receive_number || raw?.receive_no || raw?.receiveNumber || raw?.stock_receive_number || '',
     supplier_id: raw?.supplier_id || '',
     supplier_name: raw?.supplier_name || raw?.supplier?.name || '-',
     warehouse_id: raw?.warehouse_id || '',
     warehouse_name: raw?.warehouse_name || raw?.warehouse?.name || '-',
-    status: statusValue.toLowerCase(), // Normalize to lowercase
+    status: normalizeStatusPo(statusValue),
     status_receive: statusReceiveValue.toLowerCase(), // Normalize to lowercase
     // Backend returns po_date or order_date, map to po_date for frontend
     po_date: raw?.po_date || raw?.order_date || '',

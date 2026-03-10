@@ -6,6 +6,8 @@ export function FooterMaster({
   onPrint,
   onExit,
   onRefresh,
+  showNew = true,
+  showDelete = true,
   isLoading = false,
   page = 1,
   totalPages = 1,
@@ -20,18 +22,22 @@ export function FooterMaster({
   return (
     <div className="master-footer">
       <div className="master-footer-actions">
-        <button type="button" className="master-footer-btn" onClick={onNew} title="New" aria-label="New">
-          <span className="material-icons-round master-footer-icon orange">add_box</span>
-          <span className="master-footer-key">+</span>
-        </button>
+        {showNew && (
+          <button type="button" className="master-footer-btn" onClick={onNew} title="New" aria-label="New">
+            <span className="material-icons-round master-footer-icon orange">add_box</span>
+            <span className="master-footer-key">+</span>
+          </button>
+        )}
         <button type="button" className="master-footer-btn" onClick={onEdit} title="Edit" aria-label="Edit">
           <span className="material-icons-round master-footer-icon orange">edit</span>
           <span className="master-footer-key">F2</span>
         </button>
-        <button type="button" className="master-footer-btn" onClick={onDelete} title="Delete" aria-label="Delete">
-          <span className="material-icons-round master-footer-icon orange">remove_circle</span>
-          <span className="master-footer-key">DEL</span>
-        </button>
+        {showDelete && (
+          <button type="button" className="master-footer-btn" onClick={onDelete} title="Delete" aria-label="Delete">
+            <span className="material-icons-round master-footer-icon orange">remove_circle</span>
+            <span className="master-footer-key">DEL</span>
+          </button>
+        )}
         <button type="button" className="master-footer-btn" onClick={onPrint} title="Print" aria-label="Print">
           <span className="material-icons-round master-footer-icon blue">print</span>
         </button>

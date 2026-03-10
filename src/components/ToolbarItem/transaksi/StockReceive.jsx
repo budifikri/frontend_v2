@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useState, useRef } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useAuth } from '../../../shared/auth'
-import { listPurchases, deletePurchase } from '../../../features/transaksi/purchase/purchase.api'
+import { listPurchases } from '../../../features/transaksi/purchase/purchase.api'
 import { FooterMaster } from '../footer/FooterMaster'
 import { DeleteMaster } from '../footer/DeleteMaster'
 import { MasterTableHeader } from '../table/MasterTableHeader'
@@ -11,42 +11,38 @@ import { Toast } from '../../Toast'
 
 const TABLE_COLUMNS = [
   { key: 'no', label: 'NO', sortable: false, width: '50px' },
-  { key: 'po_number', label: 'PO NUMBER', sortable: true },
+  { key: 'receive_number', label: 'RECEIVE NUMBER', sortable: true },
   { key: 'supplier_name', label: 'SUPPLIER', sortable: true },
   { key: 'warehouse_name', label: 'WAREHOUSE', sortable: true },
   { key: 'po_date', label: 'DATE', sortable: true, width: '120px' },
-  { key: 'status', label: 'STATUS PO', sortable: true },
   { key: 'status_receive', label: 'STATUS RECEIVE', sortable: true },
   { key: 'grand_total', label: 'TOTAL', sortable: true },
 ]
 
-const DUMMY_PURCHASES = [
+const DUMMY_RECEIVES = [
   {
-    id: 'PO001',
-    po_number: 'PO-20260307-001',
+    id: 'RCV001',
+    receive_number: 'RCV-20260307-001',
+    po_number: 'PO-20260306-001',
     supplier_name: 'PT. Supplier Utama',
     warehouse_name: 'Gudang Utama',
     po_date: '2026-03-07T10:00:00Z',
-    status: 'draft',
-    status_receive: 'draft',
+    status: 'approved',
+    status_receive: 'receive',
     grand_total: 1110000,
   },
 ]
 
 function getStatusBadgeClass(status) {
   const statusLower = status?.toLowerCase()
-  
-  // Handle STATUS PO enum: draft, approve, pending
+
   if (statusLower === 'draft') return 'status-badge-pending'
   if (statusLower === 'approve') return 'status-badge-approved'
-  if (statusLower === 'approved') return 'status-badge-approved'
   if (statusLower === 'pending') return 'status-badge-approved'
-  
-  // Handle STATUS RECEIVE enum: draft, reject, receive
+
   if (statusLower === 'reject') return 'status-badge-rejected'
   if (statusLower === 'receive') return 'status-badge-posted'
-  
-  // Fallback for old/legacy statuses
+
   const legacyClasses = {
     approved: 'status-badge-posted',
     rejected: 'status-badge-rejected',
@@ -67,7 +63,6 @@ function formatCurrency(amount) {
   return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(amount)
 }
 
-// Helper functions for date filter
 function getDateRange(filterType, customFrom, customTo) {
   const now = new Date()
   let date_from = ''
@@ -101,9 +96,17 @@ function formatDateISO(date) {
   return `${year}-${month}-${day}`
 }
 
-export function Purchase({ onExit }) {
+export function StockReceive({ onExit }) {
   const { auth } = useAuth()
   const token = auth?.token
+
+  const FIXED_STATUS_PO = 'approved'
+
+  const normalizeStatusPo = (value) => {
+    const v = String(value || '').toLowerCase()
+    if (v === 'approve') return 'approved'
+    return v
+  }
 
   const [data, setData] = useState([])
   const [pagination, setPagination] = useState({ has_more: false, total: 0 })
@@ -111,25 +114,21 @@ export function Purchase({ onExit }) {
   const [error, setError] = useState('')
 
   const [searchKeyword, setSearchKeyword] = useState('')
-  const [statusFilter, setStatusFilter] = useState('all')
   const [statusReceiveFilter, setStatusReceiveFilter] = useState('all')
   const pager = useMasterPagination({ initialLimit: 10, total: pagination.total, hasMore: pagination.has_more })
   const { limit, offset } = pager
 
   const [selectedId, setSelectedId] = useState(null)
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [showExitConfirm, setShowExitConfirm] = useState(false)
   const [showDetail, setShowDetail] = useState(false)
 
-  // Date filter state
-  const [dateFilter, setDateFilter] = useState('this_month') // 'all', 'this_month', 'this_year', 'custom'
+  const [dateFilter, setDateFilter] = useState('this_month')
   const [showDateModal, setShowDateModal] = useState(false)
   const today = new Date()
   const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
   const [customDateFrom, setCustomDateFrom] = useState(todayStr)
   const [customDateTo, setCustomDateTo] = useState(todayStr)
 
-  // Toast state
   const [toast, setToast] = useState({ isOpen: false, message: '', type: 'info' })
   const fetchDataRef = useRef(false)
 
@@ -141,31 +140,28 @@ export function Purchase({ onExit }) {
     setError('')
     setIsLoading(true)
 
-    // Get date range from filter - use overrides if provided (for immediate refresh scenarios)
     const { date_from: df, date_to: dt } = getDateRange(dateFilter, customDateFrom, customDateTo)
     const date_from = overrides.date_from ?? df
     const date_to = overrides.date_to ?? dt
-    // Use override status if provided (check with 'in' to distinguish undefined from not provided)
-    // When status is 'all', we pass undefined to clear the filter
-    const filterStatus = 'status' in overrides ? overrides.status : (statusFilter !== 'all' ? statusFilter : undefined)
-    const filterStatusReceive = 'status_receive' in overrides ? overrides.status_receive : (statusReceiveFilter !== 'all' ? statusReceiveFilter : undefined)
+    const filterStatusReceive = 'status_receive' in overrides
+      ? overrides.status_receive
+      : (statusReceiveFilter !== 'all' ? statusReceiveFilter : undefined)
 
     if (!token) {
-      let items = [...DUMMY_PURCHASES]
+      let items = [...DUMMY_RECEIVES]
       if (searchKeyword.trim()) {
         const keyword = searchKeyword.trim().toLowerCase()
         items = items.filter(item =>
-          item.po_number.toLowerCase().includes(keyword) ||
-          item.supplier_name.toLowerCase().includes(keyword)
+          String(item.receive_number || item.po_number || '').toLowerCase().includes(keyword) ||
+          String(item.supplier_name || '').toLowerCase().includes(keyword)
         )
       }
-      if (filterStatus) {
-        items = items.filter(item => item.status === filterStatus)
-      }
+
+      items = items.filter(item => normalizeStatusPo(item.status) === FIXED_STATUS_PO)
       if (filterStatusReceive) {
-        items = items.filter(item => item.status_receive === filterStatusReceive)
+        items = items.filter(item => String(item.status_receive || '').toLowerCase() === String(filterStatusReceive).toLowerCase())
       }
-      // Apply date filter for dummy data
+
       if (date_from && date_to) {
         const from = new Date(date_from)
         const to = new Date(date_to)
@@ -185,27 +181,31 @@ export function Purchase({ onExit }) {
     try {
       const result = await listPurchases(token, {
         search: searchKeyword.trim() || undefined,
-        status: filterStatus,
+        status: FIXED_STATUS_PO,
         status_receive: filterStatusReceive,
         date_from: date_from || undefined,
         date_to: date_to || undefined,
         limit,
         offset,
       })
-      setData(result.items || [])
+      const items = (result.items || []).map((row) => ({
+        ...row,
+        receive_number: row.receive_number || row.receiveNumber || row.po_number,
+      }))
+      setData(items)
       const nextPagination = result.pagination || {}
       setPagination({
         total: Number(nextPagination.total ?? 0),
         has_more: Boolean(nextPagination.has_more),
       })
     } catch (err) {
-      setError(err.message || 'Failed to load purchases')
+      setError(err.message || 'Failed to load stock receives')
       setData([])
       setPagination({ total: 0, has_more: false })
     } finally {
       setIsLoading(false)
     }
-  }, [token, searchKeyword, statusFilter, statusReceiveFilter, dateFilter, customDateFrom, customDateTo, limit, offset])
+  }, [token, searchKeyword, statusReceiveFilter, dateFilter, customDateFrom, customDateTo, limit, offset])
 
   useEffect(() => {
     if (fetchDataRef.current) return
@@ -229,76 +229,20 @@ export function Purchase({ onExit }) {
     setShowDetail(true)
   }, [selectedItem, sortedData])
 
-  const handleNew = useCallback(() => {
-    setSelectedId(null)
-    setShowDetail(true)
-  }, [])
-
-  const handleDeleteClick = useCallback(() => {
-    if (selectedItem) {
-      setShowDeleteConfirm(true)
-    }
-  }, [selectedItem])
-
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (showDeleteConfirm || showExitConfirm) return
-      if (e.key === 'F2') {
-        e.preventDefault()
-        handleViewDetail()
-      } else if (e.key === 'Delete') {
-        e.preventDefault()
-        handleDeleteClick()
-      } else if (e.key === '+' || e.key === 'F1') {
-        e.preventDefault()
-        handleNew()
-      } else if (e.key === 'Escape') {
-        e.preventDefault()
-        setShowExitConfirm(true)
-      }
-    }
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [showDeleteConfirm, showExitConfirm, handleViewDetail, handleDeleteClick, handleNew])
-
-  const handleConfirmDelete = async () => {
-    if (!selectedItem) {
-      setShowDeleteConfirm(false)
-      return
-    }
-    try {
-      if (token) {
-        await deletePurchase(token, selectedItem.id)
-        await fetchData()
-      } else {
-        setData((prev) => prev.filter((row) => row.id !== selectedItem.id))
-      }
-      setShowDeleteConfirm(false)
-      setSelectedId(null)
-    } catch (err) {
-      setError(err.message || 'Failed to delete purchase')
-    }
-  }
-
   const handlePrint = () => window.print()
   const handleExitClick = () => setShowExitConfirm(true)
   const handleConfirmExit = () => { setShowExitConfirm(false); onExit() }
 
-  // Date filter handlers
   const handleDateFilterChange = (value) => {
     if (value === 'custom') {
-      // Set default dates to today when opening custom date modal
       const today = new Date().toISOString().split('T')[0]
       setCustomDateFrom(today)
       setCustomDateTo(today)
       setShowDateModal(true)
     } else {
-      // Clear custom dates when switching to non-custom filter
       setCustomDateFrom('')
       setCustomDateTo('')
       setDateFilter(value)
-      // Manually trigger fetch since useEffect won't run due to fetchDataRef guard
-      // Pass 'all' to getDateRange to get empty date range
       const { date_from, date_to } = getDateRange(value, '', '')
       fetchData({ date_from, date_to })
       pager.reset()
@@ -319,29 +263,39 @@ export function Purchase({ onExit }) {
     setShowDateModal(false)
     setDateFilter('custom')
     pager.reset()
-    // Pass 'custom' directly to getDateRange since state hasn't updated yet
     const { date_from, date_to } = getDateRange('custom', customDateFrom, customDateTo)
     fetchData({ date_from, date_to })
   }
 
   const handleCancelDateModal = () => {
-    // Revert to previous filter if modal is cancelled
     if (dateFilter === 'custom' && (!customDateFrom || !customDateTo)) {
       setDateFilter('this_month')
     }
     setShowDateModal(false)
   }
 
-  // If showing detail view, render only that
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (showExitConfirm) return
+      if (e.key === 'F2') {
+        e.preventDefault()
+        handleViewDetail()
+      } else if (e.key === 'Escape') {
+        e.preventDefault()
+        setShowExitConfirm(true)
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [showExitConfirm, handleViewDetail])
+
   if (showDetail) {
     return (
       <PurchaseDetail
         selectedId={selectedId}
         onExit={() => {
-          console.log('[Purchase.jsx] onExit called - closing detail view')
           setShowDetail(false)
           setSelectedId(null)
-          console.log('[Purchase.jsx] Calling fetchData() to refresh list...')
           fetchData()
         }}
         onSaveSuccess={handleSaveSuccess}
@@ -353,12 +307,12 @@ export function Purchase({ onExit }) {
     <div className="master-content">
       <div className="master-header">
         <div className="master-header-accent"></div>
-        <h1 className="master-title">Purchase Orders</h1>
+        <h1 className="master-title">Stock Receive</h1>
         <div className="master-header-filters">
           <div className="master-footer-search">
             <input
               type="text"
-              placeholder="Search PO number or supplier..."
+              placeholder="Search Receive Number..."
               className="master-search-input"
               value={searchKeyword}
               onChange={(e) => { pager.reset(); setSearchKeyword(e.target.value) }}
@@ -368,10 +322,11 @@ export function Purchase({ onExit }) {
               <span className="material-icons-round material-icon">search</span>
             </button>
           </div>
+
           <div className="master-filter-wrap">
-            <label htmlFor="purchase-date-filter" className="master-filter-label">Date</label>
+            <label htmlFor="stock-receive-date-filter" className="master-filter-label">Date</label>
             <select
-              id="purchase-date-filter"
+              id="stock-receive-date-filter"
               className="master-filter-select"
               value={dateFilter}
               onChange={(e) => handleDateFilterChange(e.target.value)}
@@ -382,30 +337,11 @@ export function Purchase({ onExit }) {
               <option value="custom">Custom</option>
             </select>
           </div>
+
           <div className="master-filter-wrap">
-            <label htmlFor="purchase-status-filter" className="master-filter-label">Status PO</label>
+            <label htmlFor="stock-receive-status-receive-filter" className="master-filter-label">Status Receive</label>
             <select
-              id="purchase-status-filter"
-              className="master-filter-select"
-              value={statusFilter}
-              onChange={(e) => {
-                const newStatus = e.target.value
-                pager.reset()
-                setStatusFilter(newStatus)
-                // Always pass the new status value explicitly (use undefined for 'all')
-                fetchData({ status: newStatus === 'all' ? undefined : newStatus })
-              }}
-            >
-              <option value="all">All Status PO</option>
-              <option value="draft">Draft</option>
-              <option value="approved">Approve</option>
-              <option value="pending">Pending</option>
-            </select>
-          </div>
-          <div className="master-filter-wrap">
-            <label htmlFor="purchase-status-receive-filter" className="master-filter-label">Status Receive</label>
-            <select
-              id="purchase-status-receive-filter"
+              id="stock-receive-status-receive-filter"
               className="master-filter-select"
               value={statusReceiveFilter}
               onChange={(e) => {
@@ -439,15 +375,10 @@ export function Purchase({ onExit }) {
                   onDoubleClick={() => handleViewDetail()}
                 >
                   <td>{offset + index + 1}</td>
-                  <td>{row.po_number || '-'}</td>
+                  <td>{row.receive_number || row.po_number || '-'}</td>
                   <td>{row.supplier_name || '-'}</td>
                   <td>{row.warehouse_name || '-'}</td>
                   <td>{formatDate(row.po_date)}</td>
-                  <td>
-                    <span className={`status-badge ${getStatusBadgeClass(row.status)}`}>
-                      {row.status || '-'}
-                    </span>
-                  </td>
                   <td>
                     <span className={`status-badge ${getStatusBadgeClass(row.status_receive)}`}>
                       {row.status_receive || '-'}
@@ -457,7 +388,7 @@ export function Purchase({ onExit }) {
                 </tr>
               ))}
               {!isLoading && sortedData.length === 0 && (
-                <tr><td colSpan={8} className="text-center">No data</td></tr>
+                <tr><td colSpan={7} className="text-center">No data</td></tr>
               )}
             </tbody>
           </table>
@@ -465,9 +396,11 @@ export function Purchase({ onExit }) {
       </div>
 
       <FooterMaster
-        onNew={handleNew}
+        showNew={false}
+        showDelete={false}
+        onNew={() => {}}
         onEdit={handleViewDetail}
-        onDelete={handleDeleteClick}
+        onDelete={() => {}}
         totalRow={pagination.total}
         onPrint={handlePrint}
         onExit={handleExitClick}
@@ -482,17 +415,6 @@ export function Purchase({ onExit }) {
         onNextPage={pager.goNext}
         onLastPage={pager.goLast}
       />
-
-      {showDeleteConfirm && (
-        <DeleteMaster
-          itemName={selectedItem?.po_number || 'this record'}
-          title="Konfirmasi Hapus"
-          confirmText="Hapus"
-          cancelText="Batal"
-          onConfirm={handleConfirmDelete}
-          onCancel={() => setShowDeleteConfirm(false)}
-        />
-      )}
 
       {showExitConfirm && (
         <DeleteMaster
@@ -515,9 +437,9 @@ export function Purchase({ onExit }) {
             </div>
             <div className="delete-master-body">
               <div className="date-filter-group">
-                <label htmlFor="date-from" className="master-form-label">From Date</label>
+                <label htmlFor="stock-receive-date-from" className="master-form-label">From Date</label>
                 <input
-                  id="date-from"
+                  id="stock-receive-date-from"
                   type="date"
                   className="master-form-input date-input"
                   value={customDateFrom}
@@ -525,9 +447,9 @@ export function Purchase({ onExit }) {
                 />
               </div>
               <div className="date-filter-group">
-                <label htmlFor="date-to" className="master-form-label">To Date</label>
+                <label htmlFor="stock-receive-date-to" className="master-form-label">To Date</label>
                 <input
-                  id="date-to"
+                  id="stock-receive-date-to"
                   type="date"
                   className="master-form-input date-input"
                   value={customDateTo}
