@@ -82,7 +82,6 @@ export function AddPurchaseItemModal({ isOpen, onClose, onAdd, token }) {
     setIsAdding(true)
     const product = derivedProduct
     onAdd({
-      id: product?.id || '',
       product_id: selectedId,
       product_name: product?.name || '',
       sku: product?.code || '',
