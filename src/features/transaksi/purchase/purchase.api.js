@@ -110,6 +110,8 @@ function normalizePurchase(raw) {
     warehouse_name: raw?.warehouse_name || raw?.warehouse?.name || '-',
     status: normalizeStatusPo(statusValue),
     status_receive: statusReceiveValue.toLowerCase(), // Normalize to lowercase
+    receive_date: raw?.receive_date || '',
+    note_receive: raw?.note_receive || '',
     // Backend returns po_date or order_date, map to po_date for frontend
     po_date: raw?.po_date || raw?.order_date || '',
     expected_date: raw?.expected_date || raw?.expected_delivery || '',
@@ -122,6 +124,53 @@ function normalizePurchase(raw) {
     updated_at: raw?.updated_at || '',
     items,
   }
+}
+
+export async function receivePurchase(token, id, input) {
+  const url = `/api/purchases/${encodeURIComponent(id)}/receive`
+  console.log('[PurchaseAPI] receivePurchase REQUEST URL:', url)
+
+  const payload = {
+    status_receive: input.status_receive,
+    receive_date: input.receive_date,
+    items: (input.items || []).map(it => ({
+      id: it.id,
+      qty_receive: Number(it.qty_receive || 0),
+    })),
+  }
+
+  if (!token) {
+    console.log('[PurchaseAPI] No token - simulating receive')
+    const index = DUMMY_PURCHASES.findIndex(r => r.id === id || r.po_number === id)
+    if (index === -1) throw new Error('Purchase order not found')
+    const prev = DUMMY_PURCHASES[index]
+    const nextItems = (prev.items || []).map((row) => {
+      const hit = payload.items.find(x => x.id === row.id)
+      if (!hit) return row
+      return {
+        ...row,
+        qty_receive: hit.qty_receive,
+      }
+    })
+    const updated = {
+      ...prev,
+      status_receive: String(payload.status_receive || prev.status_receive || 'draft').toLowerCase(),
+      receive_date: payload.receive_date,
+      items: nextItems,
+      updated_at: new Date().toISOString(),
+    }
+    DUMMY_PURCHASES[index] = updated
+    return { success: true, data: normalizePurchase(updated) }
+  }
+
+  const raw = await apiFetch(url, {
+    method: 'PUT',
+    token,
+    body: payload,
+  })
+
+  if (!raw.success) throw new Error(raw.error || raw.message || 'Failed to receive purchase')
+  return raw
 }
 
 export async function listPurchases(token, params = {}) {

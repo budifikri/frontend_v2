@@ -6,7 +6,7 @@ import { DeleteMaster } from '../footer/DeleteMaster'
 import { MasterTableHeader } from '../table/MasterTableHeader'
 import { useMasterTableSort } from '../../../hooks/useMasterTableSort'
 import { useMasterPagination } from '../../../hooks/useMasterPagination'
-import { PurchaseDetail } from './PurchaseDetail'
+import { StockReceiveDetail } from './StockReceiveDetail'
 import { Toast } from '../../Toast'
 
 const TABLE_COLUMNS = [
@@ -14,9 +14,10 @@ const TABLE_COLUMNS = [
   { key: 'receive_number', label: 'RECEIVE NUMBER', sortable: true },
   { key: 'supplier_name', label: 'SUPPLIER', sortable: true },
   { key: 'warehouse_name', label: 'WAREHOUSE', sortable: true },
-  { key: 'po_date', label: 'DATE', sortable: true, width: '120px' },
+  { key: 'po_date', label: 'DATE PO', sortable: true, width: '120px' },
+  { key: 'expected_date', label: 'DATE EXPECTED', sortable: true, width: '140px' },
+  { key: 'receive_date', label: 'DATE RECEIVE', sortable: true, width: '140px' },
   { key: 'status_receive', label: 'STATUS RECEIVE', sortable: true },
-  { key: 'grand_total', label: 'TOTAL', sortable: true },
 ]
 
 const DUMMY_RECEIVES = [
@@ -38,6 +39,7 @@ function getStatusBadgeClass(status) {
 
   if (statusLower === 'draft') return 'status-badge-pending'
   if (statusLower === 'approve') return 'status-badge-approved'
+  if (statusLower === 'approved') return 'status-badge-approved'
   if (statusLower === 'pending') return 'status-badge-approved'
 
   if (statusLower === 'reject') return 'status-badge-rejected'
@@ -57,10 +59,6 @@ function formatDate(dateStr) {
   const d = new Date(dateStr)
   if (isNaN(d.getTime())) return dateStr
   return d.toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' })
-}
-
-function formatCurrency(amount) {
-  return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(amount)
 }
 
 function getDateRange(filterType, customFrom, customTo) {
@@ -100,11 +98,13 @@ export function StockReceive({ onExit }) {
   const { auth } = useAuth()
   const token = auth?.token
 
-  const FIXED_STATUS_PO = 'approved'
+  // Backend stores/filters status_po as draft/approve/pending (lowercased).
+  // UI may show "approved" but API filter should use "approve".
+  const FIXED_STATUS_PO = 'approve'
 
   const normalizeStatusPo = (value) => {
     const v = String(value || '').toLowerCase()
-    if (v === 'approve') return 'approved'
+    if (v === 'approved') return 'approve'
     return v
   }
 
@@ -191,6 +191,8 @@ export function StockReceive({ onExit }) {
       const items = (result.items || []).map((row) => ({
         ...row,
         receive_number: row.receive_number || row.receiveNumber || row.po_number,
+        expected_date: row.expected_date || row.expected_delivery || row.expectedDelivery || '',
+        receive_date: row.receive_date || row.receiveDate || '',
       }))
       setData(items)
       const nextPagination = result.pagination || {}
@@ -291,7 +293,7 @@ export function StockReceive({ onExit }) {
 
   if (showDetail) {
     return (
-      <PurchaseDetail
+      <StockReceiveDetail
         selectedId={selectedId}
         onExit={() => {
           setShowDetail(false)
@@ -379,16 +381,17 @@ export function StockReceive({ onExit }) {
                   <td>{row.supplier_name || '-'}</td>
                   <td>{row.warehouse_name || '-'}</td>
                   <td>{formatDate(row.po_date)}</td>
+                  <td>{formatDate(row.expected_date)}</td>
+                  <td>{formatDate(row.receive_date)}</td>
                   <td>
                     <span className={`status-badge ${getStatusBadgeClass(row.status_receive)}`}>
                       {row.status_receive || '-'}
                     </span>
                   </td>
-                  <td className="text-right">{formatCurrency(row.grand_total)}</td>
                 </tr>
               ))}
               {!isLoading && sortedData.length === 0 && (
-                <tr><td colSpan={7} className="text-center">No data</td></tr>
+                <tr><td colSpan={8} className="text-center">No data</td></tr>
               )}
             </tbody>
           </table>
