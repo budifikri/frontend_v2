@@ -5,6 +5,7 @@ import { Product } from '../ToolbarItem/master/Product'
 import { Customer } from '../ToolbarItem/master/Customer'
 import { Supplier } from '../ToolbarItem/master/Supplier'
 import { Company } from '../ToolbarItem/master/Company'
+import { CompanySetting } from '../ToolbarItem/setting/CompanySetting'
 import { StockOpname } from '../ToolbarItem/transaksi/StockOpname'
 import { Purchase } from '../ToolbarItem/transaksi/Purchase'
 import { Theme } from '../ToolbarItem/setting/theme/Theme'
@@ -76,7 +77,15 @@ export function DashboardCanvas({ activeTool, onExit }) {
     )
   }
 
-  if (activeTool === 'company' || activeTool === 'dept') {
+  if (activeTool === 'company') {
+    return (
+      <div className="dashboard-canvas">
+        <CompanySetting onExit={onExit} />
+      </div>
+    )
+  }
+
+  if (activeTool === 'dept') {
     return (
       <div className="dashboard-canvas">
         <Company onExit={onExit} />

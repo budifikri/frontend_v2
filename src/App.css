@@ -3343,3 +3343,118 @@ body.has-wallpaper .cash-register {
   background: #e2e8f0;
   color: #475569;
 }
+
+/* ========================================
+   Toast Notification
+   ======================================== */
+
+.toast-notification {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: #16a34a;
+  color: #fff;
+  padding: 12px 20px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  z-index: 9999;
+  animation: slideIn 0.3s ease-out;
+}
+
+.toast-notification .material-icons-round {
+  font-size: 20px;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* ========================================
+   Master Dialog Overlay
+   ======================================== */
+
+.master-dialog-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9998;
+}
+
+.master-dialog {
+  background: #fff;
+  border-radius: 12px;
+  padding: 24px;
+  min-width: 320px;
+  max-width: 400px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+}
+
+.master-dialog-title {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 0 0 12px 0;
+}
+
+.master-dialog-text {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin: 0 0 20px 0;
+}
+
+.master-dialog-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.master-btn {
+  height: 36px;
+  border-radius: 8px;
+  padding: 0 20px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 150ms;
+}
+
+.master-btn-primary {
+  background: #2563eb;
+  color: #fff;
+  border: none;
+}
+
+.master-btn-primary:hover {
+  background: #1d4ed8;
+}
+
+.master-btn-secondary {
+  background: #f3f4f6;
+  color: #374151;
+  border: 1px solid #d1d5db;
+}
+
+.master-btn-secondary:hover {
+  background: #e5e7eb;
+}
