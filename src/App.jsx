@@ -96,7 +96,7 @@ function AppContent() {
 
     try {
       const result = await login({ username: userId, password })
-      setAuth({ token: result.token, role: result.role })
+      setAuth({ token: result.token, role: result.role, username: result.username, companyName: result.companyName })
       setView('dashboard')
       setActiveMenu(defaultMenu)
     } catch (err) {
@@ -145,19 +145,19 @@ function AppContent() {
     return (
       <main className="dashboard-shell" aria-label="POS Admin Menu Dashboard">
         <section className="dashboard-window">
-          <DashboardHeader />
-          <DashboardMenuBar 
-            activeMenu={activeMenu} 
-            onMenuChange={handleMenuChange} 
+          <DashboardHeader companyName={auth.companyName} />
+          <DashboardMenuBar
+            activeMenu={activeMenu}
+            onMenuChange={handleMenuChange}
           />
-          <DashboardToolbar 
-            activeMenu={activeMenu} 
+          <DashboardToolbar
+            activeMenu={activeMenu}
             onLoginClick={handleLogout}
             onToolClick={handleToolClick}
           />
           <DashboardCanvas activeTool={activeTool} onExit={handleExit} />
         </section>
-        <DashboardFooter user={auth.role || userId} />
+        <DashboardFooter username={auth.username} role={auth.role} />
       </main>
     )
   }

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 
-export function DashboardHeader() {
+export function DashboardHeader({ companyName }) {
   const [showExitConfirm, setShowExitConfirm] = useState(false)
   const [activeExitButton, setActiveExitButton] = useState('cancel')
 
@@ -65,15 +65,17 @@ export function DashboardHeader() {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [showExitConfirm, activeExitButton])
 
+  const title = `POS Admin - ${companyName || ''}`
+
   return (
     <>
       <header className="dashboard-titlebar">
         <div className="dashboard-title-group">
           <span className="desktop-dot" aria-hidden="true" />
-          <strong>POS Admin Menu Dashboard</strong>
+          <strong>{title}</strong>
         </div>
         <div className="window-controls" aria-label="window controls">
-          <button type="button" aria-label="Minimize" onClick={handleMinimize}>-</button>    
+          <button type="button" aria-label="Minimize" onClick={handleMinimize}>-</button>
           <button type="button" className="close" aria-label="Close" onClick={handleClose}>x</button>
         </div>
       </header>

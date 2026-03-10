@@ -4,6 +4,7 @@ import { getPurchase, createPurchase, updatePurchase, listSuppliers, generatePON
 import { listWarehouses } from '../../../features/master/warehouse/warehouse.api'
 import { AddPurchaseItemModal } from './AddPurchaseItemModal'
 import { DeleteMaster } from '../footer/DeleteMaster'
+import { Toast } from '../../../components/Toast'
 
 const STATUS_OPTIONS = [
   { value: 'draft', label: 'Draft' },
@@ -25,6 +26,9 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
   const [showExitConfirm, setShowExitConfirm] = useState(false)
   const [supplierOptions, setSupplierOptions] = useState([])
   const [warehouseOptions, setWarehouseOptions] = useState([])
+  const [showToast, setShowToast] = useState(false)
+  const [toastMessage, setToastMessage] = useState('')
+  const [toastType, setToastType] = useState('info')
 
   const [header, setHeader] = useState({
     po_number: generatePONumber(),
@@ -61,6 +65,15 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
       setWarehouseOptions(warehouseRes.items || [])
     } catch (err) {
       console.error('[PurchaseDetail] Failed to load lookups:', err)
+      if (err.message?.includes('Company dengan ID tersebut tidak ditemukan')) {
+        setToastMessage('Company dengan ID tersebut tidak ditemukan')
+        setToastType('error')
+        setShowToast(true)
+      } else {
+        setToastMessage('Gagal memuat data supplier')
+        setToastType('error')
+        setShowToast(true)
+      }
     }
   }, [token])
 
@@ -102,7 +115,7 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
           notes: data.notes || '',
         })
         console.log('[PurchaseDetail] Normalized status:', normalizedStatus)
-        
+
         if (data.items && data.items.length > 0) {
           setItems(data.items.map(item => ({
             id: item.id,
@@ -184,12 +197,24 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
 
   // Handle save
   const handleSave = useCallback(async () => {
-    if (!header.supplier_id) { setError('Supplier harus dipilih'); return }
-    if (!header.warehouse_id) { setError('Warehouse harus dipilih'); return }
-    if (items.length === 0) { setError('Minimal 1 item harus ditambahkan'); return }
+    if (!header.supplier_id) { 
+      setError('Supplier harus dipilih'); 
+      return 
+    }
+    if (!header.warehouse_id) { 
+      setError('Warehouse harus dipilih'); 
+      return 
+    }
+    if (items.length === 0) { 
+      setError('Minimal 1 item harus ditambahkan'); 
+      return 
+    }
 
     setIsSaving(true)
     setError('')
+    setToastMessage('')
+    setToastType('info')
+    setShowToast(false)
 
     try {
       if (token) {
@@ -263,7 +288,13 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
     } catch (err) {
       console.error('[PurchaseDetail] === SAVE ERROR ===')
       console.error('[PurchaseDetail] Error:', err)
-      setError(err.message || 'Failed to save purchase order')
+      if (err.message?.includes('Company dengan ID tersebut tidak ditemukan')) {
+        setToastMessage('Company dengan ID tersebut tidak ditemukan')
+        setToastType('error')
+        setShowToast(true)
+      } else {
+        setError(err.message || 'Failed to save purchase order')
+      }
       if (onSaveSuccess) {
         onSaveSuccess(err.message || 'Failed to save', 'error')
       }
@@ -306,6 +337,13 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
 
   return (
     <div className="stock-opname-container">
+      <Toast
+        message={toastMessage}
+        type={toastType}
+        isOpen={showToast}
+        onClose={() => setShowToast(false)}
+        duration={5000}
+      />
       {/* Header */}
       <header className="stock-opname-header">
         <div className="stock-opname-header-top">
