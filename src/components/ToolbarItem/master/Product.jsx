@@ -148,7 +148,6 @@ export function Product({ onExit }) {
     reason: '',
     system_stock: 0,
     physical_stock: 0,
-    notes: '',
   })
   const [togglingId, setTogglingId] = useState(null)
 
@@ -438,10 +437,9 @@ export function Product({ onExit }) {
             adjustment_type: adjustmentType,
             quantity: Math.abs(variance),
             reason: adjustForm.reason,
-            notes: adjustForm.notes,
           })
           setShowAdjustStock(false)
-          setAdjustForm({ warehouse_id: '', reason: '', system_stock: 0, physical_stock: 0, notes: '' })
+          setAdjustForm({ warehouse_id: '', reason: '', system_stock: 0, physical_stock: 0 })
         }
         
         // For update: skip fetchData to preserve optimistic updates
@@ -547,7 +545,7 @@ export function Product({ onExit }) {
     setShowForm(false)
     setForm(DEFAULT_FORM)
     setShowAdjustStock(false)
-    setAdjustForm({ warehouse_id: '', reason: '', system_stock: 0, physical_stock: 0, notes: '' })
+    setAdjustForm({ warehouse_id: '', reason: '', system_stock: 0, physical_stock: 0 })
   }
 
   function handlePrint() {
@@ -712,40 +710,12 @@ export function Product({ onExit }) {
             </div>
             {showAdjustStock && (
               <div className="master-form-section">
-                <div className="master-form-group">
-                  <label className="master-form-label">System Stock :</label>
-                  <input
-                    type="number"
-                    value={adjustForm.system_stock}
-                    readOnly
-                    className="master-form-input master-form-input-readonly"
-                  />
-                </div>
-                <div className="master-form-group">
-                  <label className="master-form-label">Physical Stock *:</label>
-                  <input
-                    type="number"
-                    value={adjustForm.physical_stock}
-                    onChange={(e) => setAdjustForm({ ...adjustForm, physical_stock: Number(e.target.value) })}
-                    className="master-form-input"
-                    placeholder="Enter physical stock..."
-                  />
-                </div>
-                <div className="master-form-group">
-                  <label className="master-form-label">Variance :</label>
-                  <input
-                    type="number"
-                    value={variance}
-                    readOnly
-                    className={`master-form-input master-form-input-readonly ${variance > 0 ? 'variance-positive' : variance < 0 ? 'variance-negative' : ''}`}
-                  />
-                </div>
-                <div className="master-form-group">
+                <div className="master-form-group-wide">
                   <label className="master-form-label">Warehouse *:</label>
                   <select
                     value={adjustForm.warehouse_id}
                     onChange={(e) => {
-                      setAdjustForm({ ...adjustForm, warehouse_id: e.target.value })
+                      setAdjustForm({ ...adjustForm, warehouse_id: e.target.value, system_stock: 0, physical_stock: 0 })
                       if (selectedItem && token) {
                         fetchSystemStock(selectedItem.id, e.target.value)
                       }
@@ -759,6 +729,26 @@ export function Product({ onExit }) {
                       </option>
                     ))}
                   </select>
+                  {adjustForm.warehouse_id && (
+                    <div className="master-form-info-text">
+                      System Stock: <span className="text-blue">{adjustForm.system_stock} {selectedItem?.unit_name || selectedItem?.unit?.name || '-'}</span>
+                    </div>
+                  )}
+                </div>
+                <div className="master-form-group-wide">
+                  <label className="master-form-label">Physical Stock *:</label>
+                  <input
+                    type="number"
+                    value={adjustForm.physical_stock}
+                    onChange={(e) => setAdjustForm({ ...adjustForm, physical_stock: Number(e.target.value) })}
+                    className="master-form-input"
+                    placeholder="Enter physical stock..."
+                  />
+                  {adjustForm.physical_stock > 0 && (
+                    <div className="master-form-info-text">
+                      Variance: <span className={`text-orange ${variance < 0 ? 'text-red' : ''}`}>{variance} {selectedItem?.unit_name || selectedItem?.unit?.name || '-'}</span>
+                    </div>
+                  )}
                 </div>
                 <div className="master-form-group">
                   <label className="master-form-label">Reason *:</label>
@@ -772,16 +762,6 @@ export function Product({ onExit }) {
                       <option key={option.value} value={option.value}>{option.label}</option>
                     ))}
                   </select>
-                </div>
-                <div className="master-form-group-wide">
-                  <label className="master-form-label">Notes :</label>
-                  <textarea
-                    value={adjustForm.notes}
-                    onChange={(e) => setAdjustForm({ ...adjustForm, notes: e.target.value })}
-                    className="master-form-input master-form-textarea"
-                    placeholder="Add notes (optional)"
-                    rows={3}
-                  />
                 </div>
               </div>
             )}

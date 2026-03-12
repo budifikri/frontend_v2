@@ -375,9 +375,10 @@ export async function getProductStock(token, params = {}) {
   const qs = new URLSearchParams()
   if (params.product_id) qs.set('product_id', params.product_id)
   if (params.warehouse_id) qs.set('warehouse_id', params.warehouse_id)
+  qs.set('limit', '1')
 
   const queryString = qs.toString() ? `?${qs.toString()}` : ''
-  const url = `/api/inventory/stock${queryString}`
+  const url = `/api/inventory${queryString}`
   console.log('[StockOpnameAPI] getProductStock REQUEST URL:', url)
 
   if (!token) {
@@ -404,21 +405,20 @@ export async function getProductStock(token, params = {}) {
 
   const raw = await apiFetch(url, { token })
   console.log('[StockOpnameAPI] getProductStock RAW RESPONSE:', raw)
-  console.log('[StockOpnameAPI] getProductStock raw.data:', raw?.data)
-  console.log('[StockOpnameAPI] getProductStock raw.data structure:', JSON.stringify(raw?.data, null, 2))
 
   if (!raw.success) throw new Error(raw.error || raw.message || 'Failed to get stock')
 
-  const responseData = raw.data || raw
-  const currentStock = responseData?.current_stock ?? responseData?.stock ?? responseData?.quantity ?? responseData?.on_hand ?? 0
+  const items = raw.data?.items || raw.data?.data || raw.data || []
+  const item = Array.isArray(items) ? items[0] : items
+  const currentStock = item?.stock ?? item?.quantity ?? item?.on_hand ?? 0
   console.log('[StockOpnameAPI] getProductStock current_stock extracted:', currentStock)
 
   return {
     product_id: params.product_id,
     warehouse_id: params.warehouse_id,
-    current_stock: currentStock,
-    product: responseData?.product || { id: params.product_id, code: '-', name: 'Unknown', unit: 'PCS' },
-    warehouse: responseData?.warehouse || { id: params.warehouse_id, code: '-', name: 'Unknown' },
+    current_stock: Number(currentStock),
+    product: item?.product || { id: params.product_id, code: '-', name: 'Unknown', unit: 'PCS' },
+    warehouse: item?.warehouse || { id: params.warehouse_id, code: '-', name: 'Unknown' },
   }
 }
 
