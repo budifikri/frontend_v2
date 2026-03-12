@@ -638,14 +638,26 @@ export function StockOpnameDetail({ selectedId: propSelectedId, onExit, onSaveSu
           ],
         }}
         onProductSelect={(productId, callback) => {
+          // Validasi warehouse harus dipilih dulu
+          if (!header.warehouse_id) {
+            setToast({
+              message: 'Silakan pilih Warehouse terlebih dahulu',
+              type: 'warning',
+              isOpen: true,
+            })
+            callback(0)
+            return
+          }
           // Fetch system stock for selected product
           if (token && header.warehouse_id) {
             getProductStock(token, {
               product_id: productId,
               warehouse_id: header.warehouse_id,
             }).then((result) => {
+              console.log('[StockOpnameDetail] getProductStock result:', result)
               callback(result.current_stock || 0)
-            }).catch(() => {
+            }).catch((err) => {
+              console.error('[StockOpnameDetail] getProductStock error:', err)
               callback(0)
             })
           } else {

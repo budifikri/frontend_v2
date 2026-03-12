@@ -403,11 +403,23 @@ export async function getProductStock(token, params = {}) {
   }
 
   const raw = await apiFetch(url, { token })
-  console.log('[StockOpnameAPI] getProductStock RESPONSE:', raw)
+  console.log('[StockOpnameAPI] getProductStock RAW RESPONSE:', raw)
+  console.log('[StockOpnameAPI] getProductStock raw.data:', raw?.data)
+  console.log('[StockOpnameAPI] getProductStock raw.data structure:', JSON.stringify(raw?.data, null, 2))
 
   if (!raw.success) throw new Error(raw.error || raw.message || 'Failed to get stock')
 
-  return raw.data || raw
+  const responseData = raw.data || raw
+  const currentStock = responseData?.current_stock ?? responseData?.stock ?? responseData?.quantity ?? responseData?.on_hand ?? 0
+  console.log('[StockOpnameAPI] getProductStock current_stock extracted:', currentStock)
+
+  return {
+    product_id: params.product_id,
+    warehouse_id: params.warehouse_id,
+    current_stock: currentStock,
+    product: responseData?.product || { id: params.product_id, code: '-', name: 'Unknown', unit: 'PCS' },
+    warehouse: responseData?.warehouse || { id: params.warehouse_id, code: '-', name: 'Unknown' },
+  }
 }
 
 export function getReasonOptions() {
