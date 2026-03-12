@@ -442,6 +442,7 @@ export function Supplier({ onExit }) {
                   key={row.id || index}
                   className={selectedId === row.id ? 'master-row-selected' : 'master-row'}
                   onClick={() => handleSelect(row)}
+                  onDoubleClick={() => handleEdit()}
                 >
                   <td>{offset + index + 1}</td>
                   <td>{row.code || '-'}</td>
