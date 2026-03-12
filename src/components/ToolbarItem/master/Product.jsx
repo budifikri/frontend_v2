@@ -5,6 +5,7 @@ import { listUnits } from '../../../features/master/unit/unit.api'
 import { listWarehouses } from '../../../features/master/warehouse/warehouse.api'
 import { createProduct, deleteProduct, listProducts, updateProduct } from '../../../features/master/product/product.api'
 import { adjustStock } from '../../../features/laporan/stock/stock.api'
+import { getProductStock } from '../../../features/master/stock-opname/stockOpname.api'
 import { FooterMaster } from '../footer/FooterMaster'
 import { FooterFormMaster } from '../footer/FooterFormMaster'
 import { DeleteMaster } from '../footer/DeleteMaster'
@@ -72,6 +73,14 @@ const DUMMY_PRODUCTS = [
   },
 ]
 
+const ADJUST_REASON_OPTIONS = [
+  { value: 'broken', label: 'Broken' },
+  { value: 'expired', label: 'Expired' },
+  { value: 'lost/stolen', label: 'Lost/Stolen' },
+  { value: 'inventory_mismatch', label: 'Inventory Mismatch' },
+  { value: 'other', label: 'Other' },
+]
+
 const TABLE_COLUMNS = [
   { key: 'no', label: 'NO', sortable: false },
   { key: 'sku', label: 'SKU' },
@@ -112,7 +121,13 @@ export function Product({ onExit }) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [showExitConfirm, setShowExitConfirm] = useState(false)
   const [showAdjustStock, setShowAdjustStock] = useState(false)
-  const [adjustForm, setAdjustForm] = useState({ warehouse_id: '', reason: '', quantity: 0, notes: '' })
+  const [adjustForm, setAdjustForm] = useState({
+    warehouse_id: '',
+    reason: '',
+    system_stock: 0,
+    physical_stock: 0,
+    notes: '',
+  })
   const [togglingId, setTogglingId] = useState(null)
 
   const categoryNameById = useMemo(() => {
@@ -243,6 +258,10 @@ export function Product({ onExit }) {
     },
   })
 
+  const variance = useMemo(() => {
+    return adjustForm.physical_stock - adjustForm.system_stock
+  }, [adjustForm.physical_stock, adjustForm.system_stock])
+
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (showDeleteConfirm) {
@@ -281,11 +300,39 @@ export function Product({ onExit }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showDeleteConfirm, showForm, selectedItem, data])
 
+  const fetchSystemStock = useCallback(async (productId, warehouseId) => {
+    if (!token || !productId || !warehouseId) {
+      setAdjustForm((prev) => ({ ...prev, system_stock: 0 }))
+      return
+    }
+
+    try {
+      const result = await getProductStock(token, {
+        product_id: productId,
+        warehouse_id: warehouseId,
+      })
+      const stock = Number(result.current_stock || 0)
+      setAdjustForm((prev) => ({ ...prev, system_stock: stock }))
+    } catch (err) {
+      console.warn('Failed to fetch system stock:', err.message)
+      setAdjustForm((prev) => ({ ...prev, system_stock: 0 }))
+    }
+  }, [token])
+
   useEffect(() => {
     if (showAdjustStock && token && warehouses.length === 0) {
       fetchWarehouses()
     }
   }, [showAdjustStock, token, warehouses.length, fetchWarehouses])
+
+  useEffect(() => {
+    if (showAdjustStock && selectedItem && token) {
+      const warehouseId = adjustForm.warehouse_id || warehouses[0]?.id
+      if (warehouseId) {
+        fetchSystemStock(selectedItem.id, warehouseId)
+      }
+    }
+  }, [showAdjustStock, selectedItem, token, adjustForm.warehouse_id, warehouses, fetchSystemStock])
 
   function handleSearchChange(value) {
     pager.reset()
@@ -327,7 +374,7 @@ export function Product({ onExit }) {
         else await createProduct(token, payload)
         await fetchData()
 
-      if (showAdjustStock && selectedItem && adjustForm.quantity !== 0) {
+      if (showAdjustStock && selectedItem) {
         if (!adjustForm.warehouse_id) {
           setError('Warehouse is required for stock adjustment')
           setIsSaving(false)
@@ -338,18 +385,22 @@ export function Product({ onExit }) {
           setIsSaving(false)
           return
         }
-        const adjustmentType = adjustForm.quantity > 0 ? 'ADJUSTMENT_IN' : 'ADJUSTMENT_OUT'
-        const warehouseId = selectedItem.warehouse_id || selectedItem.warehouse?.id
+        if (adjustForm.physical_stock < 0) {
+          setError('Physical stock cannot be negative')
+          setIsSaving(false)
+          return
+        }
+        const adjustmentType = variance > 0 ? 'ADJUSTMENT_IN' : 'ADJUSTMENT_OUT'
         await adjustStock(token, {
           product_id: selectedItem.id,
-          warehouse_id: warehouseId || adjustForm.warehouse_id,
+          warehouse_id: adjustForm.warehouse_id,
           adjustment_type: adjustmentType,
-          quantity: Math.abs(adjustForm.quantity),
+          quantity: Math.abs(variance),
           reason: adjustForm.reason,
           notes: adjustForm.notes,
         })
         setShowAdjustStock(false)
-        setAdjustForm({ warehouse_id: '', reason: '', quantity: 0, notes: '' })
+        setAdjustForm({ warehouse_id: '', reason: '', system_stock: 0, physical_stock: 0, notes: '' })
         setError('')
       }
       } else {
@@ -452,7 +503,7 @@ export function Product({ onExit }) {
     setShowForm(false)
     setForm(DEFAULT_FORM)
     setShowAdjustStock(false)
-    setAdjustForm({ warehouse_id: '', reason: '', quantity: 0, notes: '' })
+    setAdjustForm({ warehouse_id: '', reason: '', system_stock: 0, physical_stock: 0, notes: '' })
   }
 
   function handlePrint() {
@@ -618,20 +669,43 @@ export function Product({ onExit }) {
             {showAdjustStock && (
               <div className="master-form-section">
                 <div className="master-form-group">
-                  <label className="master-form-label">Stock Difference :</label>
+                  <label className="master-form-label">System Stock :</label>
                   <input
                     type="number"
-                    value={adjustForm.quantity}
-                    onChange={(e) => setAdjustForm({ ...adjustForm, quantity: Number(e.target.value) })}
-                    className="master-form-input"
-                    placeholder="Jumlah stok"
+                    value={adjustForm.system_stock}
+                    readOnly
+                    className="master-form-input master-form-input-readonly"
                   />
                 </div>
                 <div className="master-form-group">
-                  <label className="master-form-label">Warehouse :</label>
+                  <label className="master-form-label">Physical Stock *:</label>
+                  <input
+                    type="number"
+                    value={adjustForm.physical_stock}
+                    onChange={(e) => setAdjustForm({ ...adjustForm, physical_stock: Number(e.target.value) })}
+                    className="master-form-input"
+                    placeholder="Enter physical stock..."
+                  />
+                </div>
+                <div className="master-form-group">
+                  <label className="master-form-label">Variance :</label>
+                  <input
+                    type="number"
+                    value={variance}
+                    readOnly
+                    className={`master-form-input master-form-input-readonly ${variance > 0 ? 'variance-positive' : variance < 0 ? 'variance-negative' : ''}`}
+                  />
+                </div>
+                <div className="master-form-group">
+                  <label className="master-form-label">Warehouse *:</label>
                   <select
                     value={adjustForm.warehouse_id}
-                    onChange={(e) => setAdjustForm({ ...adjustForm, warehouse_id: e.target.value })}
+                    onChange={(e) => {
+                      setAdjustForm({ ...adjustForm, warehouse_id: e.target.value })
+                      if (selectedItem && token) {
+                        fetchSystemStock(selectedItem.id, e.target.value)
+                      }
+                    }}
                     className="master-form-input"
                   >
                     <option value="">Select warehouse...</option>
@@ -643,23 +717,26 @@ export function Product({ onExit }) {
                   </select>
                 </div>
                 <div className="master-form-group">
-                  <label className="master-form-label">Reason :</label>
-                  <input
-                    type="text"
+                  <label className="master-form-label">Reason *:</label>
+                  <select
                     value={adjustForm.reason}
                     onChange={(e) => setAdjustForm({ ...adjustForm, reason: e.target.value })}
                     className="master-form-input"
-                    placeholder="Alasan penyesuaian"
-                  />
+                  >
+                    <option value="">Select reason...</option>
+                    {ADJUST_REASON_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>{option.label}</option>
+                    ))}
+                  </select>
                 </div>
-                <div className="master-form-group">
+                <div className="master-form-group-wide">
                   <label className="master-form-label">Notes :</label>
-                  <input
-                    type="text"
+                  <textarea
                     value={adjustForm.notes}
                     onChange={(e) => setAdjustForm({ ...adjustForm, notes: e.target.value })}
-                    className="master-form-input"
-                    placeholder="Catatan (opsional)"
+                    className="master-form-input master-form-textarea"
+                    placeholder="Add notes (optional)"
+                    rows={3}
                   />
                 </div>
               </div>
