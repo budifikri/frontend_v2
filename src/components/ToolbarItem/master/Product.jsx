@@ -96,6 +96,28 @@ function isActiveProduct(item) {
   return String(item?.status ?? 'active').toLowerCase() !== 'inactive'
 }
 
+function normalizeProductItem(raw, index) {
+  return {
+    id: raw?.id || `product-${index}`,
+    sku: raw?.sku || raw?.product_sku || raw?.code || raw?.product_code || '-',
+    barcode: raw?.barcode || raw?.product_barcode || '',
+    name: raw?.name || raw?.product_name || '-',
+    description: raw?.description || raw?.product_description || '',
+    category_id: raw?.category_id || raw?.category?.id || '',
+    category: raw?.category || { id: raw?.category_id || '', name: raw?.category_name || '-' },
+    category_name: raw?.category_name || raw?.category?.name || '-',
+    unit_id: raw?.unit_id || raw?.unit?.id || '',
+    unit: raw?.unit || { id: raw?.unit_id || '', name: raw?.unit_name || '-' },
+    unit_name: raw?.unit_name || raw?.unit?.name || '-',
+    cost_price: Number(raw?.cost_price ?? raw?.cost ?? 0),
+    retail_price: Number(raw?.retail_price ?? raw?.price ?? raw?.sale_price ?? 0),
+    tax_rate: Number(raw?.tax_rate ?? raw?.tax ?? 0),
+    reorder_point: Number(raw?.reorder_point ?? raw?.min_stock ?? 0),
+    is_active: raw?.is_active ?? (raw?.status === 'active'),
+    status: raw?.status || (raw?.is_active ? 'active' : 'inactive'),
+  }
+}
+
 export function Product({ onExit }) {
   const { auth } = useAuth()
   const token = auth?.token
@@ -224,7 +246,8 @@ export function Product({ onExit }) {
         offset,
       })
 
-      setData(result.items || [])
+      const normalizedItems = (result.items || []).map((item, index) => normalizeProductItem(item, index))
+      setData(normalizedItems)
       const nextPagination = result.pagination || {}
       setPagination({
         total: Number(nextPagination.total ?? 0),
@@ -370,40 +393,61 @@ export function Product({ onExit }) {
 
     try {
       if (token) {
-        if (selectedItem) await updateProduct(token, selectedItem.id, payload)
-        else await createProduct(token, payload)
-        await fetchData()
-
-      if (showAdjustStock && selectedItem) {
-        if (!adjustForm.warehouse_id) {
-          setError('Warehouse is required for stock adjustment')
-          setIsSaving(false)
-          return
+        if (selectedItem) {
+          await updateProduct(token, selectedItem.id, payload)
+          // Optimistically update local data with the new values
+          setData((prev) => prev.map((row) => {
+            if (row.id === selectedItem.id) {
+              return { 
+                ...row, 
+                ...payload,
+                // Preserve nested objects
+                category: row.category || { id: payload.category_id || '', name: '' },
+                unit: row.unit || { id: payload.unit_id || '', name: '' },
+              }
+            }
+            return row
+          }))
+        } else {
+          await createProduct(token, payload)
+          // For new items, refresh to get the actual ID from server
+          await fetchData()
         }
-        if (!adjustForm.reason) {
-          setError('Reason is required for stock adjustment')
-          setIsSaving(false)
-          return
+        
+        // Handle stock adjustment if enabled
+        if (showAdjustStock && selectedItem) {
+          if (!adjustForm.warehouse_id) {
+            setError('Warehouse is required for stock adjustment')
+            setIsSaving(false)
+            return
+          }
+          if (!adjustForm.reason) {
+            setError('Reason is required for stock adjustment')
+            setIsSaving(false)
+            return
+          }
+          if (adjustForm.physical_stock < 0) {
+            setError('Physical stock cannot be negative')
+            setIsSaving(false)
+            return
+          }
+          const adjustmentType = variance > 0 ? 'ADJUSTMENT_IN' : 'ADJUSTMENT_OUT'
+          await adjustStock(token, {
+            product_id: selectedItem.id,
+            warehouse_id: adjustForm.warehouse_id,
+            adjustment_type: adjustmentType,
+            quantity: Math.abs(variance),
+            reason: adjustForm.reason,
+            notes: adjustForm.notes,
+          })
+          setShowAdjustStock(false)
+          setAdjustForm({ warehouse_id: '', reason: '', system_stock: 0, physical_stock: 0, notes: '' })
         }
-        if (adjustForm.physical_stock < 0) {
-          setError('Physical stock cannot be negative')
-          setIsSaving(false)
-          return
-        }
-        const adjustmentType = variance > 0 ? 'ADJUSTMENT_IN' : 'ADJUSTMENT_OUT'
-        await adjustStock(token, {
-          product_id: selectedItem.id,
-          warehouse_id: adjustForm.warehouse_id,
-          adjustment_type: adjustmentType,
-          quantity: Math.abs(variance),
-          reason: adjustForm.reason,
-          notes: adjustForm.notes,
-        })
-        setShowAdjustStock(false)
-        setAdjustForm({ warehouse_id: '', reason: '', system_stock: 0, physical_stock: 0, notes: '' })
-        setError('')
-      }
+        
+        // For update: skip fetchData to preserve optimistic updates
+        // For create: already called fetchData above
       } else {
+        // Offline mode
         if (selectedItem) {
           setData((prev) => prev.map((row) => (row.id === selectedItem.id ? { ...row, ...payload } : row)))
         } else {
