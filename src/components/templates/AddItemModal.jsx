@@ -81,6 +81,15 @@ export function AddItemModal({
 
   const handleAdd = () => {
     if (!selectedId) return
+    
+    const variance = Number(physicalQty) - systemQty
+    const isRequired = variance !== 0
+    
+    if (isRequired && !reason) {
+      alert('Reason is required when there is a variance')
+      return
+    }
+    
     setIsAdding(true)
     onAdd({
       product_id: selectedId,

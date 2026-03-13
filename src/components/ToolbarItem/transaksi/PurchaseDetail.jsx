@@ -352,15 +352,19 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
             <h1 className="stock-opname-title">PURCHASE ORDER - {propSelectedId ? header.po_number : 'NEW'}</h1>
           </div>
           <div className="stock-opname-status-group">
-            <button type="button" className={`status-button ${header.status === 'draft' ? 'status-button-active' : 'status-button-inactive'}`} onClick={() => handleStatusChange('draft')}>
-              Draft
-            </button>
-            <button type="button" className={`status-button ${header.status === 'pending' ? 'status-button-active' : 'status-button-inactive'}`} onClick={() => handleStatusChange('pending')}>
-              Pending
-            </button>
-            <button type="button" className={`status-button ${header.status === 'approved' ? 'status-button-active' : 'status-button-inactive'}`} onClick={() => handleStatusChange('approved')}>
-              Approve
-            </button>
+            {propSelectedId && (
+              <>
+                <button type="button" className={`status-button ${header.status === 'draft' ? 'status-button-active' : 'status-button-inactive'}`} onClick={() => handleStatusChange('draft')}>
+                  Draft
+                </button>
+                <button type="button" className={`status-button ${header.status === 'pending' ? 'status-button-active' : 'status-button-inactive'}`} onClick={() => handleStatusChange('pending')}>
+                  Pending
+                </button>
+                <button type="button" className={`status-button ${header.status === 'approved' ? 'status-button-active' : 'status-button-inactive'}`} onClick={() => handleStatusChange('approved')}>
+                  Approve
+                </button>
+              </>
+            )}
           </div>
         </div>
         <div className="stock-opname-header-form">

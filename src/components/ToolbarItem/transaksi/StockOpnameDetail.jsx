@@ -364,27 +364,31 @@ export function StockOpnameDetail({ selectedId: propSelectedId, onExit, onSaveSu
             </h1>
           </div>
           <div className="stock-opname-status-group">
-            <button
-              type="button"
-              className={`status-button ${header.status === 'draft' ? 'status-button-active' : 'status-button-inactive'}`}
-              onClick={() => setHeader({ ...header, status: 'draft' })}
-            >
-              Draft
-            </button>
-            <button
-              type="button"
-              className={`status-button ${header.status === 'approved' ? 'status-button-active' : 'status-button-inactive'}`}
-              onClick={() => setHeader({ ...header, status: 'approved' })}
-            >
-              Approve
-            </button>
-            <button
-              type="button"
-              className={`status-button ${header.status === 'rejected' ? 'status-button-active' : 'status-button-inactive'}`}
-              onClick={() => setHeader({ ...header, status: 'rejected' })}
-            >
-              Rejected
-            </button>
+            {propSelectedId && (
+              <>
+                <button
+                  type="button"
+                  className={`status-button ${header.status === 'draft' ? 'status-button-active' : 'status-button-inactive'}`}
+                  onClick={() => setHeader({ ...header, status: 'draft' })}
+                >
+                  Draft
+                </button>
+                <button
+                  type="button"
+                  className={`status-button ${header.status === 'approved' ? 'status-button-active' : 'status-button-inactive'}`}
+                  onClick={() => setHeader({ ...header, status: 'approved' })}
+                >
+                  Approve
+                </button>
+                <button
+                  type="button"
+                  className={`status-button ${header.status === 'rejected' ? 'status-button-active' : 'status-button-inactive'}`}
+                  onClick={() => setHeader({ ...header, status: 'rejected' })}
+                >
+                  Rejected
+                </button>
+              </>
+            )}
           </div>
         </div>
 

@@ -164,27 +164,31 @@ export function StockReceiveDetail({ selectedId, onExit, onSaveSuccess }) {
           </div>
 
           <div className="stock-opname-status-group">
-            <button
-              type="button"
-              className={`status-button ${header.status_receive === 'draft' ? 'status-button-active' : 'status-button-inactive'}`}
-              onClick={() => handleStatusReceiveChange('draft')}
-            >
-              Draft
-            </button>
-            <button
-              type="button"
-              className={`status-button ${header.status_receive === 'receive' ? 'status-button-active' : 'status-button-inactive'}`}
-              onClick={() => handleStatusReceiveChange('receive')}
-            >
-              Receive
-            </button>
-            <button
-              type="button"
-              className={`status-button ${header.status_receive === 'reject' ? 'status-button-active' : 'status-button-inactive'}`}
-              onClick={() => handleStatusReceiveChange('reject')}
-            >
-              Reject
-            </button>
+            {selectedId && (
+              <>
+                <button
+                  type="button"
+                  className={`status-button ${header.status_receive === 'draft' ? 'status-button-active' : 'status-button-inactive'}`}
+                  onClick={() => handleStatusReceiveChange('draft')}
+                >
+                  Draft
+                </button>
+                <button
+                  type="button"
+                  className={`status-button ${header.status_receive === 'receive' ? 'status-button-active' : 'status-button-inactive'}`}
+                  onClick={() => handleStatusReceiveChange('receive')}
+                >
+                  Receive
+                </button>
+                <button
+                  type="button"
+                  className={`status-button ${header.status_receive === 'reject' ? 'status-button-active' : 'status-button-inactive'}`}
+                  onClick={() => handleStatusReceiveChange('reject')}
+                >
+                  Reject
+                </button>
+              </>
+            )}
           </div>
         </div>
 

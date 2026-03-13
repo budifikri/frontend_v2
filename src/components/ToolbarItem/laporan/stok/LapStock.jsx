@@ -276,6 +276,11 @@ export function LapStock({ onExit }) {
     }
   }
 
+  const handleRowDoubleClick = (row) => {
+    setSelectedId(row.id)
+    handleStockCard()
+  }
+
   const handleCloseStockCardModal = () => {
     setShowStockCardModal(false)
     setStockCardData([])
@@ -347,6 +352,7 @@ export function LapStock({ onExit }) {
                   key={row.id || index}
                   className={selectedId === row.id ? 'master-row-selected' : 'master-row'}
                   onClick={() => handleRowClick(row)}
+                  onDoubleClick={() => handleRowDoubleClick(row)}
                 >
                   <td>{offset + index + 1}</td>
                   <td>{row.code || '-'}</td>
