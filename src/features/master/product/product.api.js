@@ -46,11 +46,17 @@ function stripUndefined(obj) {
 }
 
 export async function updateProduct(token, id, input) {
-  const raw = await apiFetch(`/api/products/${encodeURIComponent(id)}`, {
+  const url = `/api/products/${encodeURIComponent(id)}`
+  console.log('[ProductAPI] updateProduct REQUEST:', { url, method: 'PUT', body: input })
+  
+  const raw = await apiFetch(url, {
     method: 'PUT',
     token,
     body: stripUndefined(input),
   })
+  
+  console.log('[ProductAPI] updateProduct RESPONSE:', raw)
+  
   if (!raw.success) throw new Error(raw.error || raw.message || 'Update product failed')
   return raw
 }
