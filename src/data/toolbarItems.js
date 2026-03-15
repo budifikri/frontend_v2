@@ -16,7 +16,7 @@ export const toolbarItems = {
   { key: 'logout', label: 'Logout', mark: 'L', tone: 'slate', backToLogin: true },
     { key: 'divider-1', divider: true },
     { key: 'beli', label: 'Pembelian', mark: 'P', tone: 'orange' },
-    { key: 'rbeli', label: 'Retur Pembelian', mark: 'R', tone: 'green' },
+    { key: 'retur', label: 'Retur Pembelian', mark: 'R', tone: 'green' },
     { key: 'receive', label: 'Stock Receive', mark: 'S', tone: 'cyan' },
     { key: 'opname', label: 'Stock Opname', mark: 'O', tone: 'slate' },
     { key: 'divider-2', divider: true },
