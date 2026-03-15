@@ -136,7 +136,7 @@ export function StockCardModal({
             <span className="material-icons-round material-icon orange">assignment</span>
             <h2>Kartu Stok - {productName || '-'}</h2>
           </div>
-          <div className="stock-card-header-right">
+          <div className="stock-card-header-right"> Date
             <div className="stock-card-filter">
               <select 
                 value={dateFilter} 
@@ -224,11 +224,21 @@ export function StockCardModal({
 
         <div className="stock-card-footer">
           <div className="stock-card-footer-left">
-            <span className="stock-card-total-in">Total Masuk: {totals.totalIn}</span>
-            <span className="stock-card-total-out">Total Keluar: {totals.totalOut}</span>
+            <button type="button" className="master-footer-btn" onClick={handlePrint}>
+              <span className="material-icons-round master-footer-icon blue">print</span>          
+            </button>
+            <button type="button" className="master-footer-btn" onClick={onClose}>
+              <span className="material-icons-round master-footer-icon red">exit_to_app</span>
+            </button>
+           
           </div>
           <div className="stock-card-footer-right">
+           <span className="stock-card-total-in">Total Masuk: {totals.totalIn}</span>
+            <span className="stock-card-total-out">Total Keluar: {totals.totalOut}</span>
+             <span className="stock-card-total-row">Total Row: {pagination?.total || data.length}</span>
+          
             <div className="master-footer-pagination">
+            
               <button type="button" className="master-page-btn" title="First Page" onClick={handleFirstPage} disabled={!canPrev}>
                 <span className="material-icons-round master-page-icon">first_page</span>
               </button>
@@ -243,13 +253,7 @@ export function StockCardModal({
                 <span className="material-icons-round master-page-icon">last_page</span>
               </button>
             </div>
-            <span className="stock-card-total-row">Total Row: {pagination?.total || data.length}</span>
-            <button type="button" className="master-footer-btn" onClick={handlePrint}>
-              <span className="material-icons-round master-footer-icon blue">print</span>          
-            </button>
-            <button type="button" className="master-footer-btn" onClick={onClose}>
-              <span className="material-icons-round master-footer-icon red">exit_to_app</span>
-            </button>
+           
           </div>
         </div>
       </div>

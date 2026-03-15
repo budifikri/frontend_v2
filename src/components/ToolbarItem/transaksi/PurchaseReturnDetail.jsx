@@ -215,10 +215,13 @@ export function PurchaseReturnDetail({ selectedId: propSelectedId, onExit, onSav
           })),
         }
 
-        if (header.po_id) {
+        const hasValidPO = header.po_id && header.po_id !== '' && header.po_id !== 'null' && header.po_id !== 'undefined'
+        if (hasValidPO) {
           payload.po_id = header.po_id
           payload.po_number = header.po_number || null
         }
+
+        console.log('[PurchaseReturnDetail] Save payload:', JSON.stringify(payload))
 
         if (propSelectedId) {
           await updatePurchaseReturn(token, propSelectedId, payload)
@@ -318,7 +321,7 @@ export function PurchaseReturnDetail({ selectedId: propSelectedId, onExit, onSav
         </div>
 
         <div className="stock-opname-header-form">
-          {propSelectedId && (
+       {/*   {propSelectedId && (
             <div className="form-group">
               <label className="form-label">Return Number</label>
               <input
@@ -328,7 +331,7 @@ export function PurchaseReturnDetail({ selectedId: propSelectedId, onExit, onSav
                 className="form-input form-input-readonly"
               />
             </div>
-          )}
+          )}  */}
           <div className="form-group">
             <label className="form-label">Return Date *</label>
             <input
@@ -338,6 +341,7 @@ export function PurchaseReturnDetail({ selectedId: propSelectedId, onExit, onSav
               className="form-input"
             />
           </div>
+             {/*
           {propSelectedId && (
             <div className="form-group">
               <label className="form-label">PO Reference</label>
@@ -352,7 +356,7 @@ export function PurchaseReturnDetail({ selectedId: propSelectedId, onExit, onSav
                 ))}
               </select>
             </div>
-          )}
+          )}     */}
           <div className="form-group">
             <label className="form-label">Supplier *</label>
             <select
@@ -379,6 +383,12 @@ export function PurchaseReturnDetail({ selectedId: propSelectedId, onExit, onSav
               ))}
             </select>
           </div>
+
+          <div className="form-group">
+          </div>
+          <div className="form-group">
+          </div>
+          
         </div>
       </header>
 

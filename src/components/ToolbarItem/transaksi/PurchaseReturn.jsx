@@ -12,7 +12,6 @@ import { Toast } from '../../Toast'
 const TABLE_COLUMNS = [
   { key: 'no', label: 'NO', sortable: false, width: '50px' },
   { key: 'pr_number', label: 'RETURN NUMBER', sortable: true },
-  { key: 'po_number', label: 'PO NUMBER', sortable: true },
   { key: 'supplier_name', label: 'SUPPLIER', sortable: true },
   { key: 'warehouse_name', label: 'WAREHOUSE', sortable: true },
   { key: 'pr_date', label: 'DATE', sortable: true, width: '120px' },
@@ -24,7 +23,7 @@ const DUMMY_PURCHASE_RETURNS = [
   {
     id: 'PR001',
     pr_number: 'PR-20260315-001',
-    po_number: 'PO-20260307-001',
+
     supplier_name: 'PT. Supplier Utama',
     warehouse_name: 'Gudang Utama',
     pr_date: '2026-03-15T10:00:00Z',
@@ -385,7 +384,6 @@ export function PurchaseReturn({ onExit }) {
                 >
                   <td>{pager.offset + index + 1}</td>
                   <td>{row.pr_number || '-'}</td>
-                  <td>{row.po_number || '-'}</td>
                   <td>{row.supplier_name || '-'}</td>
                   <td>{row.warehouse_name || '-'}</td>
                   <td>{formatDate(row.pr_date)}</td>

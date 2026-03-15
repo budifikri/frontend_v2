@@ -53,6 +53,7 @@ export function FooterMaster({
       </div>
 
       <div className="master-footer-info">
+       <span>Total Row: {totalRow}</span>
         <div className="master-footer-pagination">
           <button type="button" className="master-page-btn" title="First Page" onClick={onFirstPage} disabled={!canPrev}>
             <span className="material-icons-round master-page-icon">first_page</span>
@@ -69,7 +70,7 @@ export function FooterMaster({
           </button>
         </div>
 
-        <span>Total Row: {totalRow}</span>
+       
       </div>
     </div>
   )

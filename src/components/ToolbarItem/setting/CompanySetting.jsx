@@ -255,6 +255,9 @@ export function CompanySetting({ onExit }) {
               <span className="material-icons-round">{isEditing ? 'save' : 'edit'}</span>
               {isEditing ? 'SIMPAN' : 'EDIT'}
             </button>
+                <button type="button" className="master-footer-btn" onClick={onExit} title="Exit" aria-label="Exit">
+            <span className="material-icons-round master-footer-icon red">exit_to_app</span>
+          </button>
           </div>
         </div>
       </div>
