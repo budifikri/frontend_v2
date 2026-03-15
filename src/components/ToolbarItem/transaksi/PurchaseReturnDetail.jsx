@@ -141,6 +141,17 @@ export function PurchaseReturnDetail({ selectedId: propSelectedId, onExit, onSav
     setShowAddModal(false)
   }, [])
 
+  const updateItem = useCallback((itemId, updates) => {
+    setItems((prev) => prev.map((item) => {
+      if (item.id === itemId) {
+        const updated = { ...item, ...updates }
+        updated.line_total = (updated.quantity || 0) * (updated.unit_price || 0)
+        return updated
+      }
+      return item
+    }))
+  }, [])
+
   const removeItem = useCallback((ids) => {
     const idsToRemove = Array.isArray(ids) ? ids : [ids]
     setItems((prev) => prev.filter((item) => !idsToRemove.includes(item.id)))
@@ -187,9 +198,8 @@ export function PurchaseReturnDetail({ selectedId: propSelectedId, onExit, onSav
       if (token) {
         const targetStatus = header.status || 'draft'
         const itemsCopy = items.map(it => ({ ...it }))
+        
         const payload = {
-          po_id: header.po_id || null,
-          po_number: header.po_number || null,
           supplier_id: header.supplier_id,
           warehouse_id: header.warehouse_id,
           pr_date: header.pr_date || null,
@@ -203,6 +213,11 @@ export function PurchaseReturnDetail({ selectedId: propSelectedId, onExit, onSav
             discount: item.discount ?? 0,
             tax_rate: item.tax_rate ?? 0,
           })),
+        }
+
+        if (header.po_id) {
+          payload.po_id = header.po_id
+          payload.po_number = header.po_number || null
         }
 
         if (propSelectedId) {
@@ -372,46 +387,100 @@ export function PurchaseReturnDetail({ selectedId: propSelectedId, onExit, onSav
 
         <div className="stock-opname-table-container">
           <table className="stock-opname-table master-table">
-            <thead>
+            <thead className="table-header">
               <tr>
-                <th style={{ width: '40px' }}></th>
-                <th>Product</th>
+                <th style={{ width: '40px' }}>
+                  <input
+                    type="checkbox"
+                    className="table-checkbox-input"
+                    checked={selectedIds.length === items.length && items.length > 0}
+                    onChange={(e) => setSelectedIds(e.target.checked ? items.map(i => i.id) : [])}
+                  />
+                </th>
+                <th style={{ width: '60px' }}>No</th>
                 <th>SKU</th>
-                <th style={{ width: '100px' }}>Qty</th>
-                <th style={{ width: '120px' }}>Unit Price</th>
-                <th style={{ width: '80px' }}>Discount</th>
-                <th style={{ width: '80px' }}>Tax %</th>
-                <th style={{ width: '120px' }}>Total</th>
+                <th>Product</th>
+                <th className="table-center" style={{ width: '100px' }}>QTY</th>
+                <th className="table-center" style={{ width: '120px' }}>Unit Price</th>
+                <th className="table-center" style={{ width: '100px' }}>Discount %</th>
+                <th className="table-center" style={{ width: '80px' }}>Tax %</th>
+                <th className="table-center" style={{ width: '120px' }}>Total</th>
               </tr>
             </thead>
             <tbody>
               {items.map((item, index) => (
-                <tr key={item.id || index}>
-                  <td>
+                <tr
+                  key={item.id}
+                  className={selectedIds.includes(item.id) ? 'master-row-selected' : 'master-row'}
+                  onClick={() => setSelectedIds([item.id])}
+                >
+                  <td className="table-checkbox">
                     <input
                       type="checkbox"
+                      className="table-checkbox-input"
                       checked={selectedIds.includes(item.id)}
-                      onChange={() => {
-                        setSelectedIds(prev =>
-                          prev.includes(item.id)
-                            ? prev.filter(id => id !== item.id)
-                            : [...prev, item.id]
-                        )
-                      }}
+                      onChange={(e) => setSelectedIds(e.target.checked ? [item.id] : [])}
                     />
                   </td>
-                  <td>{item.product_name || '-'}</td>
-                  <td>{item.sku || '-'}</td>
-                  <td className="text-right">{item.quantity || 0}</td>
-                  <td className="text-right">{formatCurrency(item.unit_price || 0)}</td>
-                  <td className="text-right">{item.discount || 0}%</td>
-                  <td className="text-right">{item.tax_rate || 0}%</td>
-                  <td className="text-right">{formatCurrency(item.line_total || 0)}</td>
+                  <td className="table-center text-muted">{index + 1}</td>
+                  <td className="font-bold">{item.sku || '-'}</td>
+                  <td className="table-product">
+                    <div className="product-name">{item.product_name || '-'}</div>
+                  </td>
+                  <td className="table-center">
+                    <input
+                      type="number"
+                      value={item.quantity}
+                      onChange={(e) => {
+                        const qty = Number(e.target.value)
+                        const lineTotal = qty * item.unit_price * (1 - (item.discount || 0) / 100) * (1 + (item.tax_rate || 0) / 100)
+                        updateItem(item.id, { quantity: qty, line_total: lineTotal })
+                      }}
+                      className="physical-input"
+                    />
+                  </td>
+                  <td className="table-center">
+                    <input
+                      type="number"
+                      value={item.unit_price}
+                      onChange={(e) => {
+                        const price = Number(e.target.value)
+                        const lineTotal = item.quantity * price * (1 - (item.discount || 0) / 100) * (1 + (item.tax_rate || 0) / 100)
+                        updateItem(item.id, { unit_price: price, line_total: lineTotal })
+                      }}
+                      className="physical-input"
+                    />
+                  </td>
+                  <td className="table-center">
+                    <input
+                      type="number"
+                      value={item.discount}
+                      onChange={(e) => {
+                        const disc = Number(e.target.value)
+                        const lineTotal = item.quantity * item.unit_price * (1 - disc / 100) * (1 + (item.tax_rate || 0) / 100)
+                        updateItem(item.id, { discount: disc, line_total: lineTotal })
+                      }}
+                      className="physical-input"
+                    />
+                  </td>
+                  <td className="table-center">
+                    <input
+                      type="number"
+                      value={item.tax_rate}
+                      onChange={(e) => {
+                        const tax = Number(e.target.value)
+                        const lineTotal = item.quantity * item.unit_price * (1 - (item.discount || 0) / 100) * (1 + tax / 100)
+                        updateItem(item.id, { tax_rate: tax, line_total: lineTotal })
+                      }}
+                      className="physical-input"
+                    />
+                  </td>
+                  <td className="table-center font-bold">{formatCurrency(item.line_total)}</td>
                 </tr>
               ))}
               {items.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="text-center py-8 text-muted">
+                  <td colSpan={9} className="text-center py-8 text-muted">
                     No items added yet. Click "Add" (F1) to start.
                   </td>
                 </tr>
