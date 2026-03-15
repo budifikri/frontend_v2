@@ -82,6 +82,10 @@ export async function getStockCard(token, params = {}) {
   const qs = new URLSearchParams()
   if (params.product_id) qs.set('product_id', params.product_id)
   if (params.warehouse_id) qs.set('warehouse_id', params.warehouse_id)
+  if (params.date_from) qs.set('date_from', params.date_from)
+  if (params.date_to) qs.set('date_to', params.date_to)
+  if (params.limit !== undefined) qs.set('limit', String(params.limit))
+  if (params.offset !== undefined) qs.set('offset', String(params.offset))
 
   const queryString = qs.toString() ? `?${qs.toString()}` : ''
   const url = `/api/inventory/stock-card${queryString}`
@@ -93,6 +97,12 @@ export async function getStockCard(token, params = {}) {
     return {
       items: DUMMY_STOCK_CARD,
       total: DUMMY_STOCK_CARD.length,
+      pagination: {
+        total: DUMMY_STOCK_CARD.length,
+        limit: 50,
+        offset: 0,
+        hasMore: false,
+      },
     }
   }
 
@@ -101,13 +111,21 @@ export async function getStockCard(token, params = {}) {
 
   if (!raw.success) throw new Error(raw.error || raw.message || 'Failed to load stock card')
 
-  const transactions = raw.data?.transactions ?? raw.data?.items ?? raw.data?.data ?? []
+  const dataItem = Array.isArray(raw.data) ? raw.data[0] : raw.data
+  const transactions = dataItem?.transactions ?? raw.data?.transactions ?? []
   const rows = Array.isArray(transactions) ? transactions : []
+  const pagination = raw.pagination ?? {
+    total: rows.length,
+    limit: params.limit ?? 50,
+    offset: params.offset ?? 0,
+    hasMore: false,
+  }
   console.log('[StockCard] ROWS:', rows)
+  console.log('[StockCard] First row keys:', rows[0] ? Object.keys(rows[0]) : 'no data')
 
   return {
     items: (rows ?? []).map((item, index) => normalizeStockCardItem(item, index)),
-    total: rows?.length ?? 0,
+    pagination: pagination,
   }
 }
 

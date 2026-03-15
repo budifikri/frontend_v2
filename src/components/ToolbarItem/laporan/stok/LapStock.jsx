@@ -92,6 +92,9 @@ export function LapStock({ onExit }) {
   const [stockCardData, setStockCardData] = useState([])
   const [stockCardError, setStockCardError] = useState('')
   const [isLoadingCard, setIsLoadingCard] = useState(false)
+  const [stockCardPagination, setStockCardPagination] = useState({ total: 0, limit: 50, offset: 0, hasMore: false })
+  const [stockCardFilter, setStockCardFilter] = useState({ dateFilter: 'this_month', date_from: '', date_to: '' })
+  const [currentStockCardRow, setCurrentStockCardRow] = useState(null)
 
   const pager = useMasterPagination({ initialLimit: 10, total: pagination.total, hasMore: pagination.has_more })
   const { limit, offset } = pager
@@ -244,8 +247,8 @@ export function LapStock({ onExit }) {
     setSelectedId(row.id)
   }
 
-  const handleStockCard = async () => {
-    const selectedRow = sortedData.find((row) => row.id === selectedId)
+  const handleStockCard = async (overrides = {}) => {
+    const selectedRow = currentStockCardRow || sortedData.find((row) => row.id === selectedId)
     console.log('[LapStock] handleStockCard - selectedRow:', selectedRow)
     console.log('[LapStock] handleStockCard - selectedId:', selectedId)
     console.log('[LapStock] handleStockCard - sortedData:', sortedData)
@@ -260,14 +263,22 @@ export function LapStock({ onExit }) {
     setStockCardData([])
     setIsLoadingCard(true)
 
+    const filter = { ...stockCardFilter, ...overrides.filter }
+    const pagination = { limit: 50, offset: 0, ...overrides.pagination }
+
     try {
       const result = await getStockCard(token, {
         product_id: selectedRow.product_id,
         warehouse_id: selectedRow.warehouse_id,
+        date_from: filter.date_from,
+        date_to: filter.date_to,
+        limit: pagination.limit,
+        offset: pagination.offset,
       })
 
       console.log('[LapStock] getStockCard result:', result)
       setStockCardData(result.items || [])
+      setStockCardPagination(result.pagination || { total: 0, limit: 50, offset: 0, hasMore: false })
     } catch (err) {
       console.log('[LapStock] getStockCard error:', err)
       setStockCardError(err.message || 'Failed to load stock card')
@@ -278,13 +289,25 @@ export function LapStock({ onExit }) {
 
   const handleRowDoubleClick = (row) => {
     setSelectedId(row.id)
+    setCurrentStockCardRow(row)
+    setStockCardFilter({ dateFilter: 'this_month', date_from: '', date_to: '' })
     handleStockCard()
+  }
+
+  const handleStockCardFilterChange = (filter) => {
+    setStockCardFilter(filter)
+    handleStockCard({ filter })
+  }
+
+  const handleStockCardPageChange = (newOffset) => {
+    handleStockCard({ pagination: { offset: newOffset } })
   }
 
   const handleCloseStockCardModal = () => {
     setShowStockCardModal(false)
     setStockCardData([])
     setStockCardError('')
+    setCurrentStockCardRow(null)
   }
 
   const selectedRow = sortedData.find((row) => row.id === selectedId)
@@ -411,6 +434,9 @@ export function LapStock({ onExit }) {
         productName={selectedRow?.name}
         isLoading={isLoadingCard}
         error={stockCardError}
+        pagination={stockCardPagination}
+        onFilterChange={handleStockCardFilterChange}
+        onPageChange={handleStockCardPageChange}
       />
     </div>
   )
