@@ -277,9 +277,10 @@ export function PurchaseReturn({ onExit }) {
     } else {
       setCustomDateFrom('')
       setCustomDateTo('')
-      pager.reset()
+      setDateFilter(value)
       const { date_from, date_to } = getDateRange(value, '', '')
       fetchData({ date_from, date_to })
+      pager.reset()
     }
   }
 
