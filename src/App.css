@@ -894,7 +894,7 @@ body.has-wallpaper .cash-register {
 }
 
 .master-table td {
-  padding: 4px 24px;
+  padding: 4px 12px;
   border-right: 1px solid #e2e8f0;
   color: #334155;
 }
@@ -1640,7 +1640,7 @@ body.has-wallpaper .cash-register {
 
 .stock-card-modal {
   background: #fff;
-  width: min(95vw, 1200px);
+  width: min(70vw, 1200px);
   max-height: 85vh;
   border-radius: 8px;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
@@ -1675,7 +1675,7 @@ body.has-wallpaper .cash-register {
 .stock-card-header-right {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
 }
 
 .stock-card-modal .delete-master-header .material-icon.orange {
@@ -1845,7 +1845,7 @@ body.has-wallpaper .cash-register {
   border: 1px solid #d1d5db;
   border-radius: 4px;
   font-size: 0.875rem;
-  min-width: 140px;
+  min-width: 120px;
 }
 
 .stock-card-custom-dates {
@@ -1908,6 +1908,7 @@ body.has-wallpaper .cash-register {
     background: #fff;
   }
   .stock-card-modal {
+    width: 100%;
     box-shadow: none;
     max-height: none;
   }
