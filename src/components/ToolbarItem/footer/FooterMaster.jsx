@@ -3,6 +3,7 @@ export function FooterMaster({
   onEdit,
   onDelete,
   totalRow,
+  totalAmount,
   onPrint,
   onExit,
   onRefresh,
@@ -19,6 +20,10 @@ export function FooterMaster({
   onLastPage,
   extraActions,
 }) {
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(amount)
+  }
+
   return (
     <div className="master-footer">
       <div className="master-footer-actions">
@@ -53,7 +58,9 @@ export function FooterMaster({
       </div>
 
       <div className="master-footer-info">
-       <span>Total Row: {totalRow}</span>
+        {totalAmount > 0 && <span className="stock-card-total-in">Total Purchase Order: {formatCurrency(totalAmount)}</span>}
+        <span>Total Row: {totalRow}</span>
+      
         <div className="master-footer-pagination">
           <button type="button" className="master-page-btn" title="First Page" onClick={onFirstPage} disabled={!canPrev}>
             <span className="material-icons-round master-page-icon">first_page</span>
