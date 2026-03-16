@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from 'react'
 const STOCK_CARD_COLUMNS = [
   { key: 'no', label: 'NO', width: '50px' },
   { key: 'date', label: 'TANGGAL', width: '110px' },
-  { key: 'reference', label: 'REFERENSI' },
+  { key: 'reference', label: 'REFERENSI', width: '150px' },
   { key: 'qty_in', label: 'MASUK', width: '80px' },
   { key: 'qty_out', label: 'KELUAR', width: '80px' },
   { key: 'balance', label: 'SALDO', width: '80px' },

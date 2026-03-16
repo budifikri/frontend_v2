@@ -1700,8 +1700,33 @@ body.has-wallpaper .cash-register {
 .stock-card-body .master-table th {
   position: sticky;
   top: 0;
-  background: #f1f5f9;
-  z-index: 1;
+  z-index: 4;
+  background: var(--secondcolor-bg);
+  color: #fff;
+  text-transform: uppercase;
+  font-weight: 600;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  padding: 8px 12px;
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.stock-card-body .master-table td:nth-child(1) {
+  text-align: right;
+}
+
+.stock-card-body .master-table th:nth-child(1),
+.stock-card-body .master-table td:nth-child(2) {
+  text-align: center;
+}
+
+.stock-card-body .master-table th:nth-child(4),
+.stock-card-body .master-table th:nth-child(5),
+.stock-card-body .master-table th:nth-child(6),
+.stock-card-body .master-table td:nth-child(4),
+.stock-card-body .master-table td:nth-child(5),
+.stock-card-body .master-table td:nth-child(6) {
+  text-align: right;
 }
 
 .stock-card-loading,
