@@ -129,7 +129,7 @@ export function AddPurchaseItemModal({ isOpen, onClose, onAdd, token }) {
                   <div data-testid={`po-product-item-${product.id}`} key={product.id} className={`product-list-item ${selectedId === product.id ? 'selected' : ''} ${highlightedIndex === index ? 'highlighted' : ''}`} onClick={() => { setSelectedId(product.id); setSearchQuery(product.name); setIsProductSelected(true); setUnitPrice(product.cost_price || product.retail_price || 0); setHighlightedIndex(-1) }} onMouseEnter={() => setHighlightedIndex(index)}>
                     <div className="product-list-sku">{product.code}</div>
                     <div className="product-list-name">{product.name}</div>
-                    <div className="product-list-price">Rp {Number(product.retail_price).toLocaleString('id-ID')}</div>
+                    <div className="product-list-price">Rp {Number(product.cost_price || product.retail_price).toLocaleString('id-ID')}</div>
                   </div>
                 ))}
               </div>
