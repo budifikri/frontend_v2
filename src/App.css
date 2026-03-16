@@ -1640,7 +1640,7 @@ body.has-wallpaper .cash-register {
 
 .stock-card-modal {
   background: #fff;
-  width: min(70vw, 1200px);
+  width: min(65vw, 1200px);
   max-height: 85vh;
   border-radius: 8px;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
@@ -1727,6 +1727,14 @@ body.has-wallpaper .cash-register {
 .stock-card-body .master-table td:nth-child(5),
 .stock-card-body .master-table td:nth-child(6) {
   text-align: right;
+}
+
+.stock-card-body .master-table tbody tr.row-even {
+  background: #fff;
+}
+
+.stock-card-body .master-table tbody tr.row-odd {
+  background: #E2E2E2;
 }
 
 .stock-card-loading,
@@ -2785,7 +2793,7 @@ body.has-wallpaper .cash-register {
 }
 
 .modal-footer {
-  padding: 24px;
+  padding: 12px;
   background: #fff;
   border-top: 1px solid #f1f5f9;
   display: flex;

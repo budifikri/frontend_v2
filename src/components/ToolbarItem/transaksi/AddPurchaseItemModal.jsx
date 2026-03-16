@@ -152,7 +152,7 @@ export function AddPurchaseItemModal({ isOpen, onClose, onAdd, token }) {
                   <input type="number" value={unitPriceValue} onChange={(e) => setUnitPrice(Number(e.target.value))} className="form-input" min="0" />
                 </div>
               </div>
-              <div className="form-row">
+              {/* <div className="form-row">
                 <div className="form-group">
                   <label className="form-label">Discount</label>
                   <input type="number" value={discount} onChange={(e) => setDiscount(Number(e.target.value))} className="form-input" min="0" />
@@ -161,7 +161,7 @@ export function AddPurchaseItemModal({ isOpen, onClose, onAdd, token }) {
                   <label className="form-label">Tax Rate (%)</label>
                   <input type="number" value={taxRate} onChange={(e) => setTaxRate(Number(e.target.value))} className="form-input" min="0" max="100" />
                 </div>
-              </div>
+              </div>   */}
               <div className="line-total-display">
                 <span>Line Total:</span>
                 <strong>{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(lineTotal)}</strong>
@@ -172,8 +172,10 @@ export function AddPurchaseItemModal({ isOpen, onClose, onAdd, token }) {
 
           <div className="modal-footer">
           <button data-testid="po-add-item-add" type="button" className="action-btn action-btn-add" onClick={handleAdd} disabled={!selectedId || isAdding}>
-            <div className="action-btn-icon"><span className="material-icons-round">check</span></div>
-            <span className="action-btn-label">Add</span>
+            <div className="action-btn-icon">  
+            <span className="material-icons-round">check</span>            
+            </div>
+            <span className="action-btn-label">Add</span>  
           </button>
           <button type="button" className="action-btn action-btn-cancel" onClick={onClose}>
             <div className="action-btn-icon"><span className="material-icons-round">close</span></div>

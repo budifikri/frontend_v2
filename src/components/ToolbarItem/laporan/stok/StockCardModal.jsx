@@ -201,7 +201,7 @@ export function StockCardModal({
                 <tbody>
                   {data.length > 0 ? (
                     data.map((row, index) => (
-                      <tr key={row.id || index}>
+                      <tr key={row.id || index} className={index % 2 === 0 ? 'row-even' : 'row-odd'}>
                         <td>{index + 1 + (pagination?.offset || 0)}</td>
                         <td>{formatDate(row.date)}</td>
                         <td>{row.reference || '-'}</td>
