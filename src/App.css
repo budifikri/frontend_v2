@@ -801,14 +801,14 @@ body.has-wallpaper .cash-register {
   display: flex;
   flex-direction: column;
   flex: 1;
-  min-height: 0;
-  min-height: 400px;
+  min-height: 200px;
   margin:0px 16px ;
+  position: relative;
 }
 
 .master-table-sticky-footer {
   position: sticky;
-  bottom: 12px;
+  bottom: 0;
   background: var(--secondcolor-bg);
   color: #fff;
   padding: 8px 24px;
