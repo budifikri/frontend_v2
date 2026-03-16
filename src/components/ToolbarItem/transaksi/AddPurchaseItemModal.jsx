@@ -56,7 +56,7 @@ export function AddPurchaseItemModal({ isOpen, onClose, onAdd, token }) {
   }, [selectedId, filteredProducts])
 
   // Derive unit price from selected product instead of using setState in effect
-  const unitPriceValue = derivedProduct ? derivedProduct.retail_price || 0 : unitPrice
+  const unitPriceValue = isProductSelected ? unitPrice : (derivedProduct ? derivedProduct.cost_price || derivedProduct.retail_price || 0 : 0)
 
   // Keyboard navigation
   const handleKeyDown = useCallback((e) => {
@@ -70,6 +70,7 @@ export function AddPurchaseItemModal({ isOpen, onClose, onAdd, token }) {
         setSelectedId(product.id)
         setSearchQuery(product.name)
         setIsProductSelected(true)
+        setUnitPrice(product.cost_price || product.retail_price || 0)
         setHighlightedIndex(-1)
       }
     } else if (e.key === 'Escape') { setHighlightedIndex(-1) }
@@ -116,8 +117,8 @@ export function AddPurchaseItemModal({ isOpen, onClose, onAdd, token }) {
             <label className="form-label">Search Product <span className="required-mark">*</span></label>
             <div className="search-wrapper">
               <span className="material-icons-round search-icon">search</span>
-              <input data-testid="po-add-item-search" type="text" value={searchQuery} onChange={(e) => { setSearchQuery(e.target.value); setSelectedId(''); setIsProductSelected(false) }} className="form-input search-input" placeholder="Search by SKU or product name..." autoFocus disabled={isProductSelected} />
-              {isProductSelected && (<button type="button" className="search-clear-btn" onClick={() => { setSearchQuery(''); setSelectedId(''); setIsProductSelected(false) }} title="Clear"><span className="material-icons-round">close</span></button>)}
+              <input data-testid="po-add-item-search" type="text" value={searchQuery} onChange={(e) => { setSearchQuery(e.target.value); setSelectedId(''); setIsProductSelected(false); setUnitPrice(0) }} className="form-input search-input" placeholder="Search by SKU or product name..." autoFocus disabled={isProductSelected} />
+              {isProductSelected && (<button type="button" className="search-clear-btn" onClick={() => { setSearchQuery(''); setSelectedId(''); setIsProductSelected(false); setUnitPrice(0) }} title="Clear"><span className="material-icons-round">close</span></button>)}
             </div>
           </div>
 
@@ -125,7 +126,7 @@ export function AddPurchaseItemModal({ isOpen, onClose, onAdd, token }) {
             <div className="product-list">
               <div className="product-list-container">
               {filteredProducts.map((product, index) => (
-                  <div data-testid={`po-product-item-${product.id}`} key={product.id} className={`product-list-item ${selectedId === product.id ? 'selected' : ''} ${highlightedIndex === index ? 'highlighted' : ''}`} onClick={() => { setSelectedId(product.id); setSearchQuery(product.name); setIsProductSelected(true); setHighlightedIndex(-1) }} onMouseEnter={() => setHighlightedIndex(index)}>
+                  <div data-testid={`po-product-item-${product.id}`} key={product.id} className={`product-list-item ${selectedId === product.id ? 'selected' : ''} ${highlightedIndex === index ? 'highlighted' : ''}`} onClick={() => { setSelectedId(product.id); setSearchQuery(product.name); setIsProductSelected(true); setUnitPrice(product.cost_price || product.retail_price || 0); setHighlightedIndex(-1) }} onMouseEnter={() => setHighlightedIndex(index)}>
                     <div className="product-list-sku">{product.code}</div>
                     <div className="product-list-name">{product.name}</div>
                     <div className="product-list-price">Rp {Number(product.retail_price).toLocaleString('id-ID')}</div>
