@@ -132,6 +132,7 @@ export function Purchase({ onExit }) {
   // Toast state
   const [toast, setToast] = useState({ isOpen: false, message: '', type: 'info' })
   const fetchDataRef = useRef(false)
+  const isInitialLoad = useRef(true)
 
   const handleSaveSuccess = (message, type = 'success') => {
     setToast({ isOpen: true, message, type })
@@ -212,6 +213,13 @@ export function Purchase({ onExit }) {
     fetchDataRef.current = true
     fetchData()
   }, [fetchData])
+
+  useEffect(() => {
+    if (!isInitialLoad.current) {
+      fetchData()
+    }
+    isInitialLoad.current = false
+  }, [offset])
 
   const { sortConfig, sortedData, handleSort } = useMasterTableSort(data, {
     initialKey: 'po_date',

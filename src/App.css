@@ -808,10 +808,11 @@ body.has-wallpaper .cash-register {
 
 .master-table-sticky-footer {
   position: sticky;
-  bottom: 0;
+  bottom: 12px;
   background: var(--secondcolor-bg);
   color: #fff;
   padding: 8px 24px;
+  
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -832,6 +833,7 @@ body.has-wallpaper .cash-register {
   width: 100%;
   border-collapse: collapse;
   font-size: 0.875rem;
+  margin-bottom:12px;
 }
 
 .master-table thead {

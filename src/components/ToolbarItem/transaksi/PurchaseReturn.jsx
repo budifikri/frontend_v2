@@ -114,6 +114,7 @@ export function PurchaseReturn({ onExit }) {
 
   const [toast, setToast] = useState({ isOpen: false, message: '', type: 'info' })
   const fetchDataRef = useRef(false)
+  const isInitialLoad = useRef(true)
 
   const handleSaveSuccess = (message, type = 'success') => {
     setToast({ isOpen: true, message, type })
@@ -186,6 +187,13 @@ export function PurchaseReturn({ onExit }) {
     fetchDataRef.current = true
     fetchData()
   }, [fetchData])
+
+  useEffect(() => {
+    if (!isInitialLoad.current) {
+      fetchData()
+    }
+    isInitialLoad.current = false
+  }, [pager.offset])
 
   const { sortConfig, sortedData, handleSort } = useMasterTableSort(data, {
     initialKey: 'pr_date',
