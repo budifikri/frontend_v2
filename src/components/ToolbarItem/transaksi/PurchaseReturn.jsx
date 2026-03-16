@@ -192,6 +192,8 @@ export function PurchaseReturn({ onExit }) {
     direction: 'desc',
   })
 
+  const totalAmount = sortedData.reduce((sum, row) => sum + (Number(row.grand_total) || 0), 0)
+
   const selectedItem = selectedId == null ? null : data.find((row) => row.id === selectedId) || null
 
   const handleSelect = (row) => setSelectedId(row.id)
@@ -408,6 +410,8 @@ export function PurchaseReturn({ onExit }) {
         onEdit={handleViewDetail}
         onDelete={handleDeleteClick}
         totalRow={pagination.total}
+        totalAmount={totalAmount}
+        totalAmountLabel="Retur Pembelian"
         onPrint={handlePrint}
         onExit={handleExitClick}
         onRefresh={fetchData}

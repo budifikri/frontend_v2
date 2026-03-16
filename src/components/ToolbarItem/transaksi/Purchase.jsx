@@ -472,6 +472,7 @@ export function Purchase({ onExit }) {
         onDelete={handleDeleteClick}
         totalRow={pagination.total}
         totalAmount={totalAmount}
+        totalAmountLabel="Purchase Order"
         onPrint={handlePrint}
         onExit={handleExitClick}
         onRefresh={fetchData}

@@ -1823,6 +1823,10 @@ body.has-wallpaper .cash-register {
   color: #16a34a;
 }
 
+.text-total {
+  color:#0000A0;
+}
+
 .stock-card-total-out {
   color: #dc2626;
 }

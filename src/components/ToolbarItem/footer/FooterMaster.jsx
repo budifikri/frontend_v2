@@ -4,6 +4,7 @@ export function FooterMaster({
   onDelete,
   totalRow,
   totalAmount,
+  totalAmountLabel,
   onPrint,
   onExit,
   onRefresh,
@@ -58,7 +59,7 @@ export function FooterMaster({
       </div>
 
       <div className="master-footer-info">
-        {totalAmount > 0 && <span className="stock-card-total-in">Total Purchase Order: {formatCurrency(totalAmount)}</span>}
+        {totalAmount > 0 && <span className="text-total">Total {totalAmountLabel || ''}: {formatCurrency(totalAmount)}</span>}
         <span>Total Row: {totalRow}</span>
       
         <div className="master-footer-pagination">
