@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useAuth } from '../../../shared/auth'
-import { getPurchaseReturn, createPurchaseReturn, updatePurchaseReturn, listSuppliers, listPurchaseOrders, generateReturnNumber } from '../../../features/transaksi/purchase-return/purchaseReturn.api'
+import { getPurchaseReturn, createPurchaseReturn, updatePurchaseReturn, listSuppliers, generateReturnNumber } from '../../../features/transaksi/purchase-return/purchaseReturn.api'
 import { listWarehouses } from '../../../features/master/warehouse/warehouse.api'
 import { AddPurchaseItemModal } from './AddPurchaseItemModal'
 import { DeleteMaster } from '../footer/DeleteMaster'
@@ -17,7 +17,6 @@ export function PurchaseReturnDetail({ selectedId: propSelectedId, onExit, onSav
   const [showExitConfirm, setShowExitConfirm] = useState(false)
   const [supplierOptions, setSupplierOptions] = useState([])
   const [warehouseOptions, setWarehouseOptions] = useState([])
-  const [poOptions, setPoOptions] = useState([])
   const [showToast, setShowToast] = useState(false)
   const [toastMessage, setToastMessage] = useState('')
   const [toastType, setToastType] = useState('info')
@@ -46,21 +45,15 @@ export function PurchaseReturnDetail({ selectedId: propSelectedId, onExit, onSav
         { id: 'WH001', name: 'Gudang Utama' },
         { id: 'WH002', name: 'Gudang Cabin' },
       ])
-      setPoOptions([
-        { id: 'PO001', po_number: 'PO-20260307-001' },
-        { id: 'PO002', po_number: 'PO-20260310-002' },
-      ])
       return
     }
     try {
-      const [supplierRes, warehouseRes, poRes] = await Promise.all([
+      const [supplierRes, warehouseRes] = await Promise.all([
         listSuppliers(token, { limit: 200 }),
         listWarehouses(token, { limit: 200 }),
-        listPurchaseOrders(token, { limit: 200, status: 'approved' }),
       ])
       setSupplierOptions(supplierRes.items || [])
       setWarehouseOptions(warehouseRes.items || [])
-      setPoOptions((poRes.items || []).map(po => ({ id: po.id, po_number: po.po_number })))
     } catch (err) {
       console.error('[PurchaseReturnDetail] Failed to load lookups:', err)
       setToastMessage('Gagal memuat data')
@@ -111,7 +104,8 @@ export function PurchaseReturnDetail({ selectedId: propSelectedId, onExit, onSav
             unit_price: item.unit_price,
             discount: item.discount || 0,
             tax_rate: item.tax_rate || 0,
-            line_total: item.line_total,
+            line_total: item.line_total || item.amount || 0,
+            amount: item.amount || item.line_total || 0,
           })))
         }
       } catch (err) {
@@ -159,7 +153,7 @@ export function PurchaseReturnDetail({ selectedId: propSelectedId, onExit, onSav
   }, [])
 
   const summary = useMemo(() => {
-    const subtotal = items.reduce((sum, item) => sum + ((item.quantity || 0) * (item.unit_price || 0)), 0)
+    const subtotal = items.reduce((sum, item) => sum + (item.line_total || item.amount || 0), 0)
     const discountTotal = items.reduce((sum, item) => {
       const lineSubtotal = (item.quantity || 0) * (item.unit_price || 0)
       return sum + (lineSubtotal * ((item.discount || 0) / 100))
@@ -221,8 +215,6 @@ export function PurchaseReturnDetail({ selectedId: propSelectedId, onExit, onSav
           payload.po_number = header.po_number || null
         }
 
-        console.log('[PurchaseReturnDetail] Save payload:', JSON.stringify(payload))
-
         if (propSelectedId) {
           await updatePurchaseReturn(token, propSelectedId, payload)
         } else {
@@ -254,15 +246,6 @@ export function PurchaseReturnDetail({ selectedId: propSelectedId, onExit, onSav
       setIsSaving(false)
     }
   }, [token, header, items, propSelectedId, onExit, onSaveSuccess])
-
-  const handlePOChange = (poId) => {
-    const po = poOptions.find(p => p.id === poId)
-    setHeader(prev => ({
-      ...prev,
-      po_id: poId,
-      po_number: po?.po_number || '',
-    }))
-  }
 
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(amount)
@@ -341,22 +324,6 @@ export function PurchaseReturnDetail({ selectedId: propSelectedId, onExit, onSav
               className="form-input"
             />
           </div>
-             {/*
-          {propSelectedId && (
-            <div className="form-group">
-              <label className="form-label">PO Reference</label>
-              <select
-                value={header.po_id}
-                onChange={(e) => handlePOChange(e.target.value)}
-                className="form-input"
-              >
-                <option value="">Select PO...</option>
-                {poOptions.map(po => (
-                  <option key={po.id} value={po.id}>{po.po_number}</option>
-                ))}
-              </select>
-            </div>
-          )}     */}
           <div className="form-group">
             <label className="form-label">Supplier *</label>
             <select

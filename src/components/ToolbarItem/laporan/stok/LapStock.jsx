@@ -92,7 +92,7 @@ export function LapStock({ onExit }) {
   const [stockCardData, setStockCardData] = useState([])
   const [stockCardError, setStockCardError] = useState('')
   const [isLoadingCard, setIsLoadingCard] = useState(false)
-  const [stockCardPagination, setStockCardPagination] = useState({ total: 0, limit: 50, offset: 0, hasMore: false })
+  const [stockCardPagination, setStockCardPagination] = useState({ total: 0, limit: 10, offset: 0, hasMore: false })
   const [stockCardFilter, setStockCardFilter] = useState({ dateFilter: 'this_month', date_from: '', date_to: '' })
   const [currentStockCardRow, setCurrentStockCardRow] = useState(null)
 
@@ -264,7 +264,7 @@ export function LapStock({ onExit }) {
     setIsLoadingCard(true)
 
     const filter = { ...stockCardFilter, ...overrides.filter }
-    const pagination = { limit: 50, offset: 0, ...overrides.pagination }
+    const pagination = { limit: 10, offset: 0, ...overrides.pagination }
 
     try {
       const result = await getStockCard(token, {
@@ -278,7 +278,7 @@ export function LapStock({ onExit }) {
 
       console.log('[LapStock] getStockCard result:', result)
       setStockCardData(result.items || [])
-      setStockCardPagination(result.pagination || { total: 0, limit: 50, offset: 0, hasMore: false })
+      setStockCardPagination(result.pagination || { total: 0, limit: 10, offset: 0, hasMore: false })
     } catch (err) {
       console.log('[LapStock] getStockCard error:', err)
       setStockCardError(err.message || 'Failed to load stock card')

@@ -100,11 +100,11 @@ export function StockCardModal({
   }
 
   const handleFirstPage = () => onPageChange?.(0)
-  const handlePrevPage = () => onPageChange?.((pagination?.offset || 0) - (pagination?.limit || 50))
-  const handleNextPage = () => onPageChange?.((pagination?.offset || 0) + (pagination?.limit || 50))
+  const handlePrevPage = () => onPageChange?.((pagination?.offset || 0) - (pagination?.limit || 10))
+  const handleNextPage = () => onPageChange?.((pagination?.offset || 0) + (pagination?.limit || 10))
   const handleLastPage = () => {
-    const totalPages = Math.ceil((pagination?.total || 0) / (pagination?.limit || 50))
-    onPageChange?.((totalPages - 1) * (pagination?.limit || 50))
+    const totalPages = Math.ceil((pagination?.total || 0) / (pagination?.limit || 10))
+    onPageChange?.((totalPages - 1) * (pagination?.limit || 10))
   }
 
   useEffect(() => {
@@ -123,8 +123,8 @@ export function StockCardModal({
 
   if (!isOpen) return null
 
-  const currentPage = Math.floor((pagination?.offset || 0) / (pagination?.limit || 50)) + 1
-  const totalPages = Math.ceil((pagination?.total || 0) / (pagination?.limit || 50))
+  const currentPage = Math.floor((pagination?.offset || 0) / (pagination?.limit || 10)) + 1
+  const totalPages = Math.ceil((pagination?.total || 0) / (pagination?.limit || 10))
   const canPrev = (pagination?.offset || 0) > 0
   const canNext = pagination?.hasMore
 

@@ -1640,8 +1640,8 @@ body.has-wallpaper .cash-register {
 
 .stock-card-modal {
   background: #fff;
-  width: min(90vw, 900px);
-  max-height: 80vh;
+  width: min(95vw, 1200px);
+  max-height: 85vh;
   border-radius: 8px;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
   overflow: hidden;

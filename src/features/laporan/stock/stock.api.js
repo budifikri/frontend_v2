@@ -99,7 +99,7 @@ export async function getStockCard(token, params = {}) {
       total: DUMMY_STOCK_CARD.length,
       pagination: {
         total: DUMMY_STOCK_CARD.length,
-        limit: 50,
+        limit: 10,
         offset: 0,
         hasMore: false,
       },
@@ -114,11 +114,12 @@ export async function getStockCard(token, params = {}) {
   const dataItem = Array.isArray(raw.data) ? raw.data[0] : raw.data
   const transactions = dataItem?.transactions ?? raw.data?.transactions ?? []
   const rows = Array.isArray(transactions) ? transactions : []
-  const pagination = raw.pagination ?? {
-    total: rows.length,
-    limit: params.limit ?? 50,
+  const rawPagination = raw.pagination ?? {}
+  const pagination = {
+    total: rawPagination.total ?? rows.length,
+    limit: params.limit ?? 10,
     offset: params.offset ?? 0,
-    hasMore: false,
+    hasMore: rawPagination.has_more ?? rawPagination.hasMore ?? false,
   }
   console.log('[StockCard] ROWS:', rows)
   console.log('[StockCard] First row keys:', rows[0] ? Object.keys(rows[0]) : 'no data')

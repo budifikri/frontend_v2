@@ -6,6 +6,18 @@ function toNumber(value, fallback = 0) {
 }
 
 function normalizePurchaseReturnItem(raw, index) {
+  const lineTotalRaw = raw?.line_total
+  const amountRaw = raw?.amount
+  const subtotalRaw = raw?.subtotal
+  
+  const hasValidLineTotal = lineTotalRaw !== undefined && lineTotalRaw !== null && Number(lineTotalRaw) !== 0
+  const hasValidAmount = amountRaw !== undefined && amountRaw !== null && Number(amountRaw) !== 0
+  const hasValidSubtotal = subtotalRaw !== undefined && subtotalRaw !== null && Number(subtotalRaw) !== 0
+  
+  const lineTotal = hasValidLineTotal ? lineTotalRaw : 
+                    hasValidAmount ? amountRaw : 
+                    hasValidSubtotal ? subtotalRaw : 0
+  
   return {
     id: raw?.id || `item-${index}`,
     product_id: raw?.product_id || '',
@@ -15,16 +27,24 @@ function normalizePurchaseReturnItem(raw, index) {
     unit_price: toNumber(raw?.unit_price ?? raw?.price ?? 0),
     discount: toNumber(raw?.discount ?? 0),
     tax_rate: toNumber(raw?.tax_rate ?? raw?.tax ?? 0),
-    line_total: toNumber(raw?.line_total ?? raw?.subtotal ?? 0),
+    line_total: toNumber(lineTotal),
+    amount: toNumber(amountRaw ?? lineTotal),
   }
 }
 
 function normalizePurchaseReturn(raw) {
   const items = (raw?.items ?? []).map((item, idx) => normalizePurchaseReturnItem(item, idx))
   
-  const subtotal = items.reduce((sum, item) => sum + item.line_total, 0)
-  const tax = items.reduce((sum, item) => sum + (item.line_total * item.tax_rate / 100), 0)
-  const grand_total = subtotal + tax
+  const rawSubtotal = raw?.subtotal
+  const rawTax = raw?.tax
+  const rawGrandTotal = raw?.grand_total
+  const rawTotalAmount = raw?.total_amount
+  
+  const subtotal = (rawSubtotal !== undefined && rawSubtotal !== null) ? rawSubtotal : items.reduce((sum, item) => sum + item.line_total, 0)
+  const tax = (rawTax !== undefined && rawTax !== null) ? rawTax : items.reduce((sum, item) => sum + (item.line_total * item.tax_rate / 100), 0)
+  const grand_total = (rawGrandTotal !== undefined && rawGrandTotal !== null) ? rawGrandTotal : 
+                     (rawTotalAmount !== undefined && rawTotalAmount !== null) ? rawTotalAmount : 
+                     subtotal + tax
 
   return {
     id: raw?.id || '',
