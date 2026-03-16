@@ -806,6 +806,26 @@ body.has-wallpaper .cash-register {
   margin:0px 16px ;
 }
 
+.master-table-sticky-footer {
+  position: sticky;
+  bottom: 0;
+  background: linear-gradient(180deg, #374151 0%, #1F2937 100%);
+  background: var(--secondcolor-bg);
+  color: #fff;
+  padding: 12px 24px;
+  display: flex;
+  justify-content: space-between;
+  font-weight: 600;
+  font-size: 0.875rem;
+  z-index: 10;
+  margin: 0 16px;
+}
+
+.master-table-sticky-footer span:last-child {
+  font-size: 1rem;
+  color: #4ade80;
+}
+
 .master-table {
   width: 100%;
   border-collapse: collapse;

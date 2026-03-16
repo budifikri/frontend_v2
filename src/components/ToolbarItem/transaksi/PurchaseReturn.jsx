@@ -405,6 +405,11 @@ export function PurchaseReturn({ onExit }) {
         </div>
       </div>
 
+      <div className="master-table-sticky-footer">
+        <span>Total Row: {pagination.total}</span>
+        <span>Total: {formatCurrency(totalAmount)}</span>
+      </div>
+
       <FooterMaster
         onNew={handleNew}
         onEdit={handleViewDetail}
