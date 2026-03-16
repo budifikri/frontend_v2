@@ -809,20 +809,22 @@ body.has-wallpaper .cash-register {
 .master-table-sticky-footer {
   position: sticky;
   bottom: 0;
-  background: linear-gradient(180deg, #374151 0%, #1F2937 100%);
   background: var(--secondcolor-bg);
   color: #fff;
-  padding: 12px 24px;
+  padding: 8px 24px;
   display: flex;
   justify-content: space-between;
+  align-items: center;
   font-weight: 600;
-  font-size: 0.875rem;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
   z-index: 10;
-  margin: 0 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .master-table-sticky-footer span:last-child {
-  font-size: 1rem;
+  font-size: 0.875rem;
   color: #4ade80;
 }
 
