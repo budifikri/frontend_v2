@@ -59,9 +59,7 @@ export function FooterMaster({
       </div>
 
       <div className="master-footer-info">
-      {/*  {totalAmount > 0 && <span className="text-total">Total {totalAmountLabel || ''}: {formatCurrency(totalAmount)}</span>}
         <span>Total Row: {totalRow}</span>
-      */}
         <div className="master-footer-pagination">
           <button type="button" className="master-page-btn" title="First Page" onClick={onFirstPage} disabled={!canPrev}>
             <span className="material-icons-round master-page-icon">first_page</span>

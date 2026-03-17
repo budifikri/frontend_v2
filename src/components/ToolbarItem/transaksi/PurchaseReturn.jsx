@@ -412,7 +412,7 @@ export function PurchaseReturn({ onExit }) {
             </tbody>
           </table>
           <div className="master-table-sticky-footer">
-            <span>Total Row: {pagination.total}</span>
+           {/* <span>Total Row: {pagination.total}</span>  */}
             <span>Total: {formatCurrency(totalAmount)}</span>
           </div>
         </div>

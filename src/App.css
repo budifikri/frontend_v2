@@ -814,8 +814,8 @@ body.has-wallpaper .cash-register {
   padding: 8px 24px;
   
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  justify-content: end;
+  /* align-items:  end; */
   font-weight: 600;
   font-size: 0.75rem;
   text-transform: uppercase;
