@@ -28,6 +28,11 @@ export function POS() {
   const [showProductPopup, setShowProductPopup] = useState(false)
   const [productResults, setProductResults] = useState([])
   const [popupSelectedIndex, setPopupSelectedIndex] = useState(0)
+  const [showActionPopup, setShowActionPopup] = useState(false)
+  const [actionPopupIndex, setActionPopupIndex] = useState(0)
+  const [PENDING_NOTAS, _setPendingNotas] = useState([])
+  const [showPaymentForm, setShowPaymentForm] = useState(false)
+  const [paymentAmount, setPaymentAmount] = useState('')
   const searchInputRef = useRef(null)
 
   useEffect(() => {
@@ -89,6 +94,8 @@ export function POS() {
       e.preventDefault()
       if (showProductPopup && productResults.length > 0) {
         handleSelectProduct(productResults[popupSelectedIndex])
+      } else if (showActionPopup) {
+        handleActionSelect(actionPopupIndex)
       } else {
         const qtyMatch = search.match(/^\+(\d+)$/)
         if (qtyMatch && selectedIndex >= 0) {
@@ -107,6 +114,9 @@ export function POS() {
             setPopupSelectedIndex(0)
             setShowProductPopup(true)
           }
+        } else if (search === '' && items.length > 0) {
+          setShowActionPopup(true)
+          setActionPopupIndex(0)
         }
       }
     } else if (e.key === 'ArrowDown') {
@@ -114,6 +124,10 @@ export function POS() {
       if (showProductPopup) {
         if (popupSelectedIndex < productResults.length - 1) {
           setPopupSelectedIndex(popupSelectedIndex + 1)
+        }
+      } else if (showActionPopup) {
+        if (actionPopupIndex < 2) {
+          setActionPopupIndex(actionPopupIndex + 1)
         }
       } else if (items.length > 0) {
         const nextIndex = selectedIndex < items.length - 1 ? selectedIndex + 1 : items.length - 1
@@ -125,13 +139,21 @@ export function POS() {
         if (popupSelectedIndex > 0) {
           setPopupSelectedIndex(popupSelectedIndex - 1)
         }
+      } else if (showActionPopup) {
+        if (actionPopupIndex > 0) {
+          setActionPopupIndex(actionPopupIndex - 1)
+        }
       } else if (items.length > 0) {
         const prevIndex = selectedIndex > 0 ? selectedIndex - 1 : 0
         setSelectedIndex(prevIndex)
       }
-    } else if (e.key === 'Escape' && showProductPopup) {
-      setShowProductPopup(false)
-      setSearch('')
+    } else if (e.key === 'Escape') {
+      if (showProductPopup) {
+        setShowProductPopup(false)
+        setSearch('')
+      } else if (showActionPopup) {
+        setShowActionPopup(false)
+      }
     }
   }
 
@@ -157,6 +179,47 @@ export function POS() {
     })
     setShowProductPopup(false)
     setSearch('')
+  }
+
+  const handleActionSelect = (index) => {
+    setShowActionPopup(false)
+    if (index === 0) {
+      setShowPaymentForm(true)
+      setPaymentAmount('')
+    } else if (index === 1) {
+      _setPendingNotas((prev) => {
+        const pendingNota = {
+          id: Date.now(),
+          items: [...items],
+          subtotal,
+          tax,
+          total,
+          createdAt: new Date(),
+        }
+        alert(`Nota disimpan ke pending. Total nota: ${prev.length + 1}`)
+        return [...prev, pendingNota]
+      })
+      setItems([])
+      setSelectedIndex(-1)
+    } else if (index === 2) {
+      setItems([])
+      setSelectedIndex(-1)
+    }
+    setSearch('')
+  }
+
+  const handlePayment = () => {
+    const payment = parseFloat(paymentAmount) || 0
+    if (payment < total) {
+      alert('Jumlah pembayaran kurang dari total')
+      return
+    }
+    const change = payment - total
+    alert(`Pembayaran berhasil!\nTotal: ${formatCurrency(total)}\nBayar: ${formatCurrency(payment)}\nKembalian: ${formatCurrency(change)}`)
+    setItems([])
+    setSelectedIndex(-1)
+    setShowPaymentForm(false)
+    setPaymentAmount('')
   }
 
   const promos = [
@@ -308,6 +371,101 @@ export function POS() {
                   <div className="product-popup-footer">
                     <span>Pilih dengan Enter / Klik</span>
                     <span>Esc untuk tutup</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {showActionPopup && (
+              <div 
+                className="product-popup-overlay" 
+                onClick={(e) => { 
+                  if (e.target === e.currentTarget) {
+                    setShowActionPopup(false); 
+                  }
+                }}
+              >
+                <div className="action-popup" onClick={(e) => e.stopPropagation()}>
+                  <div className="action-popup-header">
+                    <h3>Pilih Aksi</h3>
+                  </div>
+                  <div className="action-popup-list">
+                    <div 
+                      className={`action-popup-item ${actionPopupIndex === 0 ? 'is-selected' : ''}`}
+                      onClick={() => handleActionSelect(0)}
+                    >
+                      <span className="material-icons">payments</span>
+                      <span>Bayar</span>
+                    </div>
+                    <div 
+                      className={`action-popup-item ${actionPopupIndex === 1 ? 'is-selected' : ''}`}
+                      onClick={() => handleActionSelect(1)}
+                    >
+                      <span className="material-icons">pause_circle</span>
+                      <span>Pending</span>
+                    </div>
+                    <div 
+                      className={`action-popup-item ${actionPopupIndex === 2 ? 'is-selected' : ''}`}
+                      onClick={() => handleActionSelect(2)}
+                    >
+                      <span className="material-icons">cancel</span>
+                      <span>Batal</span>
+                    </div>
+                  </div>
+                  <div className="product-popup-footer">
+                    <span>Pilih dengan Enter / Klik</span>
+                    <span>Esc untuk tutup</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {showPaymentForm && (
+              <div className="product-popup-overlay">
+                <div className="payment-popup">
+                  <div className="payment-popup-header">
+                    <h3>Pembayaran</h3>
+                    <button className="product-popup-close" onClick={() => setShowPaymentForm(false)}>
+                      <span className="material-icons">close</span>
+                    </button>
+                  </div>
+                  <div className="payment-popup-body">
+                    <div className="payment-row">
+                      <span>Total Bayar:</span>
+                      <span className="payment-total">{formatCurrency(total)}</span>
+                    </div>
+                    <div className="payment-form-group">
+                      <label>Jumlah Bayar:</label>
+                      <input
+                        type="number"
+                        className="payment-input"
+                        value={paymentAmount}
+                        onChange={(e) => setPaymentAmount(e.target.value)}
+                        placeholder="Masukkan jumlah"
+                        autoFocus
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            handlePayment()
+                          } else if (e.key === 'Escape') {
+                            setShowPaymentForm(false)
+                          }
+                        }}
+                      />
+                    </div>
+                    {paymentAmount && parseFloat(paymentAmount) >= total && (
+                      <div className="payment-row payment-change">
+                        <span>Kembalian:</span>
+                        <span>{formatCurrency(parseFloat(paymentAmount) - total)}</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="payment-popup-footer">
+                    <button className="payment-btn-cancel" onClick={() => setShowPaymentForm(false)}>
+                      Batal
+                    </button>
+                    <button className="payment-btn-confirm" onClick={handlePayment}>
+                      Konfirmasi Bayar
+                    </button>
                   </div>
                 </div>
               </div>
