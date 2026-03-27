@@ -19,7 +19,7 @@ export const toolbarItems = {
     { key: 'receive', label: 'Stock Receive', mark: 'S', tone: 'cyan' },
     { key: 'divider-2', divider: true },    
     { key: 'retur', label: 'Retur Pembelian', mark: 'R', tone: 'green' },
-    { key: 'divider-2', divider: true },    
+    { key: 'divider-4', divider: true },    
     { key: 'opname', label: 'Stock Opname', mark: 'O', tone: 'slate' },
     // { key: 'divider-2', divider: true },
     // { key: 'jual', label: 'Penjualan', mark: 'J', tone: 'blue' },

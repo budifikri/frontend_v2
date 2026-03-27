@@ -1,17 +1,20 @@
 ## TODO
-- perbaikan di retur purchase dan purchase order mnenggunakan harga beli bukan h
-arga jual
-
-
-
+- penjualan
+- form diskon
+- add user
 ## ON PROGRESS
-16 maret 2026 
-  - cek stock menu purchase return
+
 
 
 
 
 ## DONE
+26 maret 2026
+- perbaikan di retur purchase dan purchase order mnenggunakan harga beli bukan h
+arga jual
+16 maret 2026 
+  - cek stock menu purchase return
+
 2 Maret 2026  
 1. problem : pagination total page dan total row belum sesuai
    solusi : perbaiki api endpoint dengan menambahkan data tot_page,tot_row  
