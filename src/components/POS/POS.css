@@ -152,10 +152,34 @@
   color: #6b7280;
 }
 
-.receipt-items {
+.receipt-items-wrapper {
   flex: 1;
-  padding: 24px;
   overflow-y: auto;
+  overflow-x: hidden;
+  min-height: 0;
+}
+
+.receipt-items-wrapper::-webkit-scrollbar {
+  width: 8px;
+  display: block;
+}
+
+.receipt-items-wrapper::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 10px;
+}
+
+.receipt-items-wrapper::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 10px;
+}
+
+.receipt-items-wrapper::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.receipt-items {
+  padding: 16px;
   font-family: 'JetBrains Mono', monospace;
   font-size: 14px;
   color: #374151;
@@ -163,9 +187,10 @@
 
 .receipt-item {
   display: flex;
-  justify-content: space-between;
-  margin-bottom: 16px;
-  padding: 8px 12px;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding: 10px 12px;
   border-radius: 6px;
   cursor: pointer;
   transition: all 0.15s;
@@ -182,10 +207,37 @@
   border-color: #2563eb;
 }
 
+.receipt-item-no {
+  width: 28px;
+  height: 28px;
+  background: #e2e8f0;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 12px;
+  color: #64748b;
+  flex-shrink: 0;
+}
+
+.receipt-item.is-selected .receipt-item-no {
+  background: #2563eb;
+  color: white;
+}
+
+.receipt-item-info {
+  flex: 1;
+  min-width: 0;
+}
+
 .receipt-item-name {
   font-weight: 700;
   text-transform: uppercase;
   margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .receipt-item-price {
@@ -196,18 +248,20 @@
 .receipt-item-total {
   font-weight: 700;
   text-align: right;
+  flex-shrink: 0;
 }
 
 .receipt-summary {
-  border-top: 2px dashed #d1d5db;
-  padding-top: 16px;
-  margin-top: 16px;
+  border-top: 2px solid #e2e8f0;
+  padding: 16px;
+  background: white;
+  flex-shrink: 0;
 }
 
 .receipt-total-row {
   display: flex;
   justify-content: space-between;
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 900;
   color: #111827;
 }

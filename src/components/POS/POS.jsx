@@ -120,30 +120,33 @@ export function POS() {
               </div>
             </div>
 
-            <div className="receipt-items">
-              {items.map((item, idx) => (
-                <div 
-                  key={item.id} 
-                  className={`receipt-item ${selectedIndex === idx ? 'is-selected' : ''}`}
-                  onClick={() => handleItemClick(item, idx)}
-                >
-                  <div className="receipt-item-info">
-                    <div className="receipt-item-name">{item.name}</div>
-                    <div className="receipt-item-price">{item.qty} x {formatCurrency(item.price)}</div>
+            <div className="receipt-items-wrapper">
+              <div className="receipt-items">
+                {items.map((item, idx) => (
+                  <div 
+                    key={item.id} 
+                    className={`receipt-item ${selectedIndex === idx ? 'is-selected' : ''}`}
+                    onClick={() => handleItemClick(item, idx)}
+                  >
+                    <div className="receipt-item-no">{idx + 1}</div>
+                    <div className="receipt-item-info">
+                      <div className="receipt-item-name">{item.name}</div>
+                      <div className="receipt-item-price">{item.qty} x {formatCurrency(item.price)}</div>
+                    </div>
+                    <div className="receipt-item-total">{formatCurrency(item.price * item.qty)}</div>
                   </div>
-                  <div className="receipt-item-total">{formatCurrency(item.price * item.qty)}</div>
-                </div>
-              ))}
+                ))}
+              </div>
+            </div>
 
-              <div className="receipt-summary">
-                <div className="receipt-total-row">
-                  <span>TOTAL</span>
-                  <span>{formatCurrency(subtotal)}</span>
-                </div>
-                <div className="receipt-tax-row">
-                  <span>Tax (PPN 11%)</span>
-                  <span>{formatCurrency(tax)}</span>
-                </div>
+            <div className="receipt-summary">
+              <div className="receipt-total-row">
+                <span>TOTAL ({items.length} item)</span>
+                <span>{formatCurrency(subtotal)}</span>
+              </div>
+              <div className="receipt-tax-row">
+                <span>Tax (PPN 11%)</span>
+                <span>{formatCurrency(tax)}</span>
               </div>
             </div>
 
