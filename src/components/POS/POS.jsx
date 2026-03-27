@@ -4,7 +4,7 @@ import './POS.css'
 
 export function POS() {
   const { auth, clearAuth } = useAuth()
-  const [items, _setItems] = useState([
+  const [items, setItems] = useState([
     { id: 1, name: 'Organic Coffee Beans 250g', qty: 2, price: 85000 },
     { id: 2, name: 'Stainless Milk Pitcher 600ml', qty: 1, price: 225000 },
     { id: 3, name: 'Paper Filters (V60-02)', qty: 3, price: 45000 },
@@ -64,8 +64,24 @@ export function POS() {
     }
   }
 
+  const handleSearchChange = (value) => {
+    setSearch(value)
+  }
+
   const handleSearchKeyDown = (e) => {
-    if (e.key === 'ArrowDown') {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      const qtyMatch = search.match(/^\+(\d+)$/)
+      if (qtyMatch && selectedIndex >= 0) {
+        const newQty = parseInt(qtyMatch[1], 10)
+        setItems((prevItems) =>
+          prevItems.map((item, idx) =>
+            idx === selectedIndex ? { ...item, qty: newQty } : item
+          )
+        )
+        setSearch('')
+      }
+    } else if (e.key === 'ArrowDown') {
       e.preventDefault()
       if (items.length > 0) {
         const nextIndex = selectedIndex < items.length - 1 ? selectedIndex + 1 : items.length - 1
@@ -165,7 +181,7 @@ export function POS() {
                   placeholder="Cari barang atau scan barcode..."
                   className="pos-search-input"
                   value={search}
-                  onChange={(e) => setSearch(e.target.value)}
+                  onChange={(e) => handleSearchChange(e.target.value)}
                   onKeyDown={handleSearchKeyDown}
                   autoFocus
                 />
