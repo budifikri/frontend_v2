@@ -87,22 +87,26 @@ export function POS() {
   const handleSearchKeyDown = (e) => {
     if (e.key === 'Enter') {
       e.preventDefault()
-      const qtyMatch = search.match(/^\+(\d+)$/)
-      if (qtyMatch && selectedIndex >= 0) {
-        const newQty = parseInt(qtyMatch[1], 10)
-        setItems((prevItems) =>
-          prevItems.map((item, idx) =>
-            idx === selectedIndex ? { ...item, qty: newQty } : item
+      if (showProductPopup && productResults.length > 0) {
+        handleSelectProduct(productResults[popupSelectedIndex])
+      } else {
+        const qtyMatch = search.match(/^\+(\d+)$/)
+        if (qtyMatch && selectedIndex >= 0) {
+          const newQty = parseInt(qtyMatch[1], 10)
+          setItems((prevItems) =>
+            prevItems.map((item, idx) =>
+              idx === selectedIndex ? { ...item, qty: newQty } : item
+            )
           )
-        )
-        setSearch('')
-      } else if (search.startsWith('?')) {
-        const filterText = search.substring(1).toLowerCase()
-        if (filterText) {
-          const results = productCatalog.filter(p => p.name.toLowerCase().includes(filterText))
-          setProductResults(results)
-          setPopupSelectedIndex(0)
-          setShowProductPopup(true)
+          setSearch('')
+        } else if (search.startsWith('?')) {
+          const filterText = search.substring(1).toLowerCase()
+          if (filterText) {
+            const results = productCatalog.filter(p => p.name.toLowerCase().includes(filterText))
+            setProductResults(results)
+            setPopupSelectedIndex(0)
+            setShowProductPopup(true)
+          }
         }
       }
     } else if (e.key === 'ArrowDown') {
@@ -132,16 +136,19 @@ export function POS() {
   }
 
   const handleSelectProduct = (product) => {
-    const newItem = {
-      id: `${product.id}-${items.length}`,
-      name: product.name,
-      qty: 1,
-      price: product.price,
-    }
-    setItems((prev) => [...prev, newItem])
+    setItems((prev) => {
+      const newIndex = prev.length
+      const newItem = {
+        id: `${product.id}-${newIndex}`,
+        name: product.name,
+        qty: 1,
+        price: product.price,
+      }
+      setSelectedIndex(newIndex)
+      return [...prev, newItem]
+    })
     setShowProductPopup(false)
     setSearch('')
-    setSelectedIndex(items.length)
   }
 
   const promos = [
@@ -242,7 +249,15 @@ export function POS() {
             </div>
 
             {showProductPopup && (
-              <div className="product-popup-overlay" onClick={() => { setShowProductPopup(false); setSearch('') }}>
+              <div 
+                className="product-popup-overlay" 
+                onClick={(e) => { 
+                  if (e.target === e.currentTarget) {
+                    setShowProductPopup(false); 
+                    setSearch('')
+                  }
+                }}
+              >
                 <div className="product-popup" onClick={(e) => e.stopPropagation()}>
                   <div className="product-popup-header">
                     <h3>Daftar Produk</h3>
