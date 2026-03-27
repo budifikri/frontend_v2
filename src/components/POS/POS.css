@@ -11,10 +11,11 @@
   height: 100vh;
   display: flex;
   flex-direction: column;
-  background-image: linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)), 
-                    linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background-image: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), var(--app-wallpaper, none);
   background-size: cover;
   background-position: center;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   font-family: 'Inter', 'Segoe UI', sans-serif;
   overflow: hidden;
   z-index: 9999;
