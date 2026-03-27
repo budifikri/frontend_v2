@@ -99,7 +99,7 @@ export function POS() {
 
             <div className="receipt-footer">
               <div className="pos-search-container">
-                <span className="material-symbols">search</span>
+                <span className="material-icons">search</span>
                 <input
                   type="text"
                   placeholder="Cari barang atau scan barcode..."
@@ -107,10 +107,10 @@ export function POS() {
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                 />
-                <span className="material-symbols barcode-icon">barcode_scanner</span>
+                <span className="material-icons barcode-icon">qr_code_scanner</span>
               </div>
               <button className="pos-btn-bayar">
-                <span className="material-symbols">payments</span>
+                <span className="material-icons">payments</span>
                 <span className="pos-btn-bayar-text">BAYAR</span>
               </button>
             </div>
@@ -158,31 +158,31 @@ export function POS() {
         {/* Right Sidebar (Action Keys) */}
         <aside className="pos-sidebar">
           <button className="action-key action-key-amber">
-            <span className="material-symbols">pause_circle</span>
+            <span className="material-icons">pause_circle</span>
             <span>Pending</span>
           </button>
           <button className="action-key action-key-slate">
-            <span className="material-symbols">print</span>
+            <span className="material-icons">print</span>
             <span>Cetak</span>
           </button>
           <button className="action-key action-key-emerald">
-            <span className="material-symbols">account_balance_wallet</span>
+            <span className="material-icons">account_balance_wallet</span>
             <span>Cash In</span>
           </button>
           <button className="action-key action-key-rose">
-            <span className="material-symbols">account_balance_wallet</span>
+            <span className="material-icons">account_balance_wallet</span>
             <span>Cash Out</span>
           </button>
           <button className="action-key action-key-gray">
-            <span className="material-symbols">settings</span>
+            <span className="material-icons">settings</span>
             <span>Setting</span>
           </button>
           <button className="action-key action-key-indigo">
-            <span className="material-symbols">help_outline</span>
+            <span className="material-icons">help_outline</span>
             <span>Help</span>
           </button>
           <button className="action-key action-key-dark" onClick={handleLogout}>
-            <span className="material-symbols power-icon">power_settings_new</span>
+            <span className="material-icons power-icon">power_settings_new</span>
             <span>Close</span>
           </button>
         </aside>
