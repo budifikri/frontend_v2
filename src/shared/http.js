@@ -34,7 +34,7 @@ export async function apiFetch(path, opts = {}) {
   if (isDebugEnabled()) {
     logRequest(url, method, opts?.body)
   } else {
-    console.debug('[HTTP] Request', { url, method, body: opts?.body })
+    console.log('[HTTP] Request', { url, method, body: opts?.body })
   }
 
   const res = await fetch(url, {
@@ -52,10 +52,18 @@ export async function apiFetch(path, opts = {}) {
 
   if (!res.ok) {
     // Debug logging for error response
+    console.error('[HTTP] Error response', {
+      url,
+      method,
+      status: res.status,
+      statusText: res.statusText,
+      body: json,
+      requestBody: opts?.body,
+    })
     if (isDebugEnabled()) {
       logError(url, new ApiError(json?.error || json?.message || `HTTP ${res.status}`, { status: res.status, details: json }))
     } else {
-      console.debug('[HTTP] Response error', { url, status: res.status, body: json })
+      console.log('[HTTP] Response error', { url, status: res.status, body: json })
     }
 
     if (res.status === 401 || res.status === 403) {

@@ -39,7 +39,9 @@ export async function listUsers(token, params = {}) {
 }
 
 export async function createUser(token, input) {
+  console.log('[UserAPI] createUser - input:', JSON.parse(JSON.stringify(input)))
   const raw = await apiFetch('/api/users', { method: 'POST', token, body: input })
+  console.log('[UserAPI] createUser - response:', raw)
   if (!raw.success) throw new Error(raw.error || raw.message || 'Create user failed')
   return raw
 }

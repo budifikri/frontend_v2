@@ -100,6 +100,7 @@ export function User({ onExit }) {
   const [showPasswordMismatchPopup, setShowPasswordMismatchPopup] = useState(false)
   const [showChangePassword, setShowChangePassword] = useState(false)
   const [togglingId, setTogglingId] = useState(null)
+  const [formKey, setFormKey] = useState(0)
 
   const [searchKeyword, setSearchKeyword] = useState('')
   const [isActiveFilter, setIsActiveFilter] = useState('active')
@@ -175,6 +176,13 @@ export function User({ onExit }) {
   }, [fetchData])
 
   useEffect(() => {
+    if (showForm && !selectedItem) {
+      setForm(DEFAULT_FORM)
+      setShowChangePassword(true)
+    }
+  }, [showForm, selectedItem])
+
+  useEffect(() => {
     const handleKeyDown = (e) => {
       if (showDeleteConfirm) {
         if (e.key === 'Escape') {
@@ -227,9 +235,10 @@ export function User({ onExit }) {
   }
 
   function handleNew() {
-    setSelectedId(null)
+    setFormKey((k) => k + 1)
     setForm(DEFAULT_FORM)
     setShowChangePassword(true)
+    setSelectedId(null)
     setShowForm(true)
   }
 
@@ -271,14 +280,25 @@ export function User({ onExit }) {
   }
 
   async function handleSave() {
-    if (!form.username || !form.full_name) return
+    if (!form.username || form.username.trim().length < 3) {
+      setError('Username minimal 3 karakter')
+      return
+    }
+    if (!form.full_name || form.full_name.trim().length < 2) {
+      setError('Nama lengkap minimal 2 karakter')
+      return
+    }
+    if (!form.email || !form.email.trim()) {
+      setError('Email wajib diisi')
+      return
+    }
 
     const shouldValidatePassword = !selectedItem || showChangePassword
     const passwordValue = shouldValidatePassword ? form.password.trim() : ''
     const confirmPasswordValue = shouldValidatePassword ? form.confirm_password.trim() : ''
 
-    if (!selectedItem && !passwordValue) {
-      setError('Password wajib diisi untuk user baru')
+    if (!selectedItem && (!passwordValue || passwordValue.length < 6)) {
+      setError('Password minimal 6 karakter')
       return
     }
 
@@ -293,12 +313,11 @@ export function User({ onExit }) {
     setError('')
 
     const payload = {
-      username: form.username,
-      full_name: form.full_name,
-      name: form.full_name,
-      email: form.email || undefined,
-      phone: form.phone || undefined,
-      role: form.role,
+      username: form.username.trim(),
+      full_name: form.full_name.trim(),
+      email: form.email.trim(),
+      phone: form.phone?.trim() || undefined,
+      role: form.role.toLowerCase(),
       is_active: form.is_active,
     }
 
@@ -306,11 +325,15 @@ export function User({ onExit }) {
       payload.password = passwordValue
     }
 
+    console.log('[User] handleSave - payload:', JSON.parse(JSON.stringify(payload)))
+
     try {
       if (token) {
         if (selectedItem) {
+          console.log('[User] updateUser - calling API')
           await updateUser(token, selectedItem.id, payload)
         } else {
+          console.log('[User] createUser - calling API')
           await createUser(token, payload)
         }
         await fetchData()
@@ -402,6 +425,12 @@ export function User({ onExit }) {
                   key={row.id || index}
                   className={selectedId === row.id ? 'master-row-selected' : 'master-row'}
                   onClick={() => handleSelect(row)}
+                  onDoubleClick={() => {
+                    setSelectedId(row.id)
+                    setForm(mapFormFromItem(row))
+                    setShowChangePassword(false)
+                    setShowForm(true)
+                  }}
                 >
                   <td>{offset + index + 1}</td>
                   <td>{row.username || '-'}</td>
@@ -431,12 +460,12 @@ export function User({ onExit }) {
       </div>
 
       {showForm && (
-        <div className="master-form-card">
+        <div className="master-form-card" key={selectedItem ? `edit-${selectedItem.id}` : 'new-user'}>
           <div className="master-form-header">
             <span className="material-icons-round master-form-icon">person</span>
             <h2 className="master-form-title">{selectedItem ? 'Ubah Data User' : 'Isi Data User'}</h2>
           </div>
-          <div className="master-form-grid">
+          <div className="master-form-grid" key={`form-grid-${formKey}`}>
             <div className="master-form-group">
               <label className="master-form-label">Username :</label>
               <input

@@ -7,6 +7,7 @@ import {
   DashboardCanvas,
   DashboardFooter,
   LoginForm,
+  POS,
 } from './components'
 import { AuthProvider, useAuth } from './shared/auth'
 import { defaultMenu } from './data'
@@ -39,14 +40,18 @@ function AppContent() {
 
   useEffect(() => {
     if (auth.token) {
-      setView('dashboard')
-      setActiveMenu(defaultMenu)
+      if (auth.role === 'cashier') {
+        setView('pos')
+      } else {
+        setView('dashboard')
+        setActiveMenu(defaultMenu)
+      }
       return
     }
 
     setView('login')
     setActiveTool(null)
-  }, [auth.token])
+  }, [auth.token, auth.role])
 
   useEffect(() => {
     const savedWallpaper = localStorage.getItem('theme-wallpaper') || import.meta.env.VITE_DEFAULT_WALLPAPER
@@ -96,9 +101,14 @@ function AppContent() {
 
     try {
       const result = await login({ username: userId, password })
-      setAuth({ token: result.token, role: result.role, username: result.username, companyName: result.companyName })
-      setView('dashboard')
-      setActiveMenu(defaultMenu)
+      const role = result.role?.toLowerCase()
+      setAuth({ token: result.token, role, username: result.username, companyName: result.companyName })
+      if (role === 'cashier') {
+        setView('pos')
+      } else {
+        setView('dashboard')
+        setActiveMenu(defaultMenu)
+      }
     } catch (err) {
       setError(err.message || 'Login failed')
     } finally {
@@ -160,6 +170,10 @@ function AppContent() {
         <DashboardFooter username={auth.username} role={auth.role} />
       </main>
     )
+  }
+
+  if (view === 'pos') {
+    return <POS />
   }
 
   return (
