@@ -334,6 +334,7 @@ export function POS() {
               <button className="pos-btn-bayar">
                 <span className="material-icons">payments</span>
                 <span className="pos-btn-bayar-text">BAYAR</span>
+                <span className="shortcut-badge">F10</span>
               </button>
             </div>
 
@@ -546,26 +547,32 @@ export function POS() {
           <button className="action-key action-key-amber">
             <span className="material-icons">pause_circle</span>
             <span>Pending</span>
+            <span className="shortcut-badge">F6</span>
           </button>
           <button className="action-key action-key-slate">
             <span className="material-icons">print</span>
             <span>Cetak</span>
+            <span className="shortcut-badge">F7</span>
           </button>
           <button className="action-key action-key-emerald">
             <span className="material-icons">account_balance_wallet</span>
             <span>Cash In</span>
+            <span className="shortcut-badge">F8</span>
           </button>
           <button className="action-key action-key-rose">
             <span className="material-icons">account_balance_wallet</span>
             <span>Cash Out</span>
+            <span className="shortcut-badge">F9</span>
           </button>
           <button className="action-key action-key-gray">
             <span className="material-icons">settings</span>
             <span>Setting</span>
+            <span className="shortcut-badge">F11</span>
           </button>
           <button className="action-key action-key-indigo">
             <span className="material-icons">help_outline</span>
             <span>Help</span>
+            <span className="shortcut-badge">F12</span>
           </button>
           <button className="action-key action-key-dark" onClick={handleLogout}>
             <span className="material-icons power-icon">power_settings_new</span>
