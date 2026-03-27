@@ -103,7 +103,7 @@ export function POS() {
           <strong>{title}</strong>
         </div>
         <div className="pos-header-right">
-          <div className="pos-cashier">Cashier: <strong>{auth.username}</strong></div>
+          <div className="pos-cashier">Cashier: <strong>{auth.username?.toUpperCase()}</strong></div>
           <div className="pos-status-badge">System Online</div>
         </div>
       </header>
@@ -190,7 +190,7 @@ export function POS() {
       
                 </div>
  <div className="pos-header-right">
-          <div className="pos-cashier">Cashier: <strong>{auth.username}</strong></div>
+          <div className="pos-cashier"><strong>USER: {auth.username.toUpperCase()}</strong></div>
            <div className="monitor-time">{currentTime.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</div>
               </div>
         </div>
@@ -214,7 +214,7 @@ export function POS() {
           <div className="sticky-note">
             <div className="push-pin"></div>
             <div className="sticky-note-content">
-              <h3 className="promo-title">PROMO HARI INI</h3>
+              <span className="promo-title">PROMO HARI INI</span>
               <ul className="promo-list">
                 {promos.map((promo, idx) => (
                   <li key={idx}>{promo}</li>

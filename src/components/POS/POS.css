@@ -429,7 +429,7 @@
 .monitor-status {
   color: #00f3ff;
   font-family: 'Neuropol', sans-serif;
-  font-size: 16px;
+  font-size: 24px;
   display: flex;
   letter-spacing:1px;  
   align-items: center;
@@ -450,7 +450,8 @@
 }
 
 .monitor-item {
-  margin: 16px 0;
+  margin: 8px 0;
+    
 }
 
 .monitor-item-name {
@@ -474,7 +475,7 @@
 
 .monitor-bottom {
   border-top: 1px solid #374151;
-  padding-top: 16px;
+  padding-top: 0px;
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
@@ -509,7 +510,7 @@
 .sticky-note {
   background: linear-gradient(135deg, #fff176 0%, #ffeb3b 100%);
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-  padding: 40px 24px 24px;
+  padding: 10px 24px 24px;
   border-radius: 4px;
   width: 100%;
   max-width: 768px;
