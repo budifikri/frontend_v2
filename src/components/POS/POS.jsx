@@ -47,13 +47,15 @@ export function POS() {
     'Free Cookies for purchase over 300k',
   ]
 
+  const title = `POSxpress - ${auth.companyName || ''}`
+
   return (
     <div className="pos-screen">
       {/* Top Header */}
       <header className="pos-header">
         <div className="pos-header-left">
-          <span className="material-icons">storefront</span>
-          <span className="pos-title">Vista POS Pro</span>
+          <span className="desktop-dot" aria-hidden="true" />
+          <strong>{title}</strong>
         </div>
         <div className="pos-header-right">
           <div className="pos-cashier">Cashier: <strong>{auth.username}</strong></div>
