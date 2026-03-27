@@ -95,7 +95,7 @@ export function POS() {
 
   return (
     <div className="pos-screen">
-      {/* Top Header */}
+      {/* Top Header 
       <header className="pos-header">
         <div className="pos-header-left">
           <span className="desktop-dot" aria-hidden="true" />
@@ -106,6 +106,7 @@ export function POS() {
           <div className="pos-status-badge">System Online</div>
         </div>
       </header>
+      */}
 
       {/* Main Content */}
       <div className="pos-content">
@@ -180,19 +181,24 @@ export function POS() {
             <div className="monitor-screen">
               <div className="monitor-top">
                 <div className="monitor-status">
-                  <span className="material-icons status-dot">fiber_manual_record</span>
-                  CUSTOMER DISPLAY
+          <strong>{title}</strong>
+      
                 </div>
-                <div className="monitor-time">{currentTime.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</div>
+ <div className="pos-header-right">
+          <div className="pos-cashier">Cashier: <strong>{auth.username}</strong></div>
+          <div className="pos-status-badge">System Online</div> <div className="monitor-time">{currentTime.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</div>
               </div>
+        </div>
+                
+               
               <div className="monitor-item">
                 <div className="monitor-item-name">{displayItem?.name || 'No Item'}</div>
                 <div className="monitor-item-price">{displayItem ? formatCurrency(displayItem.price) : 'Rp 0'}</div>
               </div>
               <div className="monitor-bottom">
-                <div className="monitor-count">ITEMS: {String(items.length).padStart(2, '0')}</div>
+                  <div className="monitor-count">    {/*  ITEMS: {String(items.length).padStart(2, '0')}  */}</div>  
                 <div className="monitor-amount">
-                  <div className="monitor-amount-label">AMOUNT DUE</div>
+               {/*    <div className="monitor-amount-label">AMOUNT DUE</div> */}
                   <div className="monitor-amount-value">{formatCurrency(total)}</div>
                 </div>
               </div>
