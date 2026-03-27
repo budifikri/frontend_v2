@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '../../shared/auth'
 import './POS.css'
 
@@ -11,10 +11,30 @@ export function POS() {
   ])
   const [search, setSearch] = useState('')
   const [currentTime, setCurrentTime] = useState(new Date())
+  const [selectedIndex, setSelectedIndex] = useState(-1)
+  const searchInputRef = useRef(null)
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000)
     return () => clearInterval(timer)
+  }, [])
+
+  useEffect(() => {
+    if (searchInputRef.current) {
+      searchInputRef.current.focus()
+    }
+  }, [])
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        if (searchInputRef.current) {
+          searchInputRef.current.focus()
+        }
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
   }, [])
 
   const handleLogout = () => {
@@ -34,7 +54,31 @@ export function POS() {
   const subtotal = items.reduce((sum, item) => sum + (item.price * item.qty), 0)
   const tax = subtotal * 0.11
   const total = subtotal + tax
-  const lastItem = items[items.length - 1]
+  const selectedItem = selectedIndex >= 0 ? items[selectedIndex] : null
+  const displayItem = selectedItem || items[items.length - 1]
+
+  const handleItemClick = (item, index) => {
+    setSelectedIndex(index)
+    if (searchInputRef.current) {
+      searchInputRef.current.focus()
+    }
+  }
+
+  const handleSearchKeyDown = (e) => {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      if (items.length > 0) {
+        const nextIndex = selectedIndex < items.length - 1 ? selectedIndex + 1 : items.length - 1
+        setSelectedIndex(nextIndex)
+      }
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      if (items.length > 0) {
+        const prevIndex = selectedIndex > 0 ? selectedIndex - 1 : 0
+        setSelectedIndex(prevIndex)
+      }
+    }
+  }
 
   const promos = [
     'Beli 2 Kopi Gratis 1',
@@ -77,8 +121,12 @@ export function POS() {
             </div>
 
             <div className="receipt-items">
-              {items.map((item) => (
-                <div key={item.id} className="receipt-item">
+              {items.map((item, idx) => (
+                <div 
+                  key={item.id} 
+                  className={`receipt-item ${selectedIndex === idx ? 'is-selected' : ''}`}
+                  onClick={() => handleItemClick(item, idx)}
+                >
                   <div className="receipt-item-info">
                     <div className="receipt-item-name">{item.name}</div>
                     <div className="receipt-item-price">{item.qty} x {formatCurrency(item.price)}</div>
@@ -103,11 +151,14 @@ export function POS() {
               <div className="pos-search-container">
                 <span className="material-icons">search</span>
                 <input
+                  ref={searchInputRef}
                   type="text"
                   placeholder="Cari barang atau scan barcode..."
                   className="pos-search-input"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
+                  onKeyDown={handleSearchKeyDown}
+                  autoFocus
                 />
                 <span className="material-icons barcode-icon">qr_code_scanner</span>
               </div>
@@ -132,8 +183,8 @@ export function POS() {
                 <div className="monitor-time">{currentTime.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</div>
               </div>
               <div className="monitor-item">
-                <div className="monitor-item-name">{lastItem?.name || 'No Item'}</div>
-                <div className="monitor-item-price">{lastItem ? formatCurrency(lastItem.price) : 'Rp 0'}</div>
+                <div className="monitor-item-name">{displayItem?.name || 'No Item'}</div>
+                <div className="monitor-item-price">{displayItem ? formatCurrency(displayItem.price) : 'Rp 0'}</div>
               </div>
               <div className="monitor-bottom">
                 <div className="monitor-count">ITEMS: {String(items.length).padStart(2, '0')}</div>
