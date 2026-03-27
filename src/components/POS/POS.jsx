@@ -137,6 +137,14 @@ export function POS() {
 
   const handleSelectProduct = (product) => {
     setItems((prev) => {
+      const existingIndex = prev.findIndex((item) => item.name === product.name)
+      if (existingIndex >= 0) {
+        const updated = prev.map((item, idx) =>
+          idx === existingIndex ? { ...item, qty: item.qty + 1 } : item
+        )
+        setSelectedIndex(existingIndex)
+        return updated
+      }
       const newIndex = prev.length
       const newItem = {
         id: `${product.id}-${newIndex}`,
