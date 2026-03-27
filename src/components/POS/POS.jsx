@@ -104,7 +104,7 @@ export function POS() {
         </div>
         <div className="pos-header-right">
           <div className="pos-cashier">Cashier: <strong>{auth.username?.toUpperCase()}</strong></div>
-          <div className="pos-status-badge">System Online</div>
+          <div className="pos-status-badge"> Online</div>
         </div>
       </header>
       */}
@@ -186,7 +186,7 @@ export function POS() {
             <div className="monitor-screen">
               <div className="monitor-top">
                 <div className="monitor-status">
-          <strong>{merk}</strong>
+          <strong>{merk}</strong>  <div className="pos-status-badge"> Online</div>
       
                 </div>
  <div className="pos-header-right">
@@ -206,7 +206,7 @@ export function POS() {
                 )}
               </div>
               <div className="monitor-bottom">
-                  <div className="monitor-count">    <div className="pos-status-badge">System Online</div>  {/*  ITEMS: {String(items.length).padStart(2, '0')}  */}</div>  
+                  <div className="monitor-count"> <div className="monitor-total"> Total</div>    {/*  ITEMS: {String(items.length).padStart(2, '0')}  */}</div>  
                 <div className="monitor-amount">
                {/*    <div className="monitor-amount-label">AMOUNT DUE</div> */}
                   <div className="monitor-amount-value">{formatCurrency(total)}</div>
