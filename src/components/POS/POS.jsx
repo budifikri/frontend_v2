@@ -2,6 +2,19 @@ import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '../../shared/auth'
 import './POS.css'
 
+const productCatalog = [
+  { id: 'P001', name: 'Organic Coffee Beans 250g', unit: 'Pcs', price: 85000 },
+  { id: 'P002', name: 'Stainless Milk Pitcher 600ml', unit: 'Pcs', price: 225000 },
+  { id: 'P003', name: 'Paper Filters (V60-02)', unit: 'Pack', price: 45000 },
+  { id: 'P004', name: 'Espresso Blend 1kg', unit: 'Pack', price: 150000 },
+  { id: 'P005', name: 'Cappuccino Cup Set', unit: 'Set', price: 350000 },
+  { id: 'P006', name: 'Coffee Grinder Manual', unit: 'Pcs', price: 275000 },
+  { id: 'P007', name: 'Drip Coffee Maker', unit: 'Pcs', price: 450000 },
+  { id: 'P008', name: 'Milk Frother Electric', unit: 'Pcs', price: 185000 },
+  { id: 'P009', name: 'Coffee Bean Storage Jar', unit: 'Pcs', price: 95000 },
+  { id: 'P010', name: 'French Press 1L', unit: 'Pcs', price: 165000 },
+]
+
 export function POS() {
   const { auth, clearAuth } = useAuth()
   const [items, setItems] = useState([
@@ -12,6 +25,9 @@ export function POS() {
   const [search, setSearch] = useState('')
   const [currentTime, setCurrentTime] = useState(new Date())
   const [selectedIndex, setSelectedIndex] = useState(-1)
+  const [showProductPopup, setShowProductPopup] = useState(false)
+  const [productResults, setProductResults] = useState([])
+  const [popupSelectedIndex, setPopupSelectedIndex] = useState(0)
   const searchInputRef = useRef(null)
 
   useEffect(() => {
@@ -80,20 +96,52 @@ export function POS() {
           )
         )
         setSearch('')
+      } else if (search.startsWith('?')) {
+        const filterText = search.substring(1).toLowerCase()
+        if (filterText) {
+          const results = productCatalog.filter(p => p.name.toLowerCase().includes(filterText))
+          setProductResults(results)
+          setPopupSelectedIndex(0)
+          setShowProductPopup(true)
+        }
       }
     } else if (e.key === 'ArrowDown') {
       e.preventDefault()
-      if (items.length > 0) {
+      if (showProductPopup) {
+        if (popupSelectedIndex < productResults.length - 1) {
+          setPopupSelectedIndex(popupSelectedIndex + 1)
+        }
+      } else if (items.length > 0) {
         const nextIndex = selectedIndex < items.length - 1 ? selectedIndex + 1 : items.length - 1
         setSelectedIndex(nextIndex)
       }
     } else if (e.key === 'ArrowUp') {
       e.preventDefault()
-      if (items.length > 0) {
+      if (showProductPopup) {
+        if (popupSelectedIndex > 0) {
+          setPopupSelectedIndex(popupSelectedIndex - 1)
+        }
+      } else if (items.length > 0) {
         const prevIndex = selectedIndex > 0 ? selectedIndex - 1 : 0
         setSelectedIndex(prevIndex)
       }
+    } else if (e.key === 'Escape' && showProductPopup) {
+      setShowProductPopup(false)
+      setSearch('')
     }
+  }
+
+  const handleSelectProduct = (product) => {
+    const newItem = {
+      id: `${product.id}-${items.length}`,
+      name: product.name,
+      qty: 1,
+      price: product.price,
+    }
+    setItems((prev) => [...prev, newItem])
+    setShowProductPopup(false)
+    setSearch('')
+    setSelectedIndex(items.length)
   }
 
   const promos = [
@@ -192,6 +240,55 @@ export function POS() {
                 <span className="pos-btn-bayar-text">BAYAR</span>
               </button>
             </div>
+
+            {showProductPopup && (
+              <div className="product-popup-overlay" onClick={() => { setShowProductPopup(false); setSearch('') }}>
+                <div className="product-popup" onClick={(e) => e.stopPropagation()}>
+                  <div className="product-popup-header">
+                    <h3>Daftar Produk</h3>
+                    <button className="product-popup-close" onClick={() => { setShowProductPopup(false); setSearch('') }}>
+                      <span className="material-icons">close</span>
+                    </button>
+                  </div>
+                  <div className="product-popup-table-wrapper">
+                    <table className="product-popup-table">
+                      <thead>
+                        <tr>
+                          <th>No</th>
+                          <th>Nama</th>
+                          <th>Satuan</th>
+                          <th>Harga</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {productResults.length === 0 ? (
+                          <tr>
+                            <td colSpan="4" className="product-popup-empty">Produk tidak ditemukan</td>
+                          </tr>
+                        ) : (
+                          productResults.map((product, idx) => (
+                            <tr
+                              key={product.id}
+                              className={idx === popupSelectedIndex ? 'is-selected' : ''}
+                              onClick={() => handleSelectProduct(product)}
+                            >
+                              <td>{idx + 1}</td>
+                              <td>{product.name}</td>
+                              <td>{product.unit}</td>
+                              <td className="text-right">{formatCurrency(product.price)}</td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                  <div className="product-popup-footer">
+                    <span>Pilih dengan Enter / Klik</span>
+                    <span>Esc untuk tutup</span>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </main>
 
