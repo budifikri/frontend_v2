@@ -94,7 +94,7 @@ export function POS() {
   const company = `${auth.companyName || ''}`
   const merk = 'PosXpress' 
 
-  return (
+  return (    
     <div className="pos-screen">
       {/* Top Header 
       <header className="pos-header">
@@ -198,7 +198,7 @@ export function POS() {
                
               <div className="monitor-item">
                 <div className="monitor-item-name">{displayItem?.name || 'No Item'}</div>
-                <div className="monitor-item-price">{displayItem ? formatCurrency(displayItem.price) : 'Rp 0'}</div>
+                <div className="monitor-item-price">  {displayItem ? formatCurrency(displayItem.price) : 'Rp 0'}</div>
               </div>
               <div className="monitor-bottom">
                   <div className="monitor-count">    <div className="pos-status-badge">System Online</div>  {/*  ITEMS: {String(items.length).padStart(2, '0')}  */}</div>  
