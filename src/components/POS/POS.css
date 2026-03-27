@@ -462,15 +462,27 @@
   overflow: hidden;
   text-overflow: ellipsis;
     font-family:  'JetBrains Mono', monospace;
+      text-shadow: 0 0 10px rgba(0, 243, 255, 0.7);
 }
 
-.monitor-item-price {
-  color: #4ade80;
+.monitor-item-price-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+      color: #4ade80;
   font-family: 'Digiface', 'JetBrains Mono', monospace;
-  letter-spacing:4px;
   font-size: 24px;
-  /* font-weight:900; */
-  
+  font-weight: 900;
+  letter-spacing: 3px;
+  text-shadow: 0 0 10px rgba(0, 243, 255, 0.7);
+}
+
+.monitor-item-qty-price {
+
+}
+
+.monitor-item-total {
+
 }
 
 .monitor-bottom {

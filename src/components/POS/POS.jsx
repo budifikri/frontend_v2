@@ -198,7 +198,12 @@ export function POS() {
                
               <div className="monitor-item">
                 <div className="monitor-item-name">{displayItem?.name || 'No Item'}</div>
-                <div className="monitor-item-price">  {displayItem ? formatCurrency(displayItem.price) : 'Rp 0'}</div>
+                {displayItem && (
+                  <div className="monitor-item-price-row">
+                    <span className="monitor-item-qty-price">{displayItem.qty} x {formatCurrency(displayItem.price)}</span>
+                    <span className="monitor-item-total">{formatCurrency(displayItem.price * displayItem.qty)}</span>
+                  </div>
+                )}
               </div>
               <div className="monitor-bottom">
                   <div className="monitor-count">    <div className="pos-status-badge">System Online</div>  {/*  ITEMS: {String(items.length).padStart(2, '0')}  */}</div>  
