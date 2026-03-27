@@ -4,7 +4,11 @@ import './POS.css'
 
 export function POS() {
   const { auth, clearAuth } = useAuth()
-  const [items, _setItems] = useState([])
+  const [items, _setItems] = useState([
+    { id: 1, name: 'Organic Coffee Beans 250g', qty: 2, price: 85000 },
+    { id: 2, name: 'Stainless Milk Pitcher 600ml', qty: 1, price: 225000 },
+    { id: 3, name: 'Paper Filters (V60-02)', qty: 3, price: 45000 },
+  ])
   const [search, setSearch] = useState('')
   const [currentTime, setCurrentTime] = useState(new Date())
 
@@ -30,157 +34,159 @@ export function POS() {
   const subtotal = items.reduce((sum, item) => sum + (item.price * item.qty), 0)
   const tax = subtotal * 0.11
   const total = subtotal + tax
+  const lastItem = items[items.length - 1]
+
+  const promos = [
+    'Beli 2 Kopi Gratis 1',
+    'Diskon 10% Khusus Member Baru',
+    'Flash Sale Jam 3 Sore!',
+    'Voucher Cashback Rp 25rb',
+    'Belanja min. 200rb dapat kupon undian',
+    'Weekend Special: Coffee Beans Buy 1 Get 1',
+    'Extra Point for reusable cup users',
+    'Free Cookies for purchase over 300k',
+  ]
 
   return (
     <div className="pos-screen">
       {/* Top Header */}
       <header className="pos-header">
         <div className="pos-header-left">
-          <span className="material-icons">shopping_cart</span>
-          <span className="pos-title">POS RETAIL - {auth.companyName || 'MINIMARKET'}</span>
+          <span className="material-icons">storefront</span>
+          <span className="pos-title">Vista POS Pro</span>
         </div>
         <div className="pos-header-right">
-          <div className="pos-header-info">
-            <span className="material-icons">calendar_today</span>
-            <span>{currentTime.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
-          </div>
-          <div className="pos-header-info">
-            <span className="material-icons">schedule</span>
-            <span>{currentTime.toLocaleTimeString('id-ID')}</span>
-          </div>
-          <div className="pos-header-info pos-header-user">
-            <span className="material-icons">person</span>
-            <span>{auth.username} (KASIR)</span>
-          </div>
+          <div className="pos-cashier">Cashier: <strong>{auth.username}</strong></div>
+          <div className="pos-status-badge">System Online</div>
         </div>
       </header>
 
-      {/* Main Layout */}
-      <main className="pos-main">
-        {/* Left Column: Transaction List */}
-        <div className="pos-transaction-list">
-          <div className="pos-search-container">
-            <div className="pos-search-box">
-              <span className="material-icons">qr_code_scanner</span>
-              <input
-                type="text"
-                placeholder="Scan Barcode atau Cari Barang... (F2)"
-                className="pos-search-input"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                autoFocus
-              />
-            </div>
-          </div>
-
-          <div className="pos-table-container">
-            <table className="pos-table">
-              <thead>
-                <tr>
-                  <th className="pos-th-no">No</th>
-                  <th className="pos-th-name">Nama Barang</th>
-                  <th className="pos-th-price">Harga</th>
-                  <th className="pos-th-qty">Qty</th>
-                  <th className="pos-th-disc">Disc</th>
-                  <th className="pos-th-total">Total</th>
-                </tr>
-              </thead>
-              <tbody>
-                {items.length === 0 ? (
-                  <tr>
-                    <td colSpan="6" className="pos-empty-state">
-                      <span className="material-icons">inventory_2</span>
-                      <p>Belum ada barang. Silakan scan barcode...</p>
-                    </td>
-                  </tr>
-                ) : (
-                  items.map((item, idx) => (
-                    <tr key={item.id}>
-                      <td className="text-center">{idx + 1}</td>
-                      <td>{item.name}</td>
-                      <td className="text-right">{formatCurrency(item.price)}</td>
-                      <td className="text-center">{item.qty}</td>
-                      <td className="text-right">{formatCurrency(item.discount || 0)}</td>
-                      <td className="text-right pos-total-cell">{formatCurrency(item.price * item.qty)}</td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* Right Column: Information & Actions */}
-        <div className="pos-sidebar">
-          {/* Grand Total Display */}
-          <div className="pos-grand-total">
-            <span className="pos-grand-total-label">Total Bayar</span>
-            <div className="pos-grand-total-amount">
-              {formatCurrency(total)}
-            </div>
-          </div>
-
-          {/* Payment Summary */}
-          <div className="pos-summary">
-            <div className="pos-summary-row">
-              <span>Subtotal</span>
-              <span className="pos-summary-value">{formatCurrency(subtotal)}</span>
-            </div>
-            <div className="pos-summary-row">
-              <span>Pajak (11%)</span>
-              <span className="pos-summary-value">{formatCurrency(tax)}</span>
-            </div>
-            <div className="pos-summary-row">
-              <span>Diskon</span>
-              <span className="pos-summary-value pos-summary-discount">({formatCurrency(0)})</span>
-            </div>
-            <div className="pos-summary-grand">
-              <span>Grand Total</span>
-              <span className="pos-summary-grand-value">{formatCurrency(total)}</span>
-            </div>
-          </div>
-
-          {/* Customer Selection */}
-          <button className="pos-customer-btn">
-            <div className="pos-customer-info">
-              <span className="material-icons">groups</span>
-              <div>
-                <div className="pos-customer-label">Pelanggan (F4)</div>
-                <div className="pos-customer-name">CUSTOMER UMUM</div>
+      {/* Main Content */}
+      <div className="pos-content">
+        {/* Left: Receipt Paper (40%) */}
+        <main className="pos-main-left">
+          <div className="receipt-paper">
+            <div className="receipt-header">
+              <h2 className="receipt-title">NOTA PENJUALAN</h2>
+              <div className="receipt-meta">
+                <span>INV/20231024/001</span>
+                <span>{currentTime.toLocaleDateString('en-GB')} {currentTime.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</span>
               </div>
             </div>
-            <span className="material-icons">chevron_right</span>
-          </button>
 
-          {/* Action Buttons */}
-          <div className="pos-actions">
-            <button className="pos-btn-bayar">
-              <span className="material-icons">payments</span>
-              <span className="pos-btn-bayar-text">BAYAR</span>
-              <span className="pos-btn-bayar-shortcut">(F10)</span>
-            </button>
-            <div className="pos-btn-row">
-              <button className="pos-btn-pending">PENDING</button>
-              <button className="pos-btn-batal">BATAL</button>
+            <div className="receipt-items">
+              {items.map((item) => (
+                <div key={item.id} className="receipt-item">
+                  <div className="receipt-item-info">
+                    <div className="receipt-item-name">{item.name}</div>
+                    <div className="receipt-item-price">{item.qty} x {formatCurrency(item.price)}</div>
+                  </div>
+                  <div className="receipt-item-total">{formatCurrency(item.price * item.qty)}</div>
+                </div>
+              ))}
+
+              <div className="receipt-summary">
+                <div className="receipt-total-row">
+                  <span>TOTAL</span>
+                  <span>{formatCurrency(subtotal)}</span>
+                </div>
+                <div className="receipt-tax-row">
+                  <span>Tax (PPN 11%)</span>
+                  <span>{formatCurrency(tax)}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="receipt-footer">
+              <div className="pos-search-container">
+                <span className="material-symbols">search</span>
+                <input
+                  type="text"
+                  placeholder="Cari barang atau scan barcode..."
+                  className="pos-search-input"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
+                <span className="material-symbols barcode-icon">barcode_scanner</span>
+              </div>
+              <button className="pos-btn-bayar">
+                <span className="material-symbols">payments</span>
+                <span className="pos-btn-bayar-text">BAYAR</span>
+              </button>
             </div>
           </div>
-        </div>
-      </main>
+        </main>
 
-      {/* Footer / Shortcuts */}
-      <footer className="pos-footer">
-        <div className="pos-shortcuts">
-          <span><kbd>F2</kbd> CARI BARANG</span>
-          <span><kbd>F4</kbd> PELANGGAN</span>
-          <span><kbd>F10</kbd> BAYAR</span>
-          <span className="pos-shortcut-danger"><kbd>ESC</kbd> KELUAR</span>
-        </div>
-        <div className="pos-status">
-          <span>Status: <strong>READY</strong></span>
-          <span>Shift: <strong>PAGI</strong></span>
-          <button onClick={handleLogout} className="pos-logout-btn">LOGOUT</button>
-        </div>
-      </footer>
+        {/* Right: Monitor + Promo (60%) */}
+        <section className="pos-main-right">
+          {/* Customer Display Monitor */}
+          <div className="monitor-frame">
+            <div className="monitor-screen">
+              <div className="monitor-top">
+                <div className="monitor-status">
+                  <span className="material-icons status-dot">fiber_manual_record</span>
+                  CUSTOMER DISPLAY
+                </div>
+                <div className="monitor-time">{currentTime.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</div>
+              </div>
+              <div className="monitor-item">
+                <div className="monitor-item-name">{lastItem?.name || 'No Item'}</div>
+                <div className="monitor-item-price">{lastItem ? formatCurrency(lastItem.price) : 'Rp 0'}</div>
+              </div>
+              <div className="monitor-bottom">
+                <div className="monitor-count">ITEMS: {String(items.length).padStart(2, '0')}</div>
+                <div className="monitor-amount">
+                  <div className="monitor-amount-label">AMOUNT DUE</div>
+                  <div className="monitor-amount-value">{formatCurrency(total)}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Promo Sticky Note */}
+          <div className="sticky-note">
+            <div className="push-pin"></div>
+            <h3 className="promo-title">PROMO HARI INI</h3>
+            <ul className="promo-list">
+              {promos.map((promo, idx) => (
+                <li key={idx}>{promo}</li>
+              ))}
+            </ul>
+          </div>
+        </section>
+
+        {/* Right Sidebar (Action Keys) */}
+        <aside className="pos-sidebar">
+          <button className="action-key action-key-amber">
+            <span className="material-symbols">pause_circle</span>
+            <span>Pending</span>
+          </button>
+          <button className="action-key action-key-slate">
+            <span className="material-symbols">print</span>
+            <span>Cetak</span>
+          </button>
+          <button className="action-key action-key-emerald">
+            <span className="material-symbols">account_balance_wallet</span>
+            <span>Cash In</span>
+          </button>
+          <button className="action-key action-key-rose">
+            <span className="material-symbols">account_balance_wallet</span>
+            <span>Cash Out</span>
+          </button>
+          <button className="action-key action-key-gray">
+            <span className="material-symbols">settings</span>
+            <span>Setting</span>
+          </button>
+          <button className="action-key action-key-indigo">
+            <span className="material-symbols">help_outline</span>
+            <span>Help</span>
+          </button>
+          <button className="action-key action-key-dark" onClick={handleLogout}>
+            <span className="material-symbols power-icon">power_settings_new</span>
+            <span>Close</span>
+          </button>
+        </aside>
+      </div>
     </div>
   )
 }
