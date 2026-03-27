@@ -199,12 +199,14 @@ export function POS() {
           {/* Promo Sticky Note */}
           <div className="sticky-note">
             <div className="push-pin"></div>
-            <h3 className="promo-title">PROMO HARI INI</h3>
-            <ul className="promo-list">
-              {promos.map((promo, idx) => (
-                <li key={idx}>{promo}</li>
-              ))}
-            </ul>
+            <div className="sticky-note-content">
+              <h3 className="promo-title">PROMO HARI INI</h3>
+              <ul className="promo-list">
+                {promos.map((promo, idx) => (
+                  <li key={idx}>{promo}</li>
+                ))}
+              </ul>
+            </div>
           </div>
         </section>
 
