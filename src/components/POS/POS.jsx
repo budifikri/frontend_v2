@@ -91,7 +91,8 @@ export function POS() {
     'Free Cookies for purchase over 300k',
   ]
 
-  const title = `POSxpress - ${auth.companyName || ''}`
+  const company = `${auth.companyName || ''}`
+  const merk = 'PosXpress' 
 
   return (
     <div className="pos-screen">
@@ -115,9 +116,13 @@ export function POS() {
           <div className="receipt-paper">
             <div className="receipt-header">
               <h2 className="receipt-title">NOTA PENJUALAN</h2>
-              <div className="receipt-meta">
+              <div>
+              <div className="receipt-subtitle">{company}
+              </div>
+              <div className="receipt-meta">              
                 <span>INV/20231024/001</span>
                 <span>{currentTime.toLocaleDateString('en-GB')} {currentTime.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</span>
+              </div>
               </div>
             </div>
 
@@ -181,12 +186,12 @@ export function POS() {
             <div className="monitor-screen">
               <div className="monitor-top">
                 <div className="monitor-status">
-          <strong>{title}</strong>
+          <strong>{merk}</strong>
       
                 </div>
  <div className="pos-header-right">
           <div className="pos-cashier">Cashier: <strong>{auth.username}</strong></div>
-          <div className="pos-status-badge">System Online</div> <div className="monitor-time">{currentTime.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</div>
+           <div className="monitor-time">{currentTime.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</div>
               </div>
         </div>
                 
@@ -196,7 +201,7 @@ export function POS() {
                 <div className="monitor-item-price">{displayItem ? formatCurrency(displayItem.price) : 'Rp 0'}</div>
               </div>
               <div className="monitor-bottom">
-                  <div className="monitor-count">    {/*  ITEMS: {String(items.length).padStart(2, '0')}  */}</div>  
+                  <div className="monitor-count">    <div className="pos-status-badge">System Online</div>  {/*  ITEMS: {String(items.length).padStart(2, '0')}  */}</div>  
                 <div className="monitor-amount">
                {/*    <div className="monitor-amount-label">AMOUNT DUE</div> */}
                   <div className="monitor-amount-value">{formatCurrency(total)}</div>

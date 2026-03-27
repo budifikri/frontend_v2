@@ -3,6 +3,23 @@
    Reference: document/POS/code.html
    ============================ */
 
+/* Digital Font for Price Display */
+@font-face {
+  font-family: 'Digiface';
+  src: url('../../assets/fonts/digiface.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Neuropol';
+  src: url('../../assets/fonts/Neuropol.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
 .pos-screen {
   position: fixed;
   top: 0;
@@ -70,9 +87,11 @@
 }
 
 .pos-cashier {
-  color: white;
-  font-size: 14px;
+  color: #ffeb3b;
+  font-size: 16px;
   font-weight: 500;
+    font-family: 'JetBrains Mono', monospace;
+    
 }
 
 .pos-status-badge {
@@ -139,8 +158,17 @@
   text-align: center;
   font-weight: 700;
   font-size: 20px;
+
   color: #1f2937;
   letter-spacing: 0.1em;
+  margin-bottom: 0px;
+}
+.receipt-subtitle {
+  text-align: center;
+  font-weight: 700;
+  font-size: 16px;
+  color: #6b7280;
+  /* letter-spacing: 0.1em;   */
   margin-bottom: 16px;
 }
 
@@ -399,10 +427,11 @@
 }
 
 .monitor-status {
-  color: #4ade80;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 12px;
+  color: #00f3ff;
+  font-family: 'Neuropol', sans-serif;
+  font-size: 16px;
   display: flex;
+  letter-spacing:1px;  
   align-items: center;
   gap: 8px;
 }
@@ -427,16 +456,20 @@
 .monitor-item-name {
   color: white;
   font-size: 32px;
-  font-weight: 700;
+  font-weight: 900;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+    font-family:  'JetBrains Mono', monospace;
 }
 
 .monitor-item-price {
   color: #4ade80;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'Digiface', 'JetBrains Mono', monospace;
+  letter-spacing:4px;
   font-size: 24px;
+  /* font-weight:900; */
+  
 }
 
 .monitor-bottom {
@@ -465,10 +498,10 @@
 
 .monitor-amount-value {
   color: white;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'Digiface', 'JetBrains Mono', monospace;
   font-size: 52px;
   font-weight: 900;
-  letter-spacing: -2px;
+  letter-spacing: 5px;
   text-shadow: 0 0 10px rgba(0, 243, 255, 0.7);
 }
 
