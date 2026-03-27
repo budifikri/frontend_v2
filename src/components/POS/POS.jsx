@@ -34,6 +34,7 @@ export function POS() {
   const [showPaymentForm, setShowPaymentForm] = useState(false)
   const [paymentAmount, setPaymentAmount] = useState('')
   const searchInputRef = useRef(null)
+  const paymentInputRef = useRef(null)
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000)
@@ -45,6 +46,12 @@ export function POS() {
       searchInputRef.current.focus()
     }
   }, [])
+
+  useEffect(() => {
+    if (showPaymentForm && paymentInputRef.current) {
+      paymentInputRef.current.focus()
+    }
+  }, [showPaymentForm])
 
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -201,11 +208,22 @@ export function POS() {
       })
       setItems([])
       setSelectedIndex(-1)
+      setSearch('')
+      setTimeout(() => {
+        if (searchInputRef.current) {
+          searchInputRef.current.focus()
+        }
+      }, 0)
     } else if (index === 2) {
       setItems([])
       setSelectedIndex(-1)
+      setSearch('')
+      setTimeout(() => {
+        if (searchInputRef.current) {
+          searchInputRef.current.focus()
+        }
+      }, 0)
     }
-    setSearch('')
   }
 
   const handlePayment = () => {
@@ -437,12 +455,12 @@ export function POS() {
                     <div className="payment-form-group">
                       <label>Jumlah Bayar:</label>
                       <input
+                        ref={paymentInputRef}
                         type="number"
                         className="payment-input"
                         value={paymentAmount}
                         onChange={(e) => setPaymentAmount(e.target.value)}
                         placeholder="Masukkan jumlah"
-                        autoFocus
                         onKeyDown={(e) => {
                           if (e.key === 'Enter') {
                             handlePayment()
