@@ -463,10 +463,7 @@
 
 .pos-sidebar {
   width: 96px;
-  background: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-left: 1px solid rgba(255, 255, 255, 0.2);
+  background: var(--firstcolor-bg, #60a5fa);
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -497,6 +494,7 @@
 
 .action-key .material-icons {
   font-size: 24px;
+  color: white;
 }
 
 .action-key span:last-child {
@@ -504,6 +502,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  color: white;
 }
 
 .action-key-amber {
@@ -513,9 +512,9 @@
 }
 
 .action-key-slate {
-  background: #e2e8f0;
-  --shadow-color: #94a3b8;
-  color: #334155;
+  background: var(--firstcolor-bg, #60a5fa);
+  --shadow-color: #2563eb;
+  color: white;
 }
 
 .action-key-emerald {
