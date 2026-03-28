@@ -12,6 +12,24 @@ export async function getCurrentCashDrawer(token) {
   }
 }
 
+export async function getCashDrawerSummary(token, drawerId) {
+  const raw = await apiFetch(`/api/cash-drawers/${encodeURIComponent(drawerId)}/summary`, { token })
+  return raw
+}
+
+export async function closeCashDrawer(token, drawerId, closingBalance, notes) {
+  const raw = await apiFetch(`/api/cash-drawers/${encodeURIComponent(drawerId)}/close`, {
+    method: 'POST',
+    token,
+    body: {
+      closing_balance: closingBalance,
+      notes: notes,
+    },
+  })
+  if (!raw.success) throw new Error(raw.error || raw.message || 'Failed to close cash drawer')
+  return raw
+}
+
 export async function openCashDrawer(token, input) {
   const raw = await apiFetch('/api/cash-drawers/open', {
     method: 'POST',

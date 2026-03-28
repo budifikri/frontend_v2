@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useAuth } from '../../shared/auth'
 import { listProducts } from '../../features/master/product/product.api'
 import { listWarehouses } from '../../features/master/warehouse/warehouse.api'
-import { openCashDrawer, getCurrentCashDrawer } from '../../features/transaksi/cash-drawer/cashDrawer.api'
+import { openCashDrawer, getCurrentCashDrawer, getCashDrawerSummary, closeCashDrawer } from '../../features/transaksi/cash-drawer/cashDrawer.api'
 import './POS.css'
 
 export function POS() {
@@ -40,6 +40,17 @@ export function POS() {
   const [mainWarehouse, setMainWarehouse] = useState(null)
   const [isOpeningDrawer, setIsOpeningDrawer] = useState(false)
   const openingBalanceRef = useRef(null)
+  const [showClosingForm, setShowClosingForm] = useState(false)
+  const [closingBalance, setClosingBalance] = useState('')
+  const [closingNotes, setClosingNotes] = useState('')
+  const [cashDrawerSummary, setCashDrawerSummary] = useState(null)
+  const [currentCashDrawer, setCurrentCashDrawer] = useState(null)
+  const [isClosingDrawer, setIsClosingDrawer] = useState(false)
+  const [closingButtonIndex, setClosingButtonIndex] = useState(1)
+  const closingBalanceRef = useRef(null)
+  const closeBtnRef = useRef(null)
+  const cancelCloseBtnRef = useRef(null)
+  const logoutCloseBtnRef = useRef(null)
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000)
@@ -114,10 +125,50 @@ export function POS() {
   }, [showDeleteConfirm])
 
   const handleLogout = () => {
-    if (window.confirm('Keluar dari POS?')) {
+    handleShowClosingForm()
+  }
+
+  const handleShowClosingForm = async () => {
+    try {
+      const result = await getCurrentCashDrawer(auth.token)
+      if (result.success && result.data) {
+        setCurrentCashDrawer(result.data)
+        const summary = await getCashDrawerSummary(auth.token, result.data.id)
+        if (summary.success) {
+          setCashDrawerSummary(summary.data)
+          setClosingBalance(String(summary.data.expected_balance || 0))
+        }
+        setShowClosingForm(true)
+        setClosingButtonIndex(1)
+      } else {
+        clearAuth()
+      }
+    } catch (err) {
+      console.error('Failed to get cash drawer summary:', err)
       clearAuth()
     }
   }
+
+  const handleCloseDrawer = useCallback(async () => {
+    if (!currentCashDrawer) return
+    setIsClosingDrawer(true)
+    try {
+      await closeCashDrawer(auth.token, currentCashDrawer.id, parseFloat(closingBalance) || 0, closingNotes)
+      setShowClosingForm(false)
+      clearAuth()
+    } catch (err) {
+      console.error('Failed to close cash drawer:', err)
+      alert('Gagal menutup cash drawer: ' + (err.message || 'Unknown error'))
+    } finally {
+      setIsClosingDrawer(false)
+    }
+  }, [auth.token, currentCashDrawer, closingBalance, closingNotes, clearAuth])
+
+  const handleCancelClose = useCallback(() => {
+    setShowClosingForm(false)
+    setClosingBalance('')
+    setClosingNotes('')
+  }, [])
 
   const handleOpenCashDrawer = async () => {
     if (!mainWarehouse) {
@@ -379,6 +430,28 @@ export function POS() {
 
   useEffect(() => {
     const handleKeyDown = (e) => {
+      if (showClosingForm) {
+        if (e.key === 'ArrowLeft') {
+          e.preventDefault()
+          setClosingButtonIndex(closingButtonIndex > 0 ? closingButtonIndex - 1 : 2)
+        } else if (e.key === 'ArrowRight') {
+          e.preventDefault()
+          setClosingButtonIndex(closingButtonIndex < 2 ? closingButtonIndex + 1 : 0)
+        } else if (e.key === 'Escape') {
+          e.preventDefault()
+          handleCancelClose()
+        } else if (e.key === 'Enter') {
+          e.preventDefault()
+          if (closingButtonIndex === 0) {
+            handleCancelClose()
+          } else if (closingButtonIndex === 1) {
+            clearAuth()
+          } else if (closingButtonIndex === 2) {
+            handleCloseDrawer()
+          }
+        }
+        return
+      }
       if (showDeleteConfirm) {
         if (e.key === 'ArrowLeft') {
           e.preventDefault()
@@ -411,7 +484,7 @@ export function POS() {
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [items.length, showDeleteConfirm, handleDeleteConfirm, handleDeleteCancel])
+  }, [items.length, showDeleteConfirm, showClosingForm, closingButtonIndex, handleDeleteConfirm, handleDeleteCancel, handleCloseDrawer, handleCancelClose, clearAuth])
 
   const promos = [
     'Beli 2 Kopi Gratis 1',
@@ -504,6 +577,125 @@ export function POS() {
                 disabled={isOpeningDrawer}
               >
                 {isOpeningDrawer ? 'Membuka...' : 'Buka Kasir'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showClosingForm && (
+        <div className="product-popup-overlay">
+          <div className="closing-drawer-popup">
+            <div className="closing-drawer-popup-header">
+              <span className="material-icons">point_of_sale</span>
+              <h3>Summary Cash Drawer</h3>
+            </div>
+            <div className="closing-drawer-popup-body">
+              <div className="closing-summary-grid">
+                <div className="closing-summary-item">
+                  <span className="closing-label">Opening Balance</span>
+                  <span className="closing-value">{formatCurrency(cashDrawerSummary?.opening_balance || 0)}</span>
+                </div>
+                <div className="closing-summary-item">
+                  <span className="closing-label">Expected Balance</span>
+                  <span className="closing-value">{formatCurrency(cashDrawerSummary?.expected_balance || 0)}</span>
+                </div>
+                <div className="closing-summary-item">
+                  <span className="closing-label">Sales Total</span>
+                  <span className="closing-value">{formatCurrency(cashDrawerSummary?.sales_total || 0)}</span>
+                </div>
+                <div className="closing-summary-item">
+                  <span className="closing-label">Cash In</span>
+                  <span className="closing-value">{formatCurrency(cashDrawerSummary?.cash_in_total || 0)}</span>
+                </div>
+                <div className="closing-summary-item">
+                  <span className="closing-label">Cash Out</span>
+                  <span className="closing-value">{formatCurrency(cashDrawerSummary?.cash_out_total || 0)}</span>
+                </div>
+                <div className="closing-summary-item">
+                  <span className="closing-label">Transaction</span>
+                  <span className="closing-value">{cashDrawerSummary?.transaction_count || 0} transaksi</span>
+                </div>
+              </div>
+              <div className="payment-form-group">
+                <label>Closing Balance:</label>
+                <input
+                  ref={closingBalanceRef}
+                  type="number"
+                  className="payment-input"
+                  value={closingBalance}
+                  onChange={(e) => setClosingBalance(e.target.value)}
+                  placeholder="0"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      handleCloseDrawer()
+                    } else if (e.key === 'Escape') {
+                      handleCancelClose()
+                    } else if (e.key === 'ArrowLeft') {
+                      e.preventDefault()
+                      setClosingButtonIndex(2)
+                      if (logoutCloseBtnRef.current) logoutCloseBtnRef.current.focus()
+                    } else if (e.key === 'ArrowRight') {
+                      e.preventDefault()
+                      setClosingButtonIndex(0)
+                      if (closeBtnRef.current) closeBtnRef.current.focus()
+                    }
+                  }}
+                />
+              </div>
+              {cashDrawerSummary && closingBalance && (
+                <div className="closing-summary-item variance">
+                  <span className="closing-label">Variance</span>
+                  <span className={`closing-value ${parseFloat(closingBalance) - cashDrawerSummary.expected_balance >= 0 ? 'positive' : 'negative'}`}>
+                    {formatCurrency(parseFloat(closingBalance) - cashDrawerSummary.expected_balance)}
+                  </span>
+                </div>
+              )}
+              <div className="payment-form-group">
+                <label>Catatan:</label>
+                <input
+                  type="text"
+                  className="payment-input"
+                  value={closingNotes}
+                  onChange={(e) => setClosingNotes(e.target.value)}
+                  placeholder="Opsional"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      handleCloseDrawer()
+                    } else if (e.key === 'Escape') {
+                      handleCancelClose()
+                    }
+                  }}
+                />
+              </div>
+            </div>
+            <div className="closing-drawer-popup-footer">
+              <button
+                ref={cancelCloseBtnRef}
+                className={`closing-btn ${closingButtonIndex === 0 ? 'is-focused' : ''}`}
+                onClick={handleCancelClose}
+                disabled={isClosingDrawer}
+                onMouseEnter={() => setClosingButtonIndex(0)}
+              >
+                Cancel
+              </button>
+              <button
+                ref={logoutCloseBtnRef}
+                className={`closing-btn logout ${closingButtonIndex === 1 ? 'is-focused' : ''}`}
+                onClick={() => clearAuth()}
+                disabled={isClosingDrawer}
+                onMouseEnter={() => setClosingButtonIndex(1)}
+              >
+                Logout
+              </button>
+              <button
+                ref={closeBtnRef}
+                className={`closing-btn confirm ${closingButtonIndex === 2 ? 'is-focused' : ''}`}
+                onClick={handleCloseDrawer}
+                disabled={isClosingDrawer}
+                onMouseEnter={() => setClosingButtonIndex(2)}
+              >
+                {isClosingDrawer ? 'Menutup...' : 'Closing Drawer'}
               </button>
             </div>
           </div>

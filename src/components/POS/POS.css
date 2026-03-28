@@ -1325,3 +1325,134 @@
   font-size: 12px;
   color: #64748b;
 }
+
+/* Closing Drawer Popup */
+.closing-drawer-popup {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  width: 450px;
+  overflow: hidden;
+}
+
+.closing-drawer-popup-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 20px;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: white;
+}
+
+.closing-drawer-popup-header .material-icons {
+  font-size: 32px;
+}
+
+.closing-drawer-popup-header h3 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.closing-drawer-popup-body {
+  padding: 20px;
+}
+
+.closing-summary-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding: 16px;
+  background: #f8fafc;
+  border-radius: 8px;
+}
+
+.closing-summary-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.closing-summary-item.variance {
+  grid-column: span 2;
+  flex-direction: row;
+  justify-content: space-between;
+  padding-top: 12px;
+  border-top: 1px solid #e2e8f0;
+  margin-top: 4px;
+}
+
+.closing-label {
+  font-size: 12px;
+  color: #64748b;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.closing-value {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.closing-value.positive {
+  color: #10b981;
+}
+
+.closing-value.negative {
+  color: #ef4444;
+}
+
+.closing-drawer-popup-footer {
+  display: flex;
+  gap: 8px;
+  padding: 16px 20px;
+  background: #f8fafc;
+  border-top: 1px solid #e2e8f0;
+}
+
+.closing-btn {
+  flex: 1;
+  padding: 12px 16px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.closing-btn:hover:not(:disabled) {
+  background: #e2e8f0;
+}
+
+.closing-btn.is-focused {
+  transform: scale(1.02);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5);
+}
+
+.closing-btn.logout {
+  background: #fee2e2;
+  color: #ef4444;
+}
+
+.closing-btn.logout:hover:not(:disabled) {
+  background: #fecaca;
+}
+
+.closing-btn.confirm {
+  background: #10b981;
+  color: white;
+}
+
+.closing-btn.confirm:hover:not(:disabled) {
+  background: #059669;
+}
+
+.closing-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
