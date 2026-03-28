@@ -3,6 +3,7 @@ import { useAuth } from '../../shared/auth'
 import { listProducts } from '../../features/master/product/product.api'
 import { listWarehouses } from '../../features/master/warehouse/warehouse.api'
 import { openCashDrawer, getCurrentCashDrawer, getCashDrawerSummary, closeCashDrawer, cashInDrawer, cashOutDrawer } from '../../features/transaksi/cash-drawer/cashDrawer.api'
+import { createSale } from '../../features/transaksi/sales/sales.api'
 import './POS.css'
 
 export function POS() {
@@ -74,17 +75,28 @@ export function POS() {
   }, [])
 
   useEffect(() => {
+    const loadWarehouse = async () => {
+      try {
+        const warehouseResult = await listWarehouses(auth.token, { limit: 100 })
+        console.log('Warehouse result:', warehouseResult)
+        const main = warehouseResult.items.find(w => w.type === 'MAIN')
+        console.log('Main warehouse:', main)
+        if (main) {
+          setMainWarehouse(main)
+        }
+      } catch (err) {
+        console.error('Failed to load warehouse:', err)
+      }
+    }
+
     const checkCashDrawerStatus = async () => {
       try {
         const result = await getCurrentCashDrawer(auth.token)
         if (result.success) {
           setShowCashDrawerForm(false)
+          await loadWarehouse()
         } else {
-          const warehouseResult = await listWarehouses(auth.token, { limit: 100 })
-          const main = warehouseResult.items.find(w => w.type === 'MAIN')
-          if (main) {
-            setMainWarehouse(main)
-          }
+          await loadWarehouse()
           setShowCashDrawerForm(true)
         }
       } catch (err) {
@@ -433,6 +445,7 @@ export function POS() {
       const newIndex = prev.length
       const newItem = {
         id: `${product.id}-${newIndex}`,
+        product_id: product.id,
         name: product.name,
         qty: 1,
         price: product.price,
@@ -482,7 +495,7 @@ export function POS() {
     }
   }
 
-  const handlePayment = () => {
+  const handlePayment = async () => {
     const payment = parseFloat(paymentAmount) || 0
     if (paymentMethod === 'CASH' && payment < total) {
       alert('Jumlah pembayaran kurang dari total')
@@ -492,21 +505,57 @@ export function POS() {
       alert('Masukkan nomor rekening tujuan')
       return
     }
-    const change = payment - total
-    let message = `Pembayaran berhasil!\nMetode: ${paymentMethod}\nTotal: ${formatCurrency(total)}`
-    if (paymentMethod === 'CASH') {
-      message += `\nBayar: ${formatCurrency(payment)}\nKembalian: ${formatCurrency(change)}`
-    } else if (paymentMethod === 'TRANSFER') {
-      message += `\nNo Rekening: ${transferAccount}`
+
+    try {
+      const saleItems = items.map(item => ({
+        product_id: item.product_id,
+        quantity: item.qty,
+      }))
+
+      const paymentData = {
+        amount: paymentMethod === 'CASH' ? payment : total,
+        method: paymentMethod,
+      }
+
+      if (paymentMethod === 'TRANSFER') {
+        paymentData.reference_number = transferAccount
+      }
+
+      console.log('mainWarehouse:', mainWarehouse)
+
+      const salePayload = {
+        warehouse_id: mainWarehouse?.id,
+        items: saleItems,
+        payments: [paymentData],
+      }
+
+      console.log('Sale payload:', JSON.stringify(salePayload, null, 2))
+      const result = await createSale(auth.token, salePayload)
+
+      const change = payment - total
+      let message = `Pembayaran berhasil!\nMetode: ${paymentMethod}\nTotal: ${formatCurrency(total)}`
+      if (paymentMethod === 'CASH') {
+        message += `\nBayar: ${formatCurrency(payment)}\nKembalian: ${formatCurrency(change)}`
+      } else if (paymentMethod === 'TRANSFER') {
+        message += `\nNo Rekening: ${transferAccount}`
+      }
+      if (result.data?.invoice_number) {
+        message += `\nInvoice: ${result.data.invoice_number}`
+      }
+      alert(message)
+
+      setItems([])
+      setSelectedIndex(-1)
+      setShowPaymentForm(false)
+      setPaymentAmount('')
+      setPaymentMethod('CASH')
+      setPaymentMethodIndex(0)
+      setTransferAccount('')
+    } catch (err) {
+      console.error('Failed to save sale:', err)
+      const errorMsg = err.message || 'Unknown error'
+      alert('Gagal menyimpan penjualan: ' + errorMsg)
     }
-    alert(message)
-    setItems([])
-    setSelectedIndex(-1)
-    setShowPaymentForm(false)
-    setPaymentAmount('')
-    setPaymentMethod('CASH')
-    setPaymentMethodIndex(0)
-    setTransferAccount('')
   }
 
   const handleDeleteConfirm = useCallback(() => {
