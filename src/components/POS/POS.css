@@ -700,7 +700,7 @@
 }
 
 .action-key-slate {
-  background: var(--firstcolor-bg, #60a5fa);
+  background: #60a5fa;
   --shadow-color: #2563eb;
   color: white;
 }
