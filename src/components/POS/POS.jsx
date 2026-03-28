@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useAuth } from '../../shared/auth'
 import { listProducts } from '../../features/master/product/product.api'
 import { listWarehouses } from '../../features/master/warehouse/warehouse.api'
-import { openCashDrawer } from '../../features/transaksi/cash-drawer/cashDrawer.api'
+import { openCashDrawer, getCurrentCashDrawer } from '../../features/transaksi/cash-drawer/cashDrawer.api'
 import './POS.css'
 
 export function POS() {
@@ -34,7 +34,7 @@ export function POS() {
   const paymentInputRef = useRef(null)
   const deleteConfirmBtnRef = useRef(null)
   const deleteCancelBtnRef = useRef(null)
-  const [showCashDrawerForm, setShowCashDrawerForm] = useState(true)
+  const [showCashDrawerForm, setShowCashDrawerForm] = useState(false)
   const [openingBalance, setOpeningBalance] = useState('')
   const [cashDrawerNotes, setCashDrawerNotes] = useState('')
   const [mainWarehouse, setMainWarehouse] = useState(null)
@@ -47,18 +47,25 @@ export function POS() {
   }, [])
 
   useEffect(() => {
-    const fetchMainWarehouse = async () => {
+    const checkCashDrawerStatus = async () => {
       try {
-        const result = await listWarehouses(auth.token, { limit: 100 })
-        const main = result.items.find(w => w.type === 'MAIN')
-        if (main) {
-          setMainWarehouse(main)
+        const result = await getCurrentCashDrawer(auth.token)
+        if (result.success) {
+          setShowCashDrawerForm(false)
+        } else {
+          const warehouseResult = await listWarehouses(auth.token, { limit: 100 })
+          const main = warehouseResult.items.find(w => w.type === 'MAIN')
+          if (main) {
+            setMainWarehouse(main)
+          }
+          setShowCashDrawerForm(true)
         }
       } catch (err) {
-        console.error('Failed to fetch warehouses:', err)
+        console.error('Failed to check cash drawer:', err)
+        setShowCashDrawerForm(false)
       }
     }
-    fetchMainWarehouse()
+    checkCashDrawerStatus()
   }, [auth.token])
 
   useEffect(() => {
