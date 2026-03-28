@@ -55,7 +55,13 @@ export function POS() {
 
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (e.key === 'Escape') {
+      if (e.key === 'F10') {
+        e.preventDefault()
+        if (items.length > 0) {
+          setShowPaymentForm(true)
+          setPaymentAmount('')
+        }
+      } else if (e.key === 'Escape') {
         if (searchInputRef.current) {
           searchInputRef.current.focus()
         }
@@ -63,7 +69,7 @@ export function POS() {
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [])
+  }, [items.length])
 
   const handleLogout = () => {
     if (window.confirm('Keluar dari POS?')) {
@@ -97,7 +103,13 @@ export function POS() {
   }
 
   const handleSearchKeyDown = (e) => {
-    if (e.key === 'Enter') {
+    if (e.key === 'F10') {
+      e.preventDefault()
+      if (items.length > 0) {
+        setShowPaymentForm(true)
+        setPaymentAmount('')
+      }
+    } else if (e.key === 'Enter') {
       e.preventDefault()
       if (showProductPopup && productResults.length > 0) {
         handleSelectProduct(productResults[popupSelectedIndex])
@@ -331,7 +343,10 @@ export function POS() {
                 />
                 <span className="material-icons barcode-icon">qr_code_scanner</span>
               </div>
-              <button className="pos-btn-bayar">
+              <button className="pos-btn-bayar" onClick={() => {
+                setShowPaymentForm(true)
+                setPaymentAmount('')
+              }}>
                 <span className="material-icons">payments</span>
                 <span className="pos-btn-bayar-text">BAYAR</span>
                 <span className="shortcut-badge">F10</span>
@@ -502,8 +517,8 @@ export function POS() {
           <strong>{merk}</strong>  <div className="pos-status-badge"> Online</div>
       
                 </div>
- <div className="pos-header-right">
-          <div className="pos-cashier"><strong>USER: {auth.username.toUpperCase()}</strong></div>
+  <div className="pos-header-right">
+          <div className="pos-cashier"><strong>USER: {(auth.username || '').toUpperCase()}</strong></div>
            <div className="monitor-time">{currentTime.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</div>
               </div>
         </div>
