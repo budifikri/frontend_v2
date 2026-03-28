@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useAuth } from '../../shared/auth'
 import { listProducts } from '../../features/master/product/product.api'
+import { listWarehouses } from '../../features/master/warehouse/warehouse.api'
+import { openCashDrawer } from '../../features/transaksi/cash-drawer/cashDrawer.api'
 import './POS.css'
 
 export function POS() {
@@ -32,11 +34,38 @@ export function POS() {
   const paymentInputRef = useRef(null)
   const deleteConfirmBtnRef = useRef(null)
   const deleteCancelBtnRef = useRef(null)
+  const [showCashDrawerForm, setShowCashDrawerForm] = useState(true)
+  const [openingBalance, setOpeningBalance] = useState('')
+  const [cashDrawerNotes, setCashDrawerNotes] = useState('')
+  const [mainWarehouse, setMainWarehouse] = useState(null)
+  const [isOpeningDrawer, setIsOpeningDrawer] = useState(false)
+  const openingBalanceRef = useRef(null)
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000)
     return () => clearInterval(timer)
   }, [])
+
+  useEffect(() => {
+    const fetchMainWarehouse = async () => {
+      try {
+        const result = await listWarehouses(auth.token, { limit: 100 })
+        const main = result.items.find(w => w.type === 'MAIN')
+        if (main) {
+          setMainWarehouse(main)
+        }
+      } catch (err) {
+        console.error('Failed to fetch warehouses:', err)
+      }
+    }
+    fetchMainWarehouse()
+  }, [auth.token])
+
+  useEffect(() => {
+    if (showCashDrawerForm && openingBalanceRef.current) {
+      openingBalanceRef.current.focus()
+    }
+  }, [showCashDrawerForm])
 
   useEffect(() => {
     if (searchInputRef.current) {
@@ -81,6 +110,31 @@ export function POS() {
     if (window.confirm('Keluar dari POS?')) {
       clearAuth()
     }
+  }
+
+  const handleOpenCashDrawer = async () => {
+    if (!mainWarehouse) {
+      alert('Warehouse utama tidak ditemukan')
+      return
+    }
+    setIsOpeningDrawer(true)
+    try {
+      await openCashDrawer(auth.token, {
+        opening_balance: parseFloat(openingBalance) || 0,
+        notes: cashDrawerNotes,
+        warehouse_id: mainWarehouse.id,
+      })
+      setShowCashDrawerForm(false)
+    } catch (err) {
+      console.error('Failed to open cash drawer:', err)
+      alert('Gagal membuka cash drawer: ' + (err.message || 'Unknown error'))
+    } finally {
+      setIsOpeningDrawer(false)
+    }
+  }
+
+  const handleSkipCashDrawer = () => {
+    setShowCashDrawerForm(false)
   }
 
   const formatCurrency = (amount) => {
@@ -380,6 +434,74 @@ export function POS() {
         </div>
       </header>
       */}
+
+      {showCashDrawerForm && (
+        <div className="product-popup-overlay">
+          <div className="cash-drawer-popup">
+            <div className="cash-drawer-popup-header">
+              <span className="material-icons">point_of_sale</span>
+              <h3>Buka Cash Drawer</h3>
+            </div>
+            <div className="cash-drawer-popup-body">
+              <div className="cash-drawer-warehouse">
+                <span className="material-icons">inventory_2</span>
+                <span>{mainWarehouse?.name || 'Loading...'}</span>
+              </div>
+              <div className="payment-form-group">
+                <label>Opening Balance:</label>
+                <input
+                  ref={openingBalanceRef}
+                  type="number"
+                  className="payment-input"
+                  value={openingBalance}
+                  onChange={(e) => setOpeningBalance(e.target.value)}
+                  placeholder="0"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      handleOpenCashDrawer()
+                    } else if (e.key === 'Escape') {
+                      handleSkipCashDrawer()
+                    }
+                  }}
+                />
+              </div>
+              <div className="payment-form-group">
+                <label>Catatan:</label>
+                <input
+                  type="text"
+                  className="payment-input"
+                  value={cashDrawerNotes}
+                  onChange={(e) => setCashDrawerNotes(e.target.value)}
+                  placeholder="Opsional"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      handleOpenCashDrawer()
+                    } else if (e.key === 'Escape') {
+                      handleSkipCashDrawer()
+                    }
+                  }}
+                />
+              </div>
+            </div>
+            <div className="cash-drawer-popup-footer">
+              <button 
+                className="payment-btn-cancel" 
+                onClick={handleSkipCashDrawer}
+                disabled={isOpeningDrawer}
+              >
+                Lewati
+              </button>
+              <button 
+                className="payment-btn-confirm" 
+                onClick={handleOpenCashDrawer}
+                disabled={isOpeningDrawer}
+              >
+                {isOpeningDrawer ? 'Membuka...' : 'Buka Kasir'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Main Content */}
       <div className="pos-content">
