@@ -1051,6 +1051,56 @@
   background: #059669;
 }
 
+/* Payment Method Buttons */
+.payment-method-buttons {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.payment-method-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 8px;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  background: white;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.payment-method-btn:hover {
+  border-color: #3b82f6;
+  background: #eff6ff;
+}
+
+.payment-method-btn.is-selected {
+  border-color: #3b82f6;
+  background: #dbeafe;
+}
+
+.payment-method-btn .material-icons {
+  font-size: 24px;
+  color: #64748b;
+}
+
+.payment-method-btn.is-selected .material-icons {
+  color: #3b82f6;
+}
+
+.payment-method-btn span:last-child {
+  font-size: 11px;
+  font-weight: 700;
+  color: #64748b;
+}
+
+.payment-method-btn.is-selected span:last-child {
+  color: #3b82f6;
+}
+
 /* Delete Confirm Popup */
 .delete-confirm-popup {
   background: white;
@@ -1137,4 +1187,41 @@
 .delete-btn-confirm.is-focused {
   transform: scale(1.02);
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5);
+}
+
+/* QRIS Display */
+.qris-display {
+  text-align: center;
+  padding: 16px;
+  background: #f8fafc;
+  border-radius: 8px;
+  border: 2px dashed #e2e8f0;
+}
+
+.qris-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 20px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.qris-placeholder .material-icons {
+  font-size: 120px;
+  color: #1f2937;
+}
+
+.qris-amount {
+  font-size: 24px;
+  font-weight: 700;
+  color: #059669;
+}
+
+.qris-info {
+  margin: 12px 0 0 0;
+  font-size: 12px;
+  color: #64748b;
 }

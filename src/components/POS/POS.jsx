@@ -17,6 +17,13 @@ export function POS() {
   const [PENDING_NOTAS, _setPendingNotas] = useState([])
   const [showPaymentForm, setShowPaymentForm] = useState(false)
   const [paymentAmount, setPaymentAmount] = useState('')
+  const [paymentMethod, setPaymentMethod] = useState('CASH')
+  const [paymentMethodIndex, setPaymentMethodIndex] = useState(0)
+  const [transferAccount, setTransferAccount] = useState('')
+  const paymentMethodCashRef = useRef(null)
+  const paymentMethodQrisRef = useRef(null)
+  const paymentMethodTransferRef = useRef(null)
+  const transferInputRef = useRef(null)
   const [isLoadingProducts, setIsLoadingProducts] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [itemToDelete, setItemToDelete] = useState(null)
@@ -38,10 +45,30 @@ export function POS() {
   }, [])
 
   useEffect(() => {
-    if (showPaymentForm && paymentInputRef.current) {
-      paymentInputRef.current.focus()
+    if (showPaymentForm) {
+      setPaymentMethodIndex(0)
+      setPaymentMethod('CASH')
+      setTimeout(() => {
+        if (paymentInputRef.current) {
+          paymentInputRef.current.focus()
+        }
+      }, 100)
     }
   }, [showPaymentForm])
+
+  const navigatePaymentMethod = (direction) => {
+    const methods = ['CASH', 'QRIS', 'TRANSFER']
+    let newIndex
+    if (direction === 'left') {
+      newIndex = paymentMethodIndex > 0 ? paymentMethodIndex - 1 : methods.length - 1
+    } else {
+      newIndex = paymentMethodIndex < methods.length - 1 ? paymentMethodIndex + 1 : 0
+    }
+    setPaymentMethodIndex(newIndex)
+    setPaymentMethod(methods[newIndex])
+    const refs = [paymentMethodCashRef, paymentMethodQrisRef, paymentMethodTransferRef]
+    if (refs[newIndex].current) refs[newIndex].current.focus()
+  }
 
   useEffect(() => {
     if (showDeleteConfirm && deleteCancelBtnRef.current) {
@@ -238,16 +265,29 @@ export function POS() {
 
   const handlePayment = () => {
     const payment = parseFloat(paymentAmount) || 0
-    if (payment < total) {
+    if (paymentMethod === 'CASH' && payment < total) {
       alert('Jumlah pembayaran kurang dari total')
       return
     }
+    if (paymentMethod === 'TRANSFER' && !transferAccount.trim()) {
+      alert('Masukkan nomor rekening tujuan')
+      return
+    }
     const change = payment - total
-    alert(`Pembayaran berhasil!\nTotal: ${formatCurrency(total)}\nBayar: ${formatCurrency(payment)}\nKembalian: ${formatCurrency(change)}`)
+    let message = `Pembayaran berhasil!\nMetode: ${paymentMethod}\nTotal: ${formatCurrency(total)}`
+    if (paymentMethod === 'CASH') {
+      message += `\nBayar: ${formatCurrency(payment)}\nKembalian: ${formatCurrency(change)}`
+    } else if (paymentMethod === 'TRANSFER') {
+      message += `\nNo Rekening: ${transferAccount}`
+    }
+    alert(message)
     setItems([])
     setSelectedIndex(-1)
     setShowPaymentForm(false)
     setPaymentAmount('')
+    setPaymentMethod('CASH')
+    setPaymentMethodIndex(0)
+    setTransferAccount('')
   }
 
   const handleDeleteConfirm = useCallback(() => {
@@ -351,8 +391,9 @@ export function POS() {
               <div>
               <div className="receipt-subtitle">{company}
               </div>
+             
               <div className="receipt-meta">              
-                <span>INV/20231024/001</span>
+                <span>INV/20231024/001</span> <strong> {(auth.username || '').toUpperCase()}</strong>
                 <span>{currentTime.toLocaleDateString('en-GB')} {currentTime.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</span>
               </div>
               </div>
@@ -533,27 +574,127 @@ export function POS() {
                       <span className="payment-total">{formatCurrency(total)}</span>
                     </div>
                     <div className="payment-form-group">
-                      <label>Jumlah Bayar:</label>
-                      <input
-                        ref={paymentInputRef}
-                        type="number"
-                        className="payment-input"
-                        value={paymentAmount}
-                        onChange={(e) => setPaymentAmount(e.target.value)}
-                        placeholder="Masukkan jumlah"
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            handlePayment()
-                          } else if (e.key === 'Escape') {
-                            setShowPaymentForm(false)
-                          }
-                        }}
-                      />
+                      <label>Metode Pembayaran:</label>
+                      <div className="payment-method-buttons">
+                        <button 
+                          ref={paymentMethodCashRef}
+                          type="button"
+                          className={`payment-method-btn ${paymentMethod === 'CASH' ? 'is-selected' : ''}`}
+                          onClick={() => { setPaymentMethod('CASH'); setPaymentMethodIndex(0) }}
+                          onFocus={() => { setPaymentMethod('CASH'); setPaymentMethodIndex(0) }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'ArrowLeft') navigatePaymentMethod('left')
+                            else if (e.key === 'ArrowRight') navigatePaymentMethod('right')
+                            else if (e.key === 'Enter') {
+                              setPaymentMethod('CASH')
+                              setTimeout(() => paymentInputRef.current?.focus(), 50)
+                            }
+                            else if (e.key === 'Escape') setShowPaymentForm(false)
+                          }}
+                        >
+                          <span className="material-icons">payments</span>
+                          <span>CASH</span>
+                        </button>
+                        <button 
+                          ref={paymentMethodQrisRef}
+                          type="button"
+                          className={`payment-method-btn ${paymentMethod === 'QRIS' ? 'is-selected' : ''}`}
+                          onClick={() => { setPaymentMethod('QRIS'); setPaymentMethodIndex(1) }}
+                          onFocus={() => { setPaymentMethod('QRIS'); setPaymentMethodIndex(1) }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'ArrowLeft') navigatePaymentMethod('left')
+                            else if (e.key === 'ArrowRight') navigatePaymentMethod('right')
+                            else if (e.key === 'Escape') setShowPaymentForm(false)
+                          }}
+                        >
+                          <span className="material-icons">qr_code</span>
+                          <span>QRIS</span>
+                        </button>
+                        <button 
+                          ref={paymentMethodTransferRef}
+                          type="button"
+                          className={`payment-method-btn ${paymentMethod === 'TRANSFER' ? 'is-selected' : ''}`}
+                          onClick={() => { setPaymentMethod('TRANSFER'); setPaymentMethodIndex(2) }}
+                          onFocus={() => { setPaymentMethod('TRANSFER'); setPaymentMethodIndex(2) }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'ArrowLeft') navigatePaymentMethod('left')
+                            else if (e.key === 'ArrowRight') navigatePaymentMethod('right')
+                            else if (e.key === 'Enter') {
+                              setPaymentMethod('TRANSFER')
+                              setTimeout(() => transferInputRef.current?.focus(), 50)
+                            }
+                            else if (e.key === 'Escape') setShowPaymentForm(false)
+                          }}
+                        >
+                          <span className="material-icons">account_balance</span>
+                          <span>TRANSFER</span>
+                        </button>
+                      </div>
                     </div>
-                    {paymentAmount && parseFloat(paymentAmount) >= total && (
+                    {paymentMethod === 'CASH' && (
+                      <div className="payment-form-group">
+                        <label>Jumlah Bayar:</label>
+                        <input
+                          ref={paymentInputRef}
+                          type="number"
+                          className="payment-input"
+                          value={paymentAmount}
+                          onChange={(e) => setPaymentAmount(e.target.value)}
+                          placeholder="Masukkan jumlah"
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              handlePayment()
+                            } else if (e.key === 'Escape') {
+                              setShowPaymentForm(false)
+                            } else if (e.key === 'ArrowLeft') {
+                              navigatePaymentMethod('left')
+                            } else if (e.key === 'ArrowRight') {
+                              navigatePaymentMethod('right')
+                            }
+                          }}
+                        />
+                      </div>
+                    )}
+                    {paymentMethod === 'CASH' && paymentAmount && parseFloat(paymentAmount) >= total && (
                       <div className="payment-row payment-change">
                         <span>Kembalian:</span>
                         <span>{formatCurrency(parseFloat(paymentAmount) - total)}</span>
+                      </div>
+                    )}
+                    {paymentMethod === 'QRIS' && (
+                      <div className="payment-form-group">
+                        <label>Scan QR Code:</label>
+                        <div className="qris-display">
+                          <div className="qris-placeholder">
+                            <span className="material-icons">qr_code_2</span>
+                            <span className="qris-amount">{formatCurrency(total)}</span>
+                          </div>
+                          <p className="qris-info">Tunjukkan kode QRIS ini kepada pelanggan</p>
+                        </div>
+                      </div>
+                    )}
+                    {paymentMethod === 'TRANSFER' && (
+                      <div className="payment-form-group">
+                        <label>No Rekening Tujuan:</label>
+                        <input
+                          ref={transferInputRef}
+                          type="text"
+                          className="payment-input"
+                          value={transferAccount}
+                          onChange={(e) => setTransferAccount(e.target.value)}
+                          placeholder="Masukkan nomor rekening"
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              handlePayment()
+                            } else if (e.key === 'Escape') {
+                              setShowPaymentForm(false)
+                            } else if (e.key === 'ArrowLeft') {
+                              navigatePaymentMethod('left')
+                            } else if (e.key === 'ArrowRight') {
+                              navigatePaymentMethod('right')
+                            }
+                          }}
+                        />
                       </div>
                     )}
                   </div>
@@ -615,7 +756,7 @@ export function POS() {
       
                 </div>
   <div className="pos-header-right">
-          <div className="pos-cashier"><strong>USER: {(auth.username || '').toUpperCase()}</strong></div>
+          <div className="pos-cashier"></div>
            <div className="monitor-time">{currentTime.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</div>
               </div>
         </div>
