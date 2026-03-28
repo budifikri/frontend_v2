@@ -1006,6 +1006,13 @@
   font-size: 18px;
   font-weight: 600;
   text-align: right;
+  -moz-appearance: textfield;
+}
+
+.payment-input::-webkit-outer-spin-button,
+.payment-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }
 
 .payment-input:focus {
