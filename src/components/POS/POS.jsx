@@ -1,27 +1,11 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useAuth } from '../../shared/auth'
+import { listProducts } from '../../features/master/product/product.api'
 import './POS.css'
-
-const productCatalog = [
-  { id: 'P001', name: 'Organic Coffee Beans 250g', unit: 'Pcs', price: 85000 },
-  { id: 'P002', name: 'Stainless Milk Pitcher 600ml', unit: 'Pcs', price: 225000 },
-  { id: 'P003', name: 'Paper Filters (V60-02)', unit: 'Pack', price: 45000 },
-  { id: 'P004', name: 'Espresso Blend 1kg', unit: 'Pack', price: 150000 },
-  { id: 'P005', name: 'Cappuccino Cup Set', unit: 'Set', price: 350000 },
-  { id: 'P006', name: 'Coffee Grinder Manual', unit: 'Pcs', price: 275000 },
-  { id: 'P007', name: 'Drip Coffee Maker', unit: 'Pcs', price: 450000 },
-  { id: 'P008', name: 'Milk Frother Electric', unit: 'Pcs', price: 185000 },
-  { id: 'P009', name: 'Coffee Bean Storage Jar', unit: 'Pcs', price: 95000 },
-  { id: 'P010', name: 'French Press 1L', unit: 'Pcs', price: 165000 },
-]
 
 export function POS() {
   const { auth, clearAuth } = useAuth()
-  const [items, setItems] = useState([
-    { id: 1, name: 'Organic Coffee Beans 250g', qty: 2, price: 85000 },
-    { id: 2, name: 'Stainless Milk Pitcher 600ml', qty: 1, price: 225000 },
-    { id: 3, name: 'Paper Filters (V60-02)', qty: 3, price: 45000 },
-  ])
+  const [items, setItems] = useState([])
   const [search, setSearch] = useState('')
   const [currentTime, setCurrentTime] = useState(new Date())
   const [selectedIndex, setSelectedIndex] = useState(-1)
@@ -33,8 +17,14 @@ export function POS() {
   const [PENDING_NOTAS, _setPendingNotas] = useState([])
   const [showPaymentForm, setShowPaymentForm] = useState(false)
   const [paymentAmount, setPaymentAmount] = useState('')
+  const [isLoadingProducts, setIsLoadingProducts] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [itemToDelete, setItemToDelete] = useState(null)
+  const [deleteButtonIndex, setDeleteButtonIndex] = useState(1)
   const searchInputRef = useRef(null)
   const paymentInputRef = useRef(null)
+  const deleteConfirmBtnRef = useRef(null)
+  const deleteCancelBtnRef = useRef(null)
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000)
@@ -54,22 +44,11 @@ export function POS() {
   }, [showPaymentForm])
 
   useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (e.key === 'F10') {
-        e.preventDefault()
-        if (items.length > 0) {
-          setShowPaymentForm(true)
-          setPaymentAmount('')
-        }
-      } else if (e.key === 'Escape') {
-        if (searchInputRef.current) {
-          searchInputRef.current.focus()
-        }
-      }
+    if (showDeleteConfirm && deleteCancelBtnRef.current) {
+      deleteCancelBtnRef.current.focus()
+      setDeleteButtonIndex(1)
     }
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [items.length])
+  }, [showDeleteConfirm])
 
   const handleLogout = () => {
     if (window.confirm('Keluar dari POS?')) {
@@ -102,7 +81,7 @@ export function POS() {
     setSearch(value)
   }
 
-  const handleSearchKeyDown = (e) => {
+  const handleSearchKeyDown = async (e) => {
     if (e.key === 'F10') {
       e.preventDefault()
       if (items.length > 0) {
@@ -119,19 +98,38 @@ export function POS() {
         const qtyMatch = search.match(/^\+(\d+)$/)
         if (qtyMatch && selectedIndex >= 0) {
           const newQty = parseInt(qtyMatch[1], 10)
-          setItems((prevItems) =>
-            prevItems.map((item, idx) =>
-              idx === selectedIndex ? { ...item, qty: newQty } : item
+          if (newQty === 0) {
+            setItemToDelete({ index: selectedIndex, item: items[selectedIndex] })
+            setShowDeleteConfirm(true)
+          } else {
+            setItems((prevItems) =>
+              prevItems.map((item, idx) =>
+                idx === selectedIndex ? { ...item, qty: newQty } : item
+              )
             )
-          )
+          }
           setSearch('')
         } else if (search.startsWith('?')) {
-          const filterText = search.substring(1).toLowerCase()
+          const filterText = search.substring(1).trim()
           if (filterText) {
-            const results = productCatalog.filter(p => p.name.toLowerCase().includes(filterText))
-            setProductResults(results)
-            setPopupSelectedIndex(0)
-            setShowProductPopup(true)
+            setIsLoadingProducts(true)
+            try {
+              const result = await listProducts(auth.token, { search: filterText, limit: 50 })
+              const products = result.items.map(p => ({
+                id: p.id,
+                name: p.name,
+                unit: p.unit_name || p.unit || 'Pcs',
+                price: p.retail_price || 0,
+              }))
+              setProductResults(products)
+              setPopupSelectedIndex(0)
+              setShowProductPopup(true)
+            } catch (err) {
+              console.error('Failed to load products:', err)
+              setProductResults([])
+            } finally {
+              setIsLoadingProducts(false)
+            }
           }
         } else if (search === '' && items.length > 0) {
           setShowActionPopup(true)
@@ -251,6 +249,68 @@ export function POS() {
     setShowPaymentForm(false)
     setPaymentAmount('')
   }
+
+  const handleDeleteConfirm = useCallback(() => {
+    if (itemToDelete) {
+      setItems((prev) => prev.filter((_, idx) => idx !== itemToDelete.index))
+      setSelectedIndex(-1)
+    }
+    setShowDeleteConfirm(false)
+    setItemToDelete(null)
+    setSearch('')
+    setTimeout(() => {
+      if (searchInputRef.current) {
+        searchInputRef.current.focus()
+      }
+    }, 0)
+  }, [itemToDelete])
+
+  const handleDeleteCancel = useCallback(() => {
+    setShowDeleteConfirm(false)
+    setItemToDelete(null)
+    setSearch('')
+    setTimeout(() => {
+      if (searchInputRef.current) {
+        searchInputRef.current.focus()
+      }
+    }, 0)
+  }, [])
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (showDeleteConfirm) {
+        if (e.key === 'ArrowLeft') {
+          e.preventDefault()
+          setDeleteButtonIndex(1)
+          if (deleteCancelBtnRef.current) deleteCancelBtnRef.current.focus()
+        } else if (e.key === 'ArrowRight') {
+          e.preventDefault()
+          setDeleteButtonIndex(0)
+          if (deleteConfirmBtnRef.current) deleteConfirmBtnRef.current.focus()
+        } else if (e.key === 'Enter') {
+          e.preventDefault()
+          handleDeleteConfirm()
+        } else if (e.key === 'Escape') {
+          e.preventDefault()
+          handleDeleteCancel()
+        }
+        return
+      }
+      if (e.key === 'F10') {
+        e.preventDefault()
+        if (items.length > 0) {
+          setShowPaymentForm(true)
+          setPaymentAmount('')
+        }
+      } else if (e.key === 'Escape') {
+        if (searchInputRef.current) {
+          searchInputRef.current.focus()
+        }
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [items.length, showDeleteConfirm, handleDeleteConfirm, handleDeleteCancel])
 
   const promos = [
     'Beli 2 Kopi Gratis 1',
@@ -381,7 +441,11 @@ export function POS() {
                         </tr>
                       </thead>
                       <tbody>
-                        {productResults.length === 0 ? (
+                        {isLoadingProducts ? (
+                          <tr>
+                            <td colSpan="4" className="product-popup-empty">Memuat produk...</td>
+                          </tr>
+                        ) : productResults.length === 0 ? (
                           <tr>
                             <td colSpan="4" className="product-popup-empty">Produk tidak ditemukan</td>
                           </tr>
@@ -499,6 +563,39 @@ export function POS() {
                     </button>
                     <button className="payment-btn-confirm" onClick={handlePayment}>
                       Konfirmasi Bayar
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {showDeleteConfirm && (
+              <div className="product-popup-overlay">
+                <div className="delete-confirm-popup">
+                  <div className="delete-confirm-header">
+                    <span className="material-icons">warning</span>
+                    <h3>Konfirmasi Hapus</h3>
+                  </div>
+                  <div className="delete-confirm-body">
+                    <p>Hapus item ini dari nota?</p>
+                    <p className="delete-confirm-item">{itemToDelete?.item?.name}</p>
+                  </div>
+                  <div className="delete-confirm-footer">
+                    <button 
+                      ref={deleteCancelBtnRef}
+                      className={`delete-btn-cancel ${deleteButtonIndex === 1 ? 'is-focused' : ''}`} 
+                      onClick={handleDeleteCancel}
+                      onMouseEnter={() => setDeleteButtonIndex(1)}
+                    >
+                      Batal
+                    </button>
+                    <button 
+                      ref={deleteConfirmBtnRef}
+                      className={`delete-btn-confirm ${deleteButtonIndex === 0 ? 'is-focused' : ''}`} 
+                      onClick={handleDeleteConfirm}
+                      onMouseEnter={() => setDeleteButtonIndex(0)}
+                    >
+                      Hapus
                     </button>
                   </div>
                 </div>
