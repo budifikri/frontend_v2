@@ -1456,3 +1456,161 @@
   opacity: 0.6;
   cursor: not-allowed;
 }
+
+/* Cash In Popup */
+.cash-in-popup {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  width: 400px;
+  overflow: hidden;
+}
+
+.cash-in-popup-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 20px;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+}
+
+.cash-in-popup-header .material-icons {
+  font-size: 32px;
+}
+
+.cash-in-popup-header h3 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.cash-in-popup-body {
+  padding: 20px;
+}
+
+.cash-in-popup-footer {
+  display: flex;
+  gap: 12px;
+  padding: 16px 20px;
+  background: #f8fafc;
+  border-top: 1px solid #e2e8f0;
+}
+
+.cash-in-btn {
+  flex: 1;
+  padding: 12px 16px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.cash-in-btn.cancel {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.cash-in-btn.cancel:hover:not(:disabled) {
+  background: #e2e8f0;
+}
+
+.cash-in-btn.confirm {
+  background: #10b981;
+  color: white;
+}
+
+.cash-in-btn.confirm:hover:not(:disabled) {
+  background: #059669;
+}
+
+.cash-in-btn.is-focused {
+  transform: scale(1.02);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5);
+}
+
+.cash-in-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Cash Out Popup */
+.cash-out-popup {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  width: 400px;
+  overflow: hidden;
+}
+
+.cash-out-popup-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 20px;
+  background: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%);
+  color: white;
+}
+
+.cash-out-popup-header .material-icons {
+  font-size: 32px;
+}
+
+.cash-out-popup-header h3 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.cash-out-popup-body {
+  padding: 20px;
+}
+
+.cash-out-popup-footer {
+  display: flex;
+  gap: 12px;
+  padding: 16px 20px;
+  background: #f8fafc;
+  border-top: 1px solid #e2e8f0;
+}
+
+.cash-out-btn {
+  flex: 1;
+  padding: 12px 16px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.cash-out-btn.cancel {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.cash-out-btn.cancel:hover:not(:disabled) {
+  background: #e2e8f0;
+}
+
+.cash-out-btn.confirm {
+  background: #f43f5e;
+  color: white;
+}
+
+.cash-out-btn.confirm:hover:not(:disabled) {
+  background: #e11d48;
+}
+
+.cash-out-btn.is-focused {
+  transform: scale(1.02);
+  box-shadow: 0 0 0 3px rgba(244, 63, 94, 0.5);
+}
+
+.cash-out-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

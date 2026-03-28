@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useAuth } from '../../shared/auth'
 import { listProducts } from '../../features/master/product/product.api'
 import { listWarehouses } from '../../features/master/warehouse/warehouse.api'
-import { openCashDrawer, getCurrentCashDrawer, getCashDrawerSummary, closeCashDrawer } from '../../features/transaksi/cash-drawer/cashDrawer.api'
+import { openCashDrawer, getCurrentCashDrawer, getCashDrawerSummary, closeCashDrawer, cashInDrawer, cashOutDrawer } from '../../features/transaksi/cash-drawer/cashDrawer.api'
 import './POS.css'
 
 export function POS() {
@@ -51,6 +51,22 @@ export function POS() {
   const closeBtnRef = useRef(null)
   const cancelCloseBtnRef = useRef(null)
   const logoutCloseBtnRef = useRef(null)
+  const [showCashInForm, setShowCashInForm] = useState(false)
+  const [cashInAmount, setCashInAmount] = useState('')
+  const [cashInReason, setCashInReason] = useState('')
+  const [isCashInSubmitting, setIsCashInSubmitting] = useState(false)
+  const [cashInButtonIndex, setCashInButtonIndex] = useState(1)
+  const cashInAmountRef = useRef(null)
+  const cashInConfirmBtnRef = useRef(null)
+  const cashInCancelBtnRef = useRef(null)
+  const [showCashOutForm, setShowCashOutForm] = useState(false)
+  const [cashOutAmount, setCashOutAmount] = useState('')
+  const [cashOutReason, setCashOutReason] = useState('')
+  const [isCashOutSubmitting, setIsCashOutSubmitting] = useState(false)
+  const [cashOutButtonIndex, setCashOutButtonIndex] = useState(1)
+  const cashOutAmountRef = useRef(null)
+  const cashOutConfirmBtnRef = useRef(null)
+  const cashOutCancelBtnRef = useRef(null)
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000)
@@ -170,6 +186,91 @@ export function POS() {
     setClosingNotes('')
   }, [])
 
+  const handleShowCashInForm = async () => {
+    try {
+      const result = await getCurrentCashDrawer(auth.token)
+      if (result.success && result.data) {
+        setCurrentCashDrawer(result.data)
+        setShowCashInForm(true)
+        setCashInAmount('')
+        setCashInReason('')
+        setCashInButtonIndex(1)
+        setTimeout(() => cashInAmountRef.current?.focus(), 100)
+      }
+    } catch (err) {
+      console.error('Failed to get cash drawer:', err)
+    }
+  }
+
+  const handleCashIn = useCallback(async () => {
+    if (!currentCashDrawer || !cashInAmount || parseFloat(cashInAmount) <= 0) {
+      alert('Masukkan jumlah yang valid')
+      return
+    }
+    setIsCashInSubmitting(true)
+    try {
+      await cashInDrawer(auth.token, currentCashDrawer.id, parseFloat(cashInAmount), cashInReason)
+      alert('Cash In berhasil!')
+      setShowCashInForm(false)
+      setCashInAmount('')
+      setCashInReason('')
+    } catch (err) {
+      console.error('Failed to cash in:', err)
+      alert('Gagal cash in: ' + (err.message || 'Unknown error'))
+    } finally {
+      setIsCashInSubmitting(false)
+    }
+  }, [auth.token, currentCashDrawer, cashInAmount, cashInReason])
+
+  const handleCancelCashIn = useCallback(() => {
+    setShowCashInForm(false)
+    setCashInAmount('')
+    setCashInReason('')
+  }, [])
+
+  const handleShowCashOutForm = async () => {
+    try {
+      const result = await getCurrentCashDrawer(auth.token)
+      if (result.success) {
+        setCurrentCashDrawer(result.data)
+        setShowCashOutForm(true)
+        setCashOutAmount('')
+        setCashOutReason('')
+        setTimeout(() => cashOutAmountRef.current?.focus(), 100)
+      } else {
+        alert('Cash drawer belum dibuka')
+      }
+    } catch (err) {
+      console.error('Failed to get cash drawer:', err)
+    }
+  }
+
+  const handleCashOut = useCallback(async () => {
+    if (!currentCashDrawer || !cashOutAmount || parseFloat(cashOutAmount) <= 0) {
+      alert('Masukkan jumlah yang valid')
+      return
+    }
+    setIsCashOutSubmitting(true)
+    try {
+      await cashOutDrawer(auth.token, currentCashDrawer.id, parseFloat(cashOutAmount), cashOutReason)
+      alert('Cash Out berhasil!')
+      setShowCashOutForm(false)
+      setCashOutAmount('')
+      setCashOutReason('')
+    } catch (err) {
+      console.error('Failed to cash out:', err)
+      alert('Gagal cash out: ' + (err.message || 'Unknown error'))
+    } finally {
+      setIsCashOutSubmitting(false)
+    }
+  }, [auth.token, currentCashDrawer, cashOutAmount, cashOutReason])
+
+  const handleCancelCashOut = useCallback(() => {
+    setShowCashOutForm(false)
+    setCashOutAmount('')
+    setCashOutReason('')
+  }, [])
+
   const handleOpenCashDrawer = async () => {
     if (!mainWarehouse) {
       alert('Warehouse utama tidak ditemukan')
@@ -221,7 +322,13 @@ export function POS() {
   }
 
   const handleSearchKeyDown = async (e) => {
-    if (e.key === 'F10') {
+    if (e.key === 'F8') {
+      e.preventDefault()
+      handleShowCashInForm()
+    } else if (e.key === 'F9') {
+      e.preventDefault()
+      handleShowCashOutForm()
+    } else if (e.key === 'F10') {
       e.preventDefault()
       if (items.length > 0) {
         setShowPaymentForm(true)
@@ -430,6 +537,46 @@ export function POS() {
 
   useEffect(() => {
     const handleKeyDown = (e) => {
+      if (showCashInForm) {
+        if (e.key === 'ArrowLeft') {
+          e.preventDefault()
+          setCashInButtonIndex(cashInButtonIndex > 0 ? cashInButtonIndex - 1 : 1)
+        } else if (e.key === 'ArrowRight') {
+          e.preventDefault()
+          setCashInButtonIndex(cashInButtonIndex < 1 ? cashInButtonIndex + 1 : 0)
+        } else if (e.key === 'Escape') {
+          e.preventDefault()
+          handleCancelCashIn()
+        } else if (e.key === 'Enter') {
+          e.preventDefault()
+          if (cashInButtonIndex === 0) {
+            handleCashIn()
+          } else {
+            handleCancelCashIn()
+          }
+        }
+        return
+      }
+      if (showCashOutForm) {
+        if (e.key === 'ArrowLeft') {
+          e.preventDefault()
+          setCashOutButtonIndex(cashOutButtonIndex > 0 ? cashOutButtonIndex - 1 : 1)
+        } else if (e.key === 'ArrowRight') {
+          e.preventDefault()
+          setCashOutButtonIndex(cashOutButtonIndex < 1 ? cashOutButtonIndex + 1 : 0)
+        } else if (e.key === 'Escape') {
+          e.preventDefault()
+          handleCancelCashOut()
+        } else if (e.key === 'Enter') {
+          e.preventDefault()
+          if (cashOutButtonIndex === 0) {
+            handleCashOut()
+          } else {
+            handleCancelCashOut()
+          }
+        }
+        return
+      }
       if (showClosingForm) {
         if (e.key === 'ArrowLeft') {
           e.preventDefault()
@@ -484,7 +631,7 @@ export function POS() {
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [items.length, showDeleteConfirm, showClosingForm, closingButtonIndex, handleDeleteConfirm, handleDeleteCancel, handleCloseDrawer, handleCancelClose, clearAuth])
+  }, [items.length, showCashInForm, showCashOutForm, cashInButtonIndex, cashOutButtonIndex, showDeleteConfirm, showClosingForm, closingButtonIndex, handleCashIn, handleCancelCashIn, handleCashOut, handleCancelCashOut, handleDeleteConfirm, handleDeleteCancel, handleCloseDrawer, handleCancelClose, clearAuth])
 
   const promos = [
     'Beli 2 Kopi Gratis 1',
@@ -696,6 +843,158 @@ export function POS() {
                 onMouseEnter={() => setClosingButtonIndex(2)}
               >
                 {isClosingDrawer ? 'Menutup...' : 'Closing Drawer'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showCashInForm && (
+        <div className="product-popup-overlay">
+          <div className="cash-in-popup">
+            <div className="cash-in-popup-header">
+              <span className="material-icons">add_card</span>
+              <h3>Cash In</h3>
+            </div>
+            <div className="cash-in-popup-body">
+              <div className="payment-form-group">
+                <label>Jumlah:</label>
+                <input
+                  ref={cashInAmountRef}
+                  type="number"
+                  className="payment-input"
+                  value={cashInAmount}
+                  onChange={(e) => setCashInAmount(e.target.value)}
+                  placeholder="0"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      handleCashIn()
+                    } else if (e.key === 'Escape') {
+                      handleCancelCashIn()
+                    } else if (e.key === 'ArrowLeft') {
+                      e.preventDefault()
+                      setCashInButtonIndex(1)
+                      if (cashInCancelBtnRef.current) cashInCancelBtnRef.current.focus()
+                    } else if (e.key === 'ArrowRight') {
+                      e.preventDefault()
+                      setCashInButtonIndex(0)
+                      if (cashInConfirmBtnRef.current) cashInConfirmBtnRef.current.focus()
+                    }
+                  }}
+                />
+              </div>
+              <div className="payment-form-group">
+                <label>Keterangan:</label>
+                <input
+                  type="text"
+                  className="payment-input"
+                  value={cashInReason}
+                  onChange={(e) => setCashInReason(e.target.value)}
+                  placeholder="Opsional"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      handleCashIn()
+                    } else if (e.key === 'Escape') {
+                      handleCancelCashIn()
+                    }
+                  }}
+                />
+              </div>
+            </div>
+            <div className="cash-in-popup-footer">
+              <button
+                ref={cashInCancelBtnRef}
+                className={`cash-in-btn cancel ${cashInButtonIndex === 1 ? 'is-focused' : ''}`}
+                onClick={handleCancelCashIn}
+                disabled={isCashInSubmitting}
+                onMouseEnter={() => setCashInButtonIndex(1)}
+              >
+                Batal
+              </button>
+              <button
+                ref={cashInConfirmBtnRef}
+                className={`cash-in-btn confirm ${cashInButtonIndex === 0 ? 'is-focused' : ''}`}
+                onClick={handleCashIn}
+                disabled={isCashInSubmitting}
+                onMouseEnter={() => setCashInButtonIndex(0)}
+              >
+                {isCashInSubmitting ? 'Memproses...' : 'Cash In'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showCashOutForm && (
+        <div className="product-popup-overlay">
+          <div className="cash-out-popup">
+            <div className="cash-out-popup-header">
+              <span className="material-icons">remove_card</span>
+              <h3>Cash Out</h3>
+            </div>
+            <div className="cash-out-popup-body">
+              <div className="payment-form-group">
+                <label>Jumlah:</label>
+                <input
+                  ref={cashOutAmountRef}
+                  type="number"
+                  className="payment-input"
+                  value={cashOutAmount}
+                  onChange={(e) => setCashOutAmount(e.target.value)}
+                  placeholder="0"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      handleCashOut()
+                    } else if (e.key === 'Escape') {
+                      handleCancelCashOut()
+                    } else if (e.key === 'ArrowLeft') {
+                      e.preventDefault()
+                      setCashOutButtonIndex(1)
+                      if (cashOutCancelBtnRef.current) cashOutCancelBtnRef.current.focus()
+                    } else if (e.key === 'ArrowRight') {
+                      e.preventDefault()
+                      setCashOutButtonIndex(0)
+                      if (cashOutConfirmBtnRef.current) cashOutConfirmBtnRef.current.focus()
+                    }
+                  }}
+                />
+              </div>
+              <div className="payment-form-group">
+                <label>Keterangan:</label>
+                <input
+                  type="text"
+                  className="payment-input"
+                  value={cashOutReason}
+                  onChange={(e) => setCashOutReason(e.target.value)}
+                  placeholder="Opsional"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      handleCashOut()
+                    } else if (e.key === 'Escape') {
+                      handleCancelCashOut()
+                    }
+                  }}
+                />
+              </div>
+            </div>
+            <div className="cash-out-popup-footer">
+              <button
+                ref={cashOutCancelBtnRef}
+                className={`cash-out-btn cancel ${cashOutButtonIndex === 1 ? 'is-focused' : ''}`}
+                onClick={handleCancelCashOut}
+                disabled={isCashOutSubmitting}
+                onMouseEnter={() => setCashOutButtonIndex(1)}
+              >
+                Batal
+              </button>
+              <button
+                ref={cashOutConfirmBtnRef}
+                className={`cash-out-btn confirm ${cashOutButtonIndex === 0 ? 'is-focused' : ''}`}
+                onClick={handleCashOut}
+                disabled={isCashOutSubmitting}
+                onMouseEnter={() => setCashOutButtonIndex(0)}
+              >
+                {isCashOutSubmitting ? 'Memproses...' : 'Cash Out'}
               </button>
             </div>
           </div>
@@ -1128,12 +1427,12 @@ export function POS() {
             <span>Cetak</span>
             <span className="shortcut-badge">F7</span>
           </button>
-          <button className="action-key action-key-emerald">
+          <button className="action-key action-key-emerald" onClick={handleShowCashInForm}>
             <span className="material-icons">account_balance_wallet</span>
             <span>Cash In</span>
             <span className="shortcut-badge">F8</span>
           </button>
-          <button className="action-key action-key-rose">
+          <button className="action-key action-key-rose" onClick={handleShowCashOutForm}>
             <span className="material-icons">account_balance_wallet</span>
             <span>Cash Out</span>
             <span className="shortcut-badge">F9</span>

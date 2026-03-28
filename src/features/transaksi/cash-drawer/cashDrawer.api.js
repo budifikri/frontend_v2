@@ -30,6 +30,32 @@ export async function closeCashDrawer(token, drawerId, closingBalance, notes) {
   return raw
 }
 
+export async function cashInDrawer(token, drawerId, amount, reason) {
+  const raw = await apiFetch(`/api/cash-drawers/${encodeURIComponent(drawerId)}/cash-in`, {
+    method: 'POST',
+    token,
+    body: {
+      amount: amount,
+      reason: reason,
+    },
+  })
+  if (!raw.success) throw new Error(raw.error || raw.message || 'Failed to cash in')
+  return raw
+}
+
+export async function cashOutDrawer(token, drawerId, amount, reason) {
+  const raw = await apiFetch(`/api/cash-drawers/${encodeURIComponent(drawerId)}/cash-out`, {
+    method: 'POST',
+    token,
+    body: {
+      amount: amount,
+      reason: reason,
+    },
+  })
+  if (!raw.success) throw new Error(raw.error || raw.message || 'Failed to cash out')
+  return raw
+}
+
 export async function openCashDrawer(token, input) {
   const raw = await apiFetch('/api/cash-drawers/open', {
     method: 'POST',
