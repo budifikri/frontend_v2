@@ -86,6 +86,7 @@ export function POS() {
   const [receiptSettingsDraft, setReceiptSettingsDraft] = useState(DEFAULT_RECEIPT_SETTINGS)
   const [receiptSettingViewTab, setReceiptSettingViewTab] = useState('preview')
   const [companyProfile, setCompanyProfile] = useState({ name: '', address: '', phone: '' })
+  const wysiwygEditorRef = useRef(null)
   const [toast, setToast] = useState({ isOpen: false, message: '', type: 'info' })
 
   useEffect(() => {
@@ -109,6 +110,20 @@ export function POS() {
     setReceiptSettings(loaded)
     setReceiptSettingsDraft(loaded)
   }, [])
+
+  useEffect(() => {
+    if (
+      wysiwygEditorRef.current &&
+      receiptSettingsDraft.template_mode === 'custom' &&
+      showReceiptSettingsPopup
+    ) {
+      const currentHtml = wysiwygEditorRef.current.innerHTML
+      const targetHtml = receiptSettingsDraft.custom_template_html || ''
+      if (currentHtml !== targetHtml) {
+        wysiwygEditorRef.current.innerHTML = targetHtml
+      }
+    }
+  }, [receiptSettingsDraft.custom_template_html, receiptSettingsDraft.template_mode, showReceiptSettingsPopup])
 
   useEffect(() => {
     const loadCompanyProfile = async () => {
@@ -563,7 +578,9 @@ export function POS() {
   }, [receiptSettings])
 
   const handleSaveReceiptSettings = useCallback(() => {
-    const saved = saveReceiptSettings(receiptSettingsDraft)
+    const currentHtml = wysiwygEditorRef.current?.innerHTML || receiptSettingsDraft.custom_template_html
+    const toSave = { ...receiptSettingsDraft, custom_template_html: currentHtml }
+    const saved = saveReceiptSettings(toSave)
     setReceiptSettings(saved)
     setShowReceiptSettingsPopup(false)
     setToast({ isOpen: true, message: 'Setting nota jual disimpan', type: 'success' })
@@ -571,7 +588,10 @@ export function POS() {
 
   const handleResetReceiptSettings = useCallback(() => {
     const defaults = resetReceiptSettings()
-    setReceiptSettingsDraft(defaults)
+    setReceiptSettingsDraft({
+      ...defaults,
+      custom_template_html: DEFAULT_CUSTOM_TEMPLATE_HTML,
+    })
     setToast({ isOpen: true, message: 'Setting dikembalikan ke default', type: 'info' })
   }, [])
 
@@ -1647,7 +1667,29 @@ export function POS() {
               </button>
             </div>
             <div className="receipt-setting-body">
+
+            
               <div className="receipt-setting-form">
+ <div className="receipt-setting-section">
+                  <h4>Tata Letak</h4>
+                  <div className="receipt-layout-grid">
+                    {RECEIPT_LAYOUT_OPTIONS.map((layout) => (
+                      <button
+                        key={layout.id}
+                        type="button"
+                        className={`receipt-layout-card ${receiptSettingsDraft.layout_type === layout.id ? 'is-selected' : ''}`}
+                        onClick={() => setReceiptSettingsDraft((prev) => ({ ...prev, layout_type: layout.id }))}
+                      >
+                        <strong>{layout.label}</strong>
+                        <span>{layout.description}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+
+
+              
                 <div className="receipt-setting-row-two-col">
                   <div className="receipt-setting-section">
                     <h4>Ukuran Kertas</h4>
@@ -1694,23 +1736,7 @@ export function POS() {
                   </div>
                 </div>
 
-                <div className="receipt-setting-section">
-                  <h4>Tata Letak</h4>
-                  <div className="receipt-layout-grid">
-                    {RECEIPT_LAYOUT_OPTIONS.map((layout) => (
-                      <button
-                        key={layout.id}
-                        type="button"
-                        className={`receipt-layout-card ${receiptSettingsDraft.layout_type === layout.id ? 'is-selected' : ''}`}
-                        onClick={() => setReceiptSettingsDraft((prev) => ({ ...prev, layout_type: layout.id }))}
-                      >
-                        <strong>{layout.label}</strong>
-                        <span>{layout.description}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
+               
                 <div className="receipt-setting-section">
                   <h4>Tampilan</h4>
                   <label className="receipt-checkbox-option">
@@ -1806,7 +1832,14 @@ export function POS() {
                           type="radio"
                           name="template-mode"
                           checked={receiptSettingsDraft.template_mode === 'custom'}
-                          onChange={() => setReceiptSettingsDraft((prev) => ({ ...prev, template_mode: 'custom' }))}
+                          onChange={() => {
+                            setReceiptSettingsDraft((prev) => ({
+                              ...prev,
+                              template_mode: 'custom',
+                              custom_template_html: prev.custom_template_html || DEFAULT_CUSTOM_TEMPLATE_HTML,
+                              custom_template_css: prev.custom_template_css || DEFAULT_CUSTOM_TEMPLATE_CSS,
+                            }))
+                          }}
                         />
                         <span>Custom Template</span>
                       </label>
@@ -1821,49 +1854,81 @@ export function POS() {
                               type="button"
                               className="receipt-template-btn"
                               onClick={() => {
+                                if (wysiwygEditorRef.current) {
+                                  wysiwygEditorRef.current.innerHTML = DEFAULT_CUSTOM_TEMPLATE_HTML
+                                }
                                 setReceiptSettingsDraft((prev) => ({
                                   ...prev,
-                                  custom_template_html: prev.custom_template_html || DEFAULT_CUSTOM_TEMPLATE_HTML,
+                                  custom_template_html: DEFAULT_CUSTOM_TEMPLATE_HTML,
                                 }))
                               }}
                             >
-                              Reset HTML
+                              Reset
                             </button>
                           </div>
-                          <textarea
-                            className="receipt-template-editor"
-                            value={receiptSettingsDraft.custom_template_html || ''}
-                            onChange={(e) => setReceiptSettingsDraft((prev) => ({ ...prev, custom_template_html: e.target.value }))}
-                            rows={8}
-                            placeholder="Masukkan HTML template..."
-                            spellCheck={false}
+                          <div className="receipt-wysiwyg-toolbar">
+                            <button type="button" className="receipt-wysiwyg-btn" title="Bold" onMouseDown={(e) => { e.preventDefault(); if (wysiwygEditorRef.current) wysiwygEditorRef.current.focus(); document.execCommand('bold', false, null) }}>
+                              <strong>B</strong>
+                            </button>
+                            <button type="button" className="receipt-wysiwyg-btn" title="Italic" onMouseDown={(e) => { e.preventDefault(); if (wysiwygEditorRef.current) wysiwygEditorRef.current.focus(); document.execCommand('italic', false, null) }}>
+                              <em>I</em>
+                            </button>
+                            <button type="button" className="receipt-wysiwyg-btn" title="Underline" onMouseDown={(e) => { e.preventDefault(); if (wysiwygEditorRef.current) wysiwygEditorRef.current.focus(); document.execCommand('underline', false, null) }}>
+                              <u>U</u>
+                            </button>
+                            <span className="receipt-wysiwyg-sep" />
+                            <button type="button" className="receipt-wysiwyg-btn" title="Font Size Small" onMouseDown={(e) => { e.preventDefault(); if (wysiwygEditorRef.current) wysiwygEditorRef.current.focus(); document.execCommand('fontSize', false, '2') }} style={{ fontSize: '10px' }}>A</button>
+                            <button type="button" className="receipt-wysiwyg-btn" title="Font Size Normal" onMouseDown={(e) => { e.preventDefault(); if (wysiwygEditorRef.current) wysiwygEditorRef.current.focus(); document.execCommand('fontSize', false, '3') }} style={{ fontSize: '13px' }}>A</button>
+                            <span className="receipt-wysiwyg-sep" />
+                            <button type="button" className="receipt-wysiwyg-btn" title="Align Left" onMouseDown={(e) => { e.preventDefault(); if (wysiwygEditorRef.current) wysiwygEditorRef.current.focus(); document.execCommand('justifyLeft', false, null) }}>
+                              <span style={{ fontFamily: 'sans-serif' }}>&#8676;</span>
+                            </button>
+                            <button type="button" className="receipt-wysiwyg-btn" title="Align Center" onMouseDown={(e) => { e.preventDefault(); if (wysiwygEditorRef.current) wysiwygEditorRef.current.focus(); document.execCommand('justifyCenter', false, null) }}>
+                              <span style={{ fontFamily: 'sans-serif' }}>&#8596;</span>
+                            </button>
+                            <span className="receipt-wysiwyg-sep" />
+                            <button type="button" className="receipt-wysiwyg-btn" title="Insert Line Break" onMouseDown={(e) => { e.preventDefault(); if (wysiwygEditorRef.current) { wysiwygEditorRef.current.focus(); document.execCommand('insertHTML', false, '<br>') } }}>
+                              <span style={{ fontFamily: 'sans-serif', fontSize: '12px' }}>&#8629;</span>
+                            </button>
+                            <button type="button" className="receipt-wysiwyg-btn" title="Insert Line" onMouseDown={(e) => { e.preventDefault(); if (wysiwygEditorRef.current) { wysiwygEditorRef.current.focus(); document.execCommand('insertHTML', false, '<div class=&quot;tpl-garis&quot;></div>') } }}>
+                              <span style={{ fontFamily: 'sans-serif', fontSize: '12px' }}>&#9135;</span>
+                            </button>
+                          </div>
+                          <div
+                            ref={wysiwygEditorRef}
+                            className="receipt-wysiwyg-editor"
+                            contentEditable
+                            suppressContentEditableWarning
                           />
                         </div>
 
-                        <div className="receipt-template-section">
-                          <div className="receipt-template-section-header">
-                            <span>CSS Template</span>
-                            <button
-                              type="button"
-                              className="receipt-template-btn"
-                              onClick={() => {
-                                setReceiptSettingsDraft((prev) => ({
-                                  ...prev,
-                                  custom_template_css: prev.custom_template_css || DEFAULT_CUSTOM_TEMPLATE_CSS,
-                                }))
-                              }}
-                            >
-                              Reset CSS
-                            </button>
+                        <div className="receipt-template-tokens">
+                          <div className="receipt-template-tokens-title">Token — klik untuk menyisipkan:</div>
+                          <div className="receipt-template-tokens-list">
+                            {RECEIPT_TEMPLATE_TOKENS.map((token) => (
+                              <button
+                                key={token}
+                                type="button"
+                                className="receipt-template-token"
+                                onClick={() => {
+                                  if (wysiwygEditorRef.current) {
+                                    wysiwygEditorRef.current.focus()
+                                    const sel = window.getSelection()
+                                    if (sel && sel.rangeCount > 0 && !sel.isCollapsed) {
+                                      sel.deleteFromDocument()
+                                    }
+                                    document.execCommand('insertHTML', false, token)
+                                    setReceiptSettingsDraft((prev) => ({
+                                      ...prev,
+                                      custom_template_html: wysiwygEditorRef.current.innerHTML,
+                                    }))
+                                  }
+                                }}
+                              >
+                                {token}
+                              </button>
+                            ))}
                           </div>
-                          <textarea
-                            className="receipt-template-editor"
-                            value={receiptSettingsDraft.custom_template_css || ''}
-                            onChange={(e) => setReceiptSettingsDraft((prev) => ({ ...prev, custom_template_css: e.target.value }))}
-                            rows={6}
-                            placeholder="Masukkan CSS template..."
-                            spellCheck={false}
-                          />
                         </div>
                       </>
                     ) : (
@@ -1871,15 +1936,6 @@ export function POS() {
                         Menggunakan default template layout A/B/C. Untuk custom, pilih Custom Template.
                       </div>
                     )}
-
-                    <div className="receipt-template-tokens">
-                      <div className="receipt-template-tokens-title">Token yang tersedia:</div>
-                      <div className="receipt-template-tokens-list">
-                        {RECEIPT_TEMPLATE_TOKENS.map((token) => (
-                          <code key={token} className="receipt-template-token">{token}</code>
-                        ))}
-                      </div>
-                    </div>
                   </div>
                 )}
               </div>
