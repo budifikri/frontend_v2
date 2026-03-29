@@ -1,7 +1,39 @@
-import { buildReceiptTemplateModel, getReceiptPaperClass } from './ReceiptLayouts'
+import { renderReceiptContent, getReceiptPaperClass } from './ReceiptLayouts'
 
 export function ReceiptPreview({ sale, settings, formatCurrency, formatDateTime }) {
-  const model = buildReceiptTemplateModel(sale, settings, { withSamples: true })
+  const escapeHtml = (value) => {
+    const text = String(value ?? '')
+    return text
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#39;')
+  }
+
+  const result = renderReceiptContent(sale, settings, { escapeHtml, formatCurrency, formatDateTime }, { withSamples: true })
+  const model = result.model
+
+  if (result.isCustom) {
+    return (
+      <div className={`receipt-preview ${getReceiptPaperClass(settings.paper_size)} ${settings.printer_type === 'dot_matrix' ? 'printer-dot-matrix' : 'printer-thermal'}`}>
+        <style>{result.customCss}</style>
+        <div dangerouslySetInnerHTML={{ __html: result.bodyHtml }} />
+
+        {settings.calibration_mode && (
+          <div className="receipt-preview-calibration">
+            <div className="receipt-preview-calibration-label">Calibration 50mm</div>
+            <div className="receipt-preview-calibration-line" />
+            <div className="receipt-preview-calibration-scale">
+              <span>0</span>
+              <span>50mm</span>
+            </div>
+          </div>
+        )}
+      </div>
+    )
+  }
+
   const companyAddressLine = model.company.address || 'Alamat company'
   const companyPhoneLine = model.company.phone || '-'
 
@@ -59,6 +91,17 @@ export function ReceiptPreview({ sale, settings, formatCurrency, formatDateTime 
 
       {model.showFooter && (
         <div className="receipt-preview-footer">{model.footerText}</div>
+      )}
+
+      {settings.calibration_mode && (
+        <div className="receipt-preview-calibration">
+          <div className="receipt-preview-calibration-label">Calibration 50mm</div>
+          <div className="receipt-preview-calibration-line" />
+          <div className="receipt-preview-calibration-scale">
+            <span>0</span>
+            <span>50mm</span>
+          </div>
+        </div>
       )}
     </div>
   )

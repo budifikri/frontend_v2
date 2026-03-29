@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useAuth } from '../../shared/auth'
 import { listProducts } from '../../features/master/product/product.api'
 import { getCurrentCompany, listCompanies } from '../../features/master/company/company.api'
@@ -6,7 +6,7 @@ import { listWarehouses } from '../../features/master/warehouse/warehouse.api'
 import { openCashDrawer, getCurrentCashDrawer, getCashDrawerSummary, closeCashDrawer, cashInDrawer, cashOutDrawer } from '../../features/transaksi/cash-drawer/cashDrawer.api'
 import { createSale, listSales, getSaleById } from '../../features/transaksi/sales/sales.api'
 import { DEFAULT_RECEIPT_SETTINGS, loadReceiptSettings, resetReceiptSettings, saveReceiptSettings } from '../../features/setting/receiptSetting.storage'
-import { RECEIPT_LAYOUT_OPTIONS, getReceiptPaperClass, renderReceiptHtml } from './ReceiptLayouts'
+import { RECEIPT_LAYOUT_OPTIONS, getReceiptPaperClass, renderReceiptContent, DEFAULT_CUSTOM_TEMPLATE_HTML, DEFAULT_CUSTOM_TEMPLATE_CSS, RECEIPT_TEMPLATE_TOKENS } from './ReceiptLayouts'
 import { ReceiptPreview } from './ReceiptPreview'
 import { Toast } from '../../components/Toast'
 import './POS.css'
@@ -432,11 +432,6 @@ export function POS() {
       company_phone: effectiveCompanyPhone,
     }
 
-    const receiptBody = renderReceiptHtml(saleWithCompany, effectiveReceiptSettings, {
-      escapeHtml,
-      formatCurrency,
-      formatDateTime,
-    })
     const paperSizeMm = receiptSettings.paper_size === '80mm' ? 80 : 58
     const contentWidthMm = paperSizeMm === 80 ? 76 : 56
     const paperClass = getReceiptPaperClass(receiptSettings.paper_size)
@@ -445,6 +440,17 @@ export function POS() {
     const borderStyle = isDotMatrix ? '1px dotted #94a3b8' : '1px solid #e2e8f0'
     const lineBorder = isDotMatrix ? '1px dotted #cbd5e1' : '1px dashed #cbd5e1'
     const fontSize = paperSizeMm === 80 ? '12px' : '11px'
+    const showCalibration = Boolean(receiptSettings.calibration_mode)
+    const calibrationLabel = `Calibration 50mm (${paperSizeMm}mm mode)`
+
+    const receiptResult = renderReceiptContent(saleWithCompany, effectiveReceiptSettings, {
+      escapeHtml,
+      formatCurrency,
+      formatDateTime,
+    })
+    const receiptBody = receiptResult.bodyHtml
+    const isCustomTemplate = receiptResult.isCustom
+    const customCss = receiptResult.customCss
 
     const html = `
       <!doctype html>
@@ -506,6 +512,11 @@ export function POS() {
           .payments-block { margin-top: 8px; border-top: ${lineBorder}; padding-top: 6px; }
           .pay-row { display: flex; justify-content: space-between; margin: 2px 0; }
           .footer { margin-top: 8px; text-align: center; border-top: ${lineBorder}; padding-top: 6px; color: #334155; }
+          .calibration-block { margin-top: 10px; padding-top: 6px; border-top: ${lineBorder}; text-align: center; }
+          .calibration-label { font-size: 10px; color: #475569; margin-bottom: 4px; }
+          .calibration-line { width: 50mm; max-width: 100%; border-top: 1px solid #0f172a; margin: 0 auto; height: 0; }
+          .calibration-scale { width: 50mm; max-width: 100%; margin: 2px auto 0; display: flex; justify-content: space-between; font-size: 9px; color: #475569; }
+          ${isCustomTemplate ? customCss : ''}
           @media print {
             html, body {
               width: ${paperSizeMm}mm;
@@ -525,6 +536,7 @@ export function POS() {
       <body>
         <div class="receipt-wrap ${paperClass}">
           ${receiptBody}
+          ${showCalibration ? `<div class="calibration-block"><div class="calibration-label">${calibrationLabel}</div><div class="calibration-line"></div><div class="calibration-scale"><span>0</span><span>50mm</span></div></div>` : ''}
         </div>
         <script>
           window.onload = () => {
@@ -568,43 +580,6 @@ export function POS() {
   const total = subtotal + tax
   const selectedItem = selectedIndex >= 0 ? items[selectedIndex] : null
   const displayItem = selectedItem || items[items.length - 1]
-  const jspdfFormatCode = useMemo(() => {
-    const pageWidth = receiptSettingsDraft.paper_size === '80mm' ? 80 : 58
-    const fontSize = receiptSettingsDraft.printer_type === 'dot_matrix'
-      ? (receiptSettingsDraft.paper_size === '80mm' ? 8 : 7)
-      : (receiptSettingsDraft.paper_size === '80mm' ? 9 : 8)
-    const lineGap = receiptSettingsDraft.paper_size === '80mm' ? 4.2 : 3.6
-    const fontFamily = receiptSettingsDraft.printer_type === 'dot_matrix' ? 'courier' : 'helvetica'
-    const printerLabel = receiptSettingsDraft.printer_type === 'dot_matrix' ? 'Dot Matrix' : 'Thermal'
-
-    return `import { jsPDF } from 'jspdf'
-
-const doc = new jsPDF({
-  orientation: 'p',
-  unit: 'mm',
-  format: [180, ${pageWidth}],
-})
-
-let y = 8
-// Printer: ${printerLabel}
-doc.setFont('${fontFamily}', 'normal')
-doc.setFontSize(${fontSize})
-
-${receiptSettingsDraft.show_logo ? "doc.text('PX', ${pageWidth / 2}, y, { align: 'center' })\ny += ${lineGap}" : '// logo disembunyikan'}
-doc.setFont('${fontFamily}', 'bold')
-doc.text('NOTA PENJUALAN', ${pageWidth / 2}, y, { align: 'center' })
-y += ${lineGap}
-
-${receiptSettingsDraft.layout_type === 'layout_a'
-  ? "// Layout A - Simple\ndoc.setFont('" + fontFamily + "', 'normal')\ndoc.text('No: SALE-001', 4, y)\ny += " + lineGap + "\ndoc.text('Kasir: ADMIN', 4, y)\ny += " + lineGap + "\n// item rows...\ndoc.text('Total', 4, y)\ndoc.text('Rp 0', " + (pageWidth - 4) + ", y, { align: 'right' })"
-  : receiptSettingsDraft.layout_type === 'layout_b'
-    ? "// Layout B - Detail Pajak\ndoc.setFont('" + fontFamily + "', 'normal')\ndoc.text('Subtotal', 4, y)\ndoc.text('Rp 0', " + (pageWidth - 4) + ", y, { align: 'right' })\ny += " + lineGap + "\ndoc.text('PPN', 4, y)\ndoc.text('Rp 0', " + (pageWidth - 4) + ", y, { align: 'right' })\ny += " + lineGap + "\ndoc.setFont('" + fontFamily + "', 'bold')\ndoc.text('Total', 4, y)\ndoc.text('Rp 0', " + (pageWidth - 4) + ", y, { align: 'right' })"
-    : "// Layout C - Brand + Footer\ndoc.setFont('" + fontFamily + "', 'normal')\ndoc.text('Retail Checkout', " + (pageWidth / 2) + ", y, { align: 'center' })\ny += " + lineGap + "\n// item rows...\ndoc.setFont('" + fontFamily + "', 'bold')\ndoc.text('Total', 4, y)\ndoc.text('Rp 0', " + (pageWidth - 4) + ", y, { align: 'right' })"}
-
-${receiptSettingsDraft.show_footer ? "\ny += " + lineGap + "\ndoc.setFont('" + fontFamily + "', 'normal')\ndoc.text('" + (receiptSettingsDraft.footer_text?.trim() || 'Terima kasih sudah berbelanja') + "', ${pageWidth / 2}, y, { align: 'center' })" : '// footer disembunyikan'}
-
-doc.save('nota-penjualan.pdf')`
-  }, [receiptSettingsDraft])
 
   const previewNote = printNotes[printSelectedIndex] || {
     company_name: companyProfile.name || auth.companyName || '-',
@@ -1762,6 +1737,14 @@ doc.save('nota-penjualan.pdf')`
                     />
                     <span>Auto print setelah pembayaran</span>
                   </label>
+                  <label className="receipt-checkbox-option">
+                    <input
+                      type="checkbox"
+                      checked={receiptSettingsDraft.calibration_mode}
+                      onChange={(e) => setReceiptSettingsDraft((prev) => ({ ...prev, calibration_mode: e.target.checked }))}
+                    />
+                    <span>Calibration line mode (50mm)</span>
+                  </label>
                   <div className="receipt-footer-text-wrap">
                     <label htmlFor="receipt-footer-text">Text footer</label>
                     <textarea
@@ -1787,10 +1770,10 @@ doc.save('nota-penjualan.pdf')`
                   </button>
                   <button
                     type="button"
-                    className={`receipt-setting-tab ${receiptSettingViewTab === 'code' ? 'is-active' : ''}`}
-                    onClick={() => setReceiptSettingViewTab('code')}
+                    className={`receipt-setting-tab ${receiptSettingViewTab === 'template' ? 'is-active' : ''}`}
+                    onClick={() => setReceiptSettingViewTab('template')}
                   >
-                    Code jsPDF
+                    Template
                   </button>
                 </div>
                 {receiptSettingViewTab === 'preview' ? (
@@ -1807,8 +1790,96 @@ doc.save('nota-penjualan.pdf')`
                   />
                   </div>
                 ) : (
-                  <div className="receipt-setting-code-panel">
-                    <pre>{jspdfFormatCode}</pre>
+                  <div className="receipt-setting-template-panel">
+                    <div className="receipt-template-mode">
+                      <label className="receipt-radio-option">
+                        <input
+                          type="radio"
+                          name="template-mode"
+                          checked={receiptSettingsDraft.template_mode === 'default'}
+                          onChange={() => setReceiptSettingsDraft((prev) => ({ ...prev, template_mode: 'default' }))}
+                        />
+                        <span>Default Template</span>
+                      </label>
+                      <label className="receipt-radio-option">
+                        <input
+                          type="radio"
+                          name="template-mode"
+                          checked={receiptSettingsDraft.template_mode === 'custom'}
+                          onChange={() => setReceiptSettingsDraft((prev) => ({ ...prev, template_mode: 'custom' }))}
+                        />
+                        <span>Custom Template</span>
+                      </label>
+                    </div>
+
+                    {receiptSettingsDraft.template_mode === 'custom' ? (
+                      <>
+                        <div className="receipt-template-section">
+                          <div className="receipt-template-section-header">
+                            <span>HTML Template</span>
+                            <button
+                              type="button"
+                              className="receipt-template-btn"
+                              onClick={() => {
+                                setReceiptSettingsDraft((prev) => ({
+                                  ...prev,
+                                  custom_template_html: prev.custom_template_html || DEFAULT_CUSTOM_TEMPLATE_HTML,
+                                }))
+                              }}
+                            >
+                              Reset HTML
+                            </button>
+                          </div>
+                          <textarea
+                            className="receipt-template-editor"
+                            value={receiptSettingsDraft.custom_template_html || ''}
+                            onChange={(e) => setReceiptSettingsDraft((prev) => ({ ...prev, custom_template_html: e.target.value }))}
+                            rows={8}
+                            placeholder="Masukkan HTML template..."
+                            spellCheck={false}
+                          />
+                        </div>
+
+                        <div className="receipt-template-section">
+                          <div className="receipt-template-section-header">
+                            <span>CSS Template</span>
+                            <button
+                              type="button"
+                              className="receipt-template-btn"
+                              onClick={() => {
+                                setReceiptSettingsDraft((prev) => ({
+                                  ...prev,
+                                  custom_template_css: prev.custom_template_css || DEFAULT_CUSTOM_TEMPLATE_CSS,
+                                }))
+                              }}
+                            >
+                              Reset CSS
+                            </button>
+                          </div>
+                          <textarea
+                            className="receipt-template-editor"
+                            value={receiptSettingsDraft.custom_template_css || ''}
+                            onChange={(e) => setReceiptSettingsDraft((prev) => ({ ...prev, custom_template_css: e.target.value }))}
+                            rows={6}
+                            placeholder="Masukkan CSS template..."
+                            spellCheck={false}
+                          />
+                        </div>
+                      </>
+                    ) : (
+                      <div className="receipt-template-note">
+                        Menggunakan default template layout A/B/C. Untuk custom, pilih Custom Template.
+                      </div>
+                    )}
+
+                    <div className="receipt-template-tokens">
+                      <div className="receipt-template-tokens-title">Token yang tersedia:</div>
+                      <div className="receipt-template-tokens-list">
+                        {RECEIPT_TEMPLATE_TOKENS.map((token) => (
+                          <code key={token} className="receipt-template-token">{token}</code>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>

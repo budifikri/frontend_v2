@@ -3,6 +3,9 @@ const RECEIPT_SETTINGS_KEY = 'pos_receipt_settings'
 export const DEFAULT_RECEIPT_SETTINGS = {
   paper_size: '58mm',
   layout_type: 'layout_a',
+  template_mode: 'default',
+  custom_template_html: '',
+  custom_template_css: '',
   printer_type: 'thermal',
   show_logo: true,
   show_footer: true,
@@ -19,6 +22,7 @@ export function normalizeReceiptSettings(value) {
   const layoutType = ['layout_a', 'layout_b', 'layout_c'].includes(source.layout_type)
     ? source.layout_type
     : 'layout_a'
+  const templateMode = source.template_mode === 'custom' ? 'custom' : 'default'
   const printerType = ['thermal', 'dot_matrix'].includes(source.printer_type)
     ? source.printer_type
     : 'thermal'
@@ -28,6 +32,9 @@ export function normalizeReceiptSettings(value) {
     ...source,
     paper_size: paperSize,
     layout_type: layoutType,
+    template_mode: templateMode,
+    custom_template_html: typeof source.custom_template_html === 'string' ? source.custom_template_html : DEFAULT_RECEIPT_SETTINGS.custom_template_html,
+    custom_template_css: typeof source.custom_template_css === 'string' ? source.custom_template_css : DEFAULT_RECEIPT_SETTINGS.custom_template_css,
     printer_type: printerType,
     show_logo: typeof source.show_logo === 'boolean' ? source.show_logo : DEFAULT_RECEIPT_SETTINGS.show_logo,
     show_footer: typeof source.show_footer === 'boolean' ? source.show_footer : DEFAULT_RECEIPT_SETTINGS.show_footer,
