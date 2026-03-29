@@ -1614,3 +1614,133 @@
   opacity: 0.6;
   cursor: not-allowed;
 }
+
+/* Pending Popup */
+.pending-popup {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  width: 450px;
+  max-height: 70vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.pending-popup-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 20px;
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: white;
+}
+
+.pending-popup-header .material-icons {
+  font-size: 28px;
+}
+
+.pending-popup-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  flex: 1;
+}
+
+.pending-count {
+  background: rgba(255, 255, 255, 0.25);
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.pending-popup-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+}
+
+.pending-empty {
+  text-align: center;
+  padding: 40px 20px;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.pending-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pending-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px;
+  background: #f8fafc;
+  border-radius: 10px;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: all 0.15s;
+}
+
+.pending-item:hover,
+.pending-item.is-selected {
+  background: #fff7ed;
+  border-color: #f59e0b;
+}
+
+.pending-item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pending-item-date {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.pending-item-cashier {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.pending-item-details {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.pending-item-items {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.pending-item-total {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.pending-popup-footer {
+  padding: 14px 20px;
+  background: #f8fafc;
+  border-top: 1px solid #e2e8f0;
+}
+
+.pending-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.pending-hint .material-icons-round {
+  font-size: 16px;
+}

@@ -4,6 +4,7 @@ import { listProducts } from '../../features/master/product/product.api'
 import { listWarehouses } from '../../features/master/warehouse/warehouse.api'
 import { openCashDrawer, getCurrentCashDrawer, getCashDrawerSummary, closeCashDrawer, cashInDrawer, cashOutDrawer } from '../../features/transaksi/cash-drawer/cashDrawer.api'
 import { createSale } from '../../features/transaksi/sales/sales.api'
+import { Toast } from '../../components/Toast'
 import './POS.css'
 
 export function POS() {
@@ -68,6 +69,10 @@ export function POS() {
   const cashOutAmountRef = useRef(null)
   const cashOutConfirmBtnRef = useRef(null)
   const cashOutCancelBtnRef = useRef(null)
+  const [pendingNotes, setPendingNotes] = useState([])
+  const [showPendingPopup, setShowPendingPopup] = useState(false)
+  const [pendingSelectedIndex, setPendingSelectedIndex] = useState(0)
+  const [toast, setToast] = useState({ isOpen: false, message: '', type: 'info' })
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000)
@@ -75,12 +80,21 @@ export function POS() {
   }, [])
 
   useEffect(() => {
+    const saved = localStorage.getItem('pos_pending_notes')
+    if (saved) {
+      try {
+        setPendingNotes(JSON.parse(saved))
+      } catch (e) {
+        console.error('Failed to parse pending notes:', e)
+      }
+    }
+  }, [])
+
+  useEffect(() => {
     const loadWarehouse = async () => {
       try {
         const warehouseResult = await listWarehouses(auth.token, { limit: 100 })
-        console.log('Warehouse result:', warehouseResult)
         const main = warehouseResult.items.find(w => w.type === 'MAIN')
-        console.log('Main warehouse:', main)
         if (main) {
           setMainWarehouse(main)
         }
@@ -92,7 +106,8 @@ export function POS() {
     const checkCashDrawerStatus = async () => {
       try {
         const result = await getCurrentCashDrawer(auth.token)
-        if (result.success) {
+        if (result.success && result.data) {
+          setCurrentCashDrawer(result.data)
           setShowCashDrawerForm(false)
           await loadWarehouse()
         } else {
@@ -290,11 +305,14 @@ export function POS() {
     }
     setIsOpeningDrawer(true)
     try {
-      await openCashDrawer(auth.token, {
+      const result = await openCashDrawer(auth.token, {
         opening_balance: parseFloat(openingBalance) || 0,
         notes: cashDrawerNotes,
         warehouse_id: mainWarehouse.id,
       })
+      if (result.success && result.data) {
+        setCurrentCashDrawer(result.data)
+      }
       setShowCashDrawerForm(false)
     } catch (err) {
       console.error('Failed to open cash drawer:', err)
@@ -348,7 +366,9 @@ export function POS() {
       }
     } else if (e.key === 'Enter') {
       e.preventDefault()
-      if (showProductPopup && productResults.length > 0) {
+      if (showPendingPopup && pendingNotes.length > 0) {
+        handleRestorePending(pendingNotes[pendingSelectedIndex])
+      } else if (showProductPopup && productResults.length > 0) {
         handleSelectProduct(productResults[popupSelectedIndex])
       } else if (showActionPopup) {
         handleActionSelect(actionPopupIndex)
@@ -457,32 +477,63 @@ export function POS() {
     setSearch('')
   }
 
+  const handleSavePending = () => {
+    if (items.length === 0) {
+      setToast({ isOpen: true, message: 'Tidak ada item untuk di pending', type: 'warning' })
+      return
+    }
+
+    const pendingNote = {
+      id: Date.now(),
+      createdAt: new Date().toISOString(),
+      items: JSON.parse(JSON.stringify(items)),
+      subtotal,
+      tax,
+      total,
+      cashier: auth.username,
+    }
+
+    const updated = [...pendingNotes, pendingNote]
+    setPendingNotes(updated)
+    localStorage.setItem('pos_pending_notes', JSON.stringify(updated))
+
+    setToast({ isOpen: true, message: 'Data di pending', type: 'success' })
+
+    setItems([])
+    setSelectedIndex(-1)
+    setSearch('')
+    setTimeout(() => {
+      if (searchInputRef.current) {
+        searchInputRef.current.focus()
+      }
+    }, 0)
+  }
+
+  const handleRestorePending = useCallback((pendingNote) => {
+    if (items.length > 0) {
+      setShowPendingPopup(false)
+      setToast({ isOpen: true, message: 'Nota penjualan masih ada transaksi', type: 'warning' })
+      return
+    }
+
+    setItems(pendingNote.items)
+    setSelectedIndex(-1)
+
+    const updated = pendingNotes.filter(n => n.id !== pendingNote.id)
+    setPendingNotes(updated)
+    localStorage.setItem('pos_pending_notes', JSON.stringify(updated))
+
+    setShowPendingPopup(false)
+    setToast({ isOpen: true, message: 'Restore data pending', type: 'success' })
+  }, [pendingNotes, items.length])
+
   const handleActionSelect = (index) => {
     setShowActionPopup(false)
     if (index === 0) {
       setShowPaymentForm(true)
       setPaymentAmount('')
     } else if (index === 1) {
-      _setPendingNotas((prev) => {
-        const pendingNota = {
-          id: Date.now(),
-          items: [...items],
-          subtotal,
-          tax,
-          total,
-          createdAt: new Date(),
-        }
-        alert(`Nota disimpan ke pending. Total nota: ${prev.length + 1}`)
-        return [...prev, pendingNota]
-      })
-      setItems([])
-      setSelectedIndex(-1)
-      setSearch('')
-      setTimeout(() => {
-        if (searchInputRef.current) {
-          searchInputRef.current.focus()
-        }
-      }, 0)
+      handleSavePending()
     } else if (index === 2) {
       setItems([])
       setSelectedIndex(-1)
@@ -521,15 +572,14 @@ export function POS() {
         paymentData.reference_number = transferAccount
       }
 
-      console.log('mainWarehouse:', mainWarehouse)
-
       const salePayload = {
         warehouse_id: mainWarehouse?.id,
+        cash_drawer_id: currentCashDrawer?.id,
+        status: 'DONE',
         items: saleItems,
         payments: [paymentData],
       }
 
-      console.log('Sale payload:', JSON.stringify(salePayload, null, 2))
       const result = await createSale(auth.token, salePayload)
 
       const change = payment - total
@@ -626,6 +676,24 @@ export function POS() {
         }
         return
       }
+      if (showPendingPopup) {
+        if (e.key === 'ArrowUp') {
+          e.preventDefault()
+          setPendingSelectedIndex(pendingSelectedIndex > 0 ? pendingSelectedIndex - 1 : pendingNotes.length - 1)
+        } else if (e.key === 'ArrowDown') {
+          e.preventDefault()
+          setPendingSelectedIndex(pendingSelectedIndex < pendingNotes.length - 1 ? pendingSelectedIndex + 1 : 0)
+        } else if (e.key === 'Escape') {
+          e.preventDefault()
+          setShowPendingPopup(false)
+        } else if (e.key === 'Enter') {
+          e.preventDefault()
+          if (pendingNotes[pendingSelectedIndex]) {
+            handleRestorePending(pendingNotes[pendingSelectedIndex])
+          }
+        }
+        return
+      }
       if (showClosingForm) {
         if (e.key === 'ArrowLeft') {
           e.preventDefault()
@@ -666,7 +734,15 @@ export function POS() {
         }
         return
       }
-      if (e.key === 'F10') {
+      if (e.key === 'F6') {
+        e.preventDefault()
+        if (pendingNotes.length > 0) {
+          setShowPendingPopup(true)
+          setPendingSelectedIndex(0)
+        } else {
+          setToast({ isOpen: true, message: 'Tidak ada nota pending', type: 'info' })
+        }
+      } else if (e.key === 'F10') {
         e.preventDefault()
         if (items.length > 0) {
           setShowPaymentForm(true)
@@ -680,7 +756,7 @@ export function POS() {
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [items.length, showCashInForm, showCashOutForm, cashInButtonIndex, cashOutButtonIndex, showDeleteConfirm, showClosingForm, closingButtonIndex, handleCashIn, handleCancelCashIn, handleCashOut, handleCancelCashOut, handleDeleteConfirm, handleDeleteCancel, handleCloseDrawer, handleCancelClose, clearAuth])
+  }, [items.length, showCashInForm, showCashOutForm, cashInButtonIndex, cashOutButtonIndex, showDeleteConfirm, showClosingForm, closingButtonIndex, showPendingPopup, pendingNotes, pendingSelectedIndex, handleCashIn, handleCancelCashIn, handleCashOut, handleCancelCashOut, handleDeleteConfirm, handleDeleteCancel, handleCloseDrawer, handleCancelClose, handleRestorePending, clearAuth])
 
   const promos = [
     'Beli 2 Kopi Gratis 1',
@@ -1045,6 +1121,57 @@ export function POS() {
               >
                 {isCashOutSubmitting ? 'Memproses...' : 'Cash Out'}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showPendingPopup && (
+        <div className="product-popup-overlay" onClick={() => setShowPendingPopup(false)}>
+          <div className="pending-popup" onClick={(e) => e.stopPropagation()}>
+            <div className="pending-popup-header">
+              <span className="material-icons">pending_actions</span>
+              <h3>Daftar Nota Pending</h3>
+              <span className="pending-count">{pendingNotes.length}</span>
+            </div>
+            <div className="pending-popup-body">
+              {pendingNotes.length === 0 ? (
+                <div className="pending-empty">Tidak ada nota pending</div>
+              ) : (
+                <div className="pending-list">
+                  {pendingNotes.map((note, idx) => (
+                    <div
+                      key={note.id}
+                      className={`pending-item ${pendingSelectedIndex === idx ? 'is-selected' : ''}`}
+                      onClick={() => handleRestorePending(note)}
+                      onMouseEnter={() => setPendingSelectedIndex(idx)}
+                    >
+                      <div className="pending-item-info">
+                        <span className="pending-item-date">
+                          {new Date(note.createdAt).toLocaleString('id-ID', {
+                            day: '2-digit',
+                            month: 'short',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </span>
+                        <span className="pending-item-cashier">{note.cashier}</span>
+                      </div>
+                      <div className="pending-item-details">
+                        <span className="pending-item-items">{note.items.length} item</span>
+                        <span className="pending-item-total">{formatCurrency(note.total)}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="pending-popup-footer">
+              <span className="pending-hint">
+                <span className="material-icons-round">keyboard</span>
+                Arrow Up/Down: Pilih | Enter: Restore | Escape: Tutup
+              </span>
             </div>
           </div>
         </div>
@@ -1466,7 +1593,14 @@ export function POS() {
 
         {/* Right Sidebar (Action Keys) */}
         <aside className="pos-sidebar">
-          <button className="action-key action-key-amber">
+          <button className="action-key action-key-amber" onClick={() => {
+            if (pendingNotes.length > 0) {
+              setShowPendingPopup(true)
+              setPendingSelectedIndex(0)
+            } else {
+              setToast({ isOpen: true, message: 'Tidak ada nota pending', type: 'info' })
+            }
+          }}>
             <span className="material-icons">pause_circle</span>
             <span>Pending</span>
             <span className="shortcut-badge">F6</span>
@@ -1502,6 +1636,13 @@ export function POS() {
           </button>
         </aside>
       </div>
+      <Toast
+        message={toast.message}
+        type={toast.type}
+        isOpen={toast.isOpen}
+        duration={2000}
+        onClose={() => setToast(prev => ({ ...prev, isOpen: false }))}
+      />
     </div>
   )
 }

@@ -1,27 +1,23 @@
-import { useEffect, useCallback } from 'react'
+import { useEffect, useCallback, useRef } from 'react'
 
-/**
- * Toast Notification Component
- * @param {Object} props
- * @param {string} props.message - Message to display
- * @param {string} props.type - Type: 'success' | 'error' | 'info' | 'warning'
- * @param {boolean} props.isOpen - Visibility state
- * @param {Function} props.onClose - Close handler
- * @param {number} props.duration - Auto-close duration in ms (default: 3000)
- */
 export function Toast({ message, type = 'info', isOpen, onClose, duration = 3000 }) {
-  const handleClose = useCallback(() => {
-    if (onClose) onClose()
-  }, [onClose])
+  const onCloseRef = useRef(onClose)
+  onCloseRef.current = onClose
 
   useEffect(() => {
     if (isOpen && duration > 0) {
       const timer = setTimeout(() => {
-        handleClose()
+        if (onCloseRef.current) {
+          onCloseRef.current()
+        }
       }, duration)
       return () => clearTimeout(timer)
     }
-  }, [isOpen, duration, handleClose])
+  }, [isOpen, duration])
+
+  const handleClose = useCallback(() => {
+    if (onClose) onClose()
+  }, [onClose])
 
   if (!isOpen || !message) return null
 

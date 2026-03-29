@@ -1,7 +1,8 @@
 ## TODO
-- penjualan
+- penjualan Pending  
 - form diskon
-- add user
+- Setting POS
+- Help POS
 ## ON PROGRESS
 
 
@@ -9,6 +10,9 @@
 
 
 ## DONE
+28 maret 2026
+- POS
+  cash in,cash out,opening cash drawer,close cash drawer
 26 maret 2026
 - perbaikan di retur purchase dan purchase order mnenggunakan harga beli bukan h
 arga jual
