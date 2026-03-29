@@ -1571,48 +1571,50 @@ doc.save('nota-penjualan.pdf')`
             </div>
             <div className="receipt-setting-body">
               <div className="receipt-setting-form">
-                <div className="receipt-setting-section">
-                  <h4>Ukuran Kertas</h4>
-                  <label className="receipt-radio-option">
-                    <input
-                      type="radio"
-                      name="paper-size"
-                      checked={receiptSettingsDraft.paper_size === '58mm'}
-                      onChange={() => setReceiptSettingsDraft((prev) => ({ ...prev, paper_size: '58mm' }))}
-                    />
-                    <span>58mm</span>
-                  </label>
-                  <label className="receipt-radio-option">
-                    <input
-                      type="radio"
-                      name="paper-size"
-                      checked={receiptSettingsDraft.paper_size === '80mm'}
-                      onChange={() => setReceiptSettingsDraft((prev) => ({ ...prev, paper_size: '80mm' }))}
-                    />
-                    <span>80mm</span>
-                  </label>
-                </div>
+                <div className="receipt-setting-row-two-col">
+                  <div className="receipt-setting-section">
+                    <h4>Ukuran Kertas</h4>
+                    <label className="receipt-radio-option">
+                      <input
+                        type="radio"
+                        name="paper-size"
+                        checked={receiptSettingsDraft.paper_size === '58mm'}
+                        onChange={() => setReceiptSettingsDraft((prev) => ({ ...prev, paper_size: '58mm' }))}
+                      />
+                      <span>58mm</span>
+                    </label>
+                    <label className="receipt-radio-option">
+                      <input
+                        type="radio"
+                        name="paper-size"
+                        checked={receiptSettingsDraft.paper_size === '80mm'}
+                        onChange={() => setReceiptSettingsDraft((prev) => ({ ...prev, paper_size: '80mm' }))}
+                      />
+                      <span>80mm</span>
+                    </label>
+                  </div>
 
-                <div className="receipt-setting-section">
-                  <h4>Jenis Printer</h4>
-                  <label className="receipt-radio-option">
-                    <input
-                      type="radio"
-                      name="printer-type"
-                      checked={receiptSettingsDraft.printer_type === 'thermal'}
-                      onChange={() => setReceiptSettingsDraft((prev) => ({ ...prev, printer_type: 'thermal' }))}
-                    />
-                    <span>Thermal</span>
-                  </label>
-                  <label className="receipt-radio-option">
-                    <input
-                      type="radio"
-                      name="printer-type"
-                      checked={receiptSettingsDraft.printer_type === 'dot_matrix'}
-                      onChange={() => setReceiptSettingsDraft((prev) => ({ ...prev, printer_type: 'dot_matrix' }))}
-                    />
-                    <span>Dot Matrix</span>
-                  </label>
+                  <div className="receipt-setting-section">
+                    <h4>Jenis Printer</h4>
+                    <label className="receipt-radio-option">
+                      <input
+                        type="radio"
+                        name="printer-type"
+                        checked={receiptSettingsDraft.printer_type === 'thermal'}
+                        onChange={() => setReceiptSettingsDraft((prev) => ({ ...prev, printer_type: 'thermal' }))}
+                      />
+                      <span>Thermal</span>
+                    </label>
+                    <label className="receipt-radio-option">
+                      <input
+                        type="radio"
+                        name="printer-type"
+                        checked={receiptSettingsDraft.printer_type === 'dot_matrix'}
+                        onChange={() => setReceiptSettingsDraft((prev) => ({ ...prev, printer_type: 'dot_matrix' }))}
+                      />
+                      <span>Dot Matrix</span>
+                    </label>
+                  </div>
                 </div>
 
                 <div className="receipt-setting-section">
