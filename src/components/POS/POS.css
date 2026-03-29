@@ -2082,6 +2082,12 @@
   overflow: auto;
 }
 
+.receipt-setting-template-panel.in-form {
+  max-height: none;
+  overflow: visible;
+  margin-top: 10px;
+}
+
 .receipt-template-mode {
   display: flex;
   gap: 16px;
@@ -2104,6 +2110,12 @@
   font-size: 13px;
   font-weight: 600;
   color: #334155;
+}
+
+.receipt-template-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .receipt-template-btn {

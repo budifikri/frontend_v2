@@ -84,7 +84,6 @@ export function POS() {
   const [showReceiptSettingsPopup, setShowReceiptSettingsPopup] = useState(false)
   const [receiptSettings, setReceiptSettings] = useState(DEFAULT_RECEIPT_SETTINGS)
   const [receiptSettingsDraft, setReceiptSettingsDraft] = useState(DEFAULT_RECEIPT_SETTINGS)
-  const [receiptSettingViewTab, setReceiptSettingViewTab] = useState('preview')
   const [companyProfile, setCompanyProfile] = useState({ name: '', address: '', phone: '' })
   const wysiwygEditorRef = useRef(null)
   const [toast, setToast] = useState({ isOpen: false, message: '', type: 'info' })
@@ -573,7 +572,6 @@ export function POS() {
 
   const handleOpenReceiptSettings = useCallback(() => {
     setReceiptSettingsDraft(receiptSettings)
-    setReceiptSettingViewTab('preview')
     setShowReceiptSettingsPopup(true)
   }, [receiptSettings])
 
@@ -601,25 +599,27 @@ export function POS() {
   const selectedItem = selectedIndex >= 0 ? items[selectedIndex] : null
   const displayItem = selectedItem || items[items.length - 1]
 
-  const previewNote = printNotes[printSelectedIndex] || {
-    company_name: companyProfile.name || auth.companyName || '-',
-    company_address: companyProfile.address || '',
-    company_phone: companyProfile.phone || '',
-    sale_number: 'PREVIEW-001',
-    sale_date: new Date().toISOString(),
-    cashier_name: auth.username || '-',
-    warehouse_name: mainWarehouse?.name || '-',
-    items: items.map((item) => ({
+  const selectedPrintNote = printNotes[printSelectedIndex]
+  const previewNote = {
+    ...selectedPrintNote,
+    company_name: selectedPrintNote?.company_name || companyProfile.name || auth.companyName || '-',
+    company_address: selectedPrintNote?.company_address || companyProfile.address || '',
+    company_phone: selectedPrintNote?.company_phone || companyProfile.phone || '',
+    sale_number: selectedPrintNote?.sale_number || 'PREVIEW-001',
+    sale_date: selectedPrintNote?.sale_date || new Date().toISOString(),
+    cashier_name: selectedPrintNote?.cashier_name || auth.username || '-',
+    warehouse_name: selectedPrintNote?.warehouse_name || mainWarehouse?.name || '-',
+    items: selectedPrintNote?.items || items.map((item) => ({
       product_name: item.name,
       quantity: item.qty,
       unit_price: item.price,
     })),
-    subtotal,
-    tax_amount: tax,
-    total_amount: total,
-    paid_amount: total,
-    change_amount: 0,
-    payments: [{ method: 'CASH', amount: total }],
+    subtotal: selectedPrintNote?.subtotal ?? subtotal,
+    tax_amount: selectedPrintNote?.tax_amount ?? tax,
+    total_amount: selectedPrintNote?.total_amount ?? total,
+    paid_amount: selectedPrintNote?.paid_amount ?? total,
+    change_amount: selectedPrintNote?.change_amount ?? 0,
+    payments: selectedPrintNote?.payments || [{ method: 'CASH', amount: total }],
   }
 
   const handleItemClick = (item, index) => {
@@ -1670,21 +1670,153 @@ export function POS() {
 
             
               <div className="receipt-setting-form">
- <div className="receipt-setting-section">
+                <div className="receipt-setting-section">
                   <h4>Tata Letak</h4>
-                  <div className="receipt-layout-grid">
-                    {RECEIPT_LAYOUT_OPTIONS.map((layout) => (
-                      <button
-                        key={layout.id}
-                        type="button"
-                        className={`receipt-layout-card ${receiptSettingsDraft.layout_type === layout.id ? 'is-selected' : ''}`}
-                        onClick={() => setReceiptSettingsDraft((prev) => ({ ...prev, layout_type: layout.id }))}
-                      >
-                        <strong>{layout.label}</strong>
-                        <span>{layout.description}</span>
-                      </button>
-                    ))}
+                  <div className="receipt-template-mode">
+                    <label className="receipt-radio-option">
+                      <input
+                        type="radio"
+                        name="template-mode"
+                        checked={receiptSettingsDraft.template_mode === 'default'}
+                        onChange={() => setReceiptSettingsDraft((prev) => ({ ...prev, template_mode: 'default' }))}
+                      />
+                      <span>Default Template</span>
+                    </label>
+                    <label className="receipt-radio-option">
+                      <input
+                        type="radio"
+                        name="template-mode"
+                        checked={receiptSettingsDraft.template_mode === 'custom'}
+                        onChange={() => {
+                          setReceiptSettingsDraft((prev) => ({
+                            ...prev,
+                            template_mode: 'custom',
+                            custom_template_html: prev.custom_template_html || DEFAULT_CUSTOM_TEMPLATE_HTML,
+                            custom_template_css: prev.custom_template_css || DEFAULT_CUSTOM_TEMPLATE_CSS,
+                          }))
+                        }}
+                      />
+                      <span>Custom Template</span>
+                    </label>
                   </div>
+
+                  {receiptSettingsDraft.template_mode === 'default' ? (
+                    <div className="receipt-layout-grid">
+                      {RECEIPT_LAYOUT_OPTIONS.map((layout) => (
+                        <button
+                          key={layout.id}
+                          type="button"
+                          className={`receipt-layout-card ${receiptSettingsDraft.layout_type === layout.id ? 'is-selected' : ''}`}
+                          onClick={() => setReceiptSettingsDraft((prev) => ({ ...prev, layout_type: layout.id }))}
+                        >
+                          <strong>{layout.label}</strong>
+                          <span>{layout.description}</span>
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="receipt-setting-template-panel in-form">
+                      <div className="receipt-template-section">
+                        <div className="receipt-template-section-header">
+                          <span>HTML Template</span>
+                          <div className="receipt-template-actions">
+                            <button
+                              type="button"
+                              className="receipt-template-btn"
+                              onClick={() => {
+                                if (wysiwygEditorRef.current) {
+                                  setReceiptSettingsDraft((prev) => ({
+                                    ...prev,
+                                    custom_template_html: wysiwygEditorRef.current.innerHTML,
+                                  }))
+                                }
+                              }}
+                            >
+                              Apply
+                            </button>
+                            <button
+                              type="button"
+                              className="receipt-template-btn"
+                              onClick={() => {
+                                if (wysiwygEditorRef.current) {
+                                  wysiwygEditorRef.current.innerHTML = DEFAULT_CUSTOM_TEMPLATE_HTML
+                                }
+                                setReceiptSettingsDraft((prev) => ({
+                                  ...prev,
+                                  custom_template_html: DEFAULT_CUSTOM_TEMPLATE_HTML,
+                                }))
+                              }}
+                            >
+                              Reset
+                            </button>
+                          </div>
+                        </div>
+                        <div className="receipt-wysiwyg-toolbar">
+                          <button type="button" className="receipt-wysiwyg-btn" title="Bold" onMouseDown={(e) => { e.preventDefault(); if (wysiwygEditorRef.current) wysiwygEditorRef.current.focus(); document.execCommand('bold', false, null) }}>
+                            <strong>B</strong>
+                          </button>
+                          <button type="button" className="receipt-wysiwyg-btn" title="Italic" onMouseDown={(e) => { e.preventDefault(); if (wysiwygEditorRef.current) wysiwygEditorRef.current.focus(); document.execCommand('italic', false, null) }}>
+                            <em>I</em>
+                          </button>
+                          <button type="button" className="receipt-wysiwyg-btn" title="Underline" onMouseDown={(e) => { e.preventDefault(); if (wysiwygEditorRef.current) wysiwygEditorRef.current.focus(); document.execCommand('underline', false, null) }}>
+                            <u>U</u>
+                          </button>
+                          <span className="receipt-wysiwyg-sep" />
+                          <button type="button" className="receipt-wysiwyg-btn" title="Font Size Small" onMouseDown={(e) => { e.preventDefault(); if (wysiwygEditorRef.current) wysiwygEditorRef.current.focus(); document.execCommand('fontSize', false, '2') }} style={{ fontSize: '10px' }}>A</button>
+                          <button type="button" className="receipt-wysiwyg-btn" title="Font Size Normal" onMouseDown={(e) => { e.preventDefault(); if (wysiwygEditorRef.current) wysiwygEditorRef.current.focus(); document.execCommand('fontSize', false, '3') }} style={{ fontSize: '13px' }}>A</button>
+                          <span className="receipt-wysiwyg-sep" />
+                          <button type="button" className="receipt-wysiwyg-btn" title="Align Left" onMouseDown={(e) => { e.preventDefault(); if (wysiwygEditorRef.current) wysiwygEditorRef.current.focus(); document.execCommand('justifyLeft', false, null) }}>
+                            <span style={{ fontFamily: 'sans-serif' }}>&#8676;</span>
+                          </button>
+                          <button type="button" className="receipt-wysiwyg-btn" title="Align Center" onMouseDown={(e) => { e.preventDefault(); if (wysiwygEditorRef.current) wysiwygEditorRef.current.focus(); document.execCommand('justifyCenter', false, null) }}>
+                            <span style={{ fontFamily: 'sans-serif' }}>&#8596;</span>
+                          </button>
+                          <span className="receipt-wysiwyg-sep" />
+                          <button type="button" className="receipt-wysiwyg-btn" title="Insert Line Break" onMouseDown={(e) => { e.preventDefault(); if (wysiwygEditorRef.current) { wysiwygEditorRef.current.focus(); document.execCommand('insertHTML', false, '<br>') } }}>
+                            <span style={{ fontFamily: 'sans-serif', fontSize: '12px' }}>&#8629;</span>
+                          </button>
+                          <button type="button" className="receipt-wysiwyg-btn" title="Insert Line" onMouseDown={(e) => { e.preventDefault(); if (wysiwygEditorRef.current) { wysiwygEditorRef.current.focus(); document.execCommand('insertHTML', false, '<div class=&quot;tpl-garis&quot;></div>') } }}>
+                            <span style={{ fontFamily: 'sans-serif', fontSize: '12px' }}>&#9135;</span>
+                          </button>
+                        </div>
+                        <div
+                          ref={wysiwygEditorRef}
+                          className="receipt-wysiwyg-editor"
+                          contentEditable
+                          suppressContentEditableWarning
+                        />
+                      </div>
+
+                      <div className="receipt-template-tokens">
+                        <div className="receipt-template-tokens-title">Data - klik untuk menyisipkan:</div>
+                        <div className="receipt-template-tokens-list">
+                          {RECEIPT_TEMPLATE_TOKENS.map((token) => (
+                            <button
+                              key={token}
+                              type="button"
+                              className="receipt-template-token"
+                              onClick={() => {
+                                if (wysiwygEditorRef.current) {
+                                  wysiwygEditorRef.current.focus()
+                                  const sel = window.getSelection()
+                                  if (sel && sel.rangeCount > 0 && !sel.isCollapsed) {
+                                    sel.deleteFromDocument()
+                                  }
+                                  document.execCommand('insertHTML', false, token)
+                                  setReceiptSettingsDraft((prev) => ({
+                                    ...prev,
+                                    custom_template_html: wysiwygEditorRef.current.innerHTML,
+                                  }))
+                                }
+                              }}
+                            >
+                              {token}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
 
@@ -1786,24 +1918,7 @@ export function POS() {
               </div>
 
               <div className="receipt-setting-preview-wrap">
-                <div className="receipt-setting-tabs">
-                  <button
-                    type="button"
-                    className={`receipt-setting-tab ${receiptSettingViewTab === 'preview' ? 'is-active' : ''}`}
-                    onClick={() => setReceiptSettingViewTab('preview')}
-                  >
-                    Preview
-                  </button>
-                  <button
-                    type="button"
-                    className={`receipt-setting-tab ${receiptSettingViewTab === 'template' ? 'is-active' : ''}`}
-                    onClick={() => setReceiptSettingViewTab('template')}
-                  >
-                    Template
-                  </button>
-                </div>
-                {receiptSettingViewTab === 'preview' ? (
-                  <div className="receipt-setting-preview-panel">
+                <div className="receipt-setting-preview-panel">
                   <ReceiptPreview
                     sale={previewNote}
                     settings={{
@@ -1814,130 +1929,7 @@ export function POS() {
                     formatCurrency={formatCurrency}
                     formatDateTime={formatDateTime}
                   />
-                  </div>
-                ) : (
-                  <div className="receipt-setting-template-panel">
-                    <div className="receipt-template-mode">
-                      <label className="receipt-radio-option">
-                        <input
-                          type="radio"
-                          name="template-mode"
-                          checked={receiptSettingsDraft.template_mode === 'default'}
-                          onChange={() => setReceiptSettingsDraft((prev) => ({ ...prev, template_mode: 'default' }))}
-                        />
-                        <span>Default Template</span>
-                      </label>
-                      <label className="receipt-radio-option">
-                        <input
-                          type="radio"
-                          name="template-mode"
-                          checked={receiptSettingsDraft.template_mode === 'custom'}
-                          onChange={() => {
-                            setReceiptSettingsDraft((prev) => ({
-                              ...prev,
-                              template_mode: 'custom',
-                              custom_template_html: prev.custom_template_html || DEFAULT_CUSTOM_TEMPLATE_HTML,
-                              custom_template_css: prev.custom_template_css || DEFAULT_CUSTOM_TEMPLATE_CSS,
-                            }))
-                          }}
-                        />
-                        <span>Custom Template</span>
-                      </label>
-                    </div>
-
-                    {receiptSettingsDraft.template_mode === 'custom' ? (
-                      <>
-                        <div className="receipt-template-section">
-                          <div className="receipt-template-section-header">
-                            <span>HTML Template</span>
-                            <button
-                              type="button"
-                              className="receipt-template-btn"
-                              onClick={() => {
-                                if (wysiwygEditorRef.current) {
-                                  wysiwygEditorRef.current.innerHTML = DEFAULT_CUSTOM_TEMPLATE_HTML
-                                }
-                                setReceiptSettingsDraft((prev) => ({
-                                  ...prev,
-                                  custom_template_html: DEFAULT_CUSTOM_TEMPLATE_HTML,
-                                }))
-                              }}
-                            >
-                              Reset
-                            </button>
-                          </div>
-                          <div className="receipt-wysiwyg-toolbar">
-                            <button type="button" className="receipt-wysiwyg-btn" title="Bold" onMouseDown={(e) => { e.preventDefault(); if (wysiwygEditorRef.current) wysiwygEditorRef.current.focus(); document.execCommand('bold', false, null) }}>
-                              <strong>B</strong>
-                            </button>
-                            <button type="button" className="receipt-wysiwyg-btn" title="Italic" onMouseDown={(e) => { e.preventDefault(); if (wysiwygEditorRef.current) wysiwygEditorRef.current.focus(); document.execCommand('italic', false, null) }}>
-                              <em>I</em>
-                            </button>
-                            <button type="button" className="receipt-wysiwyg-btn" title="Underline" onMouseDown={(e) => { e.preventDefault(); if (wysiwygEditorRef.current) wysiwygEditorRef.current.focus(); document.execCommand('underline', false, null) }}>
-                              <u>U</u>
-                            </button>
-                            <span className="receipt-wysiwyg-sep" />
-                            <button type="button" className="receipt-wysiwyg-btn" title="Font Size Small" onMouseDown={(e) => { e.preventDefault(); if (wysiwygEditorRef.current) wysiwygEditorRef.current.focus(); document.execCommand('fontSize', false, '2') }} style={{ fontSize: '10px' }}>A</button>
-                            <button type="button" className="receipt-wysiwyg-btn" title="Font Size Normal" onMouseDown={(e) => { e.preventDefault(); if (wysiwygEditorRef.current) wysiwygEditorRef.current.focus(); document.execCommand('fontSize', false, '3') }} style={{ fontSize: '13px' }}>A</button>
-                            <span className="receipt-wysiwyg-sep" />
-                            <button type="button" className="receipt-wysiwyg-btn" title="Align Left" onMouseDown={(e) => { e.preventDefault(); if (wysiwygEditorRef.current) wysiwygEditorRef.current.focus(); document.execCommand('justifyLeft', false, null) }}>
-                              <span style={{ fontFamily: 'sans-serif' }}>&#8676;</span>
-                            </button>
-                            <button type="button" className="receipt-wysiwyg-btn" title="Align Center" onMouseDown={(e) => { e.preventDefault(); if (wysiwygEditorRef.current) wysiwygEditorRef.current.focus(); document.execCommand('justifyCenter', false, null) }}>
-                              <span style={{ fontFamily: 'sans-serif' }}>&#8596;</span>
-                            </button>
-                            <span className="receipt-wysiwyg-sep" />
-                            <button type="button" className="receipt-wysiwyg-btn" title="Insert Line Break" onMouseDown={(e) => { e.preventDefault(); if (wysiwygEditorRef.current) { wysiwygEditorRef.current.focus(); document.execCommand('insertHTML', false, '<br>') } }}>
-                              <span style={{ fontFamily: 'sans-serif', fontSize: '12px' }}>&#8629;</span>
-                            </button>
-                            <button type="button" className="receipt-wysiwyg-btn" title="Insert Line" onMouseDown={(e) => { e.preventDefault(); if (wysiwygEditorRef.current) { wysiwygEditorRef.current.focus(); document.execCommand('insertHTML', false, '<div class=&quot;tpl-garis&quot;></div>') } }}>
-                              <span style={{ fontFamily: 'sans-serif', fontSize: '12px' }}>&#9135;</span>
-                            </button>
-                          </div>
-                          <div
-                            ref={wysiwygEditorRef}
-                            className="receipt-wysiwyg-editor"
-                            contentEditable
-                            suppressContentEditableWarning
-                          />
-                        </div>
-
-                        <div className="receipt-template-tokens">
-                          <div className="receipt-template-tokens-title">Token — klik untuk menyisipkan:</div>
-                          <div className="receipt-template-tokens-list">
-                            {RECEIPT_TEMPLATE_TOKENS.map((token) => (
-                              <button
-                                key={token}
-                                type="button"
-                                className="receipt-template-token"
-                                onClick={() => {
-                                  if (wysiwygEditorRef.current) {
-                                    wysiwygEditorRef.current.focus()
-                                    const sel = window.getSelection()
-                                    if (sel && sel.rangeCount > 0 && !sel.isCollapsed) {
-                                      sel.deleteFromDocument()
-                                    }
-                                    document.execCommand('insertHTML', false, token)
-                                    setReceiptSettingsDraft((prev) => ({
-                                      ...prev,
-                                      custom_template_html: wysiwygEditorRef.current.innerHTML,
-                                    }))
-                                  }
-                                }}
-                              >
-                                {token}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      </>
-                    ) : (
-                      <div className="receipt-template-note">
-                        Menggunakan default template layout A/B/C. Untuk custom, pilih Custom Template.
-                      </div>
-                    )}
-                  </div>
-                )}
+                </div>
               </div>
             </div>
             <div className="receipt-setting-footer">
