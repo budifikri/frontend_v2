@@ -42,8 +42,7 @@ export const toolbarItems = {
     { key: 'theme', label: 'Theme', mark: 'T', tone: 'cyan' },
     { key: 'user', label: 'User', mark: 'U', tone: 'blue' },
     { key: 'company', label: 'Company', mark: 'O', tone: 'red' },
-    { key: 'divider-2', divider: true },
-    { key: 'notajual', label: 'Nota Jual', mark: 'N', tone: 'orange' },
+
     
         { key: 'divider-3', divider: true },
     { key: 'backup', label: 'Backup', mark: 'B', tone: 'green' },

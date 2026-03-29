@@ -4,6 +4,9 @@ import { listProducts } from '../../features/master/product/product.api'
 import { listWarehouses } from '../../features/master/warehouse/warehouse.api'
 import { openCashDrawer, getCurrentCashDrawer, getCashDrawerSummary, closeCashDrawer, cashInDrawer, cashOutDrawer } from '../../features/transaksi/cash-drawer/cashDrawer.api'
 import { createSale, listSales, getSaleById } from '../../features/transaksi/sales/sales.api'
+import { DEFAULT_RECEIPT_SETTINGS, loadReceiptSettings, resetReceiptSettings, saveReceiptSettings } from '../../features/setting/receiptSetting.storage'
+import { RECEIPT_LAYOUT_OPTIONS, getReceiptPaperClass, getReceiptWidth, renderReceiptHtml } from './ReceiptLayouts'
+import { ReceiptPreview } from './ReceiptPreview'
 import { Toast } from '../../components/Toast'
 import './POS.css'
 
@@ -77,6 +80,9 @@ export function POS() {
   const [printSelectedIndex, setPrintSelectedIndex] = useState(0)
   const [isLoadingPrintNotes, setIsLoadingPrintNotes] = useState(false)
   const [isPrinting, setIsPrinting] = useState(false)
+  const [showReceiptSettingsPopup, setShowReceiptSettingsPopup] = useState(false)
+  const [receiptSettings, setReceiptSettings] = useState(DEFAULT_RECEIPT_SETTINGS)
+  const [receiptSettingsDraft, setReceiptSettingsDraft] = useState(DEFAULT_RECEIPT_SETTINGS)
   const [toast, setToast] = useState({ isOpen: false, message: '', type: 'info' })
 
   useEffect(() => {
@@ -93,6 +99,12 @@ export function POS() {
         console.error('Failed to parse pending notes:', e)
       }
     }
+  }, [])
+
+  useEffect(() => {
+    const loaded = loadReceiptSettings()
+    setReceiptSettings(loaded)
+    setReceiptSettingsDraft(loaded)
   }, [])
 
   useEffect(() => {
@@ -361,19 +373,13 @@ export function POS() {
   }, [])
 
   const openPrintWindow = useCallback((sale) => {
-    const itemsRows = (sale.items || []).map((item, index) => `
-      <tr>
-        <td>${index + 1}</td>
-        <td>${escapeHtml(item.product_name || '-')}</td>
-        <td style="text-align:center">${item.quantity || 0}</td>
-        <td style="text-align:right">${formatCurrency(item.unit_price || 0)}</td>
-        <td style="text-align:right">${formatCurrency((item.quantity || 0) * (item.unit_price || 0))}</td>
-      </tr>
-    `).join('')
-
-    const paymentRows = (sale.payments || []).map((payment) => `
-      <div>${escapeHtml(payment.payment_method || payment.method || '-')} - ${formatCurrency(payment.amount || 0)}</div>
-    `).join('')
+    const receiptBody = renderReceiptHtml(sale, receiptSettings, {
+      escapeHtml,
+      formatCurrency,
+      formatDateTime,
+    })
+    const paperWidth = getReceiptWidth(receiptSettings.paper_size)
+    const paperClass = getReceiptPaperClass(receiptSettings.paper_size)
 
     const html = `
       <!doctype html>
@@ -382,50 +388,39 @@ export function POS() {
         <meta charset="utf-8" />
         <title>Nota ${escapeHtml(sale.sale_number || sale.id || '')}</title>
         <style>
-          body { font-family: Arial, sans-serif; margin: 24px; color: #0f172a; }
-          h1 { margin: 0 0 8px; font-size: 20px; }
-          .meta { margin-bottom: 16px; font-size: 13px; line-height: 1.5; }
-          table { width: 100%; border-collapse: collapse; font-size: 13px; }
-          th, td { border-bottom: 1px solid #e2e8f0; padding: 8px; }
-          th { text-align: left; background: #f8fafc; }
-          .summary { margin-top: 16px; margin-left: auto; width: 280px; font-size: 13px; }
-          .summary div { display: flex; justify-content: space-between; padding: 4px 0; }
-          .summary .total { font-weight: 700; font-size: 15px; border-top: 1px solid #cbd5e1; margin-top: 6px; padding-top: 8px; }
-          .payments { margin-top: 18px; font-size: 13px; }
+          body { font-family: 'Courier New', monospace; margin: 0; padding: 18px; background: #f1f5f9; color: #0f172a; }
+          .receipt-wrap { margin: 0 auto; background: white; border: 1px solid #e2e8f0; width: ${paperWidth}; padding: 10px; }
+          .receipt-wrap.paper-58 { font-size: 11px; }
+          .receipt-wrap.paper-80 { font-size: 12px; }
+          h1 { margin: 0 0 8px; text-align: center; font-size: 16px; letter-spacing: 0.08em; }
+          .subtitle { text-align: center; margin-bottom: 8px; font-weight: 700; }
+          .receipt-header-wrap { border-bottom: 1px dashed #94a3b8; margin-bottom: 8px; padding-bottom: 8px; }
+          .receipt-header-wrap.brand { border: 1px dashed #0ea5e9; padding: 8px; margin-bottom: 10px; }
+          .meta-row { margin: 2px 0; }
+          .meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+          table { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
+          th, td { border-bottom: 1px dashed #cbd5e1; padding: 4px; }
+          th { text-align: left; }
+          .line-items-wrap { border-top: 1px dashed #cbd5e1; border-bottom: 1px dashed #cbd5e1; padding: 6px 0; margin: 8px 0; }
+          .line-item { margin-bottom: 6px; }
+          .line-title { font-weight: 700; }
+          .line-detail { display: flex; justify-content: space-between; }
+          .summary { margin-top: 8px; }
+          .summary div { display: flex; justify-content: space-between; margin: 2px 0; }
+          .summary .total { border-top: 1px dashed #94a3b8; padding-top: 4px; margin-top: 4px; font-weight: 700; }
+          .payments-block { margin-top: 8px; border-top: 1px dashed #cbd5e1; padding-top: 6px; }
+          .pay-row { display: flex; justify-content: space-between; margin: 2px 0; }
+          .footer { margin-top: 8px; text-align: center; border-top: 1px dashed #cbd5e1; padding-top: 6px; color: #334155; }
+          @media print {
+            body { background: white; padding: 0; }
+            .receipt-wrap { border: none; width: 100%; margin: 0; }
+          }
         </style>
       </head>
       <body>
-        <h1>NOTA PENJUALAN</h1>
-        <div class="meta">
-          <div>No Nota: <strong>${escapeHtml(sale.sale_number || '-')}</strong></div>
-          <div>Tanggal: ${escapeHtml(formatDateTime(sale.sale_date || sale.created_at))}</div>
-          <div>Kasir: ${escapeHtml(sale.cashier_name || '-')}</div>
-          <div>Gudang: ${escapeHtml(sale.warehouse_name || '-')}</div>
-        </div>
-        <table>
-          <thead>
-            <tr>
-              <th style="width:40px">No</th>
-              <th>Produk</th>
-              <th style="width:60px;text-align:center">Qty</th>
-              <th style="width:110px;text-align:right">Harga</th>
-              <th style="width:120px;text-align:right">Subtotal</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${itemsRows || '<tr><td colspan="5" style="text-align:center">Tidak ada item</td></tr>'}
-          </tbody>
-        </table>
-        <div class="summary">
-          <div><span>Subtotal</span><span>${formatCurrency(sale.subtotal || 0)}</span></div>
-          <div><span>PPN</span><span>${formatCurrency(sale.tax_amount || 0)}</span></div>
-          <div class="total"><span>Total</span><span>${formatCurrency(sale.total_amount || 0)}</span></div>
-          <div><span>Dibayar</span><span>${formatCurrency(sale.paid_amount || 0)}</span></div>
-          <div><span>Kembalian</span><span>${formatCurrency(sale.change_amount || 0)}</span></div>
-        </div>
-        <div class="payments">
-          <strong>Pembayaran:</strong>
-          ${paymentRows || '<div>-</div>'}
+        <div class="receipt-wrap ${paperClass}">
+          ${receiptBody}
+          ${receiptSettings.show_footer ? '<div class="footer">Terima kasih dan sampai jumpa</div>' : ''}
         </div>
         <script>
           window.onload = () => {
@@ -443,13 +438,48 @@ export function POS() {
     }
     printWindow.document.write(html)
     printWindow.document.close()
-  }, [escapeHtml, formatCurrency, formatDateTime])
+  }, [escapeHtml, formatCurrency, formatDateTime, receiptSettings])
+
+  const handleOpenReceiptSettings = useCallback(() => {
+    setReceiptSettingsDraft(receiptSettings)
+    setShowReceiptSettingsPopup(true)
+  }, [receiptSettings])
+
+  const handleSaveReceiptSettings = useCallback(() => {
+    const saved = saveReceiptSettings(receiptSettingsDraft)
+    setReceiptSettings(saved)
+    setShowReceiptSettingsPopup(false)
+    setToast({ isOpen: true, message: 'Setting nota jual disimpan', type: 'success' })
+  }, [receiptSettingsDraft])
+
+  const handleResetReceiptSettings = useCallback(() => {
+    const defaults = resetReceiptSettings()
+    setReceiptSettingsDraft(defaults)
+    setToast({ isOpen: true, message: 'Setting dikembalikan ke default', type: 'info' })
+  }, [])
 
   const subtotal = items.reduce((sum, item) => sum + (item.price * item.qty), 0)
   const tax = subtotal * 0.11
   const total = subtotal + tax
   const selectedItem = selectedIndex >= 0 ? items[selectedIndex] : null
   const displayItem = selectedItem || items[items.length - 1]
+  const previewNote = printNotes[printSelectedIndex] || {
+    sale_number: 'PREVIEW-001',
+    sale_date: new Date().toISOString(),
+    cashier_name: auth.username || '-',
+    warehouse_name: mainWarehouse?.name || '-',
+    items: items.map((item) => ({
+      product_name: item.name,
+      quantity: item.qty,
+      unit_price: item.price,
+    })),
+    subtotal,
+    tax_amount: tax,
+    total_amount: total,
+    paid_amount: total,
+    change_amount: 0,
+    payments: [{ method: 'CASH', amount: total }],
+  }
 
   const handleItemClick = (item, index) => {
     setSelectedIndex(index)
@@ -466,6 +496,9 @@ export function POS() {
     if (e.key === 'F7') {
       e.preventDefault()
       handleShowPrintPopup()
+    } else if (e.key === 'F11') {
+      e.preventDefault()
+      handleOpenReceiptSettings()
     } else if (e.key === 'F8') {
       e.preventDefault()
       handleShowCashInForm()
@@ -841,6 +874,16 @@ export function POS() {
         }
         return
       }
+      if (showReceiptSettingsPopup) {
+        if (e.key === 'Escape') {
+          e.preventDefault()
+          setShowReceiptSettingsPopup(false)
+        } else if (e.key === 'F11') {
+          e.preventDefault()
+          setShowReceiptSettingsPopup(false)
+        }
+        return
+      }
       if (showCashOutForm) {
         if (e.key === 'ArrowLeft') {
           e.preventDefault()
@@ -948,6 +991,9 @@ export function POS() {
       } else if (e.key === 'F7') {
         e.preventDefault()
         handleShowPrintPopup()
+      } else if (e.key === 'F11') {
+        e.preventDefault()
+        handleOpenReceiptSettings()
       } else if (e.key === 'F10') {
         e.preventDefault()
         if (items.length > 0) {
@@ -962,7 +1008,7 @@ export function POS() {
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [items.length, showCashInForm, showCashOutForm, cashInButtonIndex, cashOutButtonIndex, showDeleteConfirm, showClosingForm, closingButtonIndex, showPendingPopup, pendingNotes, pendingSelectedIndex, showPrintPopup, printNotes, printSelectedIndex, handleCashIn, handleCancelCashIn, handleCashOut, handleCancelCashOut, handleDeleteConfirm, handleDeleteCancel, handleCloseDrawer, handleCancelClose, handleRestorePending, handleShowPrintPopup, handlePrintSale, clearAuth])
+  }, [items.length, showCashInForm, showCashOutForm, showReceiptSettingsPopup, cashInButtonIndex, cashOutButtonIndex, showDeleteConfirm, showClosingForm, closingButtonIndex, showPendingPopup, pendingNotes, pendingSelectedIndex, showPrintPopup, printNotes, printSelectedIndex, handleCashIn, handleCancelCashIn, handleCashOut, handleCancelCashOut, handleDeleteConfirm, handleDeleteCancel, handleCloseDrawer, handleCancelClose, handleRestorePending, handleShowPrintPopup, handlePrintSale, handleOpenReceiptSettings, clearAuth])
 
   const promos = [
     'Beli 2 Kopi Gratis 1',
@@ -1428,6 +1474,98 @@ export function POS() {
         </div>
       )}
 
+      {showReceiptSettingsPopup && (
+        <div className="product-popup-overlay" onClick={() => setShowReceiptSettingsPopup(false)}>
+          <div className="receipt-setting-popup" onClick={(e) => e.stopPropagation()}>
+            <div className="receipt-setting-header">
+              <span className="material-icons">settings</span>
+              <h3>Setting Nota Jual</h3>
+              <button className="product-popup-close" onClick={() => setShowReceiptSettingsPopup(false)}>
+                <span className="material-icons">close</span>
+              </button>
+            </div>
+            <div className="receipt-setting-body">
+              <div className="receipt-setting-form">
+                <div className="receipt-setting-section">
+                  <h4>Ukuran Kertas</h4>
+                  <label className="receipt-radio-option">
+                    <input
+                      type="radio"
+                      name="paper-size"
+                      checked={receiptSettingsDraft.paper_size === '58mm'}
+                      onChange={() => setReceiptSettingsDraft((prev) => ({ ...prev, paper_size: '58mm' }))}
+                    />
+                    <span>58mm</span>
+                  </label>
+                  <label className="receipt-radio-option">
+                    <input
+                      type="radio"
+                      name="paper-size"
+                      checked={receiptSettingsDraft.paper_size === '80mm'}
+                      onChange={() => setReceiptSettingsDraft((prev) => ({ ...prev, paper_size: '80mm' }))}
+                    />
+                    <span>80mm</span>
+                  </label>
+                </div>
+
+                <div className="receipt-setting-section">
+                  <h4>Tata Letak</h4>
+                  <div className="receipt-layout-grid">
+                    {RECEIPT_LAYOUT_OPTIONS.map((layout) => (
+                      <button
+                        key={layout.id}
+                        type="button"
+                        className={`receipt-layout-card ${receiptSettingsDraft.layout_type === layout.id ? 'is-selected' : ''}`}
+                        onClick={() => setReceiptSettingsDraft((prev) => ({ ...prev, layout_type: layout.id }))}
+                      >
+                        <strong>{layout.label}</strong>
+                        <span>{layout.description}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="receipt-setting-section">
+                  <h4>Tampilan</h4>
+                  <label className="receipt-checkbox-option">
+                    <input
+                      type="checkbox"
+                      checked={receiptSettingsDraft.show_logo}
+                      onChange={(e) => setReceiptSettingsDraft((prev) => ({ ...prev, show_logo: e.target.checked }))}
+                    />
+                    <span>Tampilkan logo</span>
+                  </label>
+                  <label className="receipt-checkbox-option">
+                    <input
+                      type="checkbox"
+                      checked={receiptSettingsDraft.show_footer}
+                      onChange={(e) => setReceiptSettingsDraft((prev) => ({ ...prev, show_footer: e.target.checked }))}
+                    />
+                    <span>Tampilkan footer</span>
+                  </label>
+                </div>
+              </div>
+
+              <div className="receipt-setting-preview-wrap">
+                <h4>Preview</h4>
+                <div className="receipt-setting-preview-panel">
+                  <ReceiptPreview
+                    sale={previewNote}
+                    settings={receiptSettingsDraft}
+                    formatCurrency={formatCurrency}
+                    formatDateTime={formatDateTime}
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="receipt-setting-footer">
+              <button className="payment-btn-cancel" onClick={handleResetReceiptSettings}>Reset Default</button>
+              <button className="payment-btn-confirm" onClick={handleSaveReceiptSettings}>Simpan</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Main Content */}
       <div className="pos-content">
         {/* Left: Receipt Paper (40%) */}
@@ -1871,7 +2009,7 @@ export function POS() {
             <span>Cash Out</span>
             <span className="shortcut-badge">F9</span>
           </button>
-          <button className="action-key action-key-gray">
+          <button className="action-key action-key-gray" onClick={handleOpenReceiptSettings}>
             <span className="material-icons">settings</span>
             <span>Setting</span>
             <span className="shortcut-badge">F11</span>
