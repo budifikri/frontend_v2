@@ -3,7 +3,7 @@ import { useAuth } from '../../shared/auth'
 import { listProducts } from '../../features/master/product/product.api'
 import { listWarehouses } from '../../features/master/warehouse/warehouse.api'
 import { openCashDrawer, getCurrentCashDrawer, getCashDrawerSummary, closeCashDrawer, cashInDrawer, cashOutDrawer } from '../../features/transaksi/cash-drawer/cashDrawer.api'
-import { createSale } from '../../features/transaksi/sales/sales.api'
+import { createSale, listSales, getSaleById } from '../../features/transaksi/sales/sales.api'
 import { Toast } from '../../components/Toast'
 import './POS.css'
 
@@ -72,6 +72,11 @@ export function POS() {
   const [pendingNotes, setPendingNotes] = useState([])
   const [showPendingPopup, setShowPendingPopup] = useState(false)
   const [pendingSelectedIndex, setPendingSelectedIndex] = useState(0)
+  const [showPrintPopup, setShowPrintPopup] = useState(false)
+  const [printNotes, setPrintNotes] = useState([])
+  const [printSelectedIndex, setPrintSelectedIndex] = useState(0)
+  const [isLoadingPrintNotes, setIsLoadingPrintNotes] = useState(false)
+  const [isPrinting, setIsPrinting] = useState(false)
   const [toast, setToast] = useState({ isOpen: false, message: '', type: 'info' })
 
   useEffect(() => {
@@ -326,13 +331,119 @@ export function POS() {
     setShowCashDrawerForm(false)
   }
 
-  const formatCurrency = (amount) => {
+  const formatCurrency = useCallback((amount) => {
     return new Intl.NumberFormat('id-ID', {
       style: 'currency',
       currency: 'IDR',
       minimumFractionDigits: 0,
     }).format(amount)
-  }
+  }, [])
+
+  const formatDateTime = useCallback((value) => {
+    if (!value) return '-'
+    return new Date(value).toLocaleString('id-ID', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    })
+  }, [])
+
+  const escapeHtml = useCallback((value) => {
+    const text = String(value ?? '')
+    return text
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#39;')
+  }, [])
+
+  const openPrintWindow = useCallback((sale) => {
+    const itemsRows = (sale.items || []).map((item, index) => `
+      <tr>
+        <td>${index + 1}</td>
+        <td>${escapeHtml(item.product_name || '-')}</td>
+        <td style="text-align:center">${item.quantity || 0}</td>
+        <td style="text-align:right">${formatCurrency(item.unit_price || 0)}</td>
+        <td style="text-align:right">${formatCurrency((item.quantity || 0) * (item.unit_price || 0))}</td>
+      </tr>
+    `).join('')
+
+    const paymentRows = (sale.payments || []).map((payment) => `
+      <div>${escapeHtml(payment.payment_method || payment.method || '-')} - ${formatCurrency(payment.amount || 0)}</div>
+    `).join('')
+
+    const html = `
+      <!doctype html>
+      <html>
+      <head>
+        <meta charset="utf-8" />
+        <title>Nota ${escapeHtml(sale.sale_number || sale.id || '')}</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 24px; color: #0f172a; }
+          h1 { margin: 0 0 8px; font-size: 20px; }
+          .meta { margin-bottom: 16px; font-size: 13px; line-height: 1.5; }
+          table { width: 100%; border-collapse: collapse; font-size: 13px; }
+          th, td { border-bottom: 1px solid #e2e8f0; padding: 8px; }
+          th { text-align: left; background: #f8fafc; }
+          .summary { margin-top: 16px; margin-left: auto; width: 280px; font-size: 13px; }
+          .summary div { display: flex; justify-content: space-between; padding: 4px 0; }
+          .summary .total { font-weight: 700; font-size: 15px; border-top: 1px solid #cbd5e1; margin-top: 6px; padding-top: 8px; }
+          .payments { margin-top: 18px; font-size: 13px; }
+        </style>
+      </head>
+      <body>
+        <h1>NOTA PENJUALAN</h1>
+        <div class="meta">
+          <div>No Nota: <strong>${escapeHtml(sale.sale_number || '-')}</strong></div>
+          <div>Tanggal: ${escapeHtml(formatDateTime(sale.sale_date || sale.created_at))}</div>
+          <div>Kasir: ${escapeHtml(sale.cashier_name || '-')}</div>
+          <div>Gudang: ${escapeHtml(sale.warehouse_name || '-')}</div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th style="width:40px">No</th>
+              <th>Produk</th>
+              <th style="width:60px;text-align:center">Qty</th>
+              <th style="width:110px;text-align:right">Harga</th>
+              <th style="width:120px;text-align:right">Subtotal</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${itemsRows || '<tr><td colspan="5" style="text-align:center">Tidak ada item</td></tr>'}
+          </tbody>
+        </table>
+        <div class="summary">
+          <div><span>Subtotal</span><span>${formatCurrency(sale.subtotal || 0)}</span></div>
+          <div><span>PPN</span><span>${formatCurrency(sale.tax_amount || 0)}</span></div>
+          <div class="total"><span>Total</span><span>${formatCurrency(sale.total_amount || 0)}</span></div>
+          <div><span>Dibayar</span><span>${formatCurrency(sale.paid_amount || 0)}</span></div>
+          <div><span>Kembalian</span><span>${formatCurrency(sale.change_amount || 0)}</span></div>
+        </div>
+        <div class="payments">
+          <strong>Pembayaran:</strong>
+          ${paymentRows || '<div>-</div>'}
+        </div>
+        <script>
+          window.onload = () => {
+            window.print()
+            setTimeout(() => window.close(), 200)
+          }
+        </script>
+      </body>
+      </html>
+    `
+
+    const printWindow = window.open('', '_blank', 'width=800,height=900')
+    if (!printWindow) {
+      throw new Error('Popup cetak diblokir browser')
+    }
+    printWindow.document.write(html)
+    printWindow.document.close()
+  }, [escapeHtml, formatCurrency, formatDateTime])
 
   const subtotal = items.reduce((sum, item) => sum + (item.price * item.qty), 0)
   const tax = subtotal * 0.11
@@ -352,7 +463,10 @@ export function POS() {
   }
 
   const handleSearchKeyDown = async (e) => {
-    if (e.key === 'F8') {
+    if (e.key === 'F7') {
+      e.preventDefault()
+      handleShowPrintPopup()
+    } else if (e.key === 'F8') {
       e.preventDefault()
       handleShowCashInForm()
     } else if (e.key === 'F9') {
@@ -366,7 +480,9 @@ export function POS() {
       }
     } else if (e.key === 'Enter') {
       e.preventDefault()
-      if (showPendingPopup && pendingNotes.length > 0) {
+      if (showPrintPopup && printNotes.length > 0) {
+        handlePrintSale(printNotes[printSelectedIndex]?.id)
+      } else if (showPendingPopup && pendingNotes.length > 0) {
         handleRestorePending(pendingNotes[pendingSelectedIndex])
       } else if (showProductPopup && productResults.length > 0) {
         handleSelectProduct(productResults[popupSelectedIndex])
@@ -476,6 +592,75 @@ export function POS() {
     setShowProductPopup(false)
     setSearch('')
   }
+
+  const handleShowPrintPopup = useCallback(async () => {
+    try {
+      setIsLoadingPrintNotes(true)
+
+      let activeDrawer = currentCashDrawer
+      if (!activeDrawer?.id) {
+        const drawerResult = await getCurrentCashDrawer(auth.token)
+        if (drawerResult.success && drawerResult.data) {
+          activeDrawer = drawerResult.data
+          setCurrentCashDrawer(drawerResult.data)
+        }
+      }
+
+      if (!activeDrawer?.id) {
+        setToast({ isOpen: true, message: 'Cash drawer aktif tidak ditemukan', type: 'warning' })
+        return
+      }
+
+      const result = await listSales(auth.token, {
+        status: 'DONE',
+        cash_drawer_id: activeDrawer.id,
+        limit: 100,
+      })
+
+      const source = Array.isArray(result.data)
+        ? result.data
+        : Array.isArray(result.items)
+          ? result.items
+          : Array.isArray(result.data?.items)
+            ? result.data.items
+            : []
+
+      const normalized = source.filter((sale) => sale?.status === 'DONE' && sale?.cash_drawer_id === activeDrawer.id)
+
+      if (normalized.length === 0) {
+        setToast({ isOpen: true, message: 'Tidak ada nota DONE untuk drawer aktif', type: 'info' })
+        return
+      }
+
+      setPrintNotes(normalized)
+      setPrintSelectedIndex(0)
+      setShowPrintPopup(true)
+    } catch (err) {
+      console.error('Failed to load print sales:', err)
+      setToast({ isOpen: true, message: 'Gagal memuat daftar nota cetak', type: 'error' })
+    } finally {
+      setIsLoadingPrintNotes(false)
+    }
+  }, [auth.token, currentCashDrawer])
+
+  const handlePrintSale = useCallback(async (saleId) => {
+    if (!saleId || isPrinting) return
+    try {
+      setIsPrinting(true)
+      const result = await getSaleById(auth.token, saleId)
+      if (!result?.data) {
+        throw new Error('Data nota tidak ditemukan')
+      }
+      openPrintWindow(result.data)
+      setShowPrintPopup(false)
+      setToast({ isOpen: true, message: 'Cetak nota diproses', type: 'success' })
+    } catch (err) {
+      console.error('Failed to print sale:', err)
+      setToast({ isOpen: true, message: 'Gagal cetak nota penjualan', type: 'error' })
+    } finally {
+      setIsPrinting(false)
+    }
+  }, [auth.token, isPrinting, openPrintWindow])
 
   const handleSavePending = () => {
     if (items.length === 0) {
@@ -694,6 +879,24 @@ export function POS() {
         }
         return
       }
+      if (showPrintPopup) {
+        if (e.key === 'ArrowUp') {
+          e.preventDefault()
+          setPrintSelectedIndex(printSelectedIndex > 0 ? printSelectedIndex - 1 : printNotes.length - 1)
+        } else if (e.key === 'ArrowDown') {
+          e.preventDefault()
+          setPrintSelectedIndex(printSelectedIndex < printNotes.length - 1 ? printSelectedIndex + 1 : 0)
+        } else if (e.key === 'Escape') {
+          e.preventDefault()
+          setShowPrintPopup(false)
+        } else if (e.key === 'Enter') {
+          e.preventDefault()
+          if (printNotes[printSelectedIndex]) {
+            handlePrintSale(printNotes[printSelectedIndex].id)
+          }
+        }
+        return
+      }
       if (showClosingForm) {
         if (e.key === 'ArrowLeft') {
           e.preventDefault()
@@ -742,6 +945,9 @@ export function POS() {
         } else {
           setToast({ isOpen: true, message: 'Tidak ada nota pending', type: 'info' })
         }
+      } else if (e.key === 'F7') {
+        e.preventDefault()
+        handleShowPrintPopup()
       } else if (e.key === 'F10') {
         e.preventDefault()
         if (items.length > 0) {
@@ -756,7 +962,7 @@ export function POS() {
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [items.length, showCashInForm, showCashOutForm, cashInButtonIndex, cashOutButtonIndex, showDeleteConfirm, showClosingForm, closingButtonIndex, showPendingPopup, pendingNotes, pendingSelectedIndex, handleCashIn, handleCancelCashIn, handleCashOut, handleCancelCashOut, handleDeleteConfirm, handleDeleteCancel, handleCloseDrawer, handleCancelClose, handleRestorePending, clearAuth])
+  }, [items.length, showCashInForm, showCashOutForm, cashInButtonIndex, cashOutButtonIndex, showDeleteConfirm, showClosingForm, closingButtonIndex, showPendingPopup, pendingNotes, pendingSelectedIndex, showPrintPopup, printNotes, printSelectedIndex, handleCashIn, handleCancelCashIn, handleCashOut, handleCancelCashOut, handleDeleteConfirm, handleDeleteCancel, handleCloseDrawer, handleCancelClose, handleRestorePending, handleShowPrintPopup, handlePrintSale, clearAuth])
 
   const promos = [
     'Beli 2 Kopi Gratis 1',
@@ -1171,6 +1377,51 @@ export function POS() {
               <span className="pending-hint">
                 <span className="material-icons-round">keyboard</span>
                 Arrow Up/Down: Pilih | Enter: Restore | Escape: Tutup
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showPrintPopup && (
+        <div className="product-popup-overlay" onClick={() => setShowPrintPopup(false)}>
+          <div className="print-popup" onClick={(e) => e.stopPropagation()}>
+            <div className="print-popup-header">
+              <span className="material-icons">print</span>
+              <h3>Daftar Nota Penjualan</h3>
+              <span className="print-count">{printNotes.length}</span>
+            </div>
+            <div className="print-popup-body">
+              {isLoadingPrintNotes ? (
+                <div className="print-empty">Memuat nota...</div>
+              ) : printNotes.length === 0 ? (
+                <div className="print-empty">Tidak ada nota untuk dicetak</div>
+              ) : (
+                <div className="print-list">
+                  {printNotes.map((sale, idx) => (
+                    <div
+                      key={sale.id}
+                      className={`print-item ${printSelectedIndex === idx ? 'is-selected' : ''}`}
+                      onClick={() => handlePrintSale(sale.id)}
+                      onMouseEnter={() => setPrintSelectedIndex(idx)}
+                    >
+                      <div className="print-item-info">
+                        <span className="print-item-number">{sale.sale_number || sale.invoice_number || '-'}</span>
+                        <span className="print-item-date">{formatDateTime(sale.sale_date || sale.created_at)}</span>
+                      </div>
+                      <div className="print-item-details">
+                        <span className="print-item-cashier">{sale.cashier_name || '-'}</span>
+                        <span className="print-item-total">{formatCurrency(sale.total_amount || sale.total || 0)}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="print-popup-footer">
+              <span className="print-hint">
+                <span className="material-icons-round">keyboard</span>
+                Arrow Up/Down: Pilih | Enter: Cetak | Escape: Tutup
               </span>
             </div>
           </div>
@@ -1605,7 +1856,7 @@ export function POS() {
             <span>Pending</span>
             <span className="shortcut-badge">F6</span>
           </button>
-          <button className="action-key action-key-slate">
+          <button className="action-key action-key-slate" onClick={handleShowPrintPopup} disabled={isLoadingPrintNotes || isPrinting}>
             <span className="material-icons">print</span>
             <span>Cetak</span>
             <span className="shortcut-badge">F7</span>

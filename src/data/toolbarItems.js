@@ -39,9 +39,13 @@ export const toolbarItems = {
   setting: [
    { key: 'logout', label: 'Logout', mark: 'L', tone: 'slate', backToLogin: true },
     { key: 'divider-1', divider: true },
-      { key: 'theme', label: 'Theme', mark: 'T', tone: 'cyan' },
+    { key: 'theme', label: 'Theme', mark: 'T', tone: 'cyan' },
     { key: 'user', label: 'User', mark: 'U', tone: 'blue' },
-        { key: 'company', label: 'Company', mark: 'O', tone: 'red' },
+    { key: 'company', label: 'Company', mark: 'O', tone: 'red' },
+    { key: 'divider-2', divider: true },
+    { key: 'notajual', label: 'Nota Jual', mark: 'N', tone: 'orange' },
+    
+        { key: 'divider-3', divider: true },
     { key: 'backup', label: 'Backup', mark: 'B', tone: 'green' },
     { key: 'restore', label: 'Restore', mark: 'R', tone: 'orange' },
   ],
