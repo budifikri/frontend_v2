@@ -3,8 +3,10 @@ const RECEIPT_SETTINGS_KEY = 'pos_receipt_settings'
 export const DEFAULT_RECEIPT_SETTINGS = {
   paper_size: '58mm',
   layout_type: 'layout_a',
+  printer_type: 'thermal',
   show_logo: true,
   show_footer: true,
+  auto_print_after_payment: true,
 }
 
 export function normalizeReceiptSettings(value) {
@@ -13,14 +15,21 @@ export function normalizeReceiptSettings(value) {
   const layoutType = ['layout_a', 'layout_b', 'layout_c'].includes(source.layout_type)
     ? source.layout_type
     : 'layout_a'
+  const printerType = ['thermal', 'dot_matrix'].includes(source.printer_type)
+    ? source.printer_type
+    : 'thermal'
 
   return {
     ...DEFAULT_RECEIPT_SETTINGS,
     ...source,
     paper_size: paperSize,
     layout_type: layoutType,
+    printer_type: printerType,
     show_logo: typeof source.show_logo === 'boolean' ? source.show_logo : DEFAULT_RECEIPT_SETTINGS.show_logo,
     show_footer: typeof source.show_footer === 'boolean' ? source.show_footer : DEFAULT_RECEIPT_SETTINGS.show_footer,
+    auto_print_after_payment: typeof source.auto_print_after_payment === 'boolean'
+      ? source.auto_print_after_payment
+      : DEFAULT_RECEIPT_SETTINGS.auto_print_after_payment,
   }
 }
 

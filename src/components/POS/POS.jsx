@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useAuth } from '../../shared/auth'
 import { listProducts } from '../../features/master/product/product.api'
 import { listWarehouses } from '../../features/master/warehouse/warehouse.api'
@@ -83,6 +83,7 @@ export function POS() {
   const [showReceiptSettingsPopup, setShowReceiptSettingsPopup] = useState(false)
   const [receiptSettings, setReceiptSettings] = useState(DEFAULT_RECEIPT_SETTINGS)
   const [receiptSettingsDraft, setReceiptSettingsDraft] = useState(DEFAULT_RECEIPT_SETTINGS)
+  const [receiptSettingViewTab, setReceiptSettingViewTab] = useState('preview')
   const [toast, setToast] = useState({ isOpen: false, message: '', type: 'info' })
 
   useEffect(() => {
@@ -380,6 +381,10 @@ export function POS() {
     })
     const paperWidth = getReceiptWidth(receiptSettings.paper_size)
     const paperClass = getReceiptPaperClass(receiptSettings.paper_size)
+    const isDotMatrix = receiptSettings.printer_type === 'dot_matrix'
+    const fontFamily = isDotMatrix ? "'Courier New', monospace" : "Arial, sans-serif"
+    const borderStyle = isDotMatrix ? '1px dotted #94a3b8' : '1px solid #e2e8f0'
+    const lineBorder = isDotMatrix ? '1px dotted #cbd5e1' : '1px dashed #cbd5e1'
 
     const html = `
       <!doctype html>
@@ -388,29 +393,29 @@ export function POS() {
         <meta charset="utf-8" />
         <title>Nota ${escapeHtml(sale.sale_number || sale.id || '')}</title>
         <style>
-          body { font-family: 'Courier New', monospace; margin: 0; padding: 18px; background: #f1f5f9; color: #0f172a; }
-          .receipt-wrap { margin: 0 auto; background: white; border: 1px solid #e2e8f0; width: ${paperWidth}; padding: 10px; }
+          body { font-family: ${fontFamily}; margin: 0; padding: 18px; background: #f1f5f9; color: #0f172a; }
+          .receipt-wrap { margin: 0 auto; background: white; border: ${borderStyle}; width: ${paperWidth}; padding: 10px; }
           .receipt-wrap.paper-58 { font-size: 11px; }
           .receipt-wrap.paper-80 { font-size: 12px; }
           h1 { margin: 0 0 8px; text-align: center; font-size: 16px; letter-spacing: 0.08em; }
           .subtitle { text-align: center; margin-bottom: 8px; font-weight: 700; }
-          .receipt-header-wrap { border-bottom: 1px dashed #94a3b8; margin-bottom: 8px; padding-bottom: 8px; }
-          .receipt-header-wrap.brand { border: 1px dashed #0ea5e9; padding: 8px; margin-bottom: 10px; }
+          .receipt-header-wrap { border-bottom: ${lineBorder}; margin-bottom: 8px; padding-bottom: 8px; }
+          .receipt-header-wrap.brand { border: ${lineBorder}; padding: 8px; margin-bottom: 10px; }
           .meta-row { margin: 2px 0; }
           .meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
           table { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
-          th, td { border-bottom: 1px dashed #cbd5e1; padding: 4px; }
+          th, td { border-bottom: ${lineBorder}; padding: 4px; }
           th { text-align: left; }
-          .line-items-wrap { border-top: 1px dashed #cbd5e1; border-bottom: 1px dashed #cbd5e1; padding: 6px 0; margin: 8px 0; }
+          .line-items-wrap { border-top: ${lineBorder}; border-bottom: ${lineBorder}; padding: 6px 0; margin: 8px 0; }
           .line-item { margin-bottom: 6px; }
           .line-title { font-weight: 700; }
           .line-detail { display: flex; justify-content: space-between; }
           .summary { margin-top: 8px; }
           .summary div { display: flex; justify-content: space-between; margin: 2px 0; }
-          .summary .total { border-top: 1px dashed #94a3b8; padding-top: 4px; margin-top: 4px; font-weight: 700; }
-          .payments-block { margin-top: 8px; border-top: 1px dashed #cbd5e1; padding-top: 6px; }
+          .summary .total { border-top: ${lineBorder}; padding-top: 4px; margin-top: 4px; font-weight: 700; }
+          .payments-block { margin-top: 8px; border-top: ${lineBorder}; padding-top: 6px; }
           .pay-row { display: flex; justify-content: space-between; margin: 2px 0; }
-          .footer { margin-top: 8px; text-align: center; border-top: 1px dashed #cbd5e1; padding-top: 6px; color: #334155; }
+          .footer { margin-top: 8px; text-align: center; border-top: ${lineBorder}; padding-top: 6px; color: #334155; }
           @media print {
             body { background: white; padding: 0; }
             .receipt-wrap { border: none; width: 100%; margin: 0; }
@@ -442,6 +447,7 @@ export function POS() {
 
   const handleOpenReceiptSettings = useCallback(() => {
     setReceiptSettingsDraft(receiptSettings)
+    setReceiptSettingViewTab('preview')
     setShowReceiptSettingsPopup(true)
   }, [receiptSettings])
 
@@ -463,6 +469,44 @@ export function POS() {
   const total = subtotal + tax
   const selectedItem = selectedIndex >= 0 ? items[selectedIndex] : null
   const displayItem = selectedItem || items[items.length - 1]
+  const jspdfFormatCode = useMemo(() => {
+    const pageWidth = receiptSettingsDraft.paper_size === '80mm' ? 80 : 58
+    const fontSize = receiptSettingsDraft.printer_type === 'dot_matrix'
+      ? (receiptSettingsDraft.paper_size === '80mm' ? 8 : 7)
+      : (receiptSettingsDraft.paper_size === '80mm' ? 9 : 8)
+    const lineGap = receiptSettingsDraft.paper_size === '80mm' ? 4.2 : 3.6
+    const fontFamily = receiptSettingsDraft.printer_type === 'dot_matrix' ? 'courier' : 'helvetica'
+    const printerLabel = receiptSettingsDraft.printer_type === 'dot_matrix' ? 'Dot Matrix' : 'Thermal'
+
+    return `import { jsPDF } from 'jspdf'
+
+const doc = new jsPDF({
+  orientation: 'p',
+  unit: 'mm',
+  format: [180, ${pageWidth}],
+})
+
+let y = 8
+// Printer: ${printerLabel}
+doc.setFont('${fontFamily}', 'normal')
+doc.setFontSize(${fontSize})
+
+${receiptSettingsDraft.show_logo ? "doc.text('PX', ${pageWidth / 2}, y, { align: 'center' })\ny += ${lineGap}" : '// logo disembunyikan'}
+doc.setFont('${fontFamily}', 'bold')
+doc.text('NOTA PENJUALAN', ${pageWidth / 2}, y, { align: 'center' })
+y += ${lineGap}
+
+${receiptSettingsDraft.layout_type === 'layout_a'
+  ? "// Layout A - Simple\ndoc.setFont('" + fontFamily + "', 'normal')\ndoc.text('No: SALE-001', 4, y)\ny += " + lineGap + "\ndoc.text('Kasir: ADMIN', 4, y)\ny += " + lineGap + "\n// item rows...\ndoc.text('Total', 4, y)\ndoc.text('Rp 0', " + (pageWidth - 4) + ", y, { align: 'right' })"
+  : receiptSettingsDraft.layout_type === 'layout_b'
+    ? "// Layout B - Detail Pajak\ndoc.setFont('" + fontFamily + "', 'normal')\ndoc.text('Subtotal', 4, y)\ndoc.text('Rp 0', " + (pageWidth - 4) + ", y, { align: 'right' })\ny += " + lineGap + "\ndoc.text('PPN', 4, y)\ndoc.text('Rp 0', " + (pageWidth - 4) + ", y, { align: 'right' })\ny += " + lineGap + "\ndoc.setFont('" + fontFamily + "', 'bold')\ndoc.text('Total', 4, y)\ndoc.text('Rp 0', " + (pageWidth - 4) + ", y, { align: 'right' })"
+    : "// Layout C - Brand + Footer\ndoc.setFont('" + fontFamily + "', 'normal')\ndoc.text('Retail Checkout', " + (pageWidth / 2) + ", y, { align: 'center' })\ny += " + lineGap + "\n// item rows...\ndoc.setFont('" + fontFamily + "', 'bold')\ndoc.text('Total', 4, y)\ndoc.text('Rp 0', " + (pageWidth - 4) + ", y, { align: 'right' })"}
+
+${receiptSettingsDraft.show_footer ? "\ny += " + lineGap + "\ndoc.setFont('courier', 'normal')\ndoc.text('Terima kasih sudah berbelanja', ${pageWidth / 2}, y, { align: 'center' })" : '// footer disembunyikan'}
+
+doc.save('nota-penjualan.pdf')`
+  }, [receiptSettingsDraft])
+
   const previewNote = printNotes[printSelectedIndex] || {
     sale_number: 'PREVIEW-001',
     sale_date: new Date().toISOString(),
@@ -776,6 +820,11 @@ export function POS() {
     }
 
     try {
+      const currentItems = [...items]
+      const currentSubtotal = subtotal
+      const currentTax = tax
+      const currentTotal = total
+
       const saleItems = items.map(item => ({
         product_id: item.product_id,
         quantity: item.qty,
@@ -801,16 +850,52 @@ export function POS() {
       const result = await createSale(auth.token, salePayload)
 
       const change = payment - total
-      let message = `Pembayaran berhasil!\nMetode: ${paymentMethod}\nTotal: ${formatCurrency(total)}`
-      if (paymentMethod === 'CASH') {
-        message += `\nBayar: ${formatCurrency(payment)}\nKembalian: ${formatCurrency(change)}`
-      } else if (paymentMethod === 'TRANSFER') {
-        message += `\nNo Rekening: ${transferAccount}`
+      const successNote = paymentMethod === 'CASH'
+        ? `Pembayaran berhasil - Kembalian ${formatCurrency(change)}`
+        : 'Pembayaran berhasil'
+      setToast({ isOpen: true, message: successNote, type: 'success' })
+
+      if (receiptSettings.auto_print_after_payment) {
+        try {
+          let saleForPrint = null
+          const createdId = result?.data?.id || result?.data?.sale_id
+
+          if (createdId) {
+            const detail = await getSaleById(auth.token, createdId)
+            saleForPrint = detail?.data || null
+          }
+
+          if (!saleForPrint) {
+            saleForPrint = {
+              id: createdId || Date.now(),
+              sale_number: result?.data?.sale_number || result?.data?.invoice_number || '-',
+              sale_date: new Date().toISOString(),
+              cashier_name: auth.username || '-',
+              warehouse_name: mainWarehouse?.name || '-',
+              items: currentItems.map((item) => ({
+                product_name: item.name,
+                quantity: item.qty,
+                unit_price: item.price,
+              })),
+              subtotal: currentSubtotal,
+              tax_amount: currentTax,
+              total_amount: currentTotal,
+              paid_amount: paymentMethod === 'CASH' ? payment : currentTotal,
+              change_amount: paymentMethod === 'CASH' ? payment - currentTotal : 0,
+              payments: [{
+                payment_method: paymentMethod,
+                amount: paymentMethod === 'CASH' ? payment : currentTotal,
+              }],
+            }
+          }
+
+          openPrintWindow(saleForPrint)
+          setToast({ isOpen: true, message: 'Cetak nota diproses', type: 'success' })
+        } catch (printErr) {
+          console.error('Failed to print sale after payment:', printErr)
+          setToast({ isOpen: true, message: 'Pembayaran sukses, tapi cetak nota gagal', type: 'warning' })
+        }
       }
-      if (result.data?.invoice_number) {
-        message += `\nInvoice: ${result.data.invoice_number}`
-      }
-      alert(message)
 
       setItems([])
       setSelectedIndex(-1)
@@ -1509,6 +1594,28 @@ export function POS() {
                 </div>
 
                 <div className="receipt-setting-section">
+                  <h4>Jenis Printer</h4>
+                  <label className="receipt-radio-option">
+                    <input
+                      type="radio"
+                      name="printer-type"
+                      checked={receiptSettingsDraft.printer_type === 'thermal'}
+                      onChange={() => setReceiptSettingsDraft((prev) => ({ ...prev, printer_type: 'thermal' }))}
+                    />
+                    <span>Thermal</span>
+                  </label>
+                  <label className="receipt-radio-option">
+                    <input
+                      type="radio"
+                      name="printer-type"
+                      checked={receiptSettingsDraft.printer_type === 'dot_matrix'}
+                      onChange={() => setReceiptSettingsDraft((prev) => ({ ...prev, printer_type: 'dot_matrix' }))}
+                    />
+                    <span>Dot Matrix</span>
+                  </label>
+                </div>
+
+                <div className="receipt-setting-section">
                   <h4>Tata Letak</h4>
                   <div className="receipt-layout-grid">
                     {RECEIPT_LAYOUT_OPTIONS.map((layout) => (
@@ -1543,19 +1650,48 @@ export function POS() {
                     />
                     <span>Tampilkan footer</span>
                   </label>
+                  <label className="receipt-checkbox-option">
+                    <input
+                      type="checkbox"
+                      checked={receiptSettingsDraft.auto_print_after_payment}
+                      onChange={(e) => setReceiptSettingsDraft((prev) => ({ ...prev, auto_print_after_payment: e.target.checked }))}
+                    />
+                    <span>Auto print setelah pembayaran</span>
+                  </label>
                 </div>
               </div>
 
               <div className="receipt-setting-preview-wrap">
-                <h4>Preview</h4>
-                <div className="receipt-setting-preview-panel">
-                  <ReceiptPreview
-                    sale={previewNote}
-                    settings={receiptSettingsDraft}
-                    formatCurrency={formatCurrency}
-                    formatDateTime={formatDateTime}
-                  />
+                <div className="receipt-setting-tabs">
+                  <button
+                    type="button"
+                    className={`receipt-setting-tab ${receiptSettingViewTab === 'preview' ? 'is-active' : ''}`}
+                    onClick={() => setReceiptSettingViewTab('preview')}
+                  >
+                    Preview
+                  </button>
+                  <button
+                    type="button"
+                    className={`receipt-setting-tab ${receiptSettingViewTab === 'code' ? 'is-active' : ''}`}
+                    onClick={() => setReceiptSettingViewTab('code')}
+                  >
+                    Code jsPDF
+                  </button>
                 </div>
+                {receiptSettingViewTab === 'preview' ? (
+                  <div className="receipt-setting-preview-panel">
+                    <ReceiptPreview
+                      sale={previewNote}
+                      settings={receiptSettingsDraft}
+                      formatCurrency={formatCurrency}
+                      formatDateTime={formatDateTime}
+                    />
+                  </div>
+                ) : (
+                  <div className="receipt-setting-code-panel">
+                    <pre>{jspdfFormatCode}</pre>
+                  </div>
+                )}
               </div>
             </div>
             <div className="receipt-setting-footer">

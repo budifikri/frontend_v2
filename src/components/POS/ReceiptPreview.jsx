@@ -1,10 +1,16 @@
-import { buildReceiptPreviewData, getReceiptPaperClass, getReceiptLayoutLabel } from './ReceiptLayouts'
+import { buildReceiptPreviewData, getReceiptPaperClass } from './ReceiptLayouts'
 
 export function ReceiptPreview({ sale, settings, formatCurrency, formatDateTime }) {
   const preview = buildReceiptPreviewData(sale, settings)
+  const previewItems = preview.itemRows.length > 0
+    ? preview.itemRows
+    : [
+      { index: 1, name: 'Contoh Produk A', quantity: 2, unitPrice: 7500, subtotal: 15000 },
+      { index: 2, name: 'Contoh Produk B', quantity: 1, unitPrice: 12000, subtotal: 12000 },
+    ]
 
   return (
-    <div className={`receipt-preview ${getReceiptPaperClass(settings.paper_size)}`}>
+    <div className={`receipt-preview ${getReceiptPaperClass(settings.paper_size)} ${settings.printer_type === 'dot_matrix' ? 'printer-dot-matrix' : 'printer-thermal'}`}>
       <div className="receipt-preview-top">
         {preview.showLogo && <div className="receipt-preview-logo">PX</div>}
         <h4>{preview.title}</h4>
@@ -12,23 +18,18 @@ export function ReceiptPreview({ sale, settings, formatCurrency, formatDateTime 
         <div className="receipt-preview-meta">No: {preview.meta.number}</div>
         <div className="receipt-preview-meta">Tgl: {formatDateTime(preview.meta.date)}</div>
         <div className="receipt-preview-meta">Kasir: {preview.meta.cashier}</div>
-        <div className="receipt-preview-layout">{getReceiptLayoutLabel(preview.layoutType)}</div>
       </div>
 
       <div className="receipt-preview-items">
-        {preview.itemRows.length === 0 ? (
-          <div className="receipt-preview-empty">Tidak ada item</div>
-        ) : (
-          preview.itemRows.slice(0, 6).map((item) => (
-            <div key={`${item.index}-${item.name}`} className="receipt-preview-item">
-              <div className="receipt-preview-item-name">{item.name}</div>
-              <div className="receipt-preview-item-detail">
-                <span>{item.quantity} x {formatCurrency(item.unitPrice)}</span>
-                <strong>{formatCurrency(item.subtotal)}</strong>
-              </div>
+        {previewItems.slice(0, 6).map((item) => (
+          <div key={`${item.index}-${item.name}`} className="receipt-preview-item">
+            <div className="receipt-preview-item-name">{item.name}</div>
+            <div className="receipt-preview-item-detail">
+              <span>{item.quantity} x {formatCurrency(item.unitPrice)}</span>
+              <strong>{formatCurrency(item.subtotal)}</strong>
             </div>
-          ))
-        )}
+          </div>
+        ))}
       </div>
 
       <div className="receipt-preview-summary">

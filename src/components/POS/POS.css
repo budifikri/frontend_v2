@@ -1982,6 +1982,34 @@
   min-width: 0;
 }
 
+.receipt-setting-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.receipt-setting-tab {
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: white;
+  color: #334155;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.receipt-setting-tab:hover {
+  border-color: #2563eb;
+  color: #1d4ed8;
+}
+
+.receipt-setting-tab.is-active {
+  border-color: #1d4ed8;
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
 .receipt-setting-preview-panel {
   border: 1px solid #cbd5e1;
   border-radius: 10px;
@@ -1990,6 +2018,24 @@
   min-height: 420px;
   max-height: 62vh;
   overflow: auto;
+}
+
+.receipt-setting-code-panel {
+  border: 1px solid #334155;
+  border-radius: 10px;
+  background: #0f172a;
+  color: #e2e8f0;
+  padding: 12px;
+  max-height: 42vh;
+  overflow: auto;
+}
+
+.receipt-setting-code-panel pre {
+  margin: 0;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  line-height: 1.5;
+  white-space: pre;
 }
 
 .receipt-setting-footer {
@@ -2016,6 +2062,15 @@
   font-family: 'JetBrains Mono', monospace;
   font-size: 11px;
   color: #0f172a;
+}
+
+.receipt-preview.printer-thermal {
+  font-family: Arial, sans-serif;
+}
+
+.receipt-preview.printer-dot-matrix {
+  font-family: 'JetBrains Mono', monospace;
+  border-style: dotted;
 }
 
 .receipt-preview.paper-58 {
@@ -2102,7 +2157,6 @@
 }
 
 .receipt-preview-row.total {
-  border-top: 1px dashed #94a3b8;
   margin-top: 4px;
   padding-top: 4px;
   font-weight: 700;
