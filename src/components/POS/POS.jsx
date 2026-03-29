@@ -397,6 +397,7 @@ export function POS() {
           .receipt-wrap { margin: 0 auto; background: white; border: ${borderStyle}; width: ${paperWidth}; padding: 10px; }
           .receipt-wrap.paper-58 { font-size: 11px; }
           .receipt-wrap.paper-80 { font-size: 12px; }
+          .receipt-logo { width: 24px; height: 24px; border-radius: 50%; background: #0ea5e9; color: white; display: flex; align-items: center; justify-content: center; margin: 0 auto 6px; font-weight: 700; font-size: 10px; }
           h1 { margin: 0 0 8px; text-align: center; font-size: 16px; letter-spacing: 0.08em; }
           .subtitle { text-align: center; margin-bottom: 8px; font-weight: 700; }
           .receipt-header-wrap { border-bottom: ${lineBorder}; margin-bottom: 8px; padding-bottom: 8px; }
@@ -425,7 +426,6 @@ export function POS() {
       <body>
         <div class="receipt-wrap ${paperClass}">
           ${receiptBody}
-          ${receiptSettings.show_footer ? '<div class="footer">Terima kasih dan sampai jumpa</div>' : ''}
         </div>
         <script>
           window.onload = () => {

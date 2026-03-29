@@ -68,6 +68,8 @@ export function buildReceiptPreviewData(sale, settings) {
 
 export function renderReceiptLayoutA(data, helpers) {
   const { escapeHtml, formatCurrency, formatDateTime } = helpers
+  const logoHtml = data.showLogo ? '<div class="receipt-logo">PX</div>' : ''
+  const footerHtml = data.showFooter ? `<div class="footer">${escapeHtml(data.footerText)}</div>` : ''
   const itemsHtml = data.itemRows.map((item) => `
     <tr>
       <td>${item.index}</td>
@@ -79,6 +81,7 @@ export function renderReceiptLayoutA(data, helpers) {
 
   return `
     <div class="receipt-header-wrap">
+      ${logoHtml}
       <h1>${escapeHtml(data.title)}</h1>
       <div class="meta-row">No Nota: <strong>${escapeHtml(data.meta.number)}</strong></div>
       <div class="meta-row">Tanggal: ${escapeHtml(formatDateTime(data.meta.date))}</div>
@@ -102,11 +105,14 @@ export function renderReceiptLayoutA(data, helpers) {
       <div><span>Dibayar</span><span>${formatCurrency(data.summary.paid)}</span></div>
       <div><span>Kembalian</span><span>${formatCurrency(data.summary.change)}</span></div>
     </div>
+    ${footerHtml}
   `
 }
 
 export function renderReceiptLayoutB(data, helpers) {
   const { escapeHtml, formatCurrency, formatDateTime } = helpers
+  const logoHtml = data.showLogo ? '<div class="receipt-logo">PX</div>' : ''
+  const footerHtml = data.showFooter ? `<div class="footer">${escapeHtml(data.footerText)}</div>` : ''
   const itemsHtml = data.itemRows.map((item) => `
     <tr>
       <td>${escapeHtml(item.name)}</td>
@@ -121,6 +127,7 @@ export function renderReceiptLayoutB(data, helpers) {
 
   return `
     <div class="receipt-header-wrap">
+      ${logoHtml}
       <h1>${escapeHtml(data.title)}</h1>
       <div class="meta-grid">
         <span>No</span><strong>${escapeHtml(data.meta.number)}</strong>
@@ -152,11 +159,14 @@ export function renderReceiptLayoutB(data, helpers) {
       <strong>Pembayaran</strong>
       ${paymentsHtml || '<div class="pay-row"><span>-</span><span>-</span></div>'}
     </div>
+    ${footerHtml}
   `
 }
 
 export function renderReceiptLayoutC(data, helpers) {
   const { escapeHtml, formatCurrency, formatDateTime } = helpers
+  const logoHtml = data.showLogo ? '<div class="receipt-logo">PX</div>' : ''
+  const footerHtml = data.showFooter ? `<div class="footer">${escapeHtml(data.footerText)}</div>` : ''
   const itemsHtml = data.itemRows.map((item) => `
     <div class="line-item">
       <div class="line-title">${escapeHtml(item.name)}</div>
@@ -173,6 +183,7 @@ export function renderReceiptLayoutC(data, helpers) {
 
   return `
     <div class="receipt-header-wrap brand">
+      ${logoHtml}
       <h1>${escapeHtml(data.title)}</h1>
       <div class="subtitle">${escapeHtml(data.subtitle)}</div>
       <div class="meta-row">No Nota: <strong>${escapeHtml(data.meta.number)}</strong></div>
@@ -191,6 +202,7 @@ export function renderReceiptLayoutC(data, helpers) {
       <strong>Pembayaran</strong>
       ${paymentsHtml || '<div class="pay-row"><span>-</span><span>-</span></div>'}
     </div>
+    ${footerHtml}
   `
 }
 
