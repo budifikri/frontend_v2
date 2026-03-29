@@ -6,7 +6,7 @@ import { listWarehouses } from '../../features/master/warehouse/warehouse.api'
 import { openCashDrawer, getCurrentCashDrawer, getCashDrawerSummary, closeCashDrawer, cashInDrawer, cashOutDrawer } from '../../features/transaksi/cash-drawer/cashDrawer.api'
 import { createSale, listSales, getSaleById } from '../../features/transaksi/sales/sales.api'
 import { DEFAULT_RECEIPT_SETTINGS, loadReceiptSettings, resetReceiptSettings, saveReceiptSettings } from '../../features/setting/receiptSetting.storage'
-import { RECEIPT_LAYOUT_OPTIONS, getReceiptPaperClass, getReceiptWidth, renderReceiptHtml } from './ReceiptLayouts'
+import { RECEIPT_LAYOUT_OPTIONS, getReceiptPaperClass, renderReceiptHtml } from './ReceiptLayouts'
 import { ReceiptPreview } from './ReceiptPreview'
 import { Toast } from '../../components/Toast'
 import './POS.css'
@@ -437,12 +437,14 @@ export function POS() {
       formatCurrency,
       formatDateTime,
     })
-    const paperWidth = getReceiptWidth(receiptSettings.paper_size)
+    const paperSizeMm = receiptSettings.paper_size === '80mm' ? 80 : 58
+    const contentWidthMm = paperSizeMm === 80 ? 76 : 56
     const paperClass = getReceiptPaperClass(receiptSettings.paper_size)
     const isDotMatrix = receiptSettings.printer_type === 'dot_matrix'
     const fontFamily = isDotMatrix ? "'Courier New', monospace" : "Arial, sans-serif"
     const borderStyle = isDotMatrix ? '1px dotted #94a3b8' : '1px solid #e2e8f0'
     const lineBorder = isDotMatrix ? '1px dotted #cbd5e1' : '1px dashed #cbd5e1'
+    const fontSize = paperSizeMm === 80 ? '12px' : '11px'
 
     const html = `
       <!doctype html>
@@ -451,8 +453,35 @@ export function POS() {
         <meta charset="utf-8" />
         <title>Nota ${escapeHtml(sale.sale_number || sale.id || '')}</title>
         <style>
-          body { font-family: ${fontFamily}; margin: 0; padding: 18px; background: #f1f5f9; color: #0f172a; }
-          .receipt-wrap { margin: 0 auto; background: white; border: ${borderStyle}; width: ${paperWidth}; padding: 10px; }
+          @page {
+            size: ${paperSizeMm}mm auto;
+            margin: 0;
+          }
+          * { box-sizing: border-box; }
+          html, body {
+            margin: 0;
+            padding: 0;
+            width: ${paperSizeMm}mm;
+            min-width: ${paperSizeMm}mm;
+            font-family: ${fontFamily};
+            color: #0f172a;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+          body {
+            background: #fff;
+            font-size: ${fontSize};
+            line-height: 1.35;
+          }
+          .receipt-wrap {
+            margin: 0 auto;
+            width: ${contentWidthMm}mm;
+            max-width: ${contentWidthMm}mm;
+            background: white;
+            border: ${borderStyle};
+            padding: 2mm;
+            overflow: hidden;
+          }
           .receipt-wrap.paper-58 { font-size: 11px; }
           .receipt-wrap.paper-80 { font-size: 12px; }
           .receipt-logo { width: 24px; height: 24px; border-radius: 50%; background: #0ea5e9; color: white; display: flex; align-items: center; justify-content: center; margin: 0 auto 6px; font-weight: 700; font-size: 10px; }
@@ -463,11 +492,11 @@ export function POS() {
           .meta-row { margin: 2px 0; }
           .meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
           table { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
-          th, td { border-bottom: ${lineBorder}; padding: 4px; }
+          th, td { border-bottom: ${lineBorder}; padding: 4px 2px; }
           th { text-align: left; }
           .line-items-wrap { border-bottom: ${lineBorder}; padding: 6px 0; margin: 8px 0; }
           .line-item { margin-bottom: 6px; }
-          .line-title { font-weight: 700; white-space: normal; word-break: break-word; }
+          .line-title { font-weight: 700; white-space: normal; overflow-wrap: anywhere; word-break: break-word; }
           .line-detail { display: flex; justify-content: space-between; gap: 8px; align-items: flex-start; }
           .line-detail span { flex: 1; min-width: 0; }
           .line-detail strong { flex-shrink: 0; text-align: right; padding-left: 8px; }
@@ -478,8 +507,18 @@ export function POS() {
           .pay-row { display: flex; justify-content: space-between; margin: 2px 0; }
           .footer { margin-top: 8px; text-align: center; border-top: ${lineBorder}; padding-top: 6px; color: #334155; }
           @media print {
-            body { background: white; padding: 0; }
-            .receipt-wrap { border: none; width: 100%; margin: 0; }
+            html, body {
+              width: ${paperSizeMm}mm;
+              min-width: ${paperSizeMm}mm;
+              background: white;
+            }
+            .receipt-wrap {
+              border: none;
+              width: ${contentWidthMm}mm;
+              max-width: ${contentWidthMm}mm;
+              margin: 0 auto;
+              padding: 2mm 0;
+            }
           }
         </style>
       </head>
