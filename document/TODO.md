@@ -1,7 +1,7 @@
 ## TODO
-- penjualan Pending  
+- connect telegram
 - form diskon
-- Setting POS
+- setting printer thermal dan dot matrix
 - Help POS
 ## ON PROGRESS
 
@@ -10,6 +10,9 @@
 
 
 ## DONE
+29 maret 2026
+- penjualan Pending  
+- Setting POS, format cetak
 28 maret 2026
 - POS
   cash in,cash out,opening cash drawer,close cash drawer

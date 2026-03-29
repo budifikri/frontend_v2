@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useAuth } from '../../shared/auth'
 import { listProducts } from '../../features/master/product/product.api'
+import { getCurrentCompany, listCompanies } from '../../features/master/company/company.api'
 import { listWarehouses } from '../../features/master/warehouse/warehouse.api'
 import { openCashDrawer, getCurrentCashDrawer, getCashDrawerSummary, closeCashDrawer, cashInDrawer, cashOutDrawer } from '../../features/transaksi/cash-drawer/cashDrawer.api'
 import { createSale, listSales, getSaleById } from '../../features/transaksi/sales/sales.api'
@@ -84,6 +85,7 @@ export function POS() {
   const [receiptSettings, setReceiptSettings] = useState(DEFAULT_RECEIPT_SETTINGS)
   const [receiptSettingsDraft, setReceiptSettingsDraft] = useState(DEFAULT_RECEIPT_SETTINGS)
   const [receiptSettingViewTab, setReceiptSettingViewTab] = useState('preview')
+  const [companyProfile, setCompanyProfile] = useState({ name: '', address: '', phone: '' })
   const [toast, setToast] = useState({ isOpen: false, message: '', type: 'info' })
 
   useEffect(() => {
@@ -107,6 +109,46 @@ export function POS() {
     setReceiptSettings(loaded)
     setReceiptSettingsDraft(loaded)
   }, [])
+
+  useEffect(() => {
+    const loadCompanyProfile = async () => {
+      if (!auth.token) return
+
+      try {
+        const current = await getCurrentCompany(auth.token)
+        const first = current?.data
+        if (!first) {
+          throw new Error('Current company not found')
+        }
+        const mapped = {
+          name: first?.nama || first?.name || auth.companyName || '',
+          address: first?.address || '',
+          phone: first?.telp || first?.phone || '',
+        }
+        setCompanyProfile(mapped)
+      } catch {
+        try {
+          const result = await listCompanies(auth.token, { limit: 1, offset: 0 })
+          const first = result?.items?.[0]
+          if (!first) {
+            setCompanyProfile((prev) => ({ ...prev, name: auth.companyName || prev.name }))
+            return
+          }
+
+          const mapped = {
+            name: first?.nama || first?.name || auth.companyName || '',
+            address: first?.address || '',
+            phone: first?.telp || first?.phone || '',
+          }
+          setCompanyProfile(mapped)
+        } catch {
+          setCompanyProfile((prev) => ({ ...prev, name: auth.companyName || prev.name }))
+        }
+      }
+    }
+
+    loadCompanyProfile()
+  }, [auth.token, auth.companyName])
 
   useEffect(() => {
     const loadWarehouse = async () => {
@@ -374,7 +416,23 @@ export function POS() {
   }, [])
 
   const openPrintWindow = useCallback((sale) => {
-    const receiptBody = renderReceiptHtml(sale, receiptSettings, {
+    const effectiveCompanyName = companyProfile.name || auth.companyName || sale.company_name || '-'
+    const effectiveCompanyAddress = receiptSettings.company_address?.trim() || companyProfile.address || sale.company_address || ''
+    const effectiveCompanyPhone = receiptSettings.company_phone?.trim() || companyProfile.phone || sale.company_phone || ''
+    const effectiveReceiptSettings = {
+      ...receiptSettings,
+      company_address: effectiveCompanyAddress,
+      company_phone: effectiveCompanyPhone,
+    }
+
+    const saleWithCompany = {
+      ...sale,
+      company_name: effectiveCompanyName,
+      company_address: effectiveCompanyAddress,
+      company_phone: effectiveCompanyPhone,
+    }
+
+    const receiptBody = renderReceiptHtml(saleWithCompany, effectiveReceiptSettings, {
       escapeHtml,
       formatCurrency,
       formatDateTime,
@@ -401,19 +459,21 @@ export function POS() {
           h1 { margin: 0 0 8px; text-align: center; font-size: 16px; letter-spacing: 0.08em; }
           .subtitle { text-align: center; margin-bottom: 8px; font-weight: 700; }
           .receipt-header-wrap { border-bottom: ${lineBorder}; margin-bottom: 8px; padding-bottom: 8px; }
-          .receipt-header-wrap.brand { border: ${lineBorder}; padding: 8px; margin-bottom: 10px; }
+          .receipt-header-wrap.brand { padding: 8px 0; margin-bottom: 10px; }
           .meta-row { margin: 2px 0; }
           .meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
           table { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
           th, td { border-bottom: ${lineBorder}; padding: 4px; }
           th { text-align: left; }
-          .line-items-wrap { border-top: ${lineBorder}; border-bottom: ${lineBorder}; padding: 6px 0; margin: 8px 0; }
+          .line-items-wrap { border-bottom: ${lineBorder}; padding: 6px 0; margin: 8px 0; }
           .line-item { margin-bottom: 6px; }
-          .line-title { font-weight: 700; }
-          .line-detail { display: flex; justify-content: space-between; }
+          .line-title { font-weight: 700; white-space: normal; word-break: break-word; }
+          .line-detail { display: flex; justify-content: space-between; gap: 8px; align-items: flex-start; }
+          .line-detail span { flex: 1; min-width: 0; }
+          .line-detail strong { flex-shrink: 0; text-align: right; padding-left: 8px; }
           .summary { margin-top: 8px; }
           .summary div { display: flex; justify-content: space-between; margin: 2px 0; }
-          .summary .total { border-top: ${lineBorder}; padding-top: 4px; margin-top: 4px; font-weight: 700; }
+          .summary .total { padding-top: 4px; margin-top: 4px; font-weight: 700; }
           .payments-block { margin-top: 8px; border-top: ${lineBorder}; padding-top: 6px; }
           .pay-row { display: flex; justify-content: space-between; margin: 2px 0; }
           .footer { margin-top: 8px; text-align: center; border-top: ${lineBorder}; padding-top: 6px; color: #334155; }
@@ -443,7 +503,7 @@ export function POS() {
     }
     printWindow.document.write(html)
     printWindow.document.close()
-  }, [escapeHtml, formatCurrency, formatDateTime, receiptSettings])
+  }, [auth.companyName, companyProfile.address, companyProfile.name, companyProfile.phone, escapeHtml, formatCurrency, formatDateTime, receiptSettings])
 
   const handleOpenReceiptSettings = useCallback(() => {
     setReceiptSettingsDraft(receiptSettings)
@@ -502,12 +562,15 @@ ${receiptSettingsDraft.layout_type === 'layout_a'
     ? "// Layout B - Detail Pajak\ndoc.setFont('" + fontFamily + "', 'normal')\ndoc.text('Subtotal', 4, y)\ndoc.text('Rp 0', " + (pageWidth - 4) + ", y, { align: 'right' })\ny += " + lineGap + "\ndoc.text('PPN', 4, y)\ndoc.text('Rp 0', " + (pageWidth - 4) + ", y, { align: 'right' })\ny += " + lineGap + "\ndoc.setFont('" + fontFamily + "', 'bold')\ndoc.text('Total', 4, y)\ndoc.text('Rp 0', " + (pageWidth - 4) + ", y, { align: 'right' })"
     : "// Layout C - Brand + Footer\ndoc.setFont('" + fontFamily + "', 'normal')\ndoc.text('Retail Checkout', " + (pageWidth / 2) + ", y, { align: 'center' })\ny += " + lineGap + "\n// item rows...\ndoc.setFont('" + fontFamily + "', 'bold')\ndoc.text('Total', 4, y)\ndoc.text('Rp 0', " + (pageWidth - 4) + ", y, { align: 'right' })"}
 
-${receiptSettingsDraft.show_footer ? "\ny += " + lineGap + "\ndoc.setFont('courier', 'normal')\ndoc.text('Terima kasih sudah berbelanja', ${pageWidth / 2}, y, { align: 'center' })" : '// footer disembunyikan'}
+${receiptSettingsDraft.show_footer ? "\ny += " + lineGap + "\ndoc.setFont('" + fontFamily + "', 'normal')\ndoc.text('" + (receiptSettingsDraft.footer_text?.trim() || 'Terima kasih sudah berbelanja') + "', ${pageWidth / 2}, y, { align: 'center' })" : '// footer disembunyikan'}
 
 doc.save('nota-penjualan.pdf')`
   }, [receiptSettingsDraft])
 
   const previewNote = printNotes[printSelectedIndex] || {
+    company_name: companyProfile.name || auth.companyName || '-',
+    company_address: companyProfile.address || '',
+    company_phone: companyProfile.phone || '',
     sale_number: 'PREVIEW-001',
     sale_date: new Date().toISOString(),
     cashier_name: auth.username || '-',
@@ -1660,6 +1723,17 @@ doc.save('nota-penjualan.pdf')`
                     />
                     <span>Auto print setelah pembayaran</span>
                   </label>
+                  <div className="receipt-footer-text-wrap">
+                    <label htmlFor="receipt-footer-text">Text footer</label>
+                    <textarea
+                      id="receipt-footer-text"
+                      className="receipt-footer-text-input"
+                      value={receiptSettingsDraft.footer_text}
+                      onChange={(e) => setReceiptSettingsDraft((prev) => ({ ...prev, footer_text: e.target.value }))}
+                      rows={3}
+                      placeholder="Contoh: Terima kasih sudah berbelanja"
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -1682,12 +1756,16 @@ doc.save('nota-penjualan.pdf')`
                 </div>
                 {receiptSettingViewTab === 'preview' ? (
                   <div className="receipt-setting-preview-panel">
-                    <ReceiptPreview
-                      sale={previewNote}
-                      settings={receiptSettingsDraft}
-                      formatCurrency={formatCurrency}
-                      formatDateTime={formatDateTime}
-                    />
+                  <ReceiptPreview
+                    sale={previewNote}
+                    settings={{
+                      ...receiptSettingsDraft,
+                      company_address: receiptSettingsDraft.company_address?.trim() || companyProfile.address || '',
+                      company_phone: receiptSettingsDraft.company_phone?.trim() || companyProfile.phone || '',
+                    }}
+                    formatCurrency={formatCurrency}
+                    formatDateTime={formatDateTime}
+                  />
                   </div>
                 ) : (
                   <div className="receipt-setting-code-panel">

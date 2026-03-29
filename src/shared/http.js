@@ -66,7 +66,7 @@ export async function apiFetch(path, opts = {}) {
       console.log('[HTTP] Response error', { url, status: res.status, body: json })
     }
 
-    if (res.status === 401 || res.status === 403) {
+    if (res.status === 401) {
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new Event(AUTH_EXPIRED_EVENT))
       }

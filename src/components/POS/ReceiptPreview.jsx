@@ -1,27 +1,24 @@
-import { buildReceiptPreviewData, getReceiptPaperClass } from './ReceiptLayouts'
+import { buildReceiptTemplateModel, getReceiptPaperClass } from './ReceiptLayouts'
 
 export function ReceiptPreview({ sale, settings, formatCurrency, formatDateTime }) {
-  const preview = buildReceiptPreviewData(sale, settings)
-  const previewItems = preview.itemRows.length > 0
-    ? preview.itemRows
-    : [
-      { index: 1, name: 'Contoh Produk A', quantity: 2, unitPrice: 7500, subtotal: 15000 },
-      { index: 2, name: 'Contoh Produk B', quantity: 1, unitPrice: 12000, subtotal: 12000 },
-    ]
+  const model = buildReceiptTemplateModel(sale, settings, { withSamples: true })
+  const companyAddressLine = model.company.address || 'Alamat company'
+  const companyPhoneLine = model.company.phone || '-'
 
   return (
     <div className={`receipt-preview ${getReceiptPaperClass(settings.paper_size)} ${settings.printer_type === 'dot_matrix' ? 'printer-dot-matrix' : 'printer-thermal'}`}>
-      <div className="receipt-preview-top">
-        {preview.showLogo && <div className="receipt-preview-logo">PX</div>}
-        <h4>{preview.title}</h4>
-        {preview.subtitle && <div className="receipt-preview-subtitle">{preview.subtitle}</div>}
-        <div className="receipt-preview-meta">No: {preview.meta.number}</div>
-        <div className="receipt-preview-meta">Tgl: {formatDateTime(preview.meta.date)}</div>
-        <div className="receipt-preview-meta">Kasir: {preview.meta.cashier}</div>
+      <div className={`receipt-preview-top ${model.template.headerVariant === 'brand' ? 'brand' : ''}`}>
+        {model.showLogo && <div className="receipt-preview-logo">PX</div>}
+        <h4>{model.company.name}</h4>
+        <div className="receipt-preview-subtitle">{companyAddressLine}, Telp: {companyPhoneLine}</div>
+        <div className="receipt-preview-meta">No: {model.meta.number}</div>
+        <div className="receipt-preview-meta">Tgl: {formatDateTime(model.meta.date)}</div>
+        <div className="receipt-preview-meta">Kasir: {model.meta.cashier}</div>
+        {model.template.showMetaWarehouse && <div className="receipt-preview-meta">Gudang: {model.meta.warehouse}</div>}
       </div>
 
       <div className="receipt-preview-items">
-        {previewItems.slice(0, 6).map((item) => (
+        {model.itemRows.slice(0, 6).map((item) => (
           <div key={`${item.index}-${item.name}`} className="receipt-preview-item">
             <div className="receipt-preview-item-name">{item.name}</div>
             <div className="receipt-preview-item-detail">
@@ -33,24 +30,24 @@ export function ReceiptPreview({ sale, settings, formatCurrency, formatDateTime 
       </div>
 
       <div className="receipt-preview-summary">
-        {(preview.layoutType === 'layout_b' || preview.layoutType === 'layout_c') && (
-          <div className="receipt-preview-row"><span>Subtotal</span><span>{formatCurrency(preview.summary.subtotal)}</span></div>
+        {model.template.showSummarySubtotal && (
+          <div className="receipt-preview-row"><span>Subtotal</span><span>{formatCurrency(model.summary.subtotal)}</span></div>
         )}
-        {preview.layoutType === 'layout_b' && (
-          <div className="receipt-preview-row"><span>PPN</span><span>{formatCurrency(preview.summary.tax)}</span></div>
+        {model.template.showSummaryTax && (
+          <div className="receipt-preview-row"><span>PPN</span><span>{formatCurrency(model.summary.tax)}</span></div>
         )}
-        <div className="receipt-preview-row total"><span>Total</span><span>{formatCurrency(preview.summary.total)}</span></div>
-        <div className="receipt-preview-row"><span>Dibayar</span><span>{formatCurrency(preview.summary.paid)}</span></div>
-        <div className="receipt-preview-row"><span>Kembalian</span><span>{formatCurrency(preview.summary.change)}</span></div>
+        <div className="receipt-preview-row total"><span>Total</span><span>{formatCurrency(model.summary.total)}</span></div>
+        <div className="receipt-preview-row"><span>Dibayar</span><span>{formatCurrency(model.summary.paid)}</span></div>
+        <div className="receipt-preview-row"><span>Kembalian</span><span>{formatCurrency(model.summary.change)}</span></div>
       </div>
 
-      {preview.layoutType !== 'layout_a' && (
+      {model.template.showPayments && (
         <div className="receipt-preview-payments">
           <strong>Pembayaran</strong>
-          {preview.paymentRows.length === 0 ? (
+          {model.paymentRows.length === 0 ? (
             <div className="receipt-preview-row"><span>-</span><span>-</span></div>
           ) : (
-            preview.paymentRows.map((payment, idx) => (
+            model.paymentRows.map((payment, idx) => (
               <div key={`${payment.method}-${idx}`} className="receipt-preview-row">
                 <span>{payment.method}</span>
                 <span>{formatCurrency(payment.amount)}</span>
@@ -60,8 +57,8 @@ export function ReceiptPreview({ sale, settings, formatCurrency, formatDateTime 
         </div>
       )}
 
-      {preview.showFooter && (
-        <div className="receipt-preview-footer">{preview.footerText}</div>
+      {model.showFooter && (
+        <div className="receipt-preview-footer">{model.footerText}</div>
       )}
     </div>
   )

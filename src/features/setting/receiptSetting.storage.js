@@ -6,6 +6,9 @@ export const DEFAULT_RECEIPT_SETTINGS = {
   printer_type: 'thermal',
   show_logo: true,
   show_footer: true,
+  footer_text: '',
+  company_address: '',
+  company_phone: '',
   auto_print_after_payment: true,
 }
 
@@ -27,6 +30,9 @@ export function normalizeReceiptSettings(value) {
     printer_type: printerType,
     show_logo: typeof source.show_logo === 'boolean' ? source.show_logo : DEFAULT_RECEIPT_SETTINGS.show_logo,
     show_footer: typeof source.show_footer === 'boolean' ? source.show_footer : DEFAULT_RECEIPT_SETTINGS.show_footer,
+    footer_text: typeof source.footer_text === 'string' ? source.footer_text : DEFAULT_RECEIPT_SETTINGS.footer_text,
+    company_address: typeof source.company_address === 'string' ? source.company_address : DEFAULT_RECEIPT_SETTINGS.company_address,
+    company_phone: typeof source.company_phone === 'string' ? source.company_phone : DEFAULT_RECEIPT_SETTINGS.company_phone,
     auto_print_after_payment: typeof source.auto_print_after_payment === 'boolean'
       ? source.auto_print_after_payment
       : DEFAULT_RECEIPT_SETTINGS.auto_print_after_payment,

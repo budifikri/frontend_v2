@@ -1947,6 +1947,36 @@
   font-size: 14px;
 }
 
+.receipt-footer-text-wrap {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.receipt-footer-text-wrap label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.receipt-footer-text-input {
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 9px 10px;
+  font-size: 13px;
+  color: #0f172a;
+  background: #fff;
+  resize: vertical;
+  min-height: 84px;
+}
+
+.receipt-footer-text-input:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+}
+
 .receipt-layout-grid {
   display: grid;
   gap: 10px;
@@ -2185,6 +2215,7 @@
   padding-top: 6px;
   text-align: center;
   color: #334155;
+  white-space: pre-line;
 }
 
 @media (max-width: 960px) {

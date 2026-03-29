@@ -40,6 +40,14 @@ export async function listCompanies(token, params = {}) {
   }
 }
 
+export async function getCurrentCompany(token) {
+  const raw = await apiFetch('/api/companies/current', { token })
+  if (!raw.success) throw new Error(raw.error || raw.message || 'Failed to load current company')
+
+  const company = raw.data ?? null
+  return { data: company }
+}
+
 export async function createCompany(token, input) {
   const raw = await apiFetch('/api/companies', { method: 'POST', token, body: input })
   if (!raw.success) throw new Error(raw.error || raw.message || 'Create company failed')
