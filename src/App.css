@@ -1020,6 +1020,7 @@ body.has-wallpaper .cash-register {
   align-items: center;
   gap: 8px;
   margin-bottom: 16px;
+  flex-wrap: wrap;
 }
 
 .master-form-icon {
@@ -1032,6 +1033,41 @@ body.has-wallpaper .cash-register {
   font-weight: 700;
   color: #1e293b;
   margin: 0;
+}
+
+.product-form-tabs {
+  display: flex;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.product-form-tab {
+  padding: 8px 16px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  color: #64748b;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: 6px 6px 0 0;
+  transition: all 0.2s ease;
+}
+
+.product-form-tab:hover {
+  background: #f1f5f9;
+  color: #334155;
+}
+
+.product-form-tab.active {
+  background: var(--secondcolor-bg);
+  color: white;
+  border-color: var(--secondcolor-bg);
+}
+
+.master-form-input-readonly {
+  background: #f1f5f9;
+  color: #64748b;
+  cursor: not-allowed;
 }
 
 .master-form-grid {

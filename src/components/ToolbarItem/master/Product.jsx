@@ -6,6 +6,7 @@ import { listWarehouses } from '../../../features/master/warehouse/warehouse.api
 import { createProduct, deleteProduct, listProducts, updateProduct } from '../../../features/master/product/product.api'
 import { adjustStock } from '../../../features/laporan/stock/stock.api'
 import { getProductStock } from '../../../features/master/stock-opname/stockOpname.api'
+import { getPriceTier, updatePriceTier } from '../../../features/master/price-tier/priceTier.api'
 import { FooterMaster } from '../footer/FooterMaster'
 import { FooterFormMaster } from '../footer/FooterFormMaster'
 import { DeleteMaster } from '../footer/DeleteMaster'
@@ -26,6 +27,12 @@ const DEFAULT_FORM = {
   tax_rate: 0,
   reorder_point: 0,
 }
+
+const DEFAULT_PRICE_TIER = [
+  { tier_name: 'Grosir 1', min_quantity: 1, unit_price: 0 },
+  { tier_name: 'Grosir 2', min_quantity: 1, unit_price: 0 },
+  { tier_name: 'Grosir 3', min_quantity: 1, unit_price: 0 },
+]
 
 const DUMMY_CATEGORIES = [
   { id: 'CAT001', name: 'Makanan' },
@@ -142,7 +149,8 @@ export function Product({ onExit }) {
   const [showForm, setShowForm] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [showExitConfirm, setShowExitConfirm] = useState(false)
-  const [showAdjustStock, setShowAdjustStock] = useState(false)
+  const [activeTab, setActiveTab] = useState('general')
+  const [priceTierData, setPriceTierData] = useState(DEFAULT_PRICE_TIER)
   const [adjustForm, setAdjustForm] = useState({
     warehouse_id: '',
     reason: '',
@@ -342,19 +350,19 @@ export function Product({ onExit }) {
   }, [token])
 
   useEffect(() => {
-    if (showAdjustStock && token && warehouses.length === 0) {
+    if (activeTab === 'adjustStock' && token && warehouses.length === 0) {
       fetchWarehouses()
     }
-  }, [showAdjustStock, token, warehouses.length, fetchWarehouses])
+  }, [activeTab, token, warehouses.length, fetchWarehouses])
 
   useEffect(() => {
-    if (showAdjustStock && selectedItem && token) {
+    if (activeTab === 'adjustStock' && selectedItem && token) {
       const warehouseId = adjustForm.warehouse_id || warehouses[0]?.id
       if (warehouseId) {
         fetchSystemStock(selectedItem.id, warehouseId)
       }
     }
-  }, [showAdjustStock, selectedItem, token, adjustForm.warehouse_id, warehouses, fetchSystemStock])
+  }, [activeTab, selectedItem, token, adjustForm.warehouse_id, warehouses, fetchSystemStock])
 
   function handleSearchChange(value) {
     pager.reset()
@@ -413,8 +421,8 @@ export function Product({ onExit }) {
           await fetchData()
         }
         
-        // Handle stock adjustment if enabled
-        if (showAdjustStock && selectedItem) {
+        // Handle stock adjustment if on adjustStock tab
+        if (activeTab === 'adjustStock' && selectedItem) {
           if (!adjustForm.warehouse_id) {
             setError('Warehouse is required for stock adjustment')
             setIsSaving(false)
@@ -438,8 +446,25 @@ export function Product({ onExit }) {
             quantity: Math.abs(variance),
             reason: adjustForm.reason,
           })
-          setShowAdjustStock(false)
           setAdjustForm({ warehouse_id: '', reason: '', system_stock: 0, physical_stock: 0 })
+        }
+        
+        // Save price tiers
+        const validTiers = priceTierData.filter(t => t.unit_price > 0)
+        if (validTiers.length > 0) {
+          try {
+            const priceTierPayload = {
+              product_id: selectedItem?.id,
+              tiers: validTiers.map(t => ({
+                tier_name: t.tier_name,
+                min_quantity: Number(t.min_quantity || 1),
+                unit_price: Number(t.unit_price || 0),
+              })),
+            }
+            await updatePriceTier(token, selectedItem.id, priceTierPayload)
+          } catch (err) {
+            console.error('[Product] Failed to save price tier:', err)
+          }
         }
         
         // For update: skip fetchData to preserve optimistic updates
@@ -470,6 +495,8 @@ export function Product({ onExit }) {
   function handleNew() {
     setSelectedId(null)
     setForm(DEFAULT_FORM)
+    setActiveTab('general')
+    setPriceTierData(DEFAULT_PRICE_TIER)
     setShowForm(true)
   }
 
@@ -490,7 +517,36 @@ export function Product({ onExit }) {
       tax_rate: Number(target.tax_rate || 0),
       reorder_point: Number(target.reorder_point || 0),
     })
+    setActiveTab('general')
+    setPriceTierData(DEFAULT_PRICE_TIER)
+    
+    if (token && target.id) {
+      loadPriceTierData(target.id)
+    }
+    
     setShowForm(true)
+  }
+
+  async function loadPriceTierData(productId) {
+    try {
+      const result = await getPriceTier(token, productId)
+      if (result.data && Array.isArray(result.data)) {
+        const tiers = [...DEFAULT_PRICE_TIER]
+        result.data.forEach((tier, idx) => {
+          if (idx < 3) {
+            tiers[idx] = {
+              tier_name: tier.tier_name || `Grosir ${idx + 1}`,
+              min_quantity: Number(tier.min_quantity || 1),
+              unit_price: Number(tier.unit_price || 0),
+            }
+          }
+        })
+        setPriceTierData(tiers)
+      }
+    } catch (err) {
+      console.error('[Product] Failed to load price tier:', err)
+      setPriceTierData(DEFAULT_PRICE_TIER)
+    }
   }
 
   function handleDeleteClick() {
@@ -544,7 +600,8 @@ export function Product({ onExit }) {
   function handleCancelForm() {
     setShowForm(false)
     setForm(DEFAULT_FORM)
-    setShowAdjustStock(false)
+    setActiveTab('general')
+    setPriceTierData(DEFAULT_PRICE_TIER)
     setAdjustForm({ warehouse_id: '', reason: '', system_stock: 0, physical_stock: 0 })
   }
 
@@ -656,142 +713,284 @@ export function Product({ onExit }) {
           <div className="master-form-header">
             <span className="material-icons-round master-form-icon">inventory_2</span>
             <h2 className="master-form-title">{selectedItem ? 'Ubah Data Product' : 'Isi Data Product'}</h2>
+            <div className="product-form-tabs">
+              <button
+                type="button"
+                className={`product-form-tab ${activeTab === 'general' ? 'active' : ''}`}
+                onClick={() => setActiveTab('general')}
+              >
+                General
+              </button>
+              {selectedItem && (
+                <>
+                  <button
+                    type="button"
+                    className={`product-form-tab ${activeTab === 'adjustStock' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('adjustStock')}
+                  >
+                    Adjust Stock
+                  </button>
+                  <button
+                    type="button"
+                    className={`product-form-tab ${activeTab === 'hargaGrosir' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('hargaGrosir')}
+                  >
+                    Harga Grosir
+                  </button>
+                </>
+              )}
+            </div>
           </div>
-          <div className="master-form-grid">
-            <div className="master-form-group">
-              <label className="master-form-label">SKU :</label>
-              <input type="text" value={form.sku} onChange={(e) => setForm({ ...form, sku: e.target.value })} className="master-form-input" />
-            </div>
-            <div className="master-form-group">
-              <label className="master-form-label">Barcode :</label>
-              <input type="text" value={form.barcode} onChange={(e) => setForm({ ...form, barcode: e.target.value })} className="master-form-input" />
-            </div>
-            <div className="master-form-group-wide">
-              <label className="master-form-label">Nama :</label>
-              <input type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="master-form-input" />
-            </div>
-            <div className="master-form-group-wide">
-              <label className="master-form-label">Deskripsi :</label>
-              <input type="text" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className="master-form-input" />
-            </div>
-            <div className="master-form-group">
-              <label className="master-form-label">Category :</label>
-              <select value={form.category_id} onChange={(e) => setForm({ ...form, category_id: e.target.value })} className="master-form-input">
-                <option value="">(none)</option>
-                {categories.map((item) => (
-                  <option key={item.id} value={item.id}>{item.name}</option>
-                ))}
-              </select>
-            </div>
-            <div className="master-form-group">
-              <label className="master-form-label">Unit :</label>
-              <select value={form.unit_id} onChange={(e) => setForm({ ...form, unit_id: e.target.value })} className="master-form-input">
-                <option value="">Select unit...</option>
-                {units.map((item) => (
-                  <option key={item.id} value={item.id}>{item.name}</option>
-                ))}
-              </select>
-            </div>
-            <div className="master-form-group">
-              <label className="master-form-label">Cost :</label>
-              <input type="number" value={form.cost_price} onChange={(e) => setForm({ ...form, cost_price: Number(e.target.value) })} className="master-form-input" />
-            </div>
-            <div className="master-form-group">
-              <label className="master-form-label">Retail :</label>
-              <input type="number" value={form.retail_price} onChange={(e) => setForm({ ...form, retail_price: Number(e.target.value) })} className="master-form-input" />
-            </div>
-            <div className="master-form-group">
-              <label className="master-form-label">Tax Rate :</label>
-              <input type="number" value={form.tax_rate} onChange={(e) => setForm({ ...form, tax_rate: Number(e.target.value) })} className="master-form-input" />
-            </div>
-            <div className="master-form-group">
-              <label className="master-form-label">Reorder :</label>
-              <input type="number" value={form.reorder_point} onChange={(e) => setForm({ ...form, reorder_point: Number(e.target.value) })} className="master-form-input" />
-            </div>
-            {showAdjustStock && (
-              <div className="master-form-section">
-                <div className="master-form-group-wide">
-                  <label className="master-form-label">Warehouse *:</label>
-                  <select
-                    value={adjustForm.warehouse_id}
-                    onChange={(e) => {
-                      setAdjustForm({ ...adjustForm, warehouse_id: e.target.value, system_stock: 0, physical_stock: 0 })
-                      if (selectedItem && token) {
-                        fetchSystemStock(selectedItem.id, e.target.value)
-                      }
-                    }}
-                    className="master-form-input"
-                  >
-                    <option value="">Select warehouse...</option>
-                    {warehouses.map((warehouse) => (
-                      <option key={warehouse.id} value={warehouse.id}>
-                        {warehouse.name || warehouse.code || '-'}
-                      </option>
-                    ))}
-                  </select>
-                  {adjustForm.warehouse_id && (
-                    <div className="master-form-info-text">
-                      System Stock: <span className="text-blue">{adjustForm.system_stock} {selectedItem?.unit_name || selectedItem?.unit?.name || '-'}</span>
-                    </div>
-                  )}
-                </div>
-                <div className="master-form-group-wide">
-                  <label className="master-form-label">Physical Stock *:</label>
-                  <input
-                    type="number"
-                    value={adjustForm.physical_stock}
-                    onChange={(e) => setAdjustForm({ ...adjustForm, physical_stock: Number(e.target.value) })}
-                    className="master-form-input"
-                    placeholder="Enter physical stock..."
-                  />
-                  {adjustForm.physical_stock > 0 && (
-                    <div className="master-form-info-text">
-                      Variance: <span className={`text-orange ${variance < 0 ? 'text-red' : ''}`}>{variance} {selectedItem?.unit_name || selectedItem?.unit?.name || '-'}</span>
-                    </div>
-                  )}
-                </div>
-                <div className="master-form-group">
-                  <label className="master-form-label">Reason *:</label>
-                  <select
-                    value={adjustForm.reason}
-                    onChange={(e) => setAdjustForm({ ...adjustForm, reason: e.target.value })}
-                    className="master-form-input"
-                  >
-                    <option value="">Select reason...</option>
-                    {ADJUST_REASON_OPTIONS.map((option) => (
-                      <option key={option.value} value={option.value}>{option.label}</option>
-                    ))}
-                  </select>
-                </div>
+          
+          {activeTab === 'general' && (
+            <div className="master-form-grid">
+              <div className="master-form-group">
+                <label className="master-form-label">SKU :</label>
+                <input type="text" value={form.sku} onChange={(e) => setForm({ ...form, sku: e.target.value })} className="master-form-input" />
               </div>
-            )}
+              <div className="master-form-group">
+                <label className="master-form-label">Barcode :</label>
+                <input type="text" value={form.barcode} onChange={(e) => setForm({ ...form, barcode: e.target.value })} className="master-form-input" />
+              </div>
+              <div className="master-form-group-wide">
+                <label className="master-form-label">Nama :</label>
+                <input type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="master-form-input" />
+              </div>
+              <div className="master-form-group-wide">
+                <label className="master-form-label">Deskripsi :</label>
+                <input type="text" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className="master-form-input" />
+              </div>
+              <div className="master-form-group">
+                <label className="master-form-label">Category :</label>
+                <select value={form.category_id} onChange={(e) => setForm({ ...form, category_id: e.target.value })} className="master-form-input">
+                  <option value="">(none)</option>
+                  {categories.map((item) => (
+                    <option key={item.id} value={item.id}>{item.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="master-form-group">
+                <label className="master-form-label">Unit :</label>
+                <select value={form.unit_id} onChange={(e) => setForm({ ...form, unit_id: e.target.value })} className="master-form-input">
+                  <option value="">Select unit...</option>
+                  {units.map((item) => (
+                    <option key={item.id} value={item.id}>{item.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="master-form-group">
+                <label className="master-form-label">Cost :</label>
+                <input type="number" value={form.cost_price} onChange={(e) => setForm({ ...form, cost_price: Number(e.target.value) })} className="master-form-input" />
+              </div>
+              <div className="master-form-group">
+                <label className="master-form-label">Harga Jual :</label>
+                <input type="number" value={form.retail_price} onChange={(e) => setForm({ ...form, retail_price: Number(e.target.value) })} className="master-form-input" />
+              </div>
+              <div className="master-form-group">
+                <label className="master-form-label">Tax Rate :</label>
+                <input type="number" value={form.tax_rate} onChange={(e) => setForm({ ...form, tax_rate: Number(e.target.value) })} className="master-form-input" />
+              </div>
+              <div className="master-form-group">
+                <label className="master-form-label">Reorder :</label>
+                <input type="number" value={form.reorder_point} onChange={(e) => setForm({ ...form, reorder_point: Number(e.target.value) })} className="master-form-input" />
+              </div>
+            </div>
+          )}
 
-            <FooterFormMaster
-              onSave={handleSave}
-              onCancel={handleCancelForm}
-              isSaving={isSaving}
-              leftButtons={
-                selectedItem && (
-                <button
-                  type="button"
-                  className={`user-password-toggle ${showAdjustStock ? 'is-on' : 'is-off'}`}
-                  onClick={() => {
-                    setShowAdjustStock((prev) => {
-                      const next = !prev
-                      if (next && token) {
-                        fetchWarehouses()
-                      }
-                      return next
-                    })
+          {activeTab === 'adjustStock' && (
+            <div className="master-form-grid">
+             <div className="master-form-group"></div>
+              <div className="master-form-group">
+                <label className="master-form-label">SKU :</label>
+                <input type="text" value={form.sku} readOnly className="master-form-input master-form-input-readonly" />
+              </div>
+              <div className="master-form-group">
+                <label className="master-form-label">Nama Product :</label>
+                <input type="text" value={form.name} readOnly className="master-form-input master-form-input-readonly" />
+              </div>
+                <div className="master-form-group"></div>
+                <div className="master-form-group"></div>
+                <div className="master-form-group"></div>
+               
+              <div className="master-form-group-wide">
+                <label className="master-form-label">Warehouse *:      {adjustForm.warehouse_id && (
+                  <span className="master-form-info-text">
+                    System Stock: <span className="text-blue">{adjustForm.system_stock} {selectedItem?.unit_name || selectedItem?.unit?.name || '-'}</span>
+                  </span>
+                )}</label>
+                <select
+                  value={adjustForm.warehouse_id}
+                  onChange={(e) => {
+                    setAdjustForm({ ...adjustForm, warehouse_id: e.target.value, system_stock: 0, physical_stock: 0 })
+                    if (selectedItem && token) {
+                      fetchSystemStock(selectedItem.id, e.target.value)
+                    }
                   }}
-                  title="Adjust Stock"
+                  className="master-form-input"
                 >
-                  Adjust Stock
-                </button>
-                )
-              }
-            />
-          </div>
+                  <option value="">Select warehouse...</option>
+                  {warehouses.map((warehouse) => (
+                    <option key={warehouse.id} value={warehouse.id}>
+                      {warehouse.name || warehouse.code || '-'}
+                    </option>
+                  ))}
+                </select>
+           
+              </div>
+              <div className="master-form-group-wide">
+                <label className="master-form-label">Physical Stock *: {adjustForm.physical_stock > 0 && (
+                  <span className="master-form-info-text">
+                    Variance: <span className={`text-orange ${variance < 0 ? 'text-red' : ''}`}>{variance} {selectedItem?.unit_name || selectedItem?.unit?.name || '-'}</span>
+                  </span>
+                )}</label>
+                <input
+                  type="number"
+                  value={adjustForm.physical_stock}
+                  onChange={(e) => setAdjustForm({ ...adjustForm, physical_stock: Number(e.target.value) })}
+                  className="master-form-input"
+                  placeholder="Enter physical stock..."
+                />
+               
+              </div>
+              <div className="master-form-group">
+                <label className="master-form-label">Reason *:</label>
+                <select
+                  value={adjustForm.reason}
+                  onChange={(e) => setAdjustForm({ ...adjustForm, reason: e.target.value })}
+                  className="master-form-input"
+                >
+                  <option value="">Select reason...</option>
+                  {ADJUST_REASON_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>{option.label}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+      
+
+            
+          )}
+
+          {activeTab === 'hargaGrosir' && (
+            <div className="master-form-grid">
+              <div className="master-form-group"></div>
+              <div className="master-form-group">
+                <label className="master-form-label">SKU :</label>
+                <input type="text" value={form.sku} readOnly className="master-form-input master-form-input-readonly" />
+              </div>
+              <div className="master-form-group">
+                <label className="master-form-label">Nama Product :</label>
+                <input type="text" value={form.name} readOnly className="master-form-input master-form-input-readonly" />
+              </div>
+              
+              <div className="master-form-group"></div>
+              <div className="master-form-group"></div>
+              <div className="master-form-group"></div>
+              <div className="master-form-group">
+                <label className="master-form-label">Harga Grosir 1 /Qty:</label>
+                <input
+                  type="number"
+                  value={priceTierData[0].unit_price}
+                  onChange={(e) => {
+                    const newData = [...priceTierData]
+                    newData[0] = { ...newData[0], unit_price: Number(e.target.value) }
+                    setPriceTierData(newData)
+                  }}
+                  className="master-form-input"
+                  placeholder="Harga..."
+                />/
+ <input
+                  type="number"
+                  value={priceTierData[1].unit_price}
+                  onChange={(e) => {
+                    const newData = [...priceTierData]
+                    newData[1] = { ...newData[1], unit_price: Number(e.target.value) }
+                    setPriceTierData(newData)
+                  }}
+                  className="master-form-input"
+                  placeholder="Harga..."
+                />
+                
+              </div>
+              <div className="master-form-group">
+                <label className="master-form-label">Qty 1 :</label>
+                <input
+                  type="number"
+                  value={priceTierData[0].min_quantity}
+                  onChange={(e) => {
+                    const newData = [...priceTierData]
+                    newData[0] = { ...newData[0], min_quantity: Number(e.target.value) }
+                    setPriceTierData(newData)
+                  }}
+                  className="master-form-input"
+                  placeholder="Min qty..."
+                />
+                
+              </div>
+              <div className="master-form-group">
+                <label className="master-form-label">Harga Grosir 2 :</label>
+                <input
+                  type="number"
+                  value={priceTierData[1].unit_price}
+                  onChange={(e) => {
+                    const newData = [...priceTierData]
+                    newData[1] = { ...newData[1], unit_price: Number(e.target.value) }
+                    setPriceTierData(newData)
+                  }}
+                  className="master-form-input"
+                  placeholder="Harga..."
+                />
+              </div>
+              <div className="master-form-group">
+                <label className="master-form-label">Qty 2 :</label>
+                <input
+                  type="number"
+                  value={priceTierData[1].min_quantity}
+                  onChange={(e) => {
+                    const newData = [...priceTierData]
+                    newData[1] = { ...newData[1], min_quantity: Number(e.target.value) }
+                    setPriceTierData(newData)
+                  }}
+                  className="master-form-input"
+                  placeholder="Min qty..."
+                />
+              </div>
+              <div className="master-form-group">
+                <label className="master-form-label">Harga Grosir 3 :</label>
+                <input
+                  type="number"
+                  value={priceTierData[2].unit_price}
+                  onChange={(e) => {
+                    const newData = [...priceTierData]
+                    newData[2] = { ...newData[2], unit_price: Number(e.target.value) }
+                    setPriceTierData(newData)
+                  }}
+                  className="master-form-input"
+                  placeholder="Harga..."
+                />
+              </div>
+              <div className="master-form-group">
+                <label className="master-form-label">Qty 3 :</label>
+                <input
+                  type="number"
+                  value={priceTierData[2].min_quantity}
+                  onChange={(e) => {
+                    const newData = [...priceTierData]
+                    newData[2] = { ...newData[2], min_quantity: Number(e.target.value) }
+                    setPriceTierData(newData)
+                  }}
+                  className="master-form-input"
+                  placeholder="Min qty..."
+                />
+              </div>
+            </div>
+          )}
+
+          <FooterFormMaster
+            onSave={handleSave}
+            onCancel={handleCancelForm}
+            isSaving={isSaving}
+          />
         </div>
       )}
 
