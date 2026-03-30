@@ -1,11 +1,13 @@
 ## BUG
-- product tidak bisa tambah stock
+- product tidak bisa tambah stock  (fix)
 ## TODO
 - connect telegram
-- form diskon
+- harga promo
 - setting printer thermal dan dot matrix
 - Help POS
-, 
+- update logo pos
+- harga grosir
+-  
 
 ## ON PROGRESS
 

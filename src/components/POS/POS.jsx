@@ -704,6 +704,31 @@ export function POS() {
               setIsLoadingProducts(false)
             }
           }
+        } else if (search.trim()) {
+          setIsLoadingProducts(true)
+          try {
+            const result = await listProducts(auth.token, { search: search.trim(), limit: 50 })
+            const products = result.items.map(p => ({
+              id: p.id,
+              name: p.name,
+              unit: p.unit_name || p.unit || 'Pcs',
+              price: p.retail_price || 0,
+            }))
+            if (products.length === 1) {
+              handleSelectProduct(products[0])
+            } else if (products.length > 1) {
+              setProductResults(products)
+              setPopupSelectedIndex(0)
+              setShowProductPopup(true)
+            } else {
+              setToast({ isOpen: true, message: 'Produk tidak ditemukan', type: 'warning' })
+            }
+          } catch (err) {
+            console.error('Failed to load products:', err)
+            setProductResults([])
+          } finally {
+            setIsLoadingProducts(false)
+          }
         } else if (search === '' && items.length > 0) {
           setShowActionPopup(true)
           setActionPopupIndex(0)
