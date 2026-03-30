@@ -886,7 +886,7 @@ export function Product({ onExit }) {
                          <div className="master-form-group"></div>
                       
               <div className="master-form-group">
-                <label className="master-form-label">Harga Grosir 1 :</label>
+                <label className="master-form-label">Harga Grosir 1 / Qty :</label>
                 <div className="price-qty-row">
                   <input
                     type="number"
@@ -896,7 +896,7 @@ export function Product({ onExit }) {
                       newData[0] = { ...newData[0], unit_price: Number(e.target.value) }
                       setPriceTierData(newData)
                     }}
-                    className="master-form-input"
+                    className="master-form-input price-input"
                     placeholder="Harga..."
                   />
                   <span className="price-qty-separator">/</span>
@@ -908,13 +908,13 @@ export function Product({ onExit }) {
                       newData[0] = { ...newData[0], min_quantity: Number(e.target.value) }
                       setPriceTierData(newData)
                     }}
-                    className="master-form-input"
+                    className="master-form-input qty-input"
                     placeholder="Qty..."
                   />
                 </div>
               </div>
               <div className="master-form-group">
-                <label className="master-form-label">Harga Grosir 2 :</label>
+                <label className="master-form-label">Harga Grosir 2 / Qty :</label>
                 <div className="price-qty-row">
                   <input
                     type="number"
@@ -924,7 +924,7 @@ export function Product({ onExit }) {
                       newData[1] = { ...newData[1], unit_price: Number(e.target.value) }
                       setPriceTierData(newData)
                     }}
-                    className="master-form-input"
+                    className="master-form-input price-input"
                     placeholder="Harga..."
                   />
                   <span className="price-qty-separator">/</span>
@@ -936,13 +936,13 @@ export function Product({ onExit }) {
                       newData[1] = { ...newData[1], min_quantity: Number(e.target.value) }
                       setPriceTierData(newData)
                     }}
-                    className="master-form-input"
+                    className="master-form-input qty-input"
                     placeholder="Qty..."
                   />
                 </div>
               </div>
               <div className="master-form-group">
-                <label className="master-form-label">Harga Grosir 3 :</label>
+                <label className="master-form-label">Harga Grosir 3 / Qty :</label>
                 <div className="price-qty-row">
                   <input
                     type="number"
@@ -952,7 +952,7 @@ export function Product({ onExit }) {
                       newData[2] = { ...newData[2], unit_price: Number(e.target.value) }
                       setPriceTierData(newData)
                     }}
-                    className="master-form-input"
+                    className="master-form-input price-input"
                     placeholder="Harga..."
                   />
                   <span className="price-qty-separator">/</span>
@@ -964,7 +964,7 @@ export function Product({ onExit }) {
                       newData[2] = { ...newData[2], min_quantity: Number(e.target.value) }
                       setPriceTierData(newData)
                     }}
-                    className="master-form-input"
+                    className="master-form-input qty-input"
                     placeholder="Qty..."
                   />
                 </div>

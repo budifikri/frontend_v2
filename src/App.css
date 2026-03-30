@@ -1076,6 +1076,15 @@ body.has-wallpaper .cash-register {
   gap: 4px;
 }
 
+.price-input {
+  flex: 1;
+}
+
+.qty-input {
+  flex: 4;
+}
+
+
 .price-qty-row .master-form-input {
   flex: 1;
   min-width: 0;
