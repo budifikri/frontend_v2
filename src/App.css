@@ -1070,6 +1070,23 @@ body.has-wallpaper .cash-register {
   cursor: not-allowed;
 }
 
+.price-qty-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.price-qty-row .master-form-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.price-qty-separator {
+  color: #64748b;
+  font-weight: 500;
+  padding: 0 4px;
+}
+
 .master-form-grid {
   display: grid;
   grid-template-columns: 150px 2fr 2fr 2fr 2fr   ;

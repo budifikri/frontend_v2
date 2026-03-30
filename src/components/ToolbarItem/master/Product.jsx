@@ -872,8 +872,7 @@ export function Product({ onExit }) {
           )}
 
           {activeTab === 'hargaGrosir' && (
-            <div className="master-form-grid">
-              <div className="master-form-group"></div>
+            <div className="master-form-grid">   <div className="master-form-group"></div>
               <div className="master-form-group">
                 <label className="master-form-label">SKU :</label>
                 <input type="text" value={form.sku} readOnly className="master-form-input master-form-input-readonly" />
@@ -882,106 +881,93 @@ export function Product({ onExit }) {
                 <label className="master-form-label">Nama Product :</label>
                 <input type="text" value={form.name} readOnly className="master-form-input master-form-input-readonly" />
               </div>
-              
-              <div className="master-form-group"></div>
-              <div className="master-form-group"></div>
-              <div className="master-form-group"></div>
+                  <div className="master-form-group"></div>
+                      <div className="master-form-group"></div>
+                         <div className="master-form-group"></div>
+                      
               <div className="master-form-group">
-                <label className="master-form-label">Harga Grosir 1 /Qty:</label>
-                <input
-                  type="number"
-                  value={priceTierData[0].unit_price}
-                  onChange={(e) => {
-                    const newData = [...priceTierData]
-                    newData[0] = { ...newData[0], unit_price: Number(e.target.value) }
-                    setPriceTierData(newData)
-                  }}
-                  className="master-form-input"
-                  placeholder="Harga..."
-                />/
- <input
-                  type="number"
-                  value={priceTierData[1].unit_price}
-                  onChange={(e) => {
-                    const newData = [...priceTierData]
-                    newData[1] = { ...newData[1], unit_price: Number(e.target.value) }
-                    setPriceTierData(newData)
-                  }}
-                  className="master-form-input"
-                  placeholder="Harga..."
-                />
-                
-              </div>
-              <div className="master-form-group">
-                <label className="master-form-label">Qty 1 :</label>
-                <input
-                  type="number"
-                  value={priceTierData[0].min_quantity}
-                  onChange={(e) => {
-                    const newData = [...priceTierData]
-                    newData[0] = { ...newData[0], min_quantity: Number(e.target.value) }
-                    setPriceTierData(newData)
-                  }}
-                  className="master-form-input"
-                  placeholder="Min qty..."
-                />
-                
+                <label className="master-form-label">Harga Grosir 1 :</label>
+                <div className="price-qty-row">
+                  <input
+                    type="number"
+                    value={priceTierData[0].unit_price}
+                    onChange={(e) => {
+                      const newData = [...priceTierData]
+                      newData[0] = { ...newData[0], unit_price: Number(e.target.value) }
+                      setPriceTierData(newData)
+                    }}
+                    className="master-form-input"
+                    placeholder="Harga..."
+                  />
+                  <span className="price-qty-separator">/</span>
+                  <input
+                    type="number"
+                    value={priceTierData[0].min_quantity}
+                    onChange={(e) => {
+                      const newData = [...priceTierData]
+                      newData[0] = { ...newData[0], min_quantity: Number(e.target.value) }
+                      setPriceTierData(newData)
+                    }}
+                    className="master-form-input"
+                    placeholder="Qty..."
+                  />
+                </div>
               </div>
               <div className="master-form-group">
                 <label className="master-form-label">Harga Grosir 2 :</label>
-                <input
-                  type="number"
-                  value={priceTierData[1].unit_price}
-                  onChange={(e) => {
-                    const newData = [...priceTierData]
-                    newData[1] = { ...newData[1], unit_price: Number(e.target.value) }
-                    setPriceTierData(newData)
-                  }}
-                  className="master-form-input"
-                  placeholder="Harga..."
-                />
-              </div>
-              <div className="master-form-group">
-                <label className="master-form-label">Qty 2 :</label>
-                <input
-                  type="number"
-                  value={priceTierData[1].min_quantity}
-                  onChange={(e) => {
-                    const newData = [...priceTierData]
-                    newData[1] = { ...newData[1], min_quantity: Number(e.target.value) }
-                    setPriceTierData(newData)
-                  }}
-                  className="master-form-input"
-                  placeholder="Min qty..."
-                />
+                <div className="price-qty-row">
+                  <input
+                    type="number"
+                    value={priceTierData[1].unit_price}
+                    onChange={(e) => {
+                      const newData = [...priceTierData]
+                      newData[1] = { ...newData[1], unit_price: Number(e.target.value) }
+                      setPriceTierData(newData)
+                    }}
+                    className="master-form-input"
+                    placeholder="Harga..."
+                  />
+                  <span className="price-qty-separator">/</span>
+                  <input
+                    type="number"
+                    value={priceTierData[1].min_quantity}
+                    onChange={(e) => {
+                      const newData = [...priceTierData]
+                      newData[1] = { ...newData[1], min_quantity: Number(e.target.value) }
+                      setPriceTierData(newData)
+                    }}
+                    className="master-form-input"
+                    placeholder="Qty..."
+                  />
+                </div>
               </div>
               <div className="master-form-group">
                 <label className="master-form-label">Harga Grosir 3 :</label>
-                <input
-                  type="number"
-                  value={priceTierData[2].unit_price}
-                  onChange={(e) => {
-                    const newData = [...priceTierData]
-                    newData[2] = { ...newData[2], unit_price: Number(e.target.value) }
-                    setPriceTierData(newData)
-                  }}
-                  className="master-form-input"
-                  placeholder="Harga..."
-                />
-              </div>
-              <div className="master-form-group">
-                <label className="master-form-label">Qty 3 :</label>
-                <input
-                  type="number"
-                  value={priceTierData[2].min_quantity}
-                  onChange={(e) => {
-                    const newData = [...priceTierData]
-                    newData[2] = { ...newData[2], min_quantity: Number(e.target.value) }
-                    setPriceTierData(newData)
-                  }}
-                  className="master-form-input"
-                  placeholder="Min qty..."
-                />
+                <div className="price-qty-row">
+                  <input
+                    type="number"
+                    value={priceTierData[2].unit_price}
+                    onChange={(e) => {
+                      const newData = [...priceTierData]
+                      newData[2] = { ...newData[2], unit_price: Number(e.target.value) }
+                      setPriceTierData(newData)
+                    }}
+                    className="master-form-input"
+                    placeholder="Harga..."
+                  />
+                  <span className="price-qty-separator">/</span>
+                  <input
+                    type="number"
+                    value={priceTierData[2].min_quantity}
+                    onChange={(e) => {
+                      const newData = [...priceTierData]
+                      newData[2] = { ...newData[2], min_quantity: Number(e.target.value) }
+                      setPriceTierData(newData)
+                    }}
+                    className="master-form-input"
+                    placeholder="Qty..."
+                  />
+                </div>
               </div>
             </div>
           )}
