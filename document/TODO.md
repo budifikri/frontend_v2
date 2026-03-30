@@ -1,8 +1,12 @@
+## BUG
+- product tidak bisa tambah stock
 ## TODO
 - connect telegram
 - form diskon
 - setting printer thermal dan dot matrix
 - Help POS
+, 
+
 ## ON PROGRESS
 
 

@@ -86,6 +86,9 @@ export function POS() {
   const [receiptSettingsDraft, setReceiptSettingsDraft] = useState(DEFAULT_RECEIPT_SETTINGS)
   const [companyProfile, setCompanyProfile] = useState({ name: '', address: '', phone: '' })
   const wysiwygEditorRef = useRef(null)
+  const codeEditorRef = useRef(null)
+  const [showTemplateCode, setShowTemplateCode] = useState(false)
+  const [templateCodeHtml, setTemplateCodeHtml] = useState('')
   const [toast, setToast] = useState({ isOpen: false, message: '', type: 'info' })
 
   useEffect(() => {
@@ -572,6 +575,8 @@ export function POS() {
 
   const handleOpenReceiptSettings = useCallback(() => {
     setReceiptSettingsDraft(receiptSettings)
+    setShowTemplateCode(false)
+    setTemplateCodeHtml(receiptSettings.custom_template_html || '')
     setShowReceiptSettingsPopup(true)
   }, [receiptSettings])
 
@@ -1724,15 +1729,33 @@ export function POS() {
                               type="button"
                               className="receipt-template-btn"
                               onClick={() => {
-                                if (wysiwygEditorRef.current) {
-                                  setReceiptSettingsDraft((prev) => ({
-                                    ...prev,
-                                    custom_template_html: wysiwygEditorRef.current.innerHTML,
-                                  }))
-                                }
+                                const currentHtml = showTemplateCode
+                                  ? templateCodeHtml
+                                  : (wysiwygEditorRef.current?.innerHTML || receiptSettingsDraft.custom_template_html || '')
+                                setReceiptSettingsDraft((prev) => ({
+                                  ...prev,
+                                  custom_template_html: currentHtml,
+                                }))
+                                setTemplateCodeHtml(currentHtml)
                               }}
                             >
                               Apply
+                            </button>
+                            <button
+                              type="button"
+                              className="receipt-template-btn"
+                              onClick={() => {
+                                const currentHtml = showTemplateCode
+                                  ? templateCodeHtml
+                                  : (wysiwygEditorRef.current?.innerHTML || receiptSettingsDraft.custom_template_html || '')
+                                setTemplateCodeHtml(currentHtml)
+                                if (showTemplateCode && wysiwygEditorRef.current) {
+                                  wysiwygEditorRef.current.innerHTML = currentHtml
+                                }
+                                setShowTemplateCode((prev) => !prev)
+                              }}
+                            >
+                              {showTemplateCode ? 'Hide Code' : 'Code'}
                             </button>
                             <button
                               type="button"
@@ -1745,46 +1768,64 @@ export function POS() {
                                   ...prev,
                                   custom_template_html: DEFAULT_CUSTOM_TEMPLATE_HTML,
                                 }))
+                                setTemplateCodeHtml(DEFAULT_CUSTOM_TEMPLATE_HTML)
+                                if (codeEditorRef.current) {
+                                  codeEditorRef.current.focus()
+                                }
                               }}
                             >
                               Reset
                             </button>
                           </div>
                         </div>
-                        <div className="receipt-wysiwyg-toolbar">
-                          <button type="button" className="receipt-wysiwyg-btn" title="Bold" onMouseDown={(e) => { e.preventDefault(); if (wysiwygEditorRef.current) wysiwygEditorRef.current.focus(); document.execCommand('bold', false, null) }}>
-                            <strong>B</strong>
-                          </button>
-                          <button type="button" className="receipt-wysiwyg-btn" title="Italic" onMouseDown={(e) => { e.preventDefault(); if (wysiwygEditorRef.current) wysiwygEditorRef.current.focus(); document.execCommand('italic', false, null) }}>
-                            <em>I</em>
-                          </button>
-                          <button type="button" className="receipt-wysiwyg-btn" title="Underline" onMouseDown={(e) => { e.preventDefault(); if (wysiwygEditorRef.current) wysiwygEditorRef.current.focus(); document.execCommand('underline', false, null) }}>
-                            <u>U</u>
-                          </button>
-                          <span className="receipt-wysiwyg-sep" />
-                          <button type="button" className="receipt-wysiwyg-btn" title="Font Size Small" onMouseDown={(e) => { e.preventDefault(); if (wysiwygEditorRef.current) wysiwygEditorRef.current.focus(); document.execCommand('fontSize', false, '2') }} style={{ fontSize: '10px' }}>A</button>
-                          <button type="button" className="receipt-wysiwyg-btn" title="Font Size Normal" onMouseDown={(e) => { e.preventDefault(); if (wysiwygEditorRef.current) wysiwygEditorRef.current.focus(); document.execCommand('fontSize', false, '3') }} style={{ fontSize: '13px' }}>A</button>
-                          <span className="receipt-wysiwyg-sep" />
-                          <button type="button" className="receipt-wysiwyg-btn" title="Align Left" onMouseDown={(e) => { e.preventDefault(); if (wysiwygEditorRef.current) wysiwygEditorRef.current.focus(); document.execCommand('justifyLeft', false, null) }}>
-                            <span style={{ fontFamily: 'sans-serif' }}>&#8676;</span>
-                          </button>
-                          <button type="button" className="receipt-wysiwyg-btn" title="Align Center" onMouseDown={(e) => { e.preventDefault(); if (wysiwygEditorRef.current) wysiwygEditorRef.current.focus(); document.execCommand('justifyCenter', false, null) }}>
-                            <span style={{ fontFamily: 'sans-serif' }}>&#8596;</span>
-                          </button>
-                          <span className="receipt-wysiwyg-sep" />
-                          <button type="button" className="receipt-wysiwyg-btn" title="Insert Line Break" onMouseDown={(e) => { e.preventDefault(); if (wysiwygEditorRef.current) { wysiwygEditorRef.current.focus(); document.execCommand('insertHTML', false, '<br>') } }}>
-                            <span style={{ fontFamily: 'sans-serif', fontSize: '12px' }}>&#8629;</span>
-                          </button>
-                          <button type="button" className="receipt-wysiwyg-btn" title="Insert Line" onMouseDown={(e) => { e.preventDefault(); if (wysiwygEditorRef.current) { wysiwygEditorRef.current.focus(); document.execCommand('insertHTML', false, '<div class=&quot;tpl-garis&quot;></div>') } }}>
-                            <span style={{ fontFamily: 'sans-serif', fontSize: '12px' }}>&#9135;</span>
-                          </button>
-                        </div>
-                        <div
-                          ref={wysiwygEditorRef}
-                          className="receipt-wysiwyg-editor"
-                          contentEditable
-                          suppressContentEditableWarning
-                        />
+                        {!showTemplateCode ? (
+                          <>
+                            <div className="receipt-wysiwyg-toolbar">
+                              <button type="button" className="receipt-wysiwyg-btn" title="Bold" onMouseDown={(e) => { e.preventDefault(); if (wysiwygEditorRef.current) wysiwygEditorRef.current.focus(); document.execCommand('bold', false, null) }}>
+                                <strong>B</strong>
+                              </button>
+                              <button type="button" className="receipt-wysiwyg-btn" title="Italic" onMouseDown={(e) => { e.preventDefault(); if (wysiwygEditorRef.current) wysiwygEditorRef.current.focus(); document.execCommand('italic', false, null) }}>
+                                <em>I</em>
+                              </button>
+                              <button type="button" className="receipt-wysiwyg-btn" title="Underline" onMouseDown={(e) => { e.preventDefault(); if (wysiwygEditorRef.current) wysiwygEditorRef.current.focus(); document.execCommand('underline', false, null) }}>
+                                <u>U</u>
+                              </button>
+                              <span className="receipt-wysiwyg-sep" />
+                              <button type="button" className="receipt-wysiwyg-btn" title="Font Size Small" onMouseDown={(e) => { e.preventDefault(); if (wysiwygEditorRef.current) wysiwygEditorRef.current.focus(); document.execCommand('fontSize', false, '2') }} style={{ fontSize: '10px' }}>A</button>
+                              <button type="button" className="receipt-wysiwyg-btn" title="Font Size Normal" onMouseDown={(e) => { e.preventDefault(); if (wysiwygEditorRef.current) wysiwygEditorRef.current.focus(); document.execCommand('fontSize', false, '3') }} style={{ fontSize: '13px' }}>A</button>
+                              <span className="receipt-wysiwyg-sep" />
+                              <button type="button" className="receipt-wysiwyg-btn" title="Align Left" onMouseDown={(e) => { e.preventDefault(); if (wysiwygEditorRef.current) wysiwygEditorRef.current.focus(); document.execCommand('justifyLeft', false, null) }}>
+                                <span style={{ fontFamily: 'sans-serif' }}>&#8676;</span>
+                              </button>
+                              <button type="button" className="receipt-wysiwyg-btn" title="Align Center" onMouseDown={(e) => { e.preventDefault(); if (wysiwygEditorRef.current) wysiwygEditorRef.current.focus(); document.execCommand('justifyCenter', false, null) }}>
+                                <span style={{ fontFamily: 'sans-serif' }}>&#8596;</span>
+                              </button>
+                              <span className="receipt-wysiwyg-sep" />
+                              <button type="button" className="receipt-wysiwyg-btn" title="Insert Line Break" onMouseDown={(e) => { e.preventDefault(); if (wysiwygEditorRef.current) { wysiwygEditorRef.current.focus(); document.execCommand('insertHTML', false, '<br>') } }}>
+                                <span style={{ fontFamily: 'sans-serif', fontSize: '12px' }}>&#8629;</span>
+                              </button>
+                              <button type="button" className="receipt-wysiwyg-btn" title="Insert Line" onMouseDown={(e) => { e.preventDefault(); if (wysiwygEditorRef.current) { wysiwygEditorRef.current.focus(); document.execCommand('insertHTML', false, '<div class=&quot;tpl-garis&quot;></div>') } }}>
+                                <span style={{ fontFamily: 'sans-serif', fontSize: '12px' }}>&#9135;</span>
+                              </button>
+                            </div>
+                            <div
+                              ref={wysiwygEditorRef}
+                              className="receipt-wysiwyg-editor"
+                              contentEditable
+                              suppressContentEditableWarning
+                            />
+                          </>
+                        ) : (
+                          <div className="receipt-setting-code-panel">
+                            <textarea
+                              ref={codeEditorRef}
+                              className="receipt-setting-code-editor"
+                              value={templateCodeHtml}
+                              onChange={(e) => setTemplateCodeHtml(e.target.value)}
+                              spellCheck={false}
+                            />
+                          </div>
+                        )}
                       </div>
 
                       <div className="receipt-template-tokens">
@@ -1796,6 +1837,19 @@ export function POS() {
                               type="button"
                               className="receipt-template-token"
                               onClick={() => {
+                                if (showTemplateCode && codeEditorRef.current) {
+                                  const textarea = codeEditorRef.current
+                                  const start = textarea.selectionStart ?? templateCodeHtml.length
+                                  const end = textarea.selectionEnd ?? templateCodeHtml.length
+                                  const next = `${templateCodeHtml.slice(0, start)}${token}${templateCodeHtml.slice(end)}`
+                                  setTemplateCodeHtml(next)
+                                  setTimeout(() => {
+                                    textarea.focus()
+                                    const cursorPos = start + token.length
+                                    textarea.setSelectionRange(cursorPos, cursorPos)
+                                  }, 0)
+                                  return
+                                }
                                 if (wysiwygEditorRef.current) {
                                   wysiwygEditorRef.current.focus()
                                   const sel = window.getSelection()
@@ -1803,10 +1857,7 @@ export function POS() {
                                     sel.deleteFromDocument()
                                   }
                                   document.execCommand('insertHTML', false, token)
-                                  setReceiptSettingsDraft((prev) => ({
-                                    ...prev,
-                                    custom_template_html: wysiwygEditorRef.current.innerHTML,
-                                  }))
+                                  setTemplateCodeHtml(wysiwygEditorRef.current.innerHTML)
                                 }
                               }}
                             >
