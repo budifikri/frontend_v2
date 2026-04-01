@@ -881,13 +881,20 @@ export function Product({ onExit }) {
                 <label className="master-form-label">Nama Product :</label>
                 <input type="text" value={form.name} readOnly className="master-form-input master-form-input-readonly" />
               </div>
-                  <div className="master-form-group"></div>
+                  <div className="master-form-group">
+
+                     <label className="master-form-label">Harga Jual :</label>
+                <input type="number" value={form.retail_price} readOnly className="master-form-input master-form-input-readonly" />
+
+        
+           
+                  </div>
                       <div className="master-form-group"></div>
                          <div className="master-form-group"></div>
                       
               <div className="master-form-group">
                 <label className="master-form-label">Harga Grosir 1 / Qty :</label>
-                <div className="price-qty-row">
+                <div className="price-qty-row">Rp.
                   <input
                     type="number"
                     value={priceTierData[0].unit_price}
@@ -915,7 +922,7 @@ export function Product({ onExit }) {
               </div>
               <div className="master-form-group">
                 <label className="master-form-label">Harga Grosir 2 / Qty :</label>
-                <div className="price-qty-row">
+                <div className="price-qty-row">Rp.
                   <input
                     type="number"
                     value={priceTierData[1].unit_price}
@@ -943,7 +950,7 @@ export function Product({ onExit }) {
               </div>
               <div className="master-form-group">
                 <label className="master-form-label">Harga Grosir 3 / Qty :</label>
-                <div className="price-qty-row">
+                <div className="price-qty-row">Rp.
                   <input
                     type="number"
                     value={priceTierData[2].unit_price}
