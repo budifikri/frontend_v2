@@ -450,21 +450,16 @@ export function Product({ onExit }) {
         }
         
         // Save price tiers
-        const validTiers = priceTierData.filter(t => t.unit_price > 0)
-        if (validTiers.length > 0) {
-          try {
-            const priceTierPayload = {
-              product_id: selectedItem?.id,
-              tiers: validTiers.map(t => ({
-                tier_name: t.tier_name,
-                min_quantity: Number(t.min_quantity || 1),
-                unit_price: Number(t.unit_price || 0),
-              })),
-            }
-            await updatePriceTier(token, selectedItem.id, priceTierPayload)
-          } catch (err) {
-            console.error('[Product] Failed to save price tier:', err)
-          }
+        try {
+          const priceTierPayload = priceTierData.map(t => ({
+            tier_name: t.tier_name,
+            min_quantity: Number(t.min_quantity || 1),
+            unit_price: Number(t.unit_price || 0),
+          }))
+          console.log('[Product] Saving price tiers:', priceTierPayload)
+          await updatePriceTier(token, selectedItem.id, priceTierPayload)
+        } catch (err) {
+          console.error('[Product] Failed to save price tier:', err)
         }
         
         // For update: skip fetchData to preserve optimistic updates
@@ -530,22 +525,42 @@ export function Product({ onExit }) {
   async function loadPriceTierData(productId) {
     try {
       const result = await getPriceTier(token, productId)
-      if (result.data && Array.isArray(result.data)) {
+      console.log('[Product] Load price tier result:', result)
+      
+      let tiersArray = null
+      if (Array.isArray(result)) {
+        tiersArray = result
+      } else if (result?.data && Array.isArray(result.data)) {
+        tiersArray = result.data
+      } else if (result?.tiers && Array.isArray(result.tiers)) {
+        tiersArray = result.tiers
+      }
+      
+      if (tiersArray && tiersArray.length > 0) {
         const tiers = [...DEFAULT_PRICE_TIER]
-        result.data.forEach((tier, idx) => {
+        tiersArray.forEach((tier, idx) => {
           if (idx < 3) {
             tiers[idx] = {
               tier_name: tier.tier_name || `Grosir ${idx + 1}`,
-              min_quantity: Number(tier.min_quantity || 1),
-              unit_price: Number(tier.unit_price || 0),
+              min_quantity: Number(tier.min_quantity || tier.quantity || 1),
+              unit_price: Number(tier.unit_price || tier.price || 0),
             }
           }
         })
         setPriceTierData(tiers)
+        console.log('[Product] Price tier data loaded:', tiers)
+      } else {
+        console.log('[Product] No price tiers found, using defaults')
+        setPriceTierData(DEFAULT_PRICE_TIER)
       }
     } catch (err) {
-      console.error('[Product] Failed to load price tier:', err)
-      setPriceTierData(DEFAULT_PRICE_TIER)
+      if (err?.status === 404 || err?.message?.includes('not found')) {
+        console.log('[Product] Price tier not found, using defaults')
+        setPriceTierData(DEFAULT_PRICE_TIER)
+      } else {
+        console.error('[Product] Failed to load price tier:', err)
+        setPriceTierData(DEFAULT_PRICE_TIER)
+      }
     }
   }
 

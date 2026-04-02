@@ -31,3 +31,20 @@ coverage/
 *.njsproj
 *.sln
 *.sw?
+
+
+#Error
+dev*
+
+#PLAN
+PLAN*
+document/PLAN*
+
+#file tidak perlu
+.clinerules
+
+.env
+.playwright-mcp
+bash*
+debug*
+*.png
