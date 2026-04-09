@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useAuth } from '../../shared/auth'
 import { listProducts } from '../../features/master/product/product.api'
+import { getPriceTier } from '../../features/master/price-tier/priceTier.api'
 import { getCurrentCompany, listCompanies } from '../../features/master/company/company.api'
 import { listWarehouses } from '../../features/master/warehouse/warehouse.api'
 import { openCashDrawer, getCurrentCashDrawer, getCashDrawerSummary, closeCashDrawer, cashInDrawer, cashOutDrawer } from '../../features/transaksi/cash-drawer/cashDrawer.api'
@@ -90,6 +91,7 @@ export function POS() {
   const [showTemplateCode, setShowTemplateCode] = useState(false)
   const [templateCodeHtml, setTemplateCodeHtml] = useState('')
   const [toast, setToast] = useState({ isOpen: false, message: '', type: 'info' })
+  const priceTierCacheRef = useRef({})
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000)
@@ -422,6 +424,68 @@ export function POS() {
     })
   }, [])
 
+  const parsePriceTierRows = useCallback((raw) => {
+    let rows = []
+
+    if (Array.isArray(raw)) {
+      rows = raw
+    } else if (Array.isArray(raw?.data)) {
+      rows = raw.data
+    } else if (Array.isArray(raw?.data?.tiers)) {
+      rows = raw.data.tiers
+    } else if (Array.isArray(raw?.data?.data)) {
+      rows = raw.data.data
+    } else if (Array.isArray(raw?.tiers)) {
+      rows = raw.tiers
+    }
+
+    return rows
+      .map((tier) => ({
+        min_quantity: Number(tier?.min_quantity ?? tier?.quantity ?? tier?.min_qty ?? 0),
+        max_quantity: tier?.max_quantity === null || tier?.max_quantity === undefined ? null : Number(tier.max_quantity),
+        unit_price: Number(tier?.unit_price ?? tier?.price ?? 0),
+      }))
+      .filter((tier) => tier.min_quantity > 0 && tier.unit_price > 0)
+      .sort((a, b) => a.min_quantity - b.min_quantity)
+  }, [])
+
+  const resolveItemUnitPrice = useCallback((retailPrice, tiers, qty) => {
+    const baseRetailPrice = Number(retailPrice || 0)
+    const quantity = Number(qty || 0)
+    if (quantity <= 0 || !Array.isArray(tiers) || tiers.length === 0) {
+      return baseRetailPrice
+    }
+
+    let matchedTier = null
+    for (const tier of tiers) {
+      const min = Number(tier.min_quantity || 0)
+      const max = tier.max_quantity === null || tier.max_quantity === undefined ? null : Number(tier.max_quantity)
+      const inRange = quantity >= min && (max === null || quantity <= max)
+      if (inRange && (!matchedTier || min > matchedTier.min_quantity)) {
+        matchedTier = tier
+      }
+    }
+
+    return matchedTier ? Number(matchedTier.unit_price || baseRetailPrice) : baseRetailPrice
+  }, [])
+
+  const ensureProductPriceTiers = useCallback(async (productId) => {
+    if (!productId || !auth.token) return []
+
+    const cached = priceTierCacheRef.current[productId]
+    if (cached) return cached
+
+    try {
+      const result = await getPriceTier(auth.token, productId)
+      const tiers = parsePriceTierRows(result)
+      priceTierCacheRef.current[productId] = tiers
+      return tiers
+    } catch {
+      priceTierCacheRef.current[productId] = []
+      return []
+    }
+  }, [auth.token, parsePriceTierRows])
+
   const escapeHtml = useCallback((value) => {
     const text = String(value ?? '')
     return text
@@ -664,7 +728,7 @@ export function POS() {
       } else if (showPendingPopup && pendingNotes.length > 0) {
         handleRestorePending(pendingNotes[pendingSelectedIndex])
       } else if (showProductPopup && productResults.length > 0) {
-        handleSelectProduct(productResults[popupSelectedIndex])
+        await handleSelectProduct(productResults[popupSelectedIndex])
       } else if (showActionPopup) {
         handleActionSelect(actionPopupIndex)
       } else {
@@ -675,9 +739,25 @@ export function POS() {
             setItemToDelete({ index: selectedIndex, item: items[selectedIndex] })
             setShowDeleteConfirm(true)
           } else {
+            const selectedItemForQty = items[selectedIndex]
+            const loadedTiers = selectedItemForQty?.product_id
+              ? await ensureProductPriceTiers(selectedItemForQty.product_id)
+              : []
             setItems((prevItems) =>
               prevItems.map((item, idx) =>
-                idx === selectedIndex ? { ...item, qty: newQty } : item
+                idx === selectedIndex
+                  ? {
+                    ...item,
+                    qty: newQty,
+                    retail_price: Number(item.retail_price ?? item.price ?? 0),
+                    price_tiers: Array.isArray(item.price_tiers) ? item.price_tiers : loadedTiers,
+                    price: resolveItemUnitPrice(
+                      Number(item.retail_price ?? item.price ?? 0),
+                      Array.isArray(item.price_tiers) ? item.price_tiers : loadedTiers,
+                      newQty,
+                    ),
+                  }
+                  : item
               )
             )
           }
@@ -692,7 +772,8 @@ export function POS() {
                 id: p.id,
                 name: p.name,
                 unit: p.unit_name || p.unit || 'Pcs',
-                price: p.retail_price || 0,
+                retail_price: Number(p.retail_price || 0),
+                price: Number(p.retail_price || 0),
               }))
               setProductResults(products)
               setPopupSelectedIndex(0)
@@ -708,15 +789,16 @@ export function POS() {
           setIsLoadingProducts(true)
           try {
             const result = await listProducts(auth.token, { search: search.trim(), limit: 50 })
-            const products = result.items.map(p => ({
-              id: p.id,
-              name: p.name,
-              unit: p.unit_name || p.unit || 'Pcs',
-              price: p.retail_price || 0,
-            }))
-            if (products.length === 1) {
-              handleSelectProduct(products[0])
-            } else if (products.length > 1) {
+              const products = result.items.map(p => ({
+                id: p.id,
+                name: p.name,
+                unit: p.unit_name || p.unit || 'Pcs',
+                retail_price: Number(p.retail_price || 0),
+                price: Number(p.retail_price || 0),
+              }))
+              if (products.length === 1) {
+                await handleSelectProduct(products[0])
+              } else if (products.length > 1) {
               setProductResults(products)
               setPopupSelectedIndex(0)
               setShowProductPopup(true)
@@ -772,23 +854,40 @@ export function POS() {
     }
   }
 
-  const handleSelectProduct = (product) => {
+  const handleSelectProduct = async (product) => {
+    const retailPrice = Number(product?.retail_price ?? product?.price ?? 0)
+    const loadedTiers = Array.isArray(product?.price_tiers)
+      ? product.price_tiers
+      : await ensureProductPriceTiers(product.id)
+
     setItems((prev) => {
       const existingIndex = prev.findIndex((item) => item.name === product.name)
       if (existingIndex >= 0) {
-        const updated = prev.map((item, idx) =>
-          idx === existingIndex ? { ...item, qty: item.qty + 1 } : item
-        )
+        const updated = prev.map((item, idx) => {
+          if (idx !== existingIndex) return item
+          const nextQty = item.qty + 1
+          const tiers = Array.isArray(item.price_tiers) ? item.price_tiers : loadedTiers
+          return {
+            ...item,
+            qty: nextQty,
+            retail_price: Number(item.retail_price ?? retailPrice),
+            price_tiers: tiers,
+            price: resolveItemUnitPrice(Number(item.retail_price ?? retailPrice), tiers, nextQty),
+          }
+        })
         setSelectedIndex(existingIndex)
         return updated
       }
       const newIndex = prev.length
+      const unitPrice = resolveItemUnitPrice(retailPrice, loadedTiers, 1)
       const newItem = {
         id: `${product.id}-${newIndex}`,
         product_id: product.id,
         name: product.name,
         qty: 1,
-        price: product.price,
+        retail_price: retailPrice,
+        price_tiers: loadedTiers,
+        price: unitPrice,
       }
       setSelectedIndex(newIndex)
       return [...prev, newItem]
