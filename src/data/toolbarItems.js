@@ -31,6 +31,10 @@ export const toolbarItems = {
   laporan: [
     { key: 'logout', label: 'Logout', mark: 'L', tone: 'slate', backToLogin: true },
     { key: 'divider-1', divider: true },
+    { key: 'laphargagrosir', label: 'Lap. Harga Grosir', mark: 'G', tone: 'blue' },
+    
+    { key: 'divider-2', divider: true },
+    
     { key: 'lapjual', label: 'Lap. Penjualan', mark: 'J', tone: 'blue' },
     { key: 'lapbeli', label: 'Lap. Pembelian', mark: 'B', tone: 'orange' },
     { key: 'lapstok', label: 'Lap. Stok', mark: 'S', tone: 'green' },

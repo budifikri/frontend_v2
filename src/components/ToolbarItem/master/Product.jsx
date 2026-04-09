@@ -393,11 +393,18 @@ export function Product({ onExit }) {
       if (tier.min_quantity <= 1) {
         errors.push(`Grosir ${tierNum}: Qty minimum harus lebih dari 1`)
       }
+
+      if (i > 0) {
+        const prevQty = Number(validTiers[i - 1].min_quantity || 0)
+        if (tier.min_quantity <= prevQty) {
+          errors.push(`Grosir ${tierNum}: Qty harus lebih besar dari Grosir ${i}`)
+        }
+      }
       
       const prevPrice = i === 0 ? retailPrice : validTiers[i - 1].unit_price
-      if (tier.unit_price > prevPrice) {
+      if (tier.unit_price >= prevPrice) {
         const prevLabel = i === 0 ? 'harga retail' : `Grosir ${i}`
-        errors.push(`Grosir ${tierNum}: Harga tidak boleh lebih tinggi dari ${prevLabel}`)
+        errors.push(`Grosir ${tierNum}: Harga harus lebih kecil dari ${prevLabel}`)
       }
     }
     

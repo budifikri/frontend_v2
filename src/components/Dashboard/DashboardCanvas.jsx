@@ -13,6 +13,7 @@ import { PurchaseReturn } from '../ToolbarItem/transaksi/PurchaseReturn'
 import { Theme } from '../ToolbarItem/setting/theme/Theme'
 import { User } from '../ToolbarItem/setting/user/User'
 import { LapStock } from '../ToolbarItem/laporan/stok/LapStock'
+import { LapHargaGrosir } from '../ToolbarItem/laporan/harga-grosir/LapHargaGrosir'
 
 export function DashboardCanvas({ activeTool, onExit }) {
   if (activeTool === 'warehouse') {
@@ -99,6 +100,14 @@ export function DashboardCanvas({ activeTool, onExit }) {
     return (
       <div className="dashboard-canvas">
         <LapStock onExit={onExit} />
+      </div>
+    )
+  }
+
+  if (activeTool === 'laphargagrosir') {
+    return (
+      <div className="dashboard-canvas">
+        <LapHargaGrosir onExit={onExit} />
       </div>
     )
   }
