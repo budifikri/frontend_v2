@@ -149,6 +149,8 @@ export function Product({ onExit }) {
   const [showForm, setShowForm] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [showExitConfirm, setShowExitConfirm] = useState(false)
+  const [showToast, setShowToast] = useState(false)
+  const [toastMessage, setToastMessage] = useState('')
   const [activeTab, setActiveTab] = useState('general')
   const [priceTierData, setPriceTierData] = useState(DEFAULT_PRICE_TIER)
   const [adjustForm, setAdjustForm] = useState({
@@ -379,6 +381,29 @@ export function Product({ onExit }) {
     setIsActiveFilter(value)
   }
 
+  function validatePriceTiers(tiers, retailPrice) {
+    const errors = []
+    
+    const validTiers = tiers.filter(t => t.unit_price > 0)
+    
+    for (let i = 0; i < validTiers.length; i++) {
+      const tier = validTiers[i]
+      const tierNum = i + 1
+      
+      if (tier.min_quantity <= 1) {
+        errors.push(`Grosir ${tierNum}: Qty minimum harus lebih dari 1`)
+      }
+      
+      const prevPrice = i === 0 ? retailPrice : validTiers[i - 1].unit_price
+      if (tier.unit_price > prevPrice) {
+        const prevLabel = i === 0 ? 'harga retail' : `Grosir ${i}`
+        errors.push(`Grosir ${tierNum}: Harga tidak boleh lebih tinggi dari ${prevLabel}`)
+      }
+    }
+    
+    return errors
+  }
+
   async function handleSave() {
     if (!form.sku || !form.name || !form.unit_id) return
 
@@ -460,9 +485,16 @@ export function Product({ onExit }) {
             }))
           console.log('[Product] Saving price tiers:', priceTierPayload)
           
-          if (priceTierPayload.length === 0) {
-            console.log('[Product] No price tiers to save')
-          } else {
+          if (priceTierPayload.length > 0) {
+            const validationErrors = validatePriceTiers(priceTierPayload, Number(form.retail_price || 0))
+            if (validationErrors.length > 0) {
+              setToastMessage(validationErrors.join('\n'))
+              setShowToast(true)
+              setTimeout(() => setShowToast(false), 4000)
+              setIsSaving(false)
+              return
+            }
+            
             let priceTierExists = false
             try {
               await getPriceTier(token, selectedItem.id)
@@ -475,10 +507,11 @@ export function Product({ onExit }) {
               }
             }
             
+            const priceTierPayloadWrapped = { product_id: selectedItem.id, tiers: priceTierPayload }
             if (priceTierExists) {
-              await updatePriceTier(token, selectedItem.id, priceTierPayload)
+              await updatePriceTier(token, selectedItem.id, priceTierPayloadWrapped)
             } else {
-              await createPriceTier(token, { product_id: selectedItem.id, tiers: priceTierPayload })
+              await createPriceTier(token, priceTierPayloadWrapped)
             }
           }
         } catch (err) {
@@ -715,6 +748,13 @@ export function Product({ onExit }) {
       </div>
 
       {error && <div className="master-error">{error}</div>}
+
+      {showToast && (
+        <div className="toast-notification toast-error">
+          <span className="material-icons-round">warning</span>
+          <span className="toast-message">{toastMessage}</span>
+        </div>
+      )}
 
       <div className="master-table-wrapper">
         <div className="master-table-container">

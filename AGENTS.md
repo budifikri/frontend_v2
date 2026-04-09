@@ -35,6 +35,10 @@ Prefer existing patterns over new abstractions.
 - Build preview: `npm run preview`
 - Lint: `npm run lint`
 
+### Frontend
+ - directory backend is D:\Project\pos_retail\go_backend
+ 
+
 ### Tauri
 - Tauri CLI passthrough: `npm run tauri`
 - Desktop dev: `npm run tauri:dev`

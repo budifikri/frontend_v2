@@ -3629,6 +3629,14 @@ body.has-wallpaper .cash-register {
   font-size: 20px;
 }
 
+.toast-notification.toast-error {
+  background: #dc2626;
+}
+
+.toast-notification .toast-message {
+  white-space: pre-line;
+}
+
 @keyframes slideIn {
   from {
     transform: translateX(100%);

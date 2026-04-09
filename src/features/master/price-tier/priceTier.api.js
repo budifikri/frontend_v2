@@ -14,7 +14,7 @@ export async function getPriceTier(token, productId) {
 
 export async function updatePriceTier(token, productId, input) {
   const raw = await apiFetch(`/api/price-tiers/product/${encodeURIComponent(productId)}`, {
-    method: 'PUT',
+    method: 'POST',
     token,
     body: input,
   })
