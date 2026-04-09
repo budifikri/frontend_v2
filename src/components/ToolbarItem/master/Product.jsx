@@ -6,7 +6,7 @@ import { listWarehouses } from '../../../features/master/warehouse/warehouse.api
 import { createProduct, deleteProduct, listProducts, updateProduct } from '../../../features/master/product/product.api'
 import { adjustStock } from '../../../features/laporan/stock/stock.api'
 import { getProductStock } from '../../../features/master/stock-opname/stockOpname.api'
-import { getPriceTier, updatePriceTier } from '../../../features/master/price-tier/priceTier.api'
+import { createPriceTier, getPriceTier, updatePriceTier } from '../../../features/master/price-tier/priceTier.api'
 import { FooterMaster } from '../footer/FooterMaster'
 import { FooterFormMaster } from '../footer/FooterFormMaster'
 import { DeleteMaster } from '../footer/DeleteMaster'
@@ -449,15 +449,38 @@ export function Product({ onExit }) {
           setAdjustForm({ warehouse_id: '', reason: '', system_stock: 0, physical_stock: 0 })
         }
         
-        // Save price tiers
+        // Save price tiers - check if exists first, then create or update
         try {
-          const priceTierPayload = priceTierData.map(t => ({
-            tier_name: t.tier_name,
-            min_quantity: Number(t.min_quantity || 1),
-            unit_price: Number(t.unit_price || 0),
-          }))
+          const priceTierPayload = priceTierData
+            .filter(t => t.unit_price > 0)
+            .map(t => ({
+              tier_name: t.tier_name,
+              min_quantity: Number(t.min_quantity || 1),
+              unit_price: Number(t.unit_price || 0),
+            }))
           console.log('[Product] Saving price tiers:', priceTierPayload)
-          await updatePriceTier(token, selectedItem.id, priceTierPayload)
+          
+          if (priceTierPayload.length === 0) {
+            console.log('[Product] No price tiers to save')
+          } else {
+            let priceTierExists = false
+            try {
+              await getPriceTier(token, selectedItem.id)
+              priceTierExists = true
+            } catch (err) {
+              if (err?.status === 404) {
+                priceTierExists = false
+              } else {
+                throw err
+              }
+            }
+            
+            if (priceTierExists) {
+              await updatePriceTier(token, selectedItem.id, priceTierPayload)
+            } else {
+              await createPriceTier(token, { product_id: selectedItem.id, tiers: priceTierPayload })
+            }
+          }
         } catch (err) {
           console.error('[Product] Failed to save price tier:', err)
         }
@@ -525,25 +548,35 @@ export function Product({ onExit }) {
   async function loadPriceTierData(productId) {
     try {
       const result = await getPriceTier(token, productId)
-      console.log('[Product] Load price tier result:', result)
+      console.log('[Product] Load price tier result:', JSON.stringify(result))
       
       let tiersArray = null
+      
+      // Try to find tiers array in various possible locations
       if (Array.isArray(result)) {
         tiersArray = result
-      } else if (result?.data && Array.isArray(result.data)) {
-        tiersArray = result.data
-      } else if (result?.tiers && Array.isArray(result.tiers)) {
+      } else if (result?.data) {
+        if (Array.isArray(result.data)) {
+          tiersArray = result.data
+        } else if (Array.isArray(result.data.tiers)) {
+          tiersArray = result.data.tiers
+        } else if (Array.isArray(result.data.data)) {
+          tiersArray = result.data.data
+        }
+      } else if (result?.tiers) {
         tiersArray = result.tiers
       }
+      
+      console.log('[Product] Parsed tiers array:', tiersArray)
       
       if (tiersArray && tiersArray.length > 0) {
         const tiers = [...DEFAULT_PRICE_TIER]
         tiersArray.forEach((tier, idx) => {
           if (idx < 3) {
             tiers[idx] = {
-              tier_name: tier.tier_name || `Grosir ${idx + 1}`,
-              min_quantity: Number(tier.min_quantity || tier.quantity || 1),
-              unit_price: Number(tier.unit_price || tier.price || 0),
+              tier_name: tier.tier_name || tier.name || `Grosir ${idx + 1}`,
+              min_quantity: Number(tier.min_quantity || tier.quantity || tier.min_qty || 1),
+              unit_price: Number(tier.unit_price || tier.price || tier.unit_price || 0),
             }
           }
         })

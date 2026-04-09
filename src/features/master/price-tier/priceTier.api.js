@@ -7,13 +7,13 @@ export async function createPriceTier(token, input) {
 }
 
 export async function getPriceTier(token, productId) {
-  const raw = await apiFetch(`/api/price-tiers/${encodeURIComponent(productId)}`, { token })
+  const raw = await apiFetch(`/api/price-tiers/product/${encodeURIComponent(productId)}`, { token })
   if (!raw.success) throw new Error(raw.error || raw.message || 'Failed to get price tier')
   return raw
 }
 
 export async function updatePriceTier(token, productId, input) {
-  const raw = await apiFetch(`/api/price-tiers/${encodeURIComponent(productId)}`, {
+  const raw = await apiFetch(`/api/price-tiers/product/${encodeURIComponent(productId)}`, {
     method: 'PUT',
     token,
     body: input,
@@ -23,7 +23,7 @@ export async function updatePriceTier(token, productId, input) {
 }
 
 export async function deletePriceTier(token, productId) {
-  const raw = await apiFetch(`/api/price-tiers/${encodeURIComponent(productId)}`, {
+  const raw = await apiFetch(`/api/price-tiers/product/${encodeURIComponent(productId)}`, {
     method: 'DELETE',
     token,
   })
