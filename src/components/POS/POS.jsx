@@ -449,11 +449,10 @@ export function POS() {
       .sort((a, b) => a.min_quantity - b.min_quantity)
   }, [])
 
-  const resolveItemUnitPrice = useCallback((retailPrice, tiers, qty) => {
-    const baseRetailPrice = Number(retailPrice || 0)
+  const findMatchedTier = useCallback((tiers, qty) => {
     const quantity = Number(qty || 0)
     if (quantity <= 0 || !Array.isArray(tiers) || tiers.length === 0) {
-      return baseRetailPrice
+      return null
     }
 
     let matchedTier = null
@@ -466,8 +465,38 @@ export function POS() {
       }
     }
 
-    return matchedTier ? Number(matchedTier.unit_price || baseRetailPrice) : baseRetailPrice
+    return matchedTier
   }, [])
+
+  const resolveItemUnitPrice = useCallback((retailPrice, tiers, qty) => {
+    const baseRetailPrice = Number(retailPrice || 0)
+    const matchedTier = findMatchedTier(tiers, qty)
+    if (!matchedTier) {
+      return baseRetailPrice
+    }
+
+    return Number(matchedTier.unit_price || baseRetailPrice)
+  }, [findMatchedTier])
+
+  const getItemTierLabel = useCallback((item) => {
+    if (!item || !Array.isArray(item.price_tiers) || item.price_tiers.length === 0) {
+      return ''
+    }
+
+    const matchedTier = findMatchedTier(item.price_tiers, item.qty)
+    if (!matchedTier) return ''
+
+    const tierIndex = item.price_tiers.findIndex((tier) =>
+      Number(tier.min_quantity || 0) === Number(matchedTier.min_quantity || 0)
+      && Number(tier.unit_price || 0) === Number(matchedTier.unit_price || 0),
+    )
+
+    if (tierIndex >= 0 && tierIndex < 3) {
+      return `Grosir ${tierIndex + 1}`
+    }
+
+    return `Grosir ${Number(matchedTier.min_quantity || 0)}`
+  }, [findMatchedTier])
 
   const ensureProductPriceTiers = useCallback(async (productId) => {
     if (!productId || !auth.token) return []
@@ -2144,7 +2173,10 @@ export function POS() {
                     <div className="receipt-item-no">{idx + 1}</div>
                     <div className="receipt-item-info">
                       <div className="receipt-item-name">{item.name}</div>
-                      <div className="receipt-item-price">{item.qty} x {formatCurrency(item.price)}</div>
+                      <div className="receipt-item-price">
+                        <span>{item.qty} x {formatCurrency(item.price)}</span>
+                        {getItemTierLabel(item) && <span className="receipt-tier-badge">{getItemTierLabel(item)}</span>}
+                      </div>
                     </div>
                     <div className="receipt-item-total">{formatCurrency(item.price * item.qty)}</div>
                   </div>
@@ -2500,7 +2532,10 @@ export function POS() {
                 <div className="monitor-item-name">{displayItem?.name || 'No Item'}</div>
                 {displayItem && (
                   <div className="monitor-item-price-row">
-                    <span className="monitor-item-qty-price">{displayItem.qty} x {formatCurrency(displayItem.price)}</span>
+                    <span className="monitor-item-qty-price">
+                      {displayItem.qty} x {formatCurrency(displayItem.price)}
+                      {getItemTierLabel(displayItem) && <span className="monitor-tier-badge">{getItemTierLabel(displayItem)}</span>}
+                    </span>
                     <span className="monitor-item-total">{formatCurrency(displayItem.price * displayItem.qty)}</span>
                   </div>
                 )}
