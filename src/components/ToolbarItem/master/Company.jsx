@@ -8,6 +8,7 @@ import { MasterTableHeader } from '../table/MasterTableHeader'
 import { MasterStatusToggle } from '../table/MasterStatusToggle'
 import { useMasterTableSort } from '../../../hooks/useMasterTableSort'
 import { useMasterPagination } from '../../../hooks/useMasterPagination'
+import { exportToExcel, importFromExcel, generateTemplate } from '../../../utils/excelUtils'
 
 const DEFAULT_FORM = {
   code: '',
@@ -55,6 +56,15 @@ const TABLE_COLUMNS = [
   { key: 'email', label: 'EMAIL' },
   { key: 'telp', label: 'PHONE' },
   { key: 'is_active', label: 'STATUS' },
+]
+
+const EXCEL_COLUMNS = [
+  { key: 'code', label: 'CODE' },
+  { key: 'nama', label: 'NAME' },
+  { key: 'email', label: 'EMAIL' },
+  { key: 'telp', label: 'PHONE' },
+  { key: 'address', label: 'ADDRESS' },
+  { key: 'website', label: 'WEBSITE' },
 ]
 
 function isActiveCompany(item) {
@@ -333,6 +343,61 @@ export function Company({ onExit }) {
     window.print()
   }
 
+  const handleExportExcel = () => {
+    const exportData = data.map(row => ({
+      CODE: row.code || '',
+      NAME: row.nama || row.name || '',
+      EMAIL: row.email || '',
+      PHONE: row.telp || row.phone || '',
+      ADDRESS: row.address || '',
+      WEBSITE: row.website || '',
+    }))
+    exportToExcel(exportData, 'company')
+  }
+
+  const handleImportExcel = async (file) => {
+    try {
+      const imported = await importFromExcel(file)
+      const newData = [...data]
+      let addedCount = 0
+      let updatedCount = 0
+
+      for (const row of imported) {
+        const code = row.CODE || row.code
+        if (!code) continue
+
+        const existingIndex = newData.findIndex(item => item.code === code)
+        const itemData = {
+          code,
+          nama: row.NAME || row.nama || row.name || '',
+          email: row.EMAIL || row.email || '',
+          telp: row.PHONE || row.phone || row.telp || '',
+          address: row.ADDRESS || row.address || '',
+          website: row.WEBSITE || row.website || '',
+          is_active: true,
+        }
+
+        if (existingIndex >= 0) {
+          newData[existingIndex] = { ...newData[existingIndex], ...itemData }
+          updatedCount++
+        } else {
+          newData.push({ id: code, ...itemData })
+          addedCount++
+        }
+      }
+
+      setData(newData)
+      setPagination({ ...pagination, total: newData.length })
+      setError(`Imported: ${addedCount} new, ${updatedCount} updated`)
+    } catch (err) {
+      setError(err.message || 'Failed to import')
+    }
+  }
+
+  const handleGenerateTemplate = () => {
+    generateTemplate(EXCEL_COLUMNS, 'company_template')
+  }
+
   function handleExitClick() {
     setShowExitConfirm(true)
   }
@@ -488,6 +553,11 @@ export function Company({ onExit }) {
         onPrevPage={pager.goPrev}
         onNextPage={pager.goNext}
         onLastPage={pager.goLast}
+        excelColumns={EXCEL_COLUMNS}
+        excelFilename="company"
+        onExportExcel={handleExportExcel}
+        onImportExcel={handleImportExcel}
+        onGenerateTemplate={handleGenerateTemplate}
       />
 
       {showDeleteConfirm && (

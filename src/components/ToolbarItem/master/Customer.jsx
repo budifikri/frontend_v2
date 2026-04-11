@@ -8,6 +8,7 @@ import { MasterTableHeader } from '../table/MasterTableHeader'
 import { MasterStatusToggle } from '../table/MasterStatusToggle'
 import { useMasterTableSort } from '../../../hooks/useMasterTableSort'
 import { useMasterPagination } from '../../../hooks/useMasterPagination'
+import { exportToExcel, importFromExcel, generateTemplate } from '../../../utils/excelUtils'
 
 const DEFAULT_FORM = {
   name: '',
@@ -33,6 +34,16 @@ const TABLE_COLUMNS = [
   { key: 'phone', label: 'PHONE' },
   { key: 'tier', label: 'TIER' },
   { key: 'is_active', label: 'STATUS' },
+]
+
+const EXCEL_COLUMNS = [
+  { key: 'customer_code', label: 'CODE' },
+  { key: 'name', label: 'NAME' },
+  { key: 'email', label: 'EMAIL' },
+  { key: 'phone', label: 'PHONE' },
+  { key: 'address', label: 'ADDRESS' },
+  { key: 'city', label: 'CITY' },
+  { key: 'tier', label: 'TIER' },
 ]
 
 const DUMMY_CUSTOMERS = [
@@ -380,6 +391,63 @@ export function Customer({ onExit }) {
     window.print()
   }
 
+  const handleExportExcel = () => {
+    const exportData = data.map(row => ({
+      CODE: row.customer_code || row.code || '',
+      NAME: row.name || '',
+      EMAIL: row.email || '',
+      PHONE: row.phone || '',
+      ADDRESS: row.address || '',
+      CITY: row.city || '',
+      TIER: row.tier || 'BRONZE',
+    }))
+    exportToExcel(exportData, 'customer')
+  }
+
+  const handleImportExcel = async (file) => {
+    try {
+      const imported = await importFromExcel(file)
+      const newData = [...data]
+      let addedCount = 0
+      let updatedCount = 0
+
+      for (const row of imported) {
+        const code = row.CODE || row.customer_code || row.code
+        if (!code) continue
+
+        const existingIndex = newData.findIndex(item => item.customer_code === code || item.code === code)
+        const itemData = {
+          customer_code: code,
+          name: row.NAME || row.name || '',
+          email: row.EMAIL || row.email || '',
+          phone: row.PHONE || row.phone || '',
+          address: row.ADDRESS || row.address || '',
+          city: row.CITY || row.city || '',
+          tier: row.TIER || row.tier || 'BRONZE',
+          is_active: true,
+        }
+
+        if (existingIndex >= 0) {
+          newData[existingIndex] = { ...newData[existingIndex], ...itemData }
+          updatedCount++
+        } else {
+          newData.push({ id: code, ...itemData })
+          addedCount++
+        }
+      }
+
+      setData(newData)
+      setPagination({ ...pagination, total: newData.length })
+      setError(`Imported: ${addedCount} new, ${updatedCount} updated`)
+    } catch (err) {
+      setError(err.message || 'Failed to import')
+    }
+  }
+
+  const handleGenerateTemplate = () => {
+    generateTemplate(EXCEL_COLUMNS, 'customer_template')
+  }
+
   function handleExitClick() {
     setShowExitConfirm(true)
   }
@@ -561,6 +629,11 @@ export function Customer({ onExit }) {
         onPrevPage={pager.goPrev}
         onNextPage={pager.goNext}
         onLastPage={pager.goLast}
+        excelColumns={EXCEL_COLUMNS}
+        excelFilename="customer"
+        onExportExcel={handleExportExcel}
+        onImportExcel={handleImportExcel}
+        onGenerateTemplate={handleGenerateTemplate}
       />
 
       {showDeleteConfirm && (

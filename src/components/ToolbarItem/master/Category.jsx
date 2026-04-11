@@ -4,10 +4,13 @@ import { createCategory, deactivateCategory, listCategories, updateCategory } fr
 import { FooterMaster } from '../footer/FooterMaster'
 import { FooterFormMaster } from '../footer/FooterFormMaster'
 import { DeleteMaster } from '../footer/DeleteMaster'
+import { ImportConfirmMaster } from '../footer/ImportConfirmMaster'
 import { MasterTableHeader } from '../table/MasterTableHeader'
 import { MasterStatusToggle } from '../table/MasterStatusToggle'
 import { useMasterTableSort } from '../../../hooks/useMasterTableSort'
 import { useMasterPagination } from '../../../hooks/useMasterPagination'
+import { exportToExcel, importFromExcel, generateTemplate } from '../../../utils/excelUtils'
+import { Toast } from '../../../components/Toast'
 
 const DEFAULT_FORM = {
   code: '',
@@ -28,6 +31,13 @@ const TABLE_COLUMNS = [
   { key: 'name', label: 'NAME' },
   { key: 'parent_id', label: 'PARENT' },
   { key: 'is_active', label: 'STATUS' },
+]
+
+const EXCEL_COLUMNS = [
+  { key: 'code', label: 'CODE' },
+  { key: 'name', label: 'NAME' },
+  { key: 'description', label: 'DESCRIPTION' },
+  { key: 'parent_id', label: 'PARENT' },
 ]
 
 function isActiveCategory(item) {
@@ -54,6 +64,10 @@ export function Category({ onExit }) {
   const [showForm, setShowForm] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [showExitConfirm, setShowExitConfirm] = useState(false)
+  const [showImportConfirm, setShowImportConfirm] = useState(false)
+  const [pendingImportData, setPendingImportData] = useState(null)
+  const [showToast, setShowToast] = useState(false)
+  const [toastMessage, setToastMessage] = useState('')
   const [togglingId, setTogglingId] = useState(null)
 
   const fetchData = useCallback(async () => {
@@ -278,6 +292,57 @@ export function Category({ onExit }) {
     window.print()
   }
 
+  const handleExportExcel = () => {
+    const exportData = data.map(row => ({
+      CODE: row.code || '',
+      NAME: row.name || '',
+      DESCRIPTION: row.description || '',
+      PARENT: row.parent_id || '',
+    }))
+    exportToExcel(exportData, 'category')
+  }
+
+  const handleImportExcel = async (file) => {
+    try {
+      const imported = await importFromExcel(file)
+      const newData = [...data]
+      let addedCount = 0
+      let updatedCount = 0
+
+      for (const row of imported) {
+        const code = row.CODE || row.code
+        if (!code) continue
+
+        const existingIndex = newData.findIndex(item => item.code === code)
+        const itemData = {
+          code,
+          name: row.NAME || row.name || '',
+          description: row.DESCRIPTION || row.description || '',
+          parent_id: row.PARENT || row.parent_id || '',
+          is_active: true,
+        }
+
+        if (existingIndex >= 0) {
+          newData[existingIndex] = { ...newData[existingIndex], ...itemData }
+          updatedCount++
+        } else {
+          newData.push({ id: code, ...itemData })
+          addedCount++
+        }
+      }
+
+      setData(newData)
+      setPagination({ ...pagination, total: newData.length })
+      setError(`Imported: ${addedCount} new, ${updatedCount} updated`)
+    } catch (err) {
+      setError(err.message || 'Failed to import')
+    }
+  }
+
+  const handleGenerateTemplate = () => {
+    generateTemplate(EXCEL_COLUMNS, 'category_template')
+  }
+
   function handleExitClick() {
     setShowExitConfirm(true)
   }
@@ -410,6 +475,11 @@ export function Category({ onExit }) {
         onPrevPage={pager.goPrev}
         onNextPage={pager.goNext}
         onLastPage={pager.goLast}
+        excelColumns={EXCEL_COLUMNS}
+        excelFilename="category"
+        onExportExcel={handleExportExcel}
+        onImportExcel={handleImportExcel}
+        onGenerateTemplate={handleGenerateTemplate}
       />
 
       {showDeleteConfirm && (

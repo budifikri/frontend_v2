@@ -14,6 +14,7 @@ import { MasterTableHeader } from '../table/MasterTableHeader'
 import { MasterStatusToggle } from '../table/MasterStatusToggle'
 import { useMasterTableSort } from '../../../hooks/useMasterTableSort'
 import { useMasterPagination } from '../../../hooks/useMasterPagination'
+import { exportToExcel, importFromExcel, generateTemplate } from '../../../utils/excelUtils'
 
 const DEFAULT_FORM = {
   sku: '',
@@ -96,6 +97,17 @@ const TABLE_COLUMNS = [
   { key: 'unit_name', label: 'UNIT' },
   { key: 'retail_price', label: 'RETAIL' },
   { key: 'is_active', label: 'STATUS' },
+]
+
+const EXCEL_COLUMNS = [
+  { key: 'sku', label: 'SKU' },
+  { key: 'barcode', label: 'BARCODE' },
+  { key: 'name', label: 'NAME' },
+  { key: 'description', label: 'DESCRIPTION' },
+  { key: 'category_id', label: 'CATEGORY_ID' },
+  { key: 'unit_id', label: 'UNIT_ID' },
+  { key: 'cost_price', label: 'COST_PRICE' },
+  { key: 'retail_price', label: 'RETAIL_PRICE' },
 ]
 
 function isActiveProduct(item) {
@@ -698,6 +710,65 @@ export function Product({ onExit }) {
     window.print()
   }
 
+  const handleExportExcel = () => {
+    const exportData = data.map(row => ({
+      SKU: row.sku || '',
+      BARCODE: row.barcode || '',
+      NAME: row.name || '',
+      DESCRIPTION: row.description || '',
+      CATEGORY_ID: row.category_id || '',
+      UNIT_ID: row.unit_id || '',
+      COST_PRICE: row.cost_price || 0,
+      RETAIL_PRICE: row.retail_price || 0,
+    }))
+    exportToExcel(exportData, 'product')
+  }
+
+  const handleImportExcel = async (file) => {
+    try {
+      const imported = await importFromExcel(file)
+      const newData = [...data]
+      let addedCount = 0
+      let updatedCount = 0
+
+      for (const row of imported) {
+        const sku = row.SKU || row.sku
+        if (!sku) continue
+
+        const existingIndex = newData.findIndex(item => item.sku === sku)
+        const itemData = {
+          sku,
+          barcode: row.BARCODE || row.barcode || '',
+          name: row.NAME || row.name || '',
+          description: row.DESCRIPTION || row.description || '',
+          category_id: row.CATEGORY_ID || row.category_id || '',
+          unit_id: row.UNIT_ID || row.unit_id || '',
+          cost_price: Number(row.COST_PRICE) || Number(row.cost_price) || 0,
+          retail_price: Number(row.RETAIL_PRICE) || Number(row.retail_price) || 0,
+          is_active: true,
+        }
+
+        if (existingIndex >= 0) {
+          newData[existingIndex] = { ...newData[existingIndex], ...itemData }
+          updatedCount++
+        } else {
+          newData.push({ id: sku, ...itemData })
+          addedCount++
+        }
+      }
+
+      setData(newData)
+      setPagination({ ...pagination, total: newData.length })
+      setError(`Imported: ${addedCount} new, ${updatedCount} updated`)
+    } catch (err) {
+      setError(err.message || 'Failed to import')
+    }
+  }
+
+  const handleGenerateTemplate = () => {
+    generateTemplate(EXCEL_COLUMNS, 'product_template')
+  }
+
   function handleExitClick() {
     setShowExitConfirm(true)
   }
@@ -1099,6 +1170,11 @@ export function Product({ onExit }) {
         onPrevPage={pager.goPrev}
         onNextPage={pager.goNext}
         onLastPage={pager.goLast}
+        excelColumns={EXCEL_COLUMNS}
+        excelFilename="product"
+        onExportExcel={handleExportExcel}
+        onImportExcel={handleImportExcel}
+        onGenerateTemplate={handleGenerateTemplate}
       />
 
       {showDeleteConfirm && (

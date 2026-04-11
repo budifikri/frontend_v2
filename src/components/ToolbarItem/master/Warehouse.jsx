@@ -5,10 +5,13 @@ import { gudangDummyData } from '../../../data'
 import { FooterMaster } from '../footer/FooterMaster'
 import { FooterFormMaster } from '../footer/FooterFormMaster'
 import { DeleteMaster } from '../footer/DeleteMaster'
+import { ImportConfirmMaster } from '../footer/ImportConfirmMaster'
 import { MasterTableHeader } from '../table/MasterTableHeader'
 import { MasterStatusToggle } from '../table/MasterStatusToggle'
 import { useMasterTableSort } from '../../../hooks/useMasterTableSort'
 import { useMasterPagination } from '../../../hooks/useMasterPagination'
+import { exportToExcel, importFromExcel, generateTemplate } from '../../../utils/excelUtils'
+import { Toast } from '../../../components/Toast'
 
 const DEFAULT_FORM = {
   code: '',
@@ -30,6 +33,15 @@ const TABLE_COLUMNS = [
   { key: 'is_active', label: 'STATUS' },
 ]
 
+const EXCEL_COLUMNS = [
+  { key: 'code', label: 'KODE' },
+  { key: 'name', label: 'NAMA' },
+  { key: 'type', label: 'TYPE' },
+  { key: 'address', label: 'ALAMAT' },
+  { key: 'city', label: 'KOTA' },
+  { key: 'phone', label: 'TELEPON' },
+]
+
 export function Warehouse({ onExit }) {
   const { auth } = useAuth()
   const token = auth?.token
@@ -48,6 +60,10 @@ export function Warehouse({ onExit }) {
   const [showForm, setShowForm] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [showExitConfirm, setShowExitConfirm] = useState(false)
+  const [showImportConfirm, setShowImportConfirm] = useState(false)
+  const [pendingImportData, setPendingImportData] = useState(null)
+  const [showToast, setShowToast] = useState(false)
+  const [toastMessage, setToastMessage] = useState('')
 
   const [isSaving, setIsSaving] = useState(false)
   const [togglingId, setTogglingId] = useState(null)
@@ -288,6 +304,76 @@ export function Warehouse({ onExit }) {
     window.print()
   }
 
+  const handleExportExcel = () => {
+    const exportData = data.map(row => ({
+      KODE: row.code || '',
+      NAMA: row.name || '',
+      TYPE: row.type || '',
+      ALAMAT: row.address || '',
+      KOTA: row.city || '',
+      TELEPON: row.phone || '',
+    }))
+    exportToExcel(exportData, 'warehouse')
+  }
+
+  const handleImportExcel = async (file) => {
+    try {
+      const imported = await importFromExcel(file)
+      setPendingImportData({ file, data: imported, count: imported.length })
+      setShowImportConfirm(true)
+    } catch (err) {
+      setError(err.message || 'Failed to import')
+    }
+  }
+
+  const handleConfirmImport = () => {
+    if (!pendingImportData) return
+    const { data: imported } = pendingImportData
+    const newData = [...data]
+    let addedCount = 0
+    let updatedCount = 0
+
+    for (const row of imported) {
+      const code = row.KODE || row.code
+      if (!code) continue
+
+      const existingIndex = newData.findIndex(item => item.code === code)
+      const itemData = {
+        code,
+        name: row.NAMA || row.name || '',
+        type: row.TYPE || row.type || 'MAIN',
+        address: row.ALAMAT || row.address || '',
+        city: row.KOTA || row.city || '',
+        phone: row.TELEPON || row.phone || '',
+        is_active: true,
+      }
+
+      if (existingIndex >= 0) {
+        newData[existingIndex] = { ...newData[existingIndex], ...itemData }
+        updatedCount++
+      } else {
+        newData.push({ id: code, ...itemData })
+        addedCount++
+      }
+    }
+
+    setData(newData)
+    setPagination({ ...pagination, total: newData.length })
+    setShowImportConfirm(false)
+    setPendingImportData(null)
+    setToastMessage(`Berhasil import: ${addedCount} baru, ${updatedCount} diperbarui`)
+    setShowToast(true)
+  }
+
+  const handleCancelImport = () => {
+    setShowImportConfirm(false)
+    setPendingImportData(null)
+  }
+
+  const handleGenerateTemplate = () => {
+    generateTemplate(EXCEL_COLUMNS, 'warehouse_template')
+  }
+
   const handleToggleStatus = async (row) => {
     if (!row?.id || togglingId) return
 
@@ -499,6 +585,11 @@ export function Warehouse({ onExit }) {
         onPrevPage={pager.goPrev}
         onNextPage={pager.goNext}
         onLastPage={pager.goLast}
+        excelColumns={EXCEL_COLUMNS}
+        excelFilename="warehouse"
+        onExportExcel={handleExportExcel}
+        onImportExcel={handleImportExcel}
+        onGenerateTemplate={handleGenerateTemplate}
       />
 
       {showDeleteConfirm && (
@@ -520,6 +611,16 @@ export function Warehouse({ onExit }) {
           onCancel={() => setShowExitConfirm(false)}
         />
       )}
+
+      {showImportConfirm && (
+        <ImportConfirmMaster
+          itemName={pendingImportData?.count + ' data'}
+          onConfirm={handleConfirmImport}
+          onCancel={handleCancelImport}
+        />
+      )}
+
+      {showToast && <Toast message={toastMessage} type="success" onClose={() => setShowToast(false)} />}
     </div>
   )
 }

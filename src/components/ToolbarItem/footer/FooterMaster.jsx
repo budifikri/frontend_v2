@@ -3,8 +3,8 @@ export function FooterMaster({
   onEdit,
   onDelete,
   totalRow,
-  totalAmount,
-  totalAmountLabel,
+  totalAmount: _totalAmount,
+  totalAmountLabel: _totalAmountLabel,
   onPrint,
   onExit,
   onRefresh,
@@ -20,10 +20,18 @@ export function FooterMaster({
   onNextPage,
   onLastPage,
   extraActions,
+  excelColumns,
+  excelFilename,
+  onExportExcel,
+  onImportExcel,
+  onGenerateTemplate,
 }) {
-  const formatCurrency = (amount) => {
+  const _formatCurrency = (amount) => {
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(amount)
   }
+  void _totalAmount
+  void _totalAmountLabel
+  void _formatCurrency
 
   return (
     <div className="master-footer">
@@ -51,6 +59,35 @@ export function FooterMaster({
           <button type="button" className="master-footer-btn" onClick={onRefresh} disabled={isLoading} title="Refresh" aria-label="Refresh">
             <span className="material-icons-round master-footer-icon green">refresh</span>
           </button>
+        )}
+        {excelColumns && excelFilename && (
+          <>
+            <button type="button" className="master-footer-btn" onClick={onGenerateTemplate} title="Download Template" aria-label="Download Template">
+              <span className="material-icons-round master-footer-icon purple">table_chart</span>
+              <span className="master-footer-key">TMP</span>
+            </button>
+            <input
+              type="file"
+              accept=".xlsx,.xls"
+              onChange={(e) => {
+                const file = e.target.files?.[0]
+                if (file && onImportExcel) onImportExcel(file)
+                e.target.value = ''
+              }}
+              style={{ display: 'none' }}
+              id="excel-import-input"
+            />
+            <label htmlFor="excel-import-input">
+              <button type="button" className="master-footer-btn" onClick={() => document.getElementById('excel-import-input')?.click()} title="Import from Excel" aria-label="Import from Excel">
+                <span className="material-icons-round master-footer-icon purple">file_upload</span>
+                <span className="master-footer-key">IMP</span>
+              </button>
+            </label>
+            <button type="button" className="master-footer-btn" onClick={onExportExcel} title="Export to Excel" aria-label="Export to Excel">
+              <span className="material-icons-round master-footer-icon purple">file_download</span>
+              <span className="master-footer-key">EXP</span>
+            </button>
+          </>
         )}
         {extraActions}
         <button type="button" className="master-footer-btn" onClick={onExit} title="Exit" aria-label="Exit">

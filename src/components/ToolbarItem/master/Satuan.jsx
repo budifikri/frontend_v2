@@ -9,6 +9,7 @@ import { MasterTableHeader } from '../table/MasterTableHeader'
 import { MasterStatusToggle } from '../table/MasterStatusToggle'
 import { useMasterTableSort } from '../../../hooks/useMasterTableSort'
 import { useMasterPagination } from '../../../hooks/useMasterPagination'
+import { exportToExcel, importFromExcel, generateTemplate } from '../../../utils/excelUtils'
 
 const DEFAULT_FORM = {
   code: '',
@@ -32,6 +33,12 @@ const TABLE_COLUMNS = [
   { key: 'name', label: 'NAME' },
   { key: 'description', label: 'DESCRIPTION' },
   { key: 'is_active', label: 'STATUS' },
+]
+
+const EXCEL_COLUMNS = [
+  { key: 'code', label: 'CODE' },
+  { key: 'name', label: 'NAME' },
+  { key: 'description', label: 'DESCRIPTION' },
 ]
 
 export function Satuan({ onExit }) {
@@ -296,6 +303,55 @@ export function Satuan({ onExit }) {
     window.print()
   }
 
+  const handleExportExcel = () => {
+    const exportData = data.map(row => ({
+      CODE: row.code || '',
+      NAME: row.name || '',
+      DESCRIPTION: row.description || '',
+    }))
+    exportToExcel(exportData, 'satuan')
+  }
+
+  const handleImportExcel = async (file) => {
+    try {
+      const imported = await importFromExcel(file)
+      const newData = [...data]
+      let addedCount = 0
+      let updatedCount = 0
+
+      for (const row of imported) {
+        const code = row.CODE || row.code
+        if (!code) continue
+
+        const existingIndex = newData.findIndex(item => item.code === code)
+        const itemData = {
+          code,
+          name: row.NAME || row.name || '',
+          description: row.DESCRIPTION || row.description || '',
+          is_active: true,
+        }
+
+        if (existingIndex >= 0) {
+          newData[existingIndex] = { ...newData[existingIndex], ...itemData }
+          updatedCount++
+        } else {
+          newData.push({ id: code, ...itemData })
+          addedCount++
+        }
+      }
+
+      setData(newData)
+      setPagination({ ...pagination, total: newData.length })
+      setError(`Imported: ${addedCount} new, ${updatedCount} updated`)
+    } catch (err) {
+      setError(err.message || 'Failed to import')
+    }
+  }
+
+  const handleGenerateTemplate = () => {
+    generateTemplate(EXCEL_COLUMNS, 'satuan_template')
+  }
+
   function handleSearchChange(value) {
     pager.reset()
     setSearchKeyword(value)
@@ -446,6 +502,11 @@ export function Satuan({ onExit }) {
         onPrevPage={pager.goPrev}
         onNextPage={pager.goNext}
         onLastPage={pager.goLast}
+        excelColumns={EXCEL_COLUMNS}
+        excelFilename="satuan"
+        onExportExcel={handleExportExcel}
+        onImportExcel={handleImportExcel}
+        onGenerateTemplate={handleGenerateTemplate}
       />
 
       {showDeleteConfirm && (
