@@ -9,20 +9,23 @@
 
 
 ## ON PROGRESS
-- export import data master  
-   - template excel
-   - export
-   - import 
+
 - harga promo  
      - Discount Percentage                    
      - Discount Fixed Amount                
      - Buy X Get Y Free                    
      - Flash Sale   
-
+fix form imput harga promo
 
 
 ## DONE
 11 April 2026
+
+- export import data master  
+   - template excel
+   - export
+   - import 
+   
 - harga grosir  (done)
   - POS
   - Data transaksi di product dan laporan harga grosir

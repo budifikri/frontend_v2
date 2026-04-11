@@ -24,13 +24,14 @@ Membuat menu Promotion untuk-admin dashboard di menu Transaksi.
 | is_active | STATUS | boolean |
 
 ## Form Fields
-- **code**: string (Required, unique)
+- **code**: string ( AUTO GENERATE based on promo_type)
 - **name**: string (Required)
 - **promo_type**: enum (Required)
-  - Discount Percentage
-  - Discount Fixed Amount
-  - Buy X Get Y Free
-  - Flash Sale
+  - Discount Percentage (DPXXXXX)
+  - Discount Fixed Amount (DAXXXXX)
+  - Buy X Get Y Free (BGXXXX)
+  - Flash Sale (FLXXXXX)
+  - Min Purchase Amount (MPXXXXX)
 - **scope_type**: enum
   - All Products
   - By Category
@@ -45,6 +46,19 @@ Membuat menu Promotion untuk-admin dashboard di menu Transaksi.
 - **end_date**: datetime (Required >= start)
 - **description**: string (Optional)
 - **is_active**: boolean (default: true)
+
+## Auto Code Generation
+Kode di-generate otomatis berdasarkan tipe promotion:
+
+| Tipe Promotion | Prefix | Contoh |
+|----------------|--------|---------|
+| Percentage | DP | DP12345 |
+| Fixed Amount | DA | DA12345 |
+| Buy X Get Y | BG | BG12345 |
+| Flash Sale | FL | FL12345 |
+| Min Purchase | MP | MP12345 |
+
+Format: `{PREFIX}{TIMESTAMP_5_DIGIT}`
 
 ## Files to Create
 1. `src/features/master/promotion/promotion.api.js` - API layer

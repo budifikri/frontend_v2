@@ -4,11 +4,13 @@ import { createCompany, deleteCompany, listCompanies, updateCompany } from '../.
 import { FooterMaster } from '../footer/FooterMaster'
 import { FooterFormMaster } from '../footer/FooterFormMaster'
 import { DeleteMaster } from '../footer/DeleteMaster'
+import { ImportConfirmMaster } from '../footer/ImportConfirmMaster'
+import { Toast } from '../../../components/Toast'
 import { MasterTableHeader } from '../table/MasterTableHeader'
 import { MasterStatusToggle } from '../table/MasterStatusToggle'
 import { useMasterTableSort } from '../../../hooks/useMasterTableSort'
 import { useMasterPagination } from '../../../hooks/useMasterPagination'
-import { exportToExcel, importFromExcel, generateTemplate } from '../../../utils/excelUtils'
+import { exportToExcel, generateTemplate, validateImportFile } from '../../../utils/excelUtils'
 
 const DEFAULT_FORM = {
   code: '',
@@ -100,6 +102,10 @@ export function Company({ onExit }) {
   const [showForm, setShowForm] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [showExitConfirm, setShowExitConfirm] = useState(false)
+  const [showImportConfirm, setShowImportConfirm] = useState(false)
+  const [pendingImportData, setPendingImportData] = useState(null)
+  const [showToast, setShowToast] = useState(false)
+  const [toastMessage, setToastMessage] = useState('')
 
   const [isActiveFilter, setIsActiveFilter] = useState('active')
   const [searchKeyword, setSearchKeyword] = useState('')
@@ -357,41 +363,71 @@ export function Company({ onExit }) {
 
   const handleImportExcel = async (file) => {
     try {
-      const imported = await importFromExcel(file)
-      const newData = [...data]
-      let addedCount = 0
-      let updatedCount = 0
+      const result = await validateImportFile(file, EXCEL_COLUMNS)
+      setPendingImportData({ file, data: result.data, count: result.recordCount, fileName: result.fileName, isValid: true })
+      setShowImportConfirm(true)
+    } catch (err) {
+      setPendingImportData({ file, fileName: file.name, isValid: false, errorMessage: err.message })
+      setShowImportConfirm(true)
+    }
+  }
 
-      for (const row of imported) {
-        const code = row.CODE || row.code
-        if (!code) continue
+  const handleConfirmImport = async () => {
+    if (!pendingImportData || !pendingImportData.isValid) return
+    const { data: imported } = pendingImportData
+    const newData = [...data]
+    let addedCount = 0
+    let updatedCount = 0
 
-        const existingIndex = newData.findIndex(item => item.code === code)
-        const itemData = {
-          code,
-          nama: row.NAME || row.nama || row.name || '',
-          email: row.EMAIL || row.email || '',
-          telp: row.PHONE || row.phone || row.telp || '',
-          address: row.ADDRESS || row.address || '',
-          website: row.WEBSITE || row.website || '',
-          is_active: true,
-        }
+    for (const row of imported) {
+      const code = row.CODE || row.code
+      if (!code) continue
 
-        if (existingIndex >= 0) {
-          newData[existingIndex] = { ...newData[existingIndex], ...itemData }
-          updatedCount++
-        } else {
-          newData.push({ id: code, ...itemData })
-          addedCount++
-        }
+      const existingIndex = newData.findIndex(item => item.code === code)
+      const itemData = {
+        code,
+        nama: row.NAME || row.nama || row.name || '',
+        email: row.EMAIL || row.email || '',
+        telp: row.PHONE || row.phone || row.telp || '',
+        address: row.ADDRESS || row.address || '',
+        website: row.WEBSITE || row.website || '',
+        is_active: true,
       }
 
-      setData(newData)
-      setPagination({ ...pagination, total: newData.length })
-      setError(`Imported: ${addedCount} new, ${updatedCount} updated`)
-    } catch (err) {
-      setError(err.message || 'Failed to import')
+      if (existingIndex >= 0) {
+        if (token) {
+          try {
+            await updateCompany(token, code, itemData)
+          } catch (err) {
+            console.warn('Update failed:', err.message)
+          }
+        }
+        newData[existingIndex] = { ...newData[existingIndex], ...itemData }
+        updatedCount++
+      } else {
+        if (token) {
+          try {
+            await createCompany(token, itemData)
+          } catch (err) {
+            console.warn('Create failed:', err.message)
+          }
+        }
+        newData.push({ id: code, ...itemData })
+        addedCount++
+      }
     }
+
+    setData(newData)
+    setPagination({ ...pagination, total: newData.length })
+    setShowImportConfirm(false)
+    setPendingImportData(null)
+    setToastMessage(`Berhasil import: ${addedCount} baru, ${updatedCount} diperbarui`)
+    setShowToast(true)
+  }
+
+  const handleCancelImport = () => {
+    setShowImportConfirm(false)
+    setPendingImportData(null)
   }
 
   const handleGenerateTemplate = () => {
@@ -579,6 +615,19 @@ export function Company({ onExit }) {
           onCancel={() => setShowExitConfirm(false)}
         />
       )}
+
+      {showImportConfirm && (
+        <ImportConfirmMaster
+          fileName={pendingImportData?.fileName || ''}
+          recordCount={pendingImportData?.count || 0}
+          isValid={pendingImportData?.isValid ?? true}
+          errorMessage={pendingImportData?.errorMessage || ''}
+          onConfirm={handleConfirmImport}
+          onCancel={handleCancelImport}
+        />
+      )}
+
+      {showToast && <Toast message={toastMessage} type="success" onClose={() => setShowToast(false)} />}
     </div>
   )
 }

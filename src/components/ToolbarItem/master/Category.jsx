@@ -9,7 +9,7 @@ import { MasterTableHeader } from '../table/MasterTableHeader'
 import { MasterStatusToggle } from '../table/MasterStatusToggle'
 import { useMasterTableSort } from '../../../hooks/useMasterTableSort'
 import { useMasterPagination } from '../../../hooks/useMasterPagination'
-import { exportToExcel, importFromExcel, generateTemplate } from '../../../utils/excelUtils'
+import { exportToExcel, generateTemplate, validateImportFile } from '../../../utils/excelUtils'
 import { Toast } from '../../../components/Toast'
 
 const DEFAULT_FORM = {
@@ -304,39 +304,69 @@ export function Category({ onExit }) {
 
   const handleImportExcel = async (file) => {
     try {
-      const imported = await importFromExcel(file)
-      const newData = [...data]
-      let addedCount = 0
-      let updatedCount = 0
+      const result = await validateImportFile(file, EXCEL_COLUMNS)
+      setPendingImportData({ file, data: result.data, count: result.recordCount, fileName: result.fileName, isValid: true })
+      setShowImportConfirm(true)
+    } catch (err) {
+      setPendingImportData({ file, fileName: file.name, isValid: false, errorMessage: err.message })
+      setShowImportConfirm(true)
+    }
+  }
 
-      for (const row of imported) {
-        const code = row.CODE || row.code
-        if (!code) continue
+  const handleConfirmImport = async () => {
+    if (!pendingImportData || !pendingImportData.isValid) return
+    const { data: imported } = pendingImportData
+    const newData = [...data]
+    let addedCount = 0
+    let updatedCount = 0
 
-        const existingIndex = newData.findIndex(item => item.code === code)
-        const itemData = {
-          code,
-          name: row.NAME || row.name || '',
-          description: row.DESCRIPTION || row.description || '',
-          parent_id: row.PARENT || row.parent_id || '',
-          is_active: true,
-        }
+    for (const row of imported) {
+      const code = row.CODE || row.code
+      if (!code) continue
 
-        if (existingIndex >= 0) {
-          newData[existingIndex] = { ...newData[existingIndex], ...itemData }
-          updatedCount++
-        } else {
-          newData.push({ id: code, ...itemData })
-          addedCount++
-        }
+      const existingIndex = newData.findIndex(item => item.code === code)
+      const itemData = {
+        code,
+        name: row.NAME || row.name || '',
+        description: row.DESCRIPTION || row.description || '',
+        parent_id: row.PARENT || row.parent_id || '',
+        is_active: true,
       }
 
-      setData(newData)
-      setPagination({ ...pagination, total: newData.length })
-      setError(`Imported: ${addedCount} new, ${updatedCount} updated`)
-    } catch (err) {
-      setError(err.message || 'Failed to import')
+      if (existingIndex >= 0) {
+        if (token) {
+          try {
+            await updateCategory(token, code, itemData)
+          } catch (err) {
+            console.warn('Update failed:', err.message)
+          }
+        }
+        newData[existingIndex] = { ...newData[existingIndex], ...itemData }
+        updatedCount++
+      } else {
+        if (token) {
+          try {
+            await createCategory(token, itemData)
+          } catch (err) {
+            console.warn('Create failed:', err.message)
+          }
+        }
+        newData.push({ id: code, ...itemData })
+        addedCount++
+      }
     }
+
+    setData(newData)
+    setPagination({ ...pagination, total: newData.length })
+    setShowImportConfirm(false)
+    setPendingImportData(null)
+    setToastMessage(`Berhasil import: ${addedCount} baru, ${updatedCount} diperbarui`)
+    setShowToast(true)
+  }
+
+  const handleCancelImport = () => {
+    setShowImportConfirm(false)
+    setPendingImportData(null)
   }
 
   const handleGenerateTemplate = () => {
@@ -501,6 +531,19 @@ export function Category({ onExit }) {
           onCancel={() => setShowExitConfirm(false)}
         />
       )}
+
+      {showImportConfirm && (
+        <ImportConfirmMaster
+          fileName={pendingImportData?.fileName || ''}
+          recordCount={pendingImportData?.count || 0}
+          isValid={pendingImportData?.isValid ?? true}
+          errorMessage={pendingImportData?.errorMessage || ''}
+          onConfirm={handleConfirmImport}
+          onCancel={handleCancelImport}
+        />
+      )}
+
+      {showToast && <Toast message={toastMessage} type="success" onClose={() => setShowToast(false)} />}
     </div>
   )
 }

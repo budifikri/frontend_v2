@@ -10,7 +10,7 @@ import { MasterTableHeader } from '../table/MasterTableHeader'
 import { MasterStatusToggle } from '../table/MasterStatusToggle'
 import { useMasterTableSort } from '../../../hooks/useMasterTableSort'
 import { useMasterPagination } from '../../../hooks/useMasterPagination'
-import { exportToExcel, importFromExcel, generateTemplate } from '../../../utils/excelUtils'
+import { exportToExcel, generateTemplate, validateImportFile } from '../../../utils/excelUtils'
 import { Toast } from '../../../components/Toast'
 
 const DEFAULT_FORM = {
@@ -318,16 +318,17 @@ export function Warehouse({ onExit }) {
 
   const handleImportExcel = async (file) => {
     try {
-      const imported = await importFromExcel(file)
-      setPendingImportData({ file, data: imported, count: imported.length })
+      const result = await validateImportFile(file, EXCEL_COLUMNS)
+      setPendingImportData({ file, data: result.data, count: result.recordCount, fileName: result.fileName, isValid: true })
       setShowImportConfirm(true)
     } catch (err) {
-      setError(err.message || 'Failed to import')
+      setPendingImportData({ file, fileName: file.name, isValid: false, errorMessage: err.message })
+      setShowImportConfirm(true)
     }
   }
 
-  const handleConfirmImport = () => {
-    if (!pendingImportData) return
+  const handleConfirmImport = async () => {
+    if (!pendingImportData || !pendingImportData.isValid) return
     const { data: imported } = pendingImportData
     const newData = [...data]
     let addedCount = 0
@@ -349,9 +350,23 @@ export function Warehouse({ onExit }) {
       }
 
       if (existingIndex >= 0) {
+        if (token) {
+          try {
+            await updateWarehouse(token, code, itemData)
+          } catch (err) {
+            console.warn('Update failed:', err.message)
+          }
+        }
         newData[existingIndex] = { ...newData[existingIndex], ...itemData }
         updatedCount++
       } else {
+        if (token) {
+          try {
+            await createWarehouse(token, itemData)
+          } catch (err) {
+            console.warn('Create failed:', err.message)
+          }
+        }
         newData.push({ id: code, ...itemData })
         addedCount++
       }
@@ -614,7 +629,10 @@ export function Warehouse({ onExit }) {
 
       {showImportConfirm && (
         <ImportConfirmMaster
-          itemName={pendingImportData?.count + ' data'}
+          fileName={pendingImportData?.fileName || ''}
+          recordCount={pendingImportData?.count || 0}
+          isValid={pendingImportData?.isValid ?? true}
+          errorMessage={pendingImportData?.errorMessage || ''}
           onConfirm={handleConfirmImport}
           onCancel={handleCancelImport}
         />

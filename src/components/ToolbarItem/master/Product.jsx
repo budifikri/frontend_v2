@@ -10,11 +10,13 @@ import { createPriceTier, getPriceTier, updatePriceTier } from '../../../feature
 import { FooterMaster } from '../footer/FooterMaster'
 import { FooterFormMaster } from '../footer/FooterFormMaster'
 import { DeleteMaster } from '../footer/DeleteMaster'
+import { ImportConfirmMaster } from '../footer/ImportConfirmMaster'
 import { MasterTableHeader } from '../table/MasterTableHeader'
 import { MasterStatusToggle } from '../table/MasterStatusToggle'
 import { useMasterTableSort } from '../../../hooks/useMasterTableSort'
 import { useMasterPagination } from '../../../hooks/useMasterPagination'
-import { exportToExcel, importFromExcel, generateTemplate } from '../../../utils/excelUtils'
+import { exportToExcel, generateTemplate, validateImportFile } from '../../../utils/excelUtils'
+import { Toast } from '../../../components/Toast'
 
 const DEFAULT_FORM = {
   sku: '',
@@ -161,6 +163,8 @@ export function Product({ onExit }) {
   const [showForm, setShowForm] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [showExitConfirm, setShowExitConfirm] = useState(false)
+  const [showImportConfirm, setShowImportConfirm] = useState(false)
+  const [pendingImportData, setPendingImportData] = useState(null)
   const [showToast, setShowToast] = useState(false)
   const [toastMessage, setToastMessage] = useState('')
   const [activeTab, setActiveTab] = useState('general')
@@ -726,43 +730,74 @@ export function Product({ onExit }) {
 
   const handleImportExcel = async (file) => {
     try {
-      const imported = await importFromExcel(file)
-      const newData = [...data]
-      let addedCount = 0
-      let updatedCount = 0
+      const result = await validateImportFile(file, EXCEL_COLUMNS)
+      setPendingImportData({ file, data: result.data, count: result.recordCount, fileName: result.fileName, isValid: true })
+      setShowImportConfirm(true)
+    } catch (err) {
+      setPendingImportData({ file, fileName: file.name, isValid: false, errorMessage: err.message })
+      setShowImportConfirm(true)
+    }
+  }
 
-      for (const row of imported) {
-        const sku = row.SKU || row.sku
-        if (!sku) continue
+  const handleConfirmImport = async () => {
+    if (!pendingImportData || !pendingImportData.isValid) return
+    const { data: imported } = pendingImportData
+    const newData = [...data]
+    let addedCount = 0
+    let updatedCount = 0
 
-        const existingIndex = newData.findIndex(item => item.sku === sku)
-        const itemData = {
-          sku,
-          barcode: row.BARCODE || row.barcode || '',
-          name: row.NAME || row.name || '',
-          description: row.DESCRIPTION || row.description || '',
-          category_id: row.CATEGORY_ID || row.category_id || '',
-          unit_id: row.UNIT_ID || row.unit_id || '',
-          cost_price: Number(row.COST_PRICE) || Number(row.cost_price) || 0,
-          retail_price: Number(row.RETAIL_PRICE) || Number(row.retail_price) || 0,
-          is_active: true,
-        }
+    for (const row of imported) {
+      const sku = row.SKU || row.sku
+      if (!sku) continue
 
-        if (existingIndex >= 0) {
-          newData[existingIndex] = { ...newData[existingIndex], ...itemData }
-          updatedCount++
-        } else {
-          newData.push({ id: sku, ...itemData })
-          addedCount++
-        }
+      const existingIndex = newData.findIndex(item => item.sku === sku)
+      const itemData = {
+        sku,
+        barcode: row.BARCODE || row.barcode || '',
+        name: row.NAME || row.name || '',
+        description: row.DESCRIPTION || row.description || '',
+        category_id: row.CATEGORY_ID || row.category_id || '',
+        unit_id: row.UNIT_ID || row.unit_id || '',
+        cost_price: Number(row.COST_PRICE) || Number(row.cost_price) || 0,
+        retail_price: Number(row.RETAIL_PRICE) || Number(row.retail_price) || 0,
+        is_active: true,
       }
 
-      setData(newData)
-      setPagination({ ...pagination, total: newData.length })
-      setError(`Imported: ${addedCount} new, ${updatedCount} updated`)
-    } catch (err) {
-      setError(err.message || 'Failed to import')
+      if (existingIndex >= 0) {
+        if (token) {
+          try {
+            await updateProduct(token, sku, itemData)
+          } catch (err) {
+            console.warn('Update failed:', err.message)
+          }
+        }
+        newData[existingIndex] = { ...newData[existingIndex], ...itemData }
+        updatedCount++
+      } else {
+        if (token) {
+          try {
+            await createProduct(token, itemData)
+          } catch (err) {
+            console.warn('Create failed:', err.message)
+          }
+        }
+        newData.push({ id: sku, ...itemData })
+        addedCount++
+      }
     }
+
+    setData(newData)
+    setPagination({ ...pagination, total: newData.length })
+    setShowImportConfirm(false)
+    setPendingImportData(null)
+    setToastMessage(`Imported: ${addedCount} new, ${updatedCount} updated`)
+    setShowToast(true)
+    setTimeout(() => setShowToast(false), 3000)
+  }
+
+  const handleCancelImport = () => {
+    setShowImportConfirm(false)
+    setPendingImportData(null)
   }
 
   const handleGenerateTemplate = () => {
@@ -1195,6 +1230,21 @@ export function Product({ onExit }) {
           onConfirm={handleConfirmExit}
           onCancel={() => setShowExitConfirm(false)}
         />
+      )}
+
+      {showImportConfirm && (
+        <ImportConfirmMaster
+          fileName={pendingImportData?.fileName || ''}
+          recordCount={pendingImportData?.count || 0}
+          isValid={pendingImportData?.isValid ?? true}
+          errorMessage={pendingImportData?.errorMessage || ''}
+          onConfirm={handleConfirmImport}
+          onCancel={handleCancelImport}
+        />
+      )}
+
+      {showToast && (
+        <Toast message={toastMessage} type="success" onClose={() => setShowToast(false)} />
       )}
     </div>
   )

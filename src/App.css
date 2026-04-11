@@ -1324,6 +1324,45 @@ body.has-wallpaper .cash-register {
   cursor: not-allowed;
 }
 
+.excel-menu-container {
+  position: relative;
+}
+
+.excel-dropdown-menu {
+  position: absolute;
+  bottom: 100%;
+  right: 0;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  padding: 8px 0;
+  min-width: 140px;
+  z-index: 100;
+}
+
+.excel-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 16px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  color: #374151;
+  text-align: left;
+}
+
+.excel-dropdown-item:hover {
+  background: #f3f4f6;
+}
+
+.excel-dropdown-item .material-icons-round {
+  font-size: 20px;
+  color: #8b5cf6;
+}
+
 .master-footer-icon {
   font-size: 2.5rem;
   color: #64748b;

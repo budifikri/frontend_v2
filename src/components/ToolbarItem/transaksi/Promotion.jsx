@@ -88,7 +88,31 @@ const PROMO_TYPE_OPTIONS = [
   { value: 'fixed_amount', label: 'Discount Fixed Amount' },
   { value: 'buy_x_get_y', label: 'Buy X Get Y Free' },
   { value: 'flash_sale', label: 'Flash Sale' },
+  { value: 'min_purchase', label: 'Min Purchase Amount' },
 ]
+
+function generatePromotionCode(promoType, dataList = []) {
+  const prefixMap = {
+    percentage: 'DP',
+    fixed_amount: 'DA',
+    buy_x_get_y: 'BG',
+    flash_sale: 'FL',
+    min_purchase: 'MP',
+  }
+
+  const prefix = prefixMap[promoType] || 'DP'
+  const sameTypeCodes = dataList
+    .filter((item) => item.promo_type === promoType)
+    .map((item) => item.code)
+    .filter((code) => code && code.startsWith(prefix))
+
+  let sequence = 1
+  while (sameTypeCodes.includes(`${prefix}${String(sequence).padStart(5, '0')}`)) {
+    sequence++
+  }
+
+  return `${prefix}${String(sequence).padStart(5, '0')}`
+}
 
 const SCOPE_TYPE_OPTIONS = [
   { value: 'all', label: 'All Products' },
@@ -302,8 +326,9 @@ export function Promotion({ onExit }) {
   }
 
   function handleNew() {
+    const autoCode = generatePromotionCode(DEFAULT_FORM.promo_type, data)
     setSelectedId(null)
-    setForm(DEFAULT_FORM)
+    setForm({ ...DEFAULT_FORM, code: autoCode })
     setShowForm(true)
   }
 
@@ -406,7 +431,12 @@ export function Promotion({ onExit }) {
   }
 
   function handlePromoTypeChange(value) {
-    setForm({ ...form, promo_type: value })
+    if (selectedItem) {
+      setForm({ ...form, promo_type: value })
+    } else {
+      const newCode = generatePromotionCode(value, data)
+      setForm({ ...form, promo_type: value, code: newCode })
+    }
   }
 
   function handleScopeTypeChange(value) {

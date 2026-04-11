@@ -1,3 +1,5 @@
+import { useState } from 'react'
+
 export function FooterMaster({
   onNew,
   onEdit,
@@ -29,6 +31,7 @@ export function FooterMaster({
   const _formatCurrency = (amount) => {
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(amount)
   }
+  const [showExcelMenu, setShowExcelMenu] = useState(false)
   void _totalAmount
   void _totalAmountLabel
   void _formatCurrency
@@ -61,33 +64,46 @@ export function FooterMaster({
           </button>
         )}
         {excelColumns && excelFilename && (
-          <>
-            <button type="button" className="master-footer-btn" onClick={onGenerateTemplate} title="Download Template" aria-label="Download Template">
-              <span className="material-icons-round master-footer-icon purple">table_chart</span>
-              <span className="master-footer-key">TMP</span>
+          <div style={{ position: 'relative' }} className="excel-menu-container">
+            <button
+              type="button"
+              className="master-footer-btn"
+              onClick={() => setShowExcelMenu(!showExcelMenu)}
+              title="Import/Export"
+              aria-label="Import/Export"
+            >
+              <span className="material-icons-round master-footer-icon purple">expand_less</span>
+              <span className="master-footer-key">XLS</span>
             </button>
-            <input
-              type="file"
-              accept=".xlsx,.xls"
-              onChange={(e) => {
-                const file = e.target.files?.[0]
-                if (file && onImportExcel) onImportExcel(file)
-                e.target.value = ''
-              }}
-              style={{ display: 'none' }}
-              id="excel-import-input"
-            />
-            <label htmlFor="excel-import-input">
-              <button type="button" className="master-footer-btn" onClick={() => document.getElementById('excel-import-input')?.click()} title="Import from Excel" aria-label="Import from Excel">
-                <span className="material-icons-round master-footer-icon purple">file_upload</span>
-                <span className="master-footer-key">IMP</span>
-              </button>
-            </label>
-            <button type="button" className="master-footer-btn" onClick={onExportExcel} title="Export to Excel" aria-label="Export to Excel">
-              <span className="material-icons-round master-footer-icon purple">file_download</span>
-              <span className="master-footer-key">EXP</span>
-            </button>
-          </>
+            {showExcelMenu && (
+              <div className="excel-dropdown-menu">
+                <button type="button" className="excel-dropdown-item" onClick={() => { onGenerateTemplate(); setShowExcelMenu(false) }} title="Download Template">
+                  <span className="material-icons-round">table_chart</span>
+                  <span>Template</span>
+                </button>
+                <input
+                  type="file"
+                  accept=".xlsx,.xls"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0]
+                    if (file && onImportExcel) onImportExcel(file)
+                    e.target.value = ''
+                    setShowExcelMenu(false)
+                  }}
+                  style={{ display: 'none' }}
+                  id="excel-import-input"
+                />
+                <label htmlFor="excel-import-input" className="excel-dropdown-item">
+                  <span className="material-icons-round">file_upload</span>
+                  <span>Import</span>
+                </label>
+                <button type="button" className="excel-dropdown-item" onClick={() => { onExportExcel(); setShowExcelMenu(false) }} title="Export to Excel">
+                  <span className="material-icons-round">file_download</span>
+                  <span>Export</span>
+                </button>
+              </div>
+            )}
+          </div>
         )}
         {extraActions}
         <button type="button" className="master-footer-btn" onClick={onExit} title="Exit" aria-label="Exit">
