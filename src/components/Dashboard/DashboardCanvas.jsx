@@ -10,6 +10,7 @@ import { StockOpname } from '../ToolbarItem/transaksi/StockOpname'
 import { Purchase } from '../ToolbarItem/transaksi/Purchase'
 import { StockReceive } from '../ToolbarItem/transaksi/StockReceive'
 import { PurchaseReturn } from '../ToolbarItem/transaksi/PurchaseReturn'
+import { Promotion } from '../ToolbarItem/transaksi/Promotion'
 import { Theme } from '../ToolbarItem/setting/theme/Theme'
 import { User } from '../ToolbarItem/setting/user/User'
 import { LapStock } from '../ToolbarItem/laporan/stok/LapStock'
@@ -140,6 +141,14 @@ export function DashboardCanvas({ activeTool, onExit }) {
     return (
       <div className="dashboard-canvas">
         <PurchaseReturn onExit={onExit} />
+      </div>
+    )
+  }
+
+  if (activeTool === 'promotion') {
+    return (
+      <div className="dashboard-canvas">
+        <Promotion onExit={onExit} />
       </div>
     )
   }

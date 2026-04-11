@@ -2,20 +2,30 @@
 - product tidak bisa tambah stock  (fix)
 ## TODO
 - connect telegram
-- harga promo
+
 - setting printer thermal dan dot matrix
 - Help POS
 - update logo pos
-- harga grosir
--  
+
 
 ## ON PROGRESS
-
-
+- export import data master  
+   - template excel
+   - export
+   - import 
+- harga promo  
+     - Discount Percentage                    
+     - Discount Fixed Amount                
+     - Buy X Get Y Free                    
+     - Flash Sale   
 
 
 
 ## DONE
+11 April 2026
+- harga grosir  (done)
+  - POS
+  - Data transaksi di product dan laporan harga grosir
 29 maret 2026
 - penjualan Pending  
 - Setting POS, format cetak
