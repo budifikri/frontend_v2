@@ -47,7 +47,7 @@ export const DEFAULT_CUSTOM_TEMPLATE_HTML = `<div class="tpl-note">
   <div class="tpl-summary">
     <div><span>Subtotal</span><span>{{original_total}}</span></div>
     <div><span>Total Diskon</span><span>- {{discount}}</span></div>
-    <div><span>PPN (11%)</span><span>{{tax_amount}}</span></div>
+    {{ppn_row}}
     <div class="is-total"><span>Total</span><span>{{total_amount}}</span></div>
     <div><span>Bayar {{payment_method}}</span><span>{{paid_amount}}</span></div>
     <div><span>Kembali</span><span>{{change_amount}}</span></div>
@@ -186,14 +186,15 @@ function getReceiptTemplate(layoutType) {
   return RECEIPT_TEMPLATE_MAP[layoutType] || RECEIPT_TEMPLATE_MAP.layout_a
 }
 
-function computeSummaryFromItems(itemRows, fallbackSummary) {
+function computeSummaryFromItems(itemRows, fallbackSummary, ppnPercentage = 11) {
   const subtotal = itemRows.reduce((sum, item) => sum + item.subtotal, 0)
   const originalTotal = itemRows.reduce((sum, item) => sum + ((item.originalPrice || item.unitPrice) * item.quantity), 0)
   const totalDiscount = itemRows.reduce((sum, item) => sum + (item.discount * item.quantity), 0)
   if (subtotal <= 0) return fallbackSummary
 
   const afterDiscount = originalTotal - totalDiscount
-  const tax = Math.round(afterDiscount * 0.11)
+  const taxRate = ppnPercentage / 100
+  const tax = Math.round(afterDiscount * taxRate)
   const total = subtotal + tax
   
   const paid = fallbackSummary.paid || total
@@ -207,6 +208,7 @@ function computeSummaryFromItems(itemRows, fallbackSummary) {
     total,
     paid,
     change,
+    taxRate,
   }
 }
 
@@ -221,6 +223,9 @@ export function buildReceiptTemplateModel(sale, settings, options = {}) {
   const rawPaymentRows = buildPaymentRows(sale)
   const paymentRows = rawPaymentRows.length > 0 || !withSamples ? rawPaymentRows : SAMPLE_PAYMENT_ROWS
 
+  const ppnPercentage = settings.ppn_percentage || 11
+  const showPpn = settings.show_ppn !== false
+
   const baseSummary = {
     subtotal: sale.subtotal || 0,
     originalTotal: sale.original_total || sale.subtotal || 0,
@@ -231,7 +236,7 @@ export function buildReceiptTemplateModel(sale, settings, options = {}) {
     change: sale.change_amount || 0,
   }
 
-  const summary = itemRows.length > 0 ? computeSummaryFromItems(itemRows, baseSummary) : baseSummary
+  const summary = itemRows.length > 0 ? computeSummaryFromItems(itemRows, baseSummary, showPpn ? ppnPercentage : 0) : baseSummary
 
   return {
     layoutType,
@@ -239,6 +244,9 @@ export function buildReceiptTemplateModel(sale, settings, options = {}) {
     templateMode: settings.template_mode || 'default',
     showLogo: Boolean(settings.show_logo),
     showFooter: Boolean(settings.show_footer),
+    showPpn,
+    ppnPercentage,
+    taxRate: showPpn ? ppnPercentage / 100 : 0,
     company: {
       name: sale.company_name || '-',
       address: settings.company_address?.trim() || sale.company_address || '',
@@ -331,7 +339,7 @@ function renderHtmlSummary(model, helpers) {
     <div class="summary">
       ${model.template.showSummarySubtotal ? `<div><span>Subtotal (${itemCount} Item)</span><span>${helpers.formatCurrency(model.summary.originalTotal)}</span></div>` : ''}
       ${model.summary.discount > 0 ? `<div class="discount"><span>Total Diskon</span><span>- ${helpers.formatCurrency(model.summary.discount)}</span></div>` : ''}
-      ${model.template.showSummaryTax ? `<div><span>PPN (11%)</span><span>${helpers.formatCurrency(model.summary.tax)}</span></div>` : ''}
+      ${model.showPpn ? `<div><span>PPN (${model.ppnPercentage}%)</span><span>${helpers.formatCurrency(model.summary.tax)}</span></div>` : ''}
       <div class="total"><span>Total</span><span>${helpers.formatCurrency(model.summary.total)}</span></div>
       <div><span>Dibayar</span><span>${helpers.formatCurrency(model.summary.paid)}</span></div>
       <div><span>Kembalian</span><span>${helpers.formatCurrency(model.summary.change)}</span></div>
@@ -413,7 +421,9 @@ function renderCustomReceiptHtml(model, helpers) {
     subtotal: helpers.formatCurrency(model.summary.subtotal),
     original_total: helpers.formatCurrency(model.summary.originalTotal),
     discount: helpers.formatCurrency(model.summary.discount),
-    tax_amount: helpers.formatCurrency(model.summary.tax),
+    tax_amount: model.showPpn ? helpers.formatCurrency(model.summary.tax) : '-',
+    tax_label: model.showPpn ? `PPN (${model.ppnPercentage}%)` : '',
+    ppn_row: model.showPpn ? `<div><span>PPN (${model.ppnPercentage}%)</span><span>${helpers.formatCurrency(model.summary.tax)}</span></div>` : '',
     total_amount: helpers.formatCurrency(model.summary.total),
     paid_amount: helpers.formatCurrency(model.summary.paid),
     change_amount: helpers.formatCurrency(model.summary.change),

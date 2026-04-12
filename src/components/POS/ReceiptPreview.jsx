@@ -92,7 +92,9 @@ export function ReceiptPreview({ sale, settings, formatCurrency, formatDateTime 
         {model.summary.discount > 0 && (
           <div className="receipt-preview-row diskon"><span>Total Diskon</span><span>- {formatCurrency(model.summary.discount)}</span></div>
         )}
-        <div className="receipt-preview-row"><span>PPN (11%)</span><span>{formatCurrency(model.summary.tax)}</span></div>
+        {model.showPpn !== false && (
+          <div className="receipt-preview-row"><span>PPN ({model.ppnPercentage || 11}%)</span><span>{formatCurrency(model.summary.tax)}</span></div>
+        )}
         <div className="receipt-preview-row total"><span>Total</span><span>{formatCurrency(model.summary.total)}</span></div>
         <div className="receipt-preview-row"><span>Dibayar</span><span>{formatCurrency(model.summary.paid)}</span></div>
         <div className="receipt-preview-row"><span>Kembalian</span><span>{formatCurrency(model.summary.change)}</span></div>

@@ -21,6 +21,8 @@ export const DEFAULT_RECEIPT_SETTINGS = {
   company_address: '',
   company_phone: '',
   auto_print_after_payment: true,
+  show_ppn: true,
+  ppn_percentage: 11,
 }
 
 export function normalizeReceiptSettings(value) {
@@ -56,6 +58,8 @@ export function normalizeReceiptSettings(value) {
     auto_print_after_payment: typeof source.auto_print_after_payment === 'boolean'
       ? source.auto_print_after_payment
       : DEFAULT_RECEIPT_SETTINGS.auto_print_after_payment,
+    show_ppn: typeof source.show_ppn === 'boolean' ? source.show_ppn : DEFAULT_RECEIPT_SETTINGS.show_ppn,
+    ppn_percentage: typeof source.ppn_percentage === 'number' && source.ppn_percentage > 0 ? source.ppn_percentage : DEFAULT_RECEIPT_SETTINGS.ppn_percentage,
   }
 }
 

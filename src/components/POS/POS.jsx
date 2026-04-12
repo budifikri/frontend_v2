@@ -819,7 +819,9 @@ export function POS() {
   const subtotalOriginal = items.reduce((sum, item) => sum + (Number(item.retail_price || item.price) * item.qty), 0)
   const totalDiscount = items.reduce((sum, item) => sum + ((Number(item.retail_price || item.price) - Number(item.price)) * item.qty), 0)
   const subtotal = items.reduce((sum, item) => sum + (item.price * item.qty), 0)
-  const tax = (subtotalOriginal - totalDiscount) * 0.11
+  const ppnPercentage = receiptSettings.ppn_percentage || 11
+  const showPpn = receiptSettings.show_ppn !== false
+  const tax = showPpn ? (subtotalOriginal - totalDiscount) * (ppnPercentage / 100) : 0
   const total = subtotal + tax
   const selectedItem = selectedIndex >= 0 ? items[selectedIndex] : null
   const displayItem = selectedItem || items[items.length - 1]
@@ -2264,6 +2266,29 @@ export function POS() {
                     />
                     <span>Calibration line mode (50mm)</span>
                   </label>
+                  <label className="receipt-checkbox-option">
+                    <input
+                      type="checkbox"
+                      checked={receiptSettingsDraft.show_ppn ?? true}
+                      onChange={(e) => setReceiptSettingsDraft((prev) => ({ ...prev, show_ppn: e.target.checked }))}
+                    />
+                    <span>Tampilkan PPN</span>
+                  </label>
+                  {receiptSettingsDraft.show_ppn !== false && (
+                    <div className="receipt-setting-field-inline">
+                      <label htmlFor="ppn-percentage">Prosentase PPN (%)</label>
+                      <input
+                        type="number"
+                        id="ppn-percentage"
+                        className="receipt-number-input"
+                        value={receiptSettingsDraft.ppn_percentage || 11}
+                        onChange={(e) => setReceiptSettingsDraft((prev) => ({ ...prev, ppn_percentage: parseFloat(e.target.value) || 0 }))}
+                        min="0"
+                        max="100"
+                        step="0.5"
+                      />
+                    </div>
+                  )}
                   <div className="receipt-footer-text-wrap">
                     <label htmlFor="receipt-footer-text">Text footer</label>
                     <textarea
@@ -2368,8 +2393,12 @@ export function POS() {
                 <span>- {formatCurrency(totalDiscount)}</span>
               </div>
               <div className="receipt-tax-row">
-                <span>PPN (11%)</span>
-                <span>{formatCurrency(tax)}</span>
+                {showPpn && (
+                  <>
+                    <span>PPN ({ppnPercentage}%)</span>
+                    <span>{formatCurrency(tax)}</span>
+                  </>
+                )}
               </div>
               <div className="receipt-total-row">
                 <span>Total</span>
