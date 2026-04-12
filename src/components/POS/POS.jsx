@@ -1246,14 +1246,24 @@ export function POS() {
               sale_date: new Date().toISOString(),
               cashier_name: auth.username || '-',
               warehouse_name: mainWarehouse?.name || '-',
-              items: currentItems.map((item) => ({
-                product_name: item.name,
-                quantity: item.qty,
-                unit_price: item.price,
-              })),
+              items: currentItems.map((item) => {
+                const retailPrice = Number(item.retail_price || item.price)
+                const unitPrice = Number(item.price)
+                const discount = retailPrice - unitPrice
+                const tierLabel = getItemTierLabel(item)
+                return {
+                  product_name: item.name,
+                  quantity: item.qty,
+                  unit_price: unitPrice,
+                  original_price: retailPrice,
+                  notes: discount > 0 ? tierLabel : '',
+                }
+              }),
               subtotal: currentSubtotal,
               tax_amount: currentTax,
               total_amount: currentTotal,
+              original_total: currentItems.reduce((sum, item) => sum + (Number(item.retail_price || item.price) * item.qty), 0),
+              discount_amount: currentItems.reduce((sum, item) => sum + ((Number(item.retail_price || item.price) - Number(item.price)) * item.qty), 0),
               paid_amount: paymentMethod === 'CASH' ? payment : currentTotal,
               change_amount: paymentMethod === 'CASH' ? payment - currentTotal : 0,
               payments: [{

@@ -2493,11 +2493,22 @@
   font-weight: 700;
 }
 
-.receipt-preview-item-detail,
+.receipt-preview-item-main,
+.receipt-preview-item-diskon,
 .receipt-preview-row {
   display: flex;
   justify-content: space-between;
   gap: 8px;
+}
+
+.receipt-preview-item-diskon {
+  color: #dc2626;
+  font-size: 11px;
+}
+
+.receipt-preview-row.diskon {
+  color: #dc2626;
+  font-weight: 600;
 }
 
 .receipt-preview-empty {

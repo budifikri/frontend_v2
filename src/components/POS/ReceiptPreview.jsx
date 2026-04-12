@@ -53,21 +53,26 @@ export function ReceiptPreview({ sale, settings, formatCurrency, formatDateTime 
         {model.itemRows.slice(0, 6).map((item) => (
           <div key={`${item.index}-${item.name}`} className="receipt-preview-item">
             <div className="receipt-preview-item-name">{item.name}</div>
-            <div className="receipt-preview-item-detail">
-              <span>{item.quantity} x {formatCurrency(item.unitPrice)}</span>
-              <strong>{formatCurrency(item.subtotal)}</strong>
+            <div className="receipt-preview-item-main">
+              <span>{item.quantity} x {formatCurrency(item.originalPrice || item.unitPrice)}</span>
+              <span>{formatCurrency((item.originalPrice || item.unitPrice) * item.quantity)}</span>
             </div>
+            {item.discount > 0 && item.quantity > 0 && (
+              <div className="receipt-preview-item-diskon">
+                <span>diskon {item.tierLabel || 'promo'}</span>
+                <span>- {formatCurrency(item.discount * item.quantity)}</span>
+              </div>
+            )}
           </div>
         ))}
       </div>
 
       <div className="receipt-preview-summary">
-        {model.template.showSummarySubtotal && (
-          <div className="receipt-preview-row"><span>Subtotal</span><span>{formatCurrency(model.summary.subtotal)}</span></div>
+        <div className="receipt-preview-row"><span>Subtotal ({model.itemCount} Item)</span><span>{formatCurrency(model.summary.originalTotal)}</span></div>
+        {model.summary.discount > 0 && (
+          <div className="receipt-preview-row diskon"><span>Total Diskon</span><span>- {formatCurrency(model.summary.discount)}</span></div>
         )}
-        {model.template.showSummaryTax && (
-          <div className="receipt-preview-row"><span>PPN</span><span>{formatCurrency(model.summary.tax)}</span></div>
-        )}
+        <div className="receipt-preview-row"><span>PPN (11%)</span><span>{formatCurrency(model.summary.tax)}</span></div>
         <div className="receipt-preview-row total"><span>Total</span><span>{formatCurrency(model.summary.total)}</span></div>
         <div className="receipt-preview-row"><span>Dibayar</span><span>{formatCurrency(model.summary.paid)}</span></div>
         <div className="receipt-preview-row"><span>Kembalian</span><span>{formatCurrency(model.summary.change)}</span></div>

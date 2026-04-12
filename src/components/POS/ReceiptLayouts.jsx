@@ -157,13 +157,23 @@ export function getReceiptLayoutLabel(layoutType) {
 }
 
 function buildItemRows(sale) {
-  return (sale.items || []).map((item, index) => ({
-    index: index + 1,
-    name: item.product_name || item.name || '-',
-    quantity: item.quantity || item.qty || 0,
-    unitPrice: item.unit_price || item.price || 0,
-    subtotal: (item.quantity || item.qty || 0) * (item.unit_price || item.price || 0),
-  }))
+  return (sale.items || []).map((item, index) => {
+    const quantity = item.quantity || item.qty || 0
+    const unitPrice = item.unit_price || item.price || 0
+    const originalPrice = item.original_price || unitPrice
+    const discount = originalPrice - unitPrice
+    const tierLabel = item.notes || ''
+    return {
+      index: index + 1,
+      name: item.product_name || item.name || '-',
+      quantity,
+      unitPrice,
+      originalPrice,
+      discount,
+      tierLabel,
+      subtotal: quantity * unitPrice,
+    }
+  })
 }
 
 function buildPaymentRows(sale) {
@@ -179,12 +189,17 @@ function getReceiptTemplate(layoutType) {
 
 function computeSummaryFromItems(itemRows, fallbackSummary) {
   const subtotal = itemRows.reduce((sum, item) => sum + item.subtotal, 0)
+  const originalTotal = itemRows.reduce((sum, item) => sum + ((item.originalPrice || item.unitPrice) * item.quantity), 0)
+  const totalDiscount = itemRows.reduce((sum, item) => sum + (item.discount * item.quantity), 0)
   if (subtotal <= 0) return fallbackSummary
 
-  const tax = Math.round(subtotal * 0.11)
+  const afterDiscount = originalTotal - totalDiscount
+  const tax = Math.round(afterDiscount * 0.11)
   const total = subtotal + tax
   return {
     subtotal,
+    originalTotal,
+    discount: totalDiscount,
     tax,
     total,
     paid: total,
@@ -205,6 +220,8 @@ export function buildReceiptTemplateModel(sale, settings, options = {}) {
 
   const baseSummary = {
     subtotal: sale.subtotal || 0,
+    originalTotal: sale.original_total || sale.subtotal || 0,
+    discount: sale.discount_amount || 0,
     tax: sale.tax_amount || 0,
     total: sale.total_amount || 0,
     paid: sale.paid_amount || 0,
@@ -235,6 +252,7 @@ export function buildReceiptTemplateModel(sale, settings, options = {}) {
     itemRows,
     paymentRows,
     summary,
+    itemCount: itemRows.reduce((sum, item) => sum + item.quantity, 0),
     blocks: [
       'header',
       'items',
@@ -305,10 +323,12 @@ function renderHtmlItems(model, helpers) {
 }
 
 function renderHtmlSummary(model, helpers) {
+  const itemCount = model.itemRows.reduce((sum, item) => sum + item.quantity, 0)
   return `
     <div class="summary">
-      ${model.template.showSummarySubtotal ? `<div><span>Subtotal</span><span>${helpers.formatCurrency(model.summary.subtotal)}</span></div>` : ''}
-      ${model.template.showSummaryTax ? `<div><span>PPN</span><span>${helpers.formatCurrency(model.summary.tax)}</span></div>` : ''}
+      ${model.template.showSummarySubtotal ? `<div><span>Subtotal (${itemCount} Item)</span><span>${helpers.formatCurrency(model.summary.originalTotal)}</span></div>` : ''}
+      ${model.summary.discount > 0 ? `<div class="discount"><span>Total Diskon</span><span>- ${helpers.formatCurrency(model.summary.discount)}</span></div>` : ''}
+      ${model.template.showSummaryTax ? `<div><span>PPN (11%)</span><span>${helpers.formatCurrency(model.summary.tax)}</span></div>` : ''}
       <div class="total"><span>Total</span><span>${helpers.formatCurrency(model.summary.total)}</span></div>
       <div><span>Dibayar</span><span>${helpers.formatCurrency(model.summary.paid)}</span></div>
       <div><span>Kembalian</span><span>${helpers.formatCurrency(model.summary.change)}</span></div>
@@ -382,6 +402,8 @@ function renderCustomReceiptHtml(model, helpers) {
     cashier_name: helpers.escapeHtml(model.meta.cashier),
     warehouse_name: helpers.escapeHtml(model.meta.warehouse),
     subtotal: helpers.formatCurrency(model.summary.subtotal),
+    original_total: helpers.formatCurrency(model.summary.originalTotal),
+    discount: helpers.formatCurrency(model.summary.discount),
     tax_amount: helpers.formatCurrency(model.summary.tax),
     total_amount: helpers.formatCurrency(model.summary.total),
     paid_amount: helpers.formatCurrency(model.summary.paid),
