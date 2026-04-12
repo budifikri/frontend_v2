@@ -56,7 +56,7 @@ export const DEFAULT_CUSTOM_TEMPLATE_HTML = `<div class="tpl-note">
   <div class="tpl-footer">{{footer_text}}</div>
 </div>`
 
-export const DEFAULT_CUSTOM_TEMPLATE_CSS = `.tpl-note { font-family: Arial, sans-serif; }
+export const DEFAULT_CUSTOM_TEMPLATE_CSS = `.tpl-note { font-family: 'JetBrains Mono', Arial, sans-serif; }
 .tpl-header { text-align: center; border-bottom: 1px dashed #94a3b8; padding-bottom: 6px; margin-bottom: 8px; }
 .tpl-header h3 { margin: 0 0 4px; font-size: 15px; }
 .tpl-sub { margin-bottom: 4px; font-size: 11px; }

@@ -345,6 +345,8 @@
   padding: 16px;
   background: white;
   flex-shrink: 0;
+    font-family: 'JetBrains Mono', monospace;
+  
 }
 
 .receipt-subtotal-row {

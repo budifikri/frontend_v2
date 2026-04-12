@@ -1,6 +1,17 @@
 /* =========================
+   JetBrains Mono (Local)
+ ========================= */
+@font-face {
+  font-family: 'JetBrains Mono';
+  src: url('./assets/fonts/JetBrainsMono-Regular.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* =========================
    Material Icons (Local)
-========================= */
+ ========================= */
 
 /* Regular */
 @font-face {

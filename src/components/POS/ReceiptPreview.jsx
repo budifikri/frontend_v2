@@ -1,4 +1,5 @@
 import { renderReceiptContent, getReceiptPaperClass } from './ReceiptLayouts'
+import { RECEIPT_FONTS } from '../../features/setting/receiptSetting.storage'
 
 export function ReceiptPreview({ sale, settings, formatCurrency, formatDateTime }) {
   const escapeHtml = (value) => {
@@ -11,13 +12,24 @@ export function ReceiptPreview({ sale, settings, formatCurrency, formatDateTime 
       .replaceAll("'", '&#39;')
   }
 
+  const selectedFont = RECEIPT_FONTS.find(f => f.value === settings.receipt_font) || RECEIPT_FONTS[0]
+  const fontStyle = `
+    @font-face {
+      font-family: '${selectedFont.label}';
+      src: url('/assets/${selectedFont.filename}') format('truetype');
+    }
+  `
+
   const result = renderReceiptContent(sale, settings, { escapeHtml, formatCurrency, formatDateTime }, { withSamples: true })
   const model = result.model
 
   if (result.isCustom) {
     return (
-      <div className={`receipt-preview ${getReceiptPaperClass(settings.paper_size)} ${settings.printer_type === 'dot_matrix' ? 'printer-dot-matrix' : 'printer-thermal'}`}>
-        <style>{result.customCss}</style>
+      <div 
+        className={`receipt-preview ${getReceiptPaperClass(settings.paper_size)} ${settings.printer_type === 'dot_matrix' ? 'printer-dot-matrix' : 'printer-thermal'}`}
+        style={{ fontFamily: `'${selectedFont.label}', Arial, sans-serif` }}
+      >
+        <style>{fontStyle + result.customCss}</style>
         <div dangerouslySetInnerHTML={{ __html: result.bodyHtml }} />
 
         {settings.calibration_mode && (
@@ -38,7 +50,10 @@ export function ReceiptPreview({ sale, settings, formatCurrency, formatDateTime 
   const companyPhoneLine = model.company.phone || '-'
 
   return (
-    <div className={`receipt-preview ${getReceiptPaperClass(settings.paper_size)} ${settings.printer_type === 'dot_matrix' ? 'printer-dot-matrix' : 'printer-thermal'}`}>
+    <div 
+      className={`receipt-preview ${getReceiptPaperClass(settings.paper_size)} ${settings.printer_type === 'dot_matrix' ? 'printer-dot-matrix' : 'printer-thermal'}`}
+      style={{ fontFamily: `'${selectedFont.label}', Arial, sans-serif` }}
+    >
       <div className={`receipt-preview-top ${model.template.headerVariant === 'brand' ? 'brand' : ''}`}>
         {model.showLogo && <div className="receipt-preview-logo">PX</div>}
         <h4>{model.company.name}</h4>

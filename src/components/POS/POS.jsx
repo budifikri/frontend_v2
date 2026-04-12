@@ -7,7 +7,7 @@ import { getCurrentCompany, listCompanies } from '../../features/master/company/
 import { listWarehouses } from '../../features/master/warehouse/warehouse.api'
 import { openCashDrawer, getCurrentCashDrawer, getCashDrawerSummary, closeCashDrawer, cashInDrawer, cashOutDrawer } from '../../features/transaksi/cash-drawer/cashDrawer.api'
 import { createSale, listSales, getSaleById } from '../../features/transaksi/sales/sales.api'
-import { DEFAULT_RECEIPT_SETTINGS, loadReceiptSettings, resetReceiptSettings, saveReceiptSettings } from '../../features/setting/receiptSetting.storage'
+import { DEFAULT_RECEIPT_SETTINGS, RECEIPT_FONTS, loadReceiptSettings, resetReceiptSettings, saveReceiptSettings } from '../../features/setting/receiptSetting.storage'
 import { RECEIPT_LAYOUT_OPTIONS, getReceiptPaperClass, renderReceiptContent, DEFAULT_CUSTOM_TEMPLATE_HTML, DEFAULT_CUSTOM_TEMPLATE_CSS, RECEIPT_TEMPLATE_TOKENS } from './ReceiptLayouts'
 import { ReceiptPreview } from './ReceiptPreview'
 import { Toast } from '../../components/Toast'
@@ -656,7 +656,9 @@ export function POS() {
     const contentWidthMm = paperSizeMm === 80 ? 76 : 56
     const paperClass = getReceiptPaperClass(receiptSettings.paper_size)
     const isDotMatrix = receiptSettings.printer_type === 'dot_matrix'
-    const fontFamily = isDotMatrix ? "'Courier New', monospace" : "Arial, sans-serif"
+    const selectedFont = RECEIPT_FONTS.find(f => f.value === receiptSettings.receipt_font) || RECEIPT_FONTS[0]
+    const fontFamily = isDotMatrix ? "'Courier New', monospace" : `'${selectedFont.label}', Arial, sans-serif`
+    const fontSrc = `${window.location.origin}/assets/${selectedFont.filename}`
     const borderStyle = isDotMatrix ? '1px dotted #94a3b8' : '1px solid #e2e8f0'
     const lineBorder = isDotMatrix ? '1px dotted #cbd5e1' : '1px dashed #cbd5e1'
     const fontSize = paperSizeMm === 80 ? '12px' : '11px'
@@ -679,6 +681,10 @@ export function POS() {
         <meta charset="utf-8" />
         <title>Nota ${escapeHtml(sale.sale_number || sale.id || '')}</title>
         <style>
+          @font-face {
+            font-family: '${selectedFont.label}';
+            src: url('${fontSrc}') format('truetype');
+          }
           @page {
             size: ${paperSizeMm}mm auto;
             margin: 0;
@@ -2199,6 +2205,19 @@ export function POS() {
                       <span>Dot Matrix</span>
                     </label>
                   </div>
+                </div>
+
+                <div className="receipt-setting-section">
+                  <h4>Font Cetak</h4>
+                  <select
+                    className="receipt-select"
+                    value={receiptSettingsDraft.receipt_font || 'JetBrainsMono-Regular'}
+                    onChange={(e) => setReceiptSettingsDraft((prev) => ({ ...prev, receipt_font: e.target.value }))}
+                  >
+                    {RECEIPT_FONTS.map((font) => (
+                      <option key={font.value} value={font.value}>{font.label}</option>
+                    ))}
+                  </select>
                 </div>
 
                

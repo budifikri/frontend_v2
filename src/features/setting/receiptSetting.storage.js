@@ -1,5 +1,10 @@
 const RECEIPT_SETTINGS_KEY = 'pos_receipt_settings'
 
+export const RECEIPT_FONTS = [
+  { value: 'JetBrainsMono-Regular', label: 'JetBrains Mono', filename: 'JetBrainsMono-Regular-Dh36KTnx.ttf' },
+  { value: 'JetBrainsMonoNL-Regular', label: 'JetBrains Mono NL', filename: 'JetBrainsMonoNL-Regular.ttf' },
+]
+
 export const DEFAULT_RECEIPT_SETTINGS = {
   paper_size: '58mm',
   layout_type: 'layout_a',
@@ -7,6 +12,7 @@ export const DEFAULT_RECEIPT_SETTINGS = {
   custom_template_html: '',
   custom_template_css: '',
   printer_type: 'thermal',
+  receipt_font: 'JetBrainsMono-Regular',
   show_logo: true,
   show_footer: true,
   footer_text: '',
@@ -26,6 +32,9 @@ export function normalizeReceiptSettings(value) {
   const printerType = ['thermal', 'dot_matrix'].includes(source.printer_type)
     ? source.printer_type
     : 'thermal'
+  const receiptFont = RECEIPT_FONTS.some(f => f.value === source.receipt_font)
+    ? source.receipt_font
+    : 'JetBrainsMono-Regular'
 
   return {
     ...DEFAULT_RECEIPT_SETTINGS,
@@ -36,6 +45,7 @@ export function normalizeReceiptSettings(value) {
     custom_template_html: typeof source.custom_template_html === 'string' ? source.custom_template_html : DEFAULT_RECEIPT_SETTINGS.custom_template_html,
     custom_template_css: typeof source.custom_template_css === 'string' ? source.custom_template_css : DEFAULT_RECEIPT_SETTINGS.custom_template_css,
     printer_type: printerType,
+    receipt_font: receiptFont,
     show_logo: typeof source.show_logo === 'boolean' ? source.show_logo : DEFAULT_RECEIPT_SETTINGS.show_logo,
     show_footer: typeof source.show_footer === 'boolean' ? source.show_footer : DEFAULT_RECEIPT_SETTINGS.show_footer,
     footer_text: typeof source.footer_text === 'string' ? source.footer_text : DEFAULT_RECEIPT_SETTINGS.footer_text,
