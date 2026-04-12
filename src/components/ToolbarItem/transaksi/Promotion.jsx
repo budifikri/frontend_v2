@@ -6,6 +6,8 @@ import {
   listPromotions,
   updatePromotion,
 } from '../../../features/master/promotion/promotion.api'
+import { listCategories } from '../../../features/master/category/category.api'
+import { listProducts } from '../../../features/master/product/product.api'
 import { FooterMaster } from '../footer/FooterMaster'
 import { FooterFormMaster } from '../footer/FooterFormMaster'
 import { DeleteMaster } from '../footer/DeleteMaster'
@@ -24,9 +26,10 @@ const DEFAULT_FORM = {
   discount_value: 0,
   buy_quantity: 1,
   get_quantity: 1,
-  min_purchase_amount: 0,
   start_date: '',
+  start_time: '',
   end_date: '',
+  end_time: '',
   description: '',
 }
 
@@ -38,7 +41,6 @@ const DUMMY_PROMOTIONS = [
     promo_type: 'percentage',
     scope_type: 'all',
     discount_value: 10,
-    min_purchase_amount: 0,
     start_date: '2026-01-01',
     end_date: '2026-01-31',
     is_active: true,
@@ -51,7 +53,6 @@ const DUMMY_PROMOTIONS = [
     scope_type: 'all',
     buy_quantity: 3,
     get_quantity: 1,
-    min_purchase_amount: 0,
     start_date: '2026-02-01',
     end_date: '2026-02-28',
     is_active: true,
@@ -63,7 +64,6 @@ const DUMMY_PROMOTIONS = [
     promo_type: 'fixed_amount',
     scope_type: 'all',
     discount_value: 5000,
-    min_purchase_amount: 50000,
     start_date: '2026-03-01',
     end_date: '2026-03-31',
     is_active: false,
@@ -77,7 +77,6 @@ const TABLE_COLUMNS = [
   { key: 'promo_type', label: 'TIPE' },
   { key: 'scope_type', label: 'SCOPE' },
   { key: 'discount_value', label: 'DISKON' },
-  { key: 'min_purchase_amount', label: 'MIN BELI' },
   { key: 'start_date', label: 'MULAI' },
   { key: 'end_date', label: 'AKHIR' },
   { key: 'is_active', label: 'STATUS' },
@@ -88,7 +87,6 @@ const PROMO_TYPE_OPTIONS = [
   { value: 'fixed_amount', label: 'Discount Fixed Amount' },
   { value: 'buy_x_get_y', label: 'Buy X Get Y Free' },
   { value: 'flash_sale', label: 'Flash Sale' },
-  { value: 'min_purchase', label: 'Min Purchase Amount' },
 ]
 
 function generatePromotionCode(promoType, dataList = []) {
@@ -97,7 +95,6 @@ function generatePromotionCode(promoType, dataList = []) {
     fixed_amount: 'DA',
     buy_x_get_y: 'BG',
     flash_sale: 'FL',
-    min_purchase: 'MP',
   }
 
   const prefix = prefixMap[promoType] || 'DP'
@@ -159,6 +156,10 @@ export function Promotion({ onExit }) {
   const token = auth?.token
 
   const [data, setData] = useState([])
+  const [categories, setCategories] = useState([])
+  const [products, setProducts] = useState([])
+  const [categorySearch, setCategorySearch] = useState('')
+  const [productSearch, setProductSearch] = useState('')
   const [pagination, setPagination] = useState({ has_more: false, total: 0 })
   const [isLoading, setIsLoading] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
@@ -293,9 +294,10 @@ export function Promotion({ onExit }) {
         discount_value: Number(form.discount_value || 0),
         buy_quantity: Number(form.buy_quantity || 1),
         get_quantity: Number(form.get_quantity || 1),
-        min_purchase_amount: Number(form.min_purchase_amount || 0),
         start_date: form.start_date || undefined,
+        start_time: form.promo_type === 'flash_sale' ? form.start_time || undefined : undefined,
         end_date: form.end_date || undefined,
+        end_time: form.promo_type === 'flash_sale' ? form.end_time || undefined : undefined,
         description: form.description || undefined,
       }
 
@@ -346,9 +348,10 @@ export function Promotion({ onExit }) {
       discount_value: target.discount_value || 0,
       buy_quantity: target.buy_quantity || 1,
       get_quantity: target.get_quantity || 1,
-      min_purchase_amount: target.min_purchase_amount || 0,
       start_date: target.start_date || '',
+      start_time: target.start_time || '',
       end_date: target.end_date || '',
+      end_time: target.end_time || '',
       description: target.description || '',
     })
     setShowForm(true)
@@ -440,8 +443,26 @@ export function Promotion({ onExit }) {
   }
 
   function handleScopeTypeChange(value) {
-    setForm({ ...form, scope_type: value })
+    setForm({ ...form, scope_type: value, category_ids: value === 'by_category' ? form.category_ids : [], product_ids: value === 'by_product' ? form.product_ids : [] })
   }
+
+  const fetchLookups = useCallback(async () => {
+    if (!token) return
+    try {
+      const [catRes, prodRes] = await Promise.all([
+        listCategories(token, { limit: 1000, is_active: true }),
+        listProducts(token, { limit: 1000, is_active: true }),
+      ])
+      setCategories(catRes.items || [])
+      setProducts(prodRes.items || [])
+    } catch (err) {
+      console.error('Failed to fetch lookups:', err)
+    }
+  }, [token])
+
+  useEffect(() => {
+    fetchLookups()
+  }, [fetchLookups])
 
   return (
     <div className="master-content">
@@ -496,7 +517,6 @@ export function Promotion({ onExit }) {
                   <td>{formatPromoType(row.promo_type)}</td>
                   <td>{formatScopeType(row.scope_type)}</td>
                   <td>{formatDiscountValue(row)}</td>
-                  <td>{row.min_purchase_amount ? `Rp ${Number(row.min_purchase_amount).toLocaleString('id-ID')}` : '-'}</td>
                   <td>{formatDate(row.start_date)}</td>
                   <td>{formatDate(row.end_date)}</td>
                   <td>
@@ -589,6 +609,60 @@ export function Promotion({ onExit }) {
                 />
               </div>
             )}
+            {form.scope_type === 'by_category' && (
+              <div className="master-form-group">
+                <label className="master-form-label">Pilih Kategori :</label>
+                <input
+                  type="text"
+                  list="category-list"
+                  placeholder="Cari kategori..."
+                  value={categorySearch}
+                  onChange={(e) => {
+                    const found = categories.find((c) => c.name === e.target.value)
+                    setCategorySearch(e.target.value)
+                    setForm({ ...form, category_ids: found ? [found.id] : [] })
+                  }}
+                  onBlur={(e) => setCategorySearch(e.target.value)}
+                  className="master-form-input"
+                />
+                <datalist id="category-list">
+                  {categories
+                    .filter((cat) => !categorySearch || (cat.name || '').toLowerCase().includes(categorySearch.toLowerCase()))
+                    .map((cat) => (
+                      <option key={cat.id} value={cat.name}>
+                        {cat.name}
+                      </option>
+                    ))}
+                </datalist>
+              </div>
+            )}
+            {form.scope_type === 'by_product' && (
+              <div className="master-form-group">
+                <label className="master-form-label">Pilih Produk :</label>
+                <input
+                  type="text"
+                  list="product-list"
+                  placeholder="Cari produk..."
+                  value={productSearch}
+                  onChange={(e) => {
+                    const found = products.find((p) => p.name === e.target.value)
+                    setProductSearch(e.target.value)
+                    setForm({ ...form, product_ids: found ? [found.id] : [] })
+                  }}
+                  onBlur={(e) => setProductSearch(e.target.value)}
+                  className="master-form-input"
+                />
+                <datalist id="product-list">
+                  {products
+                    .filter((prod) => !productSearch || (prod.name || '').toLowerCase().includes(productSearch.toLowerCase()))
+                    .map((prod) => (
+                      <option key={prod.id} value={prod.name}>
+                        {prod.name}
+                      </option>
+                    ))}
+                </datalist>
+              </div>
+            )}
             {form.promo_type === 'buy_x_get_y' && (
               <>
                 <div className="master-form-group">
@@ -612,32 +686,47 @@ export function Promotion({ onExit }) {
               </>
             )}
             <div className="master-form-group">
-              <label className="master-form-label">Min Purchase (Rp) :</label>
-              <input
-                type="number"
-                value={form.min_purchase_amount}
-                onChange={(e) => setForm({ ...form, min_purchase_amount: e.target.value })}
-                className="master-form-input"
-              />
-            </div>
-            <div className="master-form-group">
-              <label className="master-form-label">Tanggal Mulai :</label>
+              <label className="master-form-label">
+                {form.promo_type === 'flash_sale' ? 'Tanggal Sale :' : 'Tanggal Mulai :'}
+              </label>
               <input
                 type="date"
                 value={form.start_date}
-                onChange={(e) => setForm({ ...form, start_date: e.target.value })}
+                onChange={(e) => setForm({ ...form, start_date: e.target.value, end_date: e.target.value })}
                 className="master-form-input"
               />
             </div>
-            <div className="master-form-group">
-              <label className="master-form-label">Tanggal Akhir :</label>
-              <input
-                type="date"
-                value={form.end_date}
-                onChange={(e) => setForm({ ...form, end_date: e.target.value })}
-                className="master-form-input"
-              />
-            </div>
+            {form.promo_type === 'flash_sale' && (
+              <div className="master-form-group">
+                <label className="master-form-label">Waktu :</label>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <input
+                    type="time"
+                    value={form.start_time || ''}
+                    onChange={(e) => setForm({ ...form, start_time: e.target.value })}
+                    className="master-form-input"
+                  />
+                  <span style={{ fontWeight: 'bold' }}>s/d</span>
+                  <input
+                    type="time"
+                    value={form.end_time || ''}
+                    onChange={(e) => setForm({ ...form, end_time: e.target.value })}
+                    className="master-form-input"
+                  />
+                </div>
+              </div>
+            )}
+            {form.promo_type !== 'flash_sale' && (
+              <div className="master-form-group">
+                <label className="master-form-label">Tanggal Akhir :</label>
+                <input
+                  type="date"
+                  value={form.end_date}
+                  onChange={(e) => setForm({ ...form, end_date: e.target.value })}
+                  className="master-form-input"
+                />
+              </div>
+            )}
             <div className="master-form-group-wide">
               <label className="master-form-label">Deskripsi :</label>
               <input
