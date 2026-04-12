@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useAuth } from '../../shared/auth'
 import { listProducts } from '../../features/master/product/product.api'
 import { getPriceTier } from '../../features/master/price-tier/priceTier.api'
+import { listPromotions } from '../../features/master/promotion/promotion.api'
 import { getCurrentCompany, listCompanies } from '../../features/master/company/company.api'
 import { listWarehouses } from '../../features/master/warehouse/warehouse.api'
 import { openCashDrawer, getCurrentCashDrawer, getCashDrawerSummary, closeCashDrawer, cashInDrawer, cashOutDrawer } from '../../features/transaksi/cash-drawer/cashDrawer.api'
@@ -92,6 +93,8 @@ export function POS() {
   const [templateCodeHtml, setTemplateCodeHtml] = useState('')
   const [toast, setToast] = useState({ isOpen: false, message: '', type: 'info' })
   const priceTierCacheRef = useRef({})
+  const [activePromos, setActivePromos] = useState([])
+  const promoCacheRef = useRef({})
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000)
@@ -199,6 +202,32 @@ export function POS() {
       }
     }
     checkCashDrawerStatus()
+
+    const loadActivePromos = async () => {
+      try {
+        const result = await listPromotions(auth.token, { is_active: true, limit: 50 })
+        const promos = result.items || []
+        setActivePromos(promos)
+        const cache = {}
+        for (const promo of promos) {
+          if (promo.scope === 'BY_PRODUCT' && Array.isArray(promo.product_ids)) {
+            for (const pid of promo.product_ids) {
+              cache[pid] = promo
+            }
+          } else if (promo.scope === 'BY_CATEGORY' && Array.isArray(promo.category_ids)) {
+            for (const cid of promo.category_ids) {
+              cache[`cat:${cid}`] = promo
+            }
+          } else if (promo.scope === 'ALL') {
+            cache['*'] = promo
+          }
+        }
+        promoCacheRef.current = cache
+      } catch (err) {
+        console.error('Failed to load promos:', err)
+      }
+    }
+    loadActivePromos()
   }, [auth.token])
 
   useEffect(() => {
@@ -468,18 +497,97 @@ export function POS() {
     return matchedTier
   }, [])
 
-  const resolveItemUnitPrice = useCallback((retailPrice, tiers, qty) => {
+  const checkPromoForProduct = useCallback((productId, categoryId) => {
+    const cache = promoCacheRef.current
+    if (!productId || Object.keys(cache).length === 0) return null
+    
+    if (cache['*']) return cache['*']
+    if (cache[productId]) return cache[productId]
+    if (categoryId && cache[`cat:${categoryId}`]) return cache[`cat:${categoryId}`]
+    
+    return null
+  }, [])
+
+  const applyPromoDiscount = useCallback((basePrice, promo) => {
+    if (!promo || !basePrice) return basePrice
+    const discountValue = Number(promo.discount_value || 0)
+    const promoType = promo.promotion_type || promo.promo_type || 'PERCENTAGE'
+    
+    if (promoType === 'PERCENTAGE' || promoType === 'FLASH_SALE') {
+      return basePrice * (1 - discountValue / 100)
+    } else if (promoType === 'FIXED_AMOUNT') {
+      return Math.max(0, basePrice - discountValue)
+    }
+    return basePrice
+  }, [])
+
+  const resolveItemUnitPrice = useCallback((retailPrice, tiers, qty, productId, categoryId) => {
     const baseRetailPrice = Number(retailPrice || 0)
+    
+    const promo = checkPromoForProduct(productId, categoryId)
+    if (promo) {
+      return applyPromoDiscount(baseRetailPrice, promo)
+    }
+
     const matchedTier = findMatchedTier(tiers, qty)
     if (!matchedTier) {
       return baseRetailPrice
     }
 
     return Number(matchedTier.unit_price || baseRetailPrice)
-  }, [findMatchedTier])
+  }, [findMatchedTier, checkPromoForProduct, applyPromoDiscount])
+
+  const formatPromoInfo = useCallback((promo) => {
+    if (!promo) return ''
+    
+    const name = promo.name || promo.code || ''
+    const scope = promo.scope || promo.scope_type || 'ALL'
+    const promoType = promo.promotion_type || promo.promo_type || 'PERCENTAGE'
+    const discountValue = Number(promo.discount_value || 0)
+    
+    let scopeLabel = scope
+    if (scope === 'ALL') {
+      scopeLabel = 'All Product'
+    } else if (scope === 'BY_CATEGORY') {
+      scopeLabel = 'Kategori'
+    } else if (scope === 'BY_PRODUCT') {
+      scopeLabel = 'Produk'
+    }
+    
+    let discountLabel = ''
+    if (promoType === 'PERCENTAGE' || promoType === 'FLASH_SALE') {
+      discountLabel = `Diskon ${discountValue}%`
+    } else if (promoType === 'FIXED_AMOUNT') {
+      discountLabel = `Diskon Rp${discountValue.toLocaleString()}`
+    } else if (promoType === 'BUY_X_GET_Y') {
+      discountLabel = `Beli ${promo.buy_quantity || 1} Gratis ${promo.get_quantity || 1}`
+    }
+    
+    const startDate = promo.start_date ? new Date(promo.start_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'numeric', year: 'numeric' }) : ''
+    const endDate = promo.end_date ? new Date(promo.end_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'numeric', year: 'numeric' }) : ''
+    
+    let periodLabel = ''
+    if (startDate && endDate && promo.start_time && promo.end_time) {
+      periodLabel = `(${startDate} Jam ${promo.start_time}-${promo.end_time})`
+    } else if (startDate && endDate) {
+      periodLabel = `(${startDate}-${endDate})`
+    } else if (promo.start_time && promo.end_time) {
+      periodLabel = `(Jam ${promo.start_time}-${promo.end_time})`
+    }
+    
+    return `${name}, ${scopeLabel}, ${discountLabel} ${periodLabel}`
+  }, [])
 
   const getItemTierLabel = useCallback((item) => {
-    if (!item || !Array.isArray(item.price_tiers) || item.price_tiers.length === 0) {
+    if (!item) return ''
+    
+    const productId = item.product_id
+    const promo = checkPromoForProduct(productId)
+    if (promo) {
+      return 'PROMO'
+    }
+
+    if (!Array.isArray(item.price_tiers) || item.price_tiers.length === 0) {
       return ''
     }
 
@@ -496,7 +604,7 @@ export function POS() {
     }
 
     return `Grosir ${Number(matchedTier.min_quantity || 0)}`
-  }, [findMatchedTier])
+  }, [findMatchedTier, checkPromoForProduct])
 
   const ensureProductPriceTiers = useCallback(async (productId) => {
     if (!productId || !auth.token) return []
@@ -784,6 +892,7 @@ export function POS() {
                       Number(item.retail_price ?? item.price ?? 0),
                       Array.isArray(item.price_tiers) ? item.price_tiers : loadedTiers,
                       newQty,
+                      item.product_id,
                     ),
                   }
                   : item
@@ -901,14 +1010,14 @@ export function POS() {
             qty: nextQty,
             retail_price: Number(item.retail_price ?? retailPrice),
             price_tiers: tiers,
-            price: resolveItemUnitPrice(Number(item.retail_price ?? retailPrice), tiers, nextQty),
+            price: resolveItemUnitPrice(Number(item.retail_price ?? retailPrice), tiers, nextQty, item.product_id),
           }
         })
         setSelectedIndex(existingIndex)
         return updated
       }
       const newIndex = prev.length
-      const unitPrice = resolveItemUnitPrice(retailPrice, loadedTiers, 1)
+      const unitPrice = resolveItemUnitPrice(retailPrice, loadedTiers, 1, product.id)
       const newItem = {
         id: `${product.id}-${newIndex}`,
         product_id: product.id,
@@ -1080,10 +1189,15 @@ export function POS() {
       const currentTax = tax
       const currentTotal = total
 
-      const saleItems = items.map(item => ({
-        product_id: item.product_id,
-        quantity: item.qty,
-      }))
+      const saleItems = items.map(item => {
+        const productId = item.product_id
+        const promo = checkPromoForProduct(productId)
+        return {
+          product_id: productId,
+          quantity: item.qty,
+          ...(promo && { promotion_code: promo.code }),
+        }
+      })
 
       const paymentData = {
         amount: paymentMethod === 'CASH' ? payment : total,
@@ -2551,17 +2665,19 @@ export function POS() {
           </div>
 
           {/* Promo Sticky Note */}
-          <div className="sticky-note">
-            <div className="push-pin"></div>
-            <div className="sticky-note-content">
-              <span className="promo-title">PROMO HARI INI</span>
-              <ul className="promo-list">
-                {promos.map((promo, idx) => (
-                  <li key={idx}>{promo}</li>
-                ))}
-              </ul>
+          {activePromos.length > 0 && (
+            <div className="sticky-note">
+              <div className="push-pin"></div>
+              <div className="sticky-note-content">
+                <span className="promo-title">PROMO HARI INI</span>
+                <ul className="promo-list">
+                  {activePromos.map((promo, idx) => (
+                    <li key={promo.id || idx}>{formatPromoInfo(promo)}</li>
+                  ))}
+                </ul>
+              </div>
             </div>
-          </div>
+          )}
         </section>
 
         {/* Right Sidebar (Action Keys) */}

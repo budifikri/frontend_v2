@@ -10,7 +10,13 @@
 
 ## ON PROGRESS
 
-- harga promo  
+- harga promo di menu POS
+  - info promo hari ini
+  - perubahan harga jual berdasarkan promo (lebih diutamakan dari pada harga grosir) 
+
+## DONE
+12april 2026
+- harga promo  menu admin 
      - Discount Percentage                    
      - Discount Fixed Amount                
      - Buy X Get Y Free                    
@@ -18,7 +24,6 @@
 fix form imput harga promo
 
 
-## DONE
 11 April 2026
 
 - export import data master  

@@ -2474,3 +2474,57 @@
     min-height: 360px;
   }
 }
+
+/* ============================
+   Promo Banner
+   ============================ */
+
+.promo-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  border-bottom: 2px solid #f59e0b;
+}
+
+.promo-banner-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: #f59e0b;
+  border-radius: 50%;
+  color: white;
+}
+
+.promo-banner-icon .material-icons {
+  font-size: 20px;
+}
+
+.promo-banner-content {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 14px;
+  color: #92400e;
+}
+
+.promo-banner-content strong {
+  font-weight: 600;
+}
+
+.promo-banner-item {
+  background: #fffbeb;
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: 1px solid #d97706;
+  font-weight: 500;
+}
+
+.promo-banner-more {
+  color: #b45309;
+  font-style: italic;
+}
