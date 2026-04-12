@@ -801,8 +801,10 @@ export function POS() {
     setToast({ isOpen: true, message: 'Setting dikembalikan ke default', type: 'info' })
   }, [])
 
+  const subtotalOriginal = items.reduce((sum, item) => sum + (Number(item.retail_price || item.price) * item.qty), 0)
+  const totalDiscount = items.reduce((sum, item) => sum + ((Number(item.retail_price || item.price) - Number(item.price)) * item.qty), 0)
   const subtotal = items.reduce((sum, item) => sum + (item.price * item.qty), 0)
-  const tax = subtotal * 0.11
+  const tax = (subtotalOriginal - totalDiscount) * 0.11
   const total = subtotal + tax
   const selectedItem = selectedIndex >= 0 ? items[selectedIndex] : null
   const displayItem = selectedItem || items[items.length - 1]
@@ -2295,31 +2297,45 @@ export function POS() {
                           const retailPrice = Number(item.retail_price || item.price)
                           const unitPrice = Number(item.price)
                           const discount = retailPrice - unitPrice
+                          const totalDiscount = discount * item.qty
                           const tierLabel = getItemTierLabel(item)
                           return (
-                            <span>
-                              {item.qty} x {formatCurrency(retailPrice)}
-                              {discount > 0 && <span className="receipt-discount">(-{formatCurrency(discount)}) </span>}
-                              {tierLabel && <span className="receipt-tier-badge">{tierLabel}</span>}
-                            </span>
+                            <div className="receipt-price-table">
+                              <div className="receipt-price-row">
+                                <span className="receipt-price-left">{item.qty} x {formatCurrency(retailPrice)}</span>
+                                <span className="receipt-price-right">{formatCurrency(retailPrice * item.qty)}</span>
+                              </div>
+                              {discount > 0 && <div className="receipt-discount-row">
+                                <span className="receipt-discount-left">Diskon {tierLabel || 'Promo'} ({formatCurrency(totalDiscount)})</span>
+                                <span className="receipt-discount-right"></span>
+                              </div>}
+                            </div>
                           )
                         })()}
                       </div>
                     </div>
-                    <div className="receipt-item-total">{formatCurrency(item.price * item.qty)}</div>
+                    {/* <div className="receipt-item-total">{formatCurrency(item.price * item.qty)}</div>  */}
                   </div>
                 ))}
               </div>
             </div>
 
             <div className="receipt-summary">
-              <div className="receipt-total-row">
-                <span>TOTAL ({items.length} item)</span>
-                <span>{formatCurrency(subtotal)}</span>
+              <div className="receipt-subtotal-row">
+                <span>Subtotal ({items.length} Item)</span>
+                <span>{formatCurrency(subtotalOriginal)}</span>
+              </div>
+              <div className="receipt-diskon-row">
+                <span>Total Diskon</span>
+                <span>- {formatCurrency(totalDiscount)}</span>
               </div>
               <div className="receipt-tax-row">
-                <span>Tax (PPN 11%)</span>
+                <span>PPN (11%)</span>
                 <span>{formatCurrency(tax)}</span>
+              </div>
+              <div className="receipt-total-row">
+                <span>Total</span>
+                <span>{formatCurrency(total)}</span>
               </div>
             </div>
 
@@ -2659,24 +2675,27 @@ export function POS() {
               <div className="monitor-item">
                 <div className="monitor-item-name">{displayItem?.name || 'No Item'}</div>
                 {displayItem && (
-                  <div className="monitor-item-price-row">
-                    <span className="monitor-item-qty-price">
+                  <div className="monitor-item-price">
                       {(() => {
                         const retailPrice = Number(displayItem.retail_price || displayItem.price)
                         const unitPrice = Number(displayItem.price)
                         const discount = retailPrice - unitPrice
+                        const totalDiscount = discount * displayItem.qty
                         const tierLabel = getItemTierLabel(displayItem)
                         return (
-                          <span>
-                            {displayItem.qty} x {formatCurrency(retailPrice)}
-                            {discount > 0 && <span className="monitor-discount">(-{formatCurrency(discount)}) </span>}
-                            {tierLabel && <span className="monitor-tier-badge">{tierLabel}</span>}
-                          </span>
+                          <div className="monitor-price-wrapper">
+                            <div className="monitor-price-row">
+                              <span>{displayItem.qty} x {formatCurrency(retailPrice)}</span>
+                              <span>{formatCurrency(retailPrice * displayItem.qty)}</span>
+                            </div>
+                            {discount > 0 && <div className="monitor-discount-row">
+                              <span>diskon {tierLabel || 'promo'}</span>
+                              <span>Rp -{formatCurrency(totalDiscount)}</span>
+                            </div>}
+                          </div>
                         )
                       })()}
-                    </span>
-                    <span className="monitor-item-total">{formatCurrency(displayItem.price * displayItem.qty)}</span>
-                  </div>
+                    </div>
                 )}
               </div>
               <div className="monitor-bottom">
