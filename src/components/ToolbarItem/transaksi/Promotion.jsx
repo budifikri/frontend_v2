@@ -121,24 +121,53 @@ function isActivePromotion(item) {
   return Boolean(item?.is_active ?? true)
 }
 
+function normalizePromoType(type) {
+  const typeMap = {
+    'percentage': 'percentage',
+    'PERCENTAGE': 'percentage',
+    'fixed_amount': 'fixed_amount',
+    'FIXED_AMOUNT': 'fixed_amount',
+    'buy_x_get_y': 'buy_x_get_y',
+    'BUY_X_GET_Y': 'buy_x_get_y',
+    'flash_sale': 'flash_sale',
+    'FLASH_SALE': 'flash_sale',
+  }
+  return typeMap[type] || type || 'percentage'
+}
+
+function normalizeScopeType(scope) {
+  const scopeMap = {
+    'all': 'all',
+    'ALL': 'all',
+    'by_category': 'by_category',
+    'BY_CATEGORY': 'by_category',
+    'by_product': 'by_product',
+    'BY_PRODUCT': 'by_product',
+  }
+  return scopeMap[scope] || scope || 'all'
+}
+
 function formatPromoType(type) {
-  const found = PROMO_TYPE_OPTIONS.find((opt) => opt.value === type)
+  const normalized = normalizePromoType(type)
+  const found = PROMO_TYPE_OPTIONS.find((opt) => opt.value === normalized)
   return found ? found.label : type || '-'
 }
 
 function formatScopeType(type) {
-  const found = SCOPE_TYPE_OPTIONS.find((opt) => opt.value === type)
+  const normalized = normalizeScopeType(type)
+  const found = SCOPE_TYPE_OPTIONS.find((opt) => opt.value === normalized)
   return found ? found.label : type || '-'
 }
 
 function formatDiscountValue(item) {
-  if (item.promo_type === 'percentage') {
+  const promoType = normalizePromoType(item.promo_type)
+  if (promoType === 'percentage') {
     return `${item.discount_value || 0}%`
   }
-  if (item.promo_type === 'fixed_amount') {
+  if (promoType === 'fixed_amount') {
     return `Rp ${Number(item.discount_value || 0).toLocaleString('id-ID')}`
   }
-  if (item.promo_type === 'buy_x_get_y') {
+  if (promoType === 'buy_x_get_y') {
     return `Buy ${item.buy_quantity || 1} Get ${item.get_quantity || 1}`
   }
   return '-'

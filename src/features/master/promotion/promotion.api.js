@@ -1,5 +1,14 @@
 import { apiFetch } from '../../../shared/http'
 
+function normalizePromotion(item) {
+  if (!item) return item
+  return {
+    ...item,
+    promo_type: item.promotion_type || item.promo_type || 'percentage',
+    scope_type: item.scope || item.scope_type || 'all',
+  }
+}
+
 export async function listPromotions(token, params = {}) {
   const qs = new URLSearchParams()
   const keyword = params.search?.trim?.()
@@ -21,7 +30,7 @@ export async function listPromotions(token, params = {}) {
   const pagination = raw.pagination ?? raw.data?.pagination ?? {}
 
   return {
-    items: items ?? [],
+    items: (items ?? []).map(normalizePromotion),
     pagination: {
       limit: params.limit ?? 10,
       offset: params.offset ?? 0,
