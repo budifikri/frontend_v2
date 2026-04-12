@@ -13,12 +13,16 @@ export function ReceiptPreview({ sale, settings, formatCurrency, formatDateTime 
   }
 
   const selectedFont = RECEIPT_FONTS.find(f => f.value === settings.receipt_font) || RECEIPT_FONTS[0]
-  const fontStyle = `
+  const hasLocalFont = selectedFont.filename && selectedFont.filename !== ''
+  const googleFontUrl = selectedFont.googleFont 
+    ? `https://fonts.googleapis.com/css2?family=${selectedFont.googleFont}&display=swap`
+    : ''
+  const fontStyle = hasLocalFont && !googleFontUrl ? `
     @font-face {
       font-family: '${selectedFont.label}';
       src: url('/assets/${selectedFont.filename}') format('truetype');
     }
-  `
+  ` : ''
 
   const result = renderReceiptContent(sale, settings, { escapeHtml, formatCurrency, formatDateTime }, { withSamples: true })
   const model = result.model
@@ -29,6 +33,7 @@ export function ReceiptPreview({ sale, settings, formatCurrency, formatDateTime 
         className={`receipt-preview ${getReceiptPaperClass(settings.paper_size)} ${settings.printer_type === 'dot_matrix' ? 'printer-dot-matrix' : 'printer-thermal'}`}
         style={{ fontFamily: `'${selectedFont.label}', Arial, sans-serif` }}
       >
+        {googleFontUrl && <link rel="stylesheet" href={googleFontUrl} />}
         <style>{fontStyle + result.customCss}</style>
         <div dangerouslySetInnerHTML={{ __html: result.bodyHtml }} />
 

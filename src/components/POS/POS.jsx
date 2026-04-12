@@ -657,8 +657,12 @@ export function POS() {
     const paperClass = getReceiptPaperClass(receiptSettings.paper_size)
     const isDotMatrix = receiptSettings.printer_type === 'dot_matrix'
     const selectedFont = RECEIPT_FONTS.find(f => f.value === receiptSettings.receipt_font) || RECEIPT_FONTS[0]
+    const hasLocalFont = selectedFont.filename && selectedFont.filename !== ''
+    const googleFontUrl = selectedFont.googleFont 
+      ? `https://fonts.googleapis.com/css2?family=${selectedFont.googleFont}&display=swap`
+      : ''
     const fontFamily = isDotMatrix ? "'Courier New', monospace" : `'${selectedFont.label}', Arial, sans-serif`
-    const fontSrc = `${window.location.origin}/assets/${selectedFont.filename}`
+    const fontSrc = hasLocalFont ? `${window.location.origin}/assets/${selectedFont.filename}` : ''
     const borderStyle = isDotMatrix ? '1px dotted #94a3b8' : '1px solid #e2e8f0'
     const lineBorder = isDotMatrix ? '1px dotted #cbd5e1' : '1px dashed #cbd5e1'
     const fontSize = paperSizeMm === 80 ? '12px' : '11px'
@@ -680,11 +684,16 @@ export function POS() {
       <head>
         <meta charset="utf-8" />
         <title>Nota ${escapeHtml(sale.sale_number || sale.id || '')}</title>
+        ${googleFontUrl ? `<link rel="stylesheet" href="${googleFontUrl}">` : ''}
+        ${hasLocalFont && !googleFontUrl ? `
         <style>
           @font-face {
             font-family: '${selectedFont.label}';
             src: url('${fontSrc}') format('truetype');
           }
+        </style>
+        ` : ''}
+        <style>
           @page {
             size: ${paperSizeMm}mm auto;
             margin: 0;

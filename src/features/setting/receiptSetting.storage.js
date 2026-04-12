@@ -1,8 +1,9 @@
 const RECEIPT_SETTINGS_KEY = 'pos_receipt_settings'
 
 export const RECEIPT_FONTS = [
-  { value: 'JetBrainsMono-Regular', label: 'JetBrains Mono', filename: 'JetBrainsMono-Regular-Dh36KTnx.ttf' },
-  { value: 'JetBrainsMonoNL-Regular', label: 'JetBrains Mono NL', filename: 'JetBrainsMonoNL-Regular.ttf' },
+  { value: 'JetBrainsMono-Regular', label: 'JetBrains Mono', filename: 'JetBrainsMono-Regular-Dh36KTnx.ttf', googleFont: 'JetBrains+Mono:wght@400;700' },
+  { value: 'JetBrainsMonoNL-Regular', label: 'JetBrains Mono NL', filename: 'JetBrainsMonoNL-Regular.ttf', googleFont: 'JetBrains+Mono:wght@400;700' },
+  { value: 'Arial', label: 'Arial (Default)', filename: '', googleFont: '' },
 ]
 
 export const DEFAULT_RECEIPT_SETTINGS = {
