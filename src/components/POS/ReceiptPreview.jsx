@@ -59,8 +59,8 @@ export function ReceiptPreview({ sale, settings, formatCurrency, formatDateTime 
             </div>
             {item.discount > 0 && item.quantity > 0 && (
               <div className="receipt-preview-item-diskon">
-                <span>diskon {item.tierLabel || 'promo'}</span>
-                <span>- {formatCurrency(item.discount * item.quantity)}</span>
+                <span>Diskon {item.tierLabel || 'promo'}</span>
+                <span>(- {formatCurrency(item.discount * item.quantity)})</span>
               </div>
             )}
           </div>

@@ -20,6 +20,8 @@ export const RECEIPT_TEMPLATE_TOKENS = [
   '{{items_rows}}',
   '{{payments_rows}}',
   '{{subtotal}}',
+  '{{original_total}}',
+  '{{discount}}',
   '{{tax_amount}}',
   '{{total_amount}}',
   '{{paid_amount}}',
@@ -43,8 +45,9 @@ export const DEFAULT_CUSTOM_TEMPLATE_HTML = `<div class="tpl-note">
   </div>
 
   <div class="tpl-summary">
-    <div><span>Subtotal</span><span>{{subtotal}}</span></div>
-    <div><span>PPN</span><span>{{tax_amount}}</span></div>
+    <div><span>Subtotal</span><span>{{original_total}}</span></div>
+    <div class="tpl-diskon"><span>Total Diskon</span><span>- {{discount}}</span></div>
+    <div><span>PPN (11%)</span><span>{{tax_amount}}</span></div>
     <div class="is-total"><span>Total</span><span>{{total_amount}}</span></div>
     <div><span>Dibayar</span><span>{{paid_amount}}</span></div>
     <div><span>Kembalian</span><span>{{change_amount}}</span></div>
@@ -68,6 +71,8 @@ export const DEFAULT_CUSTOM_TEMPLATE_CSS = `.tpl-note { font-family: Arial, sans
 .tpl-item-detail { display: flex; justify-content: space-between; gap: 8px; }
 .tpl-summary > div, .tpl-pay-row { display: flex; justify-content: space-between; gap: 8px; }
 .tpl-summary .is-total { font-weight: 700; margin-top: 4px; }
+.tpl-diskon { color: #dc2626; font-weight: 600; }
+.tpl-item-diskon { color: #dc2626; font-size: 11px; margin-left: 10px; }
 .tpl-payments { margin-top: 6px; border-top: 1px dashed #94a3b8; padding-top: 6px; }
 .tpl-footer { margin-top: 8px; border-top: 1px dashed #94a3b8; padding-top: 6px; text-align: center; white-space: pre-line; }
 .tpl-garis { border-top: 1px dashed #94a3b8; margin: 6px 0; }`
@@ -163,6 +168,7 @@ function buildItemRows(sale) {
     const originalPrice = item.original_price || unitPrice
     const discount = originalPrice - unitPrice
     const tierLabel = item.notes || ''
+    console.log('[ReceiptItem]', { unitPrice, originalPrice, discount, tierLabel })
     return {
       index: index + 1,
       name: item.product_name || item.name || '-',
@@ -228,7 +234,10 @@ export function buildReceiptTemplateModel(sale, settings, options = {}) {
     change: sale.change_amount || 0,
   }
 
-  const summary = withSamples ? computeSummaryFromItems(itemRows, baseSummary) : baseSummary
+  console.log('[Receipt] sale data:', JSON.stringify({ subtotal: sale.subtotal, original_total: sale.original_total, discount_amount: sale.discount_amount }))
+  console.log('[Receipt] baseSummary:', JSON.stringify(baseSummary))
+  const summary = itemRows.length > 0 ? computeSummaryFromItems(itemRows, baseSummary) : baseSummary
+  console.log('[Receipt] final summary:', JSON.stringify(summary))
 
   return {
     layoutType,
@@ -370,9 +379,15 @@ function renderCustomItemsRows(model, helpers) {
     <div class="tpl-item">
       <div class="tpl-item-name">${helpers.escapeHtml(item.name)}</div>
       <div class="tpl-item-detail">
-        <span>${item.quantity} x ${helpers.formatCurrency(item.unitPrice)}</span>
-        <strong>${helpers.formatCurrency(item.subtotal)}</strong>
+        <span>${item.quantity} x ${helpers.formatCurrency(item.originalPrice || item.unitPrice)}</span>
+        <strong>${helpers.formatCurrency((item.originalPrice || item.unitPrice) * item.quantity)}</strong>
       </div>
+      ${item.discount > 0 && item.quantity > 0 ? `
+      <div class="tpl-item-diskon">
+        <span>Diskon ${item.tierLabel || 'promo'}</span>
+        <span>(- ${helpers.formatCurrency(item.discount * item.quantity)})</span>
+      </div>
+      ` : ''}
     </div>
   `).join('')
   return rows || '<div class="tpl-item">-</div>'
