@@ -2291,8 +2291,19 @@ export function POS() {
                     <div className="receipt-item-info">
                       <div className="receipt-item-name">{item.name}</div>
                       <div className="receipt-item-price">
-                        <span>{item.qty} x {formatCurrency(item.price)}</span>
-                        {getItemTierLabel(item) && <span className="receipt-tier-badge">{getItemTierLabel(item)}</span>}
+                        {(() => {
+                          const retailPrice = Number(item.retail_price || item.price)
+                          const unitPrice = Number(item.price)
+                          const discount = retailPrice - unitPrice
+                          const tierLabel = getItemTierLabel(item)
+                          return (
+                            <span>
+                              {item.qty} x {formatCurrency(retailPrice)}
+                              {discount > 0 && <span className="receipt-discount">(-{formatCurrency(discount)}) </span>}
+                              {tierLabel && <span className="receipt-tier-badge">{tierLabel}</span>}
+                            </span>
+                          )
+                        })()}
                       </div>
                     </div>
                     <div className="receipt-item-total">{formatCurrency(item.price * item.qty)}</div>
@@ -2650,8 +2661,19 @@ export function POS() {
                 {displayItem && (
                   <div className="monitor-item-price-row">
                     <span className="monitor-item-qty-price">
-                      {displayItem.qty} x {formatCurrency(displayItem.price)}
-                      {getItemTierLabel(displayItem) && <span className="monitor-tier-badge">{getItemTierLabel(displayItem)}</span>}
+                      {(() => {
+                        const retailPrice = Number(displayItem.retail_price || displayItem.price)
+                        const unitPrice = Number(displayItem.price)
+                        const discount = retailPrice - unitPrice
+                        const tierLabel = getItemTierLabel(displayItem)
+                        return (
+                          <span>
+                            {displayItem.qty} x {formatCurrency(retailPrice)}
+                            {discount > 0 && <span className="monitor-discount">(-{formatCurrency(discount)}) </span>}
+                            {tierLabel && <span className="monitor-tier-badge">{tierLabel}</span>}
+                          </span>
+                        )
+                      })()}
                     </span>
                     <span className="monitor-item-total">{formatCurrency(displayItem.price * displayItem.qty)}</span>
                   </div>

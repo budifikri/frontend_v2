@@ -290,6 +290,12 @@
   padding: 2px 8px;
 }
 
+.receipt-discount {
+  color: #dc2626; 
+  margin-left: 4px;
+    
+}
+
 .receipt-item-total {
   font-weight: 700;
   text-align: right;
@@ -520,12 +526,13 @@
   display: inline-flex;
   align-items: center;
   padding: 4px 10px;
+
   border-radius: 999px;
   border: 1px solid rgba(74, 222, 128, 0.65);
   background: rgba(34, 197, 94, 0.15);
   color: #86efac;
   font-family: 'JetBrains Mono', monospace;
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -535,6 +542,12 @@
   display: inline-flex;
   align-items: center;
   gap: 10px;
+    letter-spacing: 0.5px;
+}
+
+.monitor-discount {
+  color: #f87171;
+    letter-spacing: 0.5px;
 }
 
 .monitor-item-total {
