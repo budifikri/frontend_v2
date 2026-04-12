@@ -1062,6 +1062,8 @@ export function POS() {
         limit: 100,
       })
 
+      console.log('[DEBUG] listSales response:', JSON.stringify(result))
+
       const source = Array.isArray(result.data)
         ? result.data
         : Array.isArray(result.items)
@@ -1069,6 +1071,8 @@ export function POS() {
           : Array.isArray(result.data?.items)
             ? result.data.items
             : []
+
+      console.log('[DEBUG] source array (first item):', JSON.stringify(source[0]))
 
       const normalized = source.filter((sale) => sale?.status === 'DONE' && sale?.cash_drawer_id === activeDrawer.id)
 
@@ -1093,6 +1097,7 @@ export function POS() {
     try {
       setIsPrinting(true)
       const result = await getSaleById(auth.token, saleId)
+      console.log('[DEBUG] getSaleById response:', JSON.stringify(result))
       if (!result?.data) {
         throw new Error('Data nota tidak ditemukan')
       }
