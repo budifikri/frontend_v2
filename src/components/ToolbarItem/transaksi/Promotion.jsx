@@ -180,6 +180,16 @@ function formatDate(dateStr) {
   return date.toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' })
 }
 
+function formatDateForInput(dateStr) {
+  if (!dateStr) return ''
+  const date = new Date(dateStr)
+  if (isNaN(date.getTime())) return ''
+  const yyyy = date.getFullYear()
+  const mm = String(date.getMonth() + 1).padStart(2, '0')
+  const dd = String(date.getDate()).padStart(2, '0')
+  return `${yyyy}-${mm}-${dd}`
+}
+
 export function Promotion({ onExit }) {
   const { auth } = useAuth()
   const token = auth?.token
@@ -370,16 +380,16 @@ export function Promotion({ onExit }) {
     setForm({
       code: target.code || '',
       name: target.name || '',
-      promo_type: target.promo_type || 'percentage',
-      scope_type: target.scope_type || 'all',
+      promo_type: normalizePromoType(target.promo_type) || 'percentage',
+      scope_type: normalizeScopeType(target.scope_type) || 'all',
       category_ids: target.category_ids || [],
       product_ids: target.product_ids || [],
       discount_value: target.discount_value || 0,
       buy_quantity: target.buy_quantity || 1,
       get_quantity: target.get_quantity || 1,
-      start_date: target.start_date || '',
+      start_date: formatDateForInput(target.start_date) || '',
       start_time: target.start_time || '',
-      end_date: target.end_date || '',
+      end_date: formatDateForInput(target.end_date) || '',
       end_time: target.end_time || '',
       description: target.description || '',
     })
