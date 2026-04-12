@@ -210,6 +210,7 @@ export function POS() {
         setActivePromos(promos)
         const cache = {}
         for (const promo of promos) {
+          console.log('[Promo] Loading promo:', promo.code, 'scope:', promo.scope, 'product_ids:', promo.product_ids, 'category_ids:', promo.category_ids)
           if (promo.scope === 'BY_PRODUCT' && Array.isArray(promo.product_ids)) {
             for (const pid of promo.product_ids) {
               cache[pid] = promo
@@ -223,6 +224,7 @@ export function POS() {
           }
         }
         promoCacheRef.current = cache
+        console.log('[Promo] Cache built:', cache, 'keys:', Object.keys(cache))
       } catch (err) {
         console.error('Failed to load promos:', err)
       }
@@ -1192,6 +1194,7 @@ export function POS() {
       const saleItems = items.map(item => {
         const productId = item.product_id
         const promo = checkPromoForProduct(productId)
+        console.log('[Checkout] productId:', productId, 'promo found:', promo?.code, 'promo scope:', promo?.scope, 'activePromos:', activePromos.map(p => p.code))
         return {
           product_id: productId,
           quantity: item.qty,
