@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useAuth } from '../../../shared/auth'
-import { createCategory, deactivateCategory, listCategories, updateCategory } from '../../../features/master/category/category.api'
+import { listCategories, createCategory, updateCategory, deleteCategory } from '../../../features/master/category/category.api'
+import { getCurrentCompany } from '../../../features/master/company/company.api'
+import { openReportPrintWindow } from '../../../utils/reportPrint'
+import { kategoriDummyData } from '../../../data'
 import { FooterMaster } from '../footer/FooterMaster'
 import { FooterFormMaster } from '../footer/FooterFormMaster'
 import { DeleteMaster } from '../footer/DeleteMaster'
@@ -289,7 +292,20 @@ export function Category({ onExit }) {
 
   function handlePrint() {
     setShowForm(false)
-    window.print()
+    const printColumns = [
+      { key: 'no', label: 'NO', align: 'text-center', formatter: (_, __, index) => index + 1 },
+      { key: 'code', label: 'KODE' },
+      { key: 'name', label: 'NAMA' },
+      { key: 'description', label: 'DESKRIPSI' },
+      { key: 'parent_id', label: 'PARENT', align: 'text-center' },
+      { key: 'is_active', label: 'STATUS', align: 'text-center', formatter: (v) => v ? 'Aktif' : 'Non-Aktif' },
+    ]
+    const printData = sortedData.map((item, index) => ({ ...item, no: index + 1 }))
+    openReportPrintWindow({
+      title: 'Daftar Master Kategori',
+      columns: printColumns,
+      data: printData,
+    })
   }
 
   const handleExportExcel = () => {

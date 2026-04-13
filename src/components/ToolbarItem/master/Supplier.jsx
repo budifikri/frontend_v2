@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useAuth } from '../../../shared/auth'
 import { createSupplier, deleteSupplier, listSuppliers, updateSupplier } from '../../../features/master/supplier/supplier.api'
+import { getCurrentCompany } from '../../../features/master/company/company.api'
+import { openReportPrintWindow } from '../../../utils/reportPrint'
 import { FooterMaster } from '../footer/FooterMaster'
 import { FooterFormMaster } from '../footer/FooterFormMaster'
 import { DeleteMaster } from '../footer/DeleteMaster'
@@ -388,7 +390,23 @@ export function Supplier({ onExit }) {
 
   function handlePrint() {
     setShowForm(false)
-    window.print()
+    const printColumns = [
+      { key: 'no', label: 'NO', align: 'text-center', formatter: (_, __, index) => index + 1 },
+      { key: 'code', label: 'KODE' },
+      { key: 'name', label: 'NAMA' },
+      { key: 'contact_person', label: 'KONTAK' },
+      { key: 'email', label: 'EMAIL' },
+      { key: 'phone', label: 'TELEPON' },
+      { key: 'address', label: 'ALAMAT' },
+      { key: 'city', label: 'KOTA' },
+      { key: 'is_active', label: 'STATUS', align: 'text-center', formatter: (v) => v ? 'Aktif' : 'Non-Aktif' },
+    ]
+    const printData = sortedData.map((item, index) => ({ ...item, no: index + 1 }))
+    openReportPrintWindow({
+      title: 'Daftar Master Supplier',
+      columns: printColumns,
+      data: printData,
+    })
   }
 
   const handleExportExcel = () => {

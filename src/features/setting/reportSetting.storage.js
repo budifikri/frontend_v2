@@ -6,36 +6,34 @@ export const DEFAULT_REPORT_SETTINGS = {
   company_name: '',
   company_address: '',
   company_phone: '',
-  custom_template_html: `
-<<divdiv class="report-custom">
-  <<divdiv class="report-header">
-    <<hh1>{{company_name}}</h1>
-    <<pp>{{company_address}}<<brbr/>Telp: {{company_phone}}</p>
-    <<hrhr/>
-    <<hh2>{{report_title}}</h2>
+  custom_template_html: `<div class="report-custom">
+  <div class="report-header">
+    <h1>{{company_name}}</h1>
+    <p>{{company_address}}<br/>Telp: {{company_phone}}</p>
+    <hr/>
+    <h2>{{report_title}}</h2>
   </div>
   
-  <<divdiv class="report-meta">
-    <<spanspan>Dicetak pada: {{print_date}}</span>
-    <<spanspan>Operator: {{operator}}</span>
+  <div class="report-meta">
+    <span>Dicetak pada: {{print_date}}</span>
+    <span>Operator: {{operator}}</span>
   </div>
 
-  <<divdiv class="report-body">
+  <div class="report-body">
     {{table_data}}
   </div>
 
-  <<divdiv class="report-footer">
-    <<pp>{{footer_text}}</p>
-    <<divdiv class="signature">
-      <<pp>Dicetak Oleh,</p>
-      <<brbr/><<brbr/>
-      <<pp><<strongstrong>{{operator}}</strong></p>
+  <div class="report-footer">
+    <p>{{footer_text}}</p>
+    <div class="signature">
+      <p>Dicetak Oleh,</p>
+      <br/><br/>
+      <p><strong>{{operator}}</strong></p>
     </div>
   </div>
 </div>
 `,
-  custom_template_css: `
-.report-custom { font-family: Arial, sans-serif; color: #333; }
+  custom_template_css: `.report-custom { font-family: Arial, sans-serif; color: #333; }
 .report-header { text-align: center; margin-bottom: 20px; }
 .report-header h1 { margin: 0; font-size: 22pt; }
 .report-header h2 { margin: 10px 0; font-size: 16pt; text-decoration: underline; }

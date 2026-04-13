@@ -7,6 +7,8 @@ import { createProduct, deleteProduct, listProducts, updateProduct } from '../..
 import { adjustStock } from '../../../features/laporan/stock/stock.api'
 import { getProductStock } from '../../../features/master/stock-opname/stockOpname.api'
 import { createPriceTier, getPriceTier, updatePriceTier } from '../../../features/master/price-tier/priceTier.api'
+import { getCurrentCompany } from '../../../features/master/company/company.api'
+import { openReportPrintWindow } from '../../../utils/reportPrint'
 import { FooterMaster } from '../footer/FooterMaster'
 import { FooterFormMaster } from '../footer/FooterFormMaster'
 import { DeleteMaster } from '../footer/DeleteMaster'
@@ -711,7 +713,24 @@ export function Product({ onExit }) {
 
   function handlePrint() {
     setShowForm(false)
-    window.print()
+    const printColumns = [
+      { key: 'no', label: 'NO', align: 'text-center', formatter: (_, __, index) => index + 1 },
+      { key: 'sku', label: 'SKU' },
+      { key: 'barcode', label: 'BARCODE' },
+      { key: 'name', label: 'NAMA PRODUK' },
+      { key: 'category_id', label: 'KATEGORI', align: 'text-center' },
+      { key: 'unit_id', label: 'SATUAN', align: 'text-center' },
+      { key: 'retail_price', label: 'HARGA JUAL', align: 'text-right', formatter: (v) => v ? Number(v).toLocaleString('id-ID') : '-' },
+      { key: 'cost_price', label: 'HARGA BELI', align: 'text-right', formatter: (v) => v ? Number(v).toLocaleString('id-ID') : '-' },
+      { key: 'stock', label: 'STOK', align: 'text-right' },
+      { key: 'is_active', label: 'STATUS', align: 'text-center', formatter: (v) => v ? 'Aktif' : 'Non-Aktif' },
+    ]
+    const printData = sortedData.map((item, index) => ({ ...item, no: index + 1 }))
+    openReportPrintWindow({
+      title: 'Daftar Master Produk',
+      columns: printColumns,
+      data: printData,
+    })
   }
 
   const handleExportExcel = () => {

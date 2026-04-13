@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useAuth } from '../../../shared/auth'
 import { listUnits, createUnit, updateUnit, deleteUnit } from '../../../features/master/unit/unit.api'
+import { getCurrentCompany } from '../../../features/master/company/company.api'
+import { openReportPrintWindow } from '../../../utils/reportPrint'
 import { satuanDummyData } from '../../../data'
 import { FooterMaster } from '../footer/FooterMaster'
 import { FooterFormMaster } from '../footer/FooterFormMaster'
@@ -306,7 +308,19 @@ export function Satuan({ onExit }) {
 
   function handlePrint() {
     setShowForm(false)
-    window.print()
+    const printColumns = [
+      { key: 'no', label: 'NO', align: 'text-center', formatter: (_, __, index) => index + 1 },
+      { key: 'code', label: 'KODE' },
+      { key: 'name', label: 'NAMA' },
+      { key: 'description', label: 'DESKRIPSI' },
+      { key: 'is_active', label: 'STATUS', align: 'text-center', formatter: (v) => v ? 'Aktif' : 'Non-Aktif' },
+    ]
+    const printData = sortedData.map((item, index) => ({ ...item, no: index + 1 }))
+    openReportPrintWindow({
+      title: 'Daftar Master Satuan',
+      columns: printColumns,
+      data: printData,
+    })
   }
 
   const handleExportExcel = () => {
