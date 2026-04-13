@@ -84,8 +84,6 @@ export async function getStockCard(token, params = {}) {
   if (params.warehouse_id) qs.set('warehouse_id', params.warehouse_id)
   if (params.date_from) qs.set('date_from', params.date_from)
   if (params.date_to) qs.set('date_to', params.date_to)
-  if (params.limit !== undefined) qs.set('limit', String(params.limit))
-  if (params.offset !== undefined) qs.set('offset', String(params.offset))
 
   const queryString = qs.toString() ? `?${qs.toString()}` : ''
   const url = `/api/inventory/stock-card${queryString}`
@@ -114,19 +112,11 @@ export async function getStockCard(token, params = {}) {
   const dataItem = Array.isArray(raw.data) ? raw.data[0] : raw.data
   const transactions = dataItem?.transactions ?? raw.data?.transactions ?? []
   const rows = Array.isArray(transactions) ? transactions : []
-  const rawPagination = raw.pagination ?? {}
-  const pagination = {
-    total: rawPagination.total ?? rows.length,
-    limit: params.limit ?? 10,
-    offset: params.offset ?? 0,
-    hasMore: rawPagination.has_more ?? rawPagination.hasMore ?? false,
-  }
   console.log('[StockCard] ROWS:', rows)
   console.log('[StockCard] First row keys:', rows[0] ? Object.keys(rows[0]) : 'no data')
 
   return {
     items: (rows ?? []).map((item, index) => normalizeStockCardItem(item, index)),
-    pagination: pagination,
   }
 }
 

@@ -534,15 +534,16 @@
 
 .monitor-time {
   color: #00f3ff;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 24px;
+  font-family: 'Digiface', 'JetBrains Mono', monospace;
+  font-size: 30px;
+  letter-spacing:3px;
   font-weight: 700;
   text-shadow: 0 0 10px rgba(0, 243, 255, 0.7), 0 0 20px rgba(0, 243, 255, 0.3);
 }
 
 .monitor-total {
   color: #00f3ff;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'Digiface', 'JetBrains Mono', monospace;
   font-size: 36px;
   font-weight: 700;
   text-shadow: 0 0 10px rgba(0, 243, 255, 0.7), 0 0 20px rgba(0, 243, 255, 0.3);
@@ -554,13 +555,14 @@
 }
 
 .monitor-item-name {
+ letter-spacing:3px;
   color: white;
   font-size: 32px;
   font-weight: 900;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-    font-family:  'JetBrains Mono', monospace;
+     font-family: 'Digiface', 'JetBrains Mono', monospace;
       text-shadow: 0 0 10px rgba(0, 243, 255, 0.7);
 }
 
@@ -570,11 +572,9 @@
   align-items: center;
   color: #4ade80;
   font-family: 'Digiface', 'JetBrains Mono', monospace;
-  font-size: 24px;
+  font-size: 30px;
   font-weight: 900;
-  letter-spacing: 3px;
-  text-shadow: 0 0 10px rgba(0, 243, 255, 0.7);
-  letter-spacing: 0.5px;
+  text-shadow: 0 0 10px rgba(0, 243, 255, 0.7);  
 }
 
 .monitor-price-wrapper {
@@ -612,7 +612,7 @@
   font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  
 }
 
 .monitor-item-qty-price {
@@ -652,11 +652,13 @@
   font-weight: 900;
 }
 
+
 .monitor-bottom {
   border-top: 1px solid #374151;
   padding-top: 0px;
   display: flex;
   justify-content: space-between;
+  
   /* align-items: flex-end; */
 }
 

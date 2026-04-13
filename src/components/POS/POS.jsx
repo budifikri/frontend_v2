@@ -2766,7 +2766,21 @@ export function POS() {
                 )}
               </div>
               <div className="monitor-bottom">
-                  <div className="monitor-count"> <div className="monitor-total"> Total</div>    {/*  ITEMS: {String(items.length).padStart(2, '0')}  */}</div>  
+                  <div className="monitor-count"> 
+                     <div className="monitor-total"> Total </div>
+                   {showPpn ? (
+  <>
+    <span>+PPN ({ppnPercentage}%)</span>
+  </>
+) : (
+  <>
+    <span>ITEMS: {String(items.length).padStart(2, '0')}</span>
+  </>
+)}
+                     {/*  ITEMS: {String(items.length).padStart(2, '0')}  */}</div>  
+                
+                
+                
                 <div className="monitor-amount">
                {/*    <div className="monitor-amount-label">AMOUNT DUE</div> */}
                   <div className="monitor-amount-value">{formatCurrency(total)}</div>

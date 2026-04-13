@@ -60,11 +60,9 @@ export function StockCardModal({
   productName, 
   isLoading, 
   error, 
-  pagination,
   onFilterChange,
-  onPageChange 
 }) {
-  console.log('[StockCardModal] Props - isOpen:', isOpen, 'data:', data, 'productName:', productName, 'isLoading:', isLoading, 'error:', error, 'pagination:', pagination)
+  console.log('[StockCardModal] Props - isOpen:', isOpen, 'data:', data, 'productName:', productName, 'isLoading:', isLoading, 'error:', error)
 
   const [dateFilter, setDateFilter] = useState('this_month')
   const [showDateModal, setShowDateModal] = useState(false)
@@ -99,14 +97,6 @@ export function StockCardModal({
     window.print()
   }
 
-  const handleFirstPage = () => onPageChange?.(0)
-  const handlePrevPage = () => onPageChange?.((pagination?.offset || 0) - (pagination?.limit || 10))
-  const handleNextPage = () => onPageChange?.((pagination?.offset || 0) + (pagination?.limit || 10))
-  const handleLastPage = () => {
-    const totalPages = Math.ceil((pagination?.total || 0) / (pagination?.limit || 10))
-    onPageChange?.((totalPages - 1) * (pagination?.limit || 10))
-  }
-
   useEffect(() => {
     if (!isOpen) return
 
@@ -122,11 +112,6 @@ export function StockCardModal({
   }, [isOpen, onClose])
 
   if (!isOpen) return null
-
-  const currentPage = Math.floor((pagination?.offset || 0) / (pagination?.limit || 10)) + 1
-  const totalPages = Math.ceil((pagination?.total || 0) / (pagination?.limit || 10))
-  const canPrev = (pagination?.offset || 0) > 0
-  const canNext = pagination?.hasMore
 
   return (
     <div className="delete-master-overlay" onClick={onClose}>
@@ -202,7 +187,7 @@ export function StockCardModal({
                   {data.length > 0 ? (
                     data.map((row, index) => (
                       <tr key={row.id || index} className={index % 2 === 0 ? 'row-even' : 'row-odd'}>
-                        <td>{index + 1 + (pagination?.offset || 0)}</td>
+                        <td>{index + 1}</td>
                         <td>{formatDate(row.date)}</td>
                         <td>{row.reference || '-'}</td>
                         <td className={`text-right ${Number(row.qty_in) > 0 ? 'qty-in-positive' : ''}`}>{Number(row.qty_in) > 0 ? row.qty_in : ''}</td>
@@ -233,27 +218,9 @@ export function StockCardModal({
            
           </div>
           <div className="stock-card-footer-right">
-           <span className="stock-card-total-in">Total Masuk: {totals.totalIn}</span>
+            <span className="stock-card-total-in">Total Masuk: {totals.totalIn}</span>
             <span className="stock-card-total-out">Total Keluar: {totals.totalOut}</span>
-             <span className="stock-card-total-row">Total Row: {pagination?.total || data.length}</span>
-          
-            <div className="master-footer-pagination">
-            
-              <button type="button" className="master-page-btn" title="First Page" onClick={handleFirstPage} disabled={!canPrev}>
-                <span className="material-icons-round master-page-icon">first_page</span>
-              </button>
-              <button type="button" className="master-page-btn" title="Previous Page" onClick={handlePrevPage} disabled={!canPrev}>
-                <span className="material-icons-round master-page-icon">chevron_left</span>
-              </button>
-              <span className="master-page-info">Page {currentPage} of {totalPages}</span>
-              <button type="button" className="master-page-btn" title="Next Page" onClick={handleNextPage} disabled={!canNext}>
-                <span className="material-icons-round master-page-icon">chevron_right</span>
-              </button>
-              <button type="button" className="master-page-btn" title="Last Page" onClick={handleLastPage} disabled={!canNext}>
-                <span className="material-icons-round master-page-icon">last_page</span>
-              </button>
-            </div>
-           
+            <span className="stock-card-total-row">Total Row: {data.length}</span>
           </div>
         </div>
       </div>

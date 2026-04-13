@@ -1,7 +1,13 @@
 ## BUG
 - product tidak bisa tambah stock  (fix)
+- kartu stock dan jumlah stock tidak sama (fix)
+- perbaikan cetak laporan, fungsi print sepertinya cuman dari screenshoot data 
 ## TODO
+
 - connect telegram
+- laporan jual
+- laporan closing
+
 
 - setting printer thermal dan dot matrix
 - Help POS
@@ -16,6 +22,9 @@
 
 ## DONE
 12april 2026
+- perbaikan font dan cetak
+- optional PPN
+- optional font cetak jual
 - harga promo  menu admin 
      - Discount Percentage                    
      - Discount Fixed Amount                
