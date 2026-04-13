@@ -7,6 +7,7 @@ import { createProduct, deleteProduct, listProducts, updateProduct } from '../..
 import { adjustStock } from '../../../features/laporan/stock/stock.api'
 import { getProductStock } from '../../../features/master/stock-opname/stockOpname.api'
 import { createPriceTier, getPriceTier, updatePriceTier } from '../../../features/master/price-tier/priceTier.api'
+import { getCurrentCompany } from '../../../features/master/company/company.api'
 import { openReportPrintWindow } from '../../../utils/reportPrint'
 import { FooterMaster } from '../footer/FooterMaster'
 import { FooterFormMaster } from '../footer/FooterFormMaster'
@@ -725,11 +726,43 @@ export function Product({ onExit }) {
       { key: 'is_active', label: 'STATUS', align: 'text-center', formatter: (v) => v ? 'Aktif' : 'Non-Aktif' },
     ]
     const printData = sortedData.map((item, index) => ({ ...item, no: index + 1 }))
-    openReportPrintWindow({
-      title: 'Daftar Master Produk',
-      columns: printColumns,
-      data: printData,
-    })
+    
+    const companyInfo = { name: '', address: '', phone: '' };
+    if (token) {
+      getCurrentCompany(token).then(res => {
+        if (res?.data) {
+          companyInfo.name = res.data.nama || res.data.name || auth.companyName || '';
+          companyInfo.address = res.data.address || '';
+          companyInfo.phone = res.data.telp || res.data.phone || '';
+        }
+        openReportPrintWindow({
+          title: 'Daftar Master Produk',
+          company: companyInfo,
+          meta: { date: new Date().toLocaleString('id-ID'), user: auth.username || 'Admin' },
+          columns: printColumns,
+          data: printData,
+          footerTextOverride: `Laporan Produk dicetak pada ${new Date().toLocaleDateString('id-ID')}`,
+        });
+      }).catch(() => {
+        openReportPrintWindow({
+          title: 'Daftar Master Produk',
+          company: companyInfo,
+          meta: { date: new Date().toLocaleString('id-ID'), user: auth.username || 'Admin' },
+          columns: printColumns,
+          data: printData,
+          footerTextOverride: `Laporan Produk dicetak pada ${new Date().toLocaleDateString('id-ID')}`,
+        });
+      });
+    } else {
+      openReportPrintWindow({
+        title: 'Daftar Master Produk',
+        company: companyInfo,
+        meta: { date: new Date().toLocaleString('id-ID'), user: auth.username || 'Admin' },
+        columns: printColumns,
+        data: printData,
+        footerTextOverride: `Laporan Produk dicetak pada ${new Date().toLocaleDateString('id-ID')}`,
+      });
+    }
   }
 
   const handleExportExcel = () => {

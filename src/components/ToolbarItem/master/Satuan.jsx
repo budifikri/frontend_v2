@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useAuth } from '../../../shared/auth'
 import { listUnits, createUnit, updateUnit, deleteUnit } from '../../../features/master/unit/unit.api'
+import { getCurrentCompany } from '../../../features/master/company/company.api'
 import { openReportPrintWindow } from '../../../utils/reportPrint'
 import { satuanDummyData } from '../../../data'
 import { FooterMaster } from '../footer/FooterMaster'
@@ -315,11 +316,43 @@ export function Satuan({ onExit }) {
       { key: 'is_active', label: 'STATUS', align: 'text-center', formatter: (v) => v ? 'Aktif' : 'Non-Aktif' },
     ]
     const printData = sortedData.map((item, index) => ({ ...item, no: index + 1 }))
-    openReportPrintWindow({
-      title: 'Daftar Master Satuan',
-      columns: printColumns,
-      data: printData,
-    })
+    
+    const companyInfo = { name: '', address: '', phone: '' };
+    if (token) {
+      getCurrentCompany(token).then(res => {
+        if (res?.data) {
+          companyInfo.name = res.data.nama || res.data.name || auth.companyName || '';
+          companyInfo.address = res.data.address || '';
+          companyInfo.phone = res.data.telp || res.data.phone || '';
+        }
+        openReportPrintWindow({
+          title: 'Daftar Master Satuan',
+          company: companyInfo,
+          meta: { date: new Date().toLocaleString('id-ID'), user: auth.username || 'Admin' },
+          columns: printColumns,
+          data: printData,
+          footerTextOverride: `Laporan Satuan dicetak pada ${new Date().toLocaleDateString('id-ID')}`,
+        });
+      }).catch(() => {
+        openReportPrintWindow({
+          title: 'Daftar Master Satuan',
+          company: companyInfo,
+          meta: { date: new Date().toLocaleString('id-ID'), user: auth.username || 'Admin' },
+          columns: printColumns,
+          data: printData,
+          footerTextOverride: `Laporan Satuan dicetak pada ${new Date().toLocaleDateString('id-ID')}`,
+        });
+      });
+    } else {
+      openReportPrintWindow({
+        title: 'Daftar Master Satuan',
+        company: companyInfo,
+        meta: { date: new Date().toLocaleString('id-ID'), user: auth.username || 'Admin' },
+        columns: printColumns,
+        data: printData,
+        footerTextOverride: `Laporan Satuan dicetak pada ${new Date().toLocaleDateString('id-ID')}`,
+      });
+    }
   }
 
   const handleExportExcel = () => {
