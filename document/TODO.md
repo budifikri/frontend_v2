@@ -2,6 +2,7 @@
 - product tidak bisa tambah stock  (fix)
 - kartu stock dan jumlah stock tidak sama (fix)
 - perbaikan cetak laporan, fungsi print sepertinya cuman dari screenshoot data 
+- perbaikan sequence no nota penjualan yang acak, seharusnya urut
 ## TODO
 
 - connect telegram

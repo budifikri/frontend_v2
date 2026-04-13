@@ -91,7 +91,7 @@ export function CashDrawerDetailModal({
   return (
     <div className="delete-master-overlay" onClick={onClose}>
       <div className="stock-card-modal" onClick={(e) => e.stopPropagation()}>
-        <div className="delete-master-header">
+        <div className="delete-master-header" style={{ padding: '12px 16px' }}>
           <div className="stock-card-header-left">
             <span className="material-icons-round material-icon orange">account_balance_wallet</span>
             <h2>Detail Cash Drawer</h2>
