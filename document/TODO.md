@@ -4,7 +4,9 @@
 - perbaikan cetak laporan, fungsi print sepertinya cuman dari screenshoot data 
 - perbaikan sequence no nota penjualan yang acak, seharusnya urut
 ## TODO
-
+- Backup
+- Restore
+- simpan setting cetak (font, format layout) ke database 
 - connect telegram
 - laporan jual
 - laporan cash drawer / closing

@@ -149,8 +149,12 @@ export function CompanySetting({ onExit }) {
 
   return (
     <div className="master-content">
-      {error && <div className="master-error">{error}</div>}
+      <div className="master-header">
+        <div className="master-header-accent"></div>
+        <h1 className="master-title">Pengaturan Company</h1>
+      </div>
 
+      {error && <div className="master-error">{error}</div>}
       {showToast && (
         <div className="toast-notification">
           <span className="material-icons-round">check_circle</span>
@@ -158,108 +162,127 @@ export function CompanySetting({ onExit }) {
         </div>
       )}
 
-      <div className="master-form-card" style={{ marginTop: '16px' }}>
-        <div className="master-form-header">
-          <span className="material-icons-round master-form-icon">apartment</span>
-          <h2 className="master-form-title">Ubah Data Company</h2>
-        </div>
-        <div className="master-form-grid">
-          <div className="master-form-group">
-            <label className="master-form-label">Code :</label>
-            <input
-              type="text"
-              value={form.code}
-              onChange={(e) => setForm({ ...form, code: e.target.value })}
-              className="master-form-input"
-              readOnly={!isEditing}
-            />
-          </div>
-          <div className="master-form-group">
-            <label className="master-form-label">Name :</label>
-            <input
-              type="text"
-              value={form.nama}
-              onChange={(e) => setForm({ ...form, nama: e.target.value })}
-              className="master-form-input"
-              readOnly={!isEditing}
-            />
-          </div>
-          <div className="master-form-group">
-            <label className="master-form-label">Email :</label>
-            <input
-              type="email"
-              value={form.email}
-              onChange={(e) => setForm({ ...form, email: e.target.value })}
-              className="master-form-input"
-              readOnly={!isEditing}
-            />
-          </div>
-          <div className="master-form-group">
-            <label className="master-form-label">Phone :</label>
-            <input
-              type="text"
-              value={form.telp}
-              onChange={(e) => setForm({ ...form, telp: e.target.value })}
-              className="master-form-input"
-              readOnly={!isEditing}
-            />
-          </div>
-          <div className="master-form-group">
-            <label className="master-form-label">Website :</label>
-            <input
-              type="text"
-              value={form.website}
-              onChange={(e) => setForm({ ...form, website: e.target.value })}
-              className="master-form-input"
-              readOnly={!isEditing}
-            />
-          </div>
-          <div className="master-form-group-wide">
-            <label className="master-form-label">Address :</label>
-            <input
-              type="text"
-              value={form.address}
-              onChange={(e) => setForm({ ...form, address: e.target.value })}
-              className="master-form-input"
-              readOnly={!isEditing}
-            />
-          </div>
-          <div className="master-form-group">
-            <label className="master-form-label">Tax ID :</label>
-            <input
-              type="text"
-              value={form.tax_id}
-              onChange={(e) => setForm({ ...form, tax_id: e.target.value })}
-              className="master-form-input"
-              readOnly={!isEditing}
-            />
-          </div>
-          <div className="master-form-group">
-            <label className="master-form-label">Business License :</label>
-            <input
-              type="text"
-              value={form.business_license}
-              onChange={(e) => setForm({ ...form, business_license: e.target.value })}
-              className="master-form-input"
-              readOnly={!isEditing}
-            />
-          </div>
+      <div className="master-table-wrapper">
+        <div className="master-table-container">
+          <div style={{ padding: '16px' }}>
+            <div className="receipt-setting-body">
+              <div className="receipt-setting-form">
+                <div className="receipt-setting-section">
+                  <h4>Informasi Dasar</h4>
+                  <div className="receipt-setting-field-inline">
+                    <label htmlFor="company-code">Code</label>
+                    <input
+                      type="text"
+                      id="company-code"
+                      className="receipt-text-input"
+                      value={form.code}
+                      onChange={(e) => setForm({ ...form, code: e.target.value })}
+                      readOnly={!isEditing}
+                    />
+                  </div>
+                  <div className="receipt-setting-field-inline">
+                    <label htmlFor="company-name">Nama Company</label>
+                    <input
+                      type="text"
+                      id="company-name"
+                      className="receipt-text-input"
+                      value={form.nama}
+                      onChange={(e) => setForm({ ...form, nama: e.target.value })}
+                      readOnly={!isEditing}
+                    />
+                  </div>
+                  <div className="receipt-setting-field-inline">
+                    <label htmlFor="company-email">Email</label>
+                    <input
+                      type="email"
+                      id="company-email"
+                      className="receipt-text-input"
+                      value={form.email}
+                      onChange={(e) => setForm({ ...form, email: e.target.value })}
+                      readOnly={!isEditing}
+                    />
+                  </div>
+                  <div className="receipt-setting-field-inline">
+                    <label htmlFor="company-phone">No. Telepon</label>
+                    <input
+                      type="text"
+                      id="company-phone"
+                      className="receipt-text-input"
+                      value={form.telp}
+                      onChange={(e) => setForm({ ...form, telp: e.target.value })}
+                      readOnly={!isEditing}
+                    />
+                  </div>
+                  <div className="receipt-setting-field-inline">
+                    <label htmlFor="company-website">Website</label>
+                    <input
+                      type="text"
+                      id="company-website"
+                      className="receipt-text-input"
+                      value={form.website}
+                      onChange={(e) => setForm({ ...form, website: e.target.value })}
+                      readOnly={!isEditing}
+                    />
+                  </div>
+                  <div className="receipt-footer-text-wrap">
+                    <label htmlFor="company-address">Alamat</label>
+                    <textarea
+                      id="company-address"
+                      className="receipt-footer-text-input"
+                      value={form.address}
+                      onChange={(e) => setForm({ ...form, address: e.target.value })}
+                      readOnly={!isEditing}
+                      rows={3}
+                    />
+                  </div>
+                </div>
 
-          <div className="master-form-actions">
-            <button
-              type="button"
-              className="master-btn-save-primary"
-              onClick={isEditing ? handleSave : handleEditClick}
-              disabled={isSaving}
-            >
-              <span className="material-icons-round">{isEditing ? 'save' : 'edit'}</span>
-              {isEditing ? 'SIMPAN' : 'EDIT'}
-            </button>
-                <button type="button" className="master-footer-btn" onClick={onExit} title="Exit" aria-label="Exit">
-            <span className="material-icons-round master-footer-icon red">exit_to_app</span>
-          </button>
+                <div className="receipt-setting-section">
+                  <h4>Legal & Pajak</h4>
+                  <div className="receipt-setting-field-inline">
+                    <label htmlFor="company-tax-id">NPWP / Tax ID</label>
+                    <input
+                      type="text"
+                      id="company-tax-id"
+                      className="receipt-text-input"
+                      value={form.tax_id}
+                      onChange={(e) => setForm({ ...form, tax_id: e.target.value })}
+                      readOnly={!isEditing}
+                    />
+                  </div>
+                  <div className="receipt-setting-field-inline">
+                    <label htmlFor="company-license">No. Izin Usaha (NIB)</label>
+                    <input
+                      type="text"
+                      id="company-license"
+                      className="receipt-text-input"
+                      value={form.business_license}
+                      onChange={(e) => setForm({ ...form, business_license: e.target.value })}
+                      readOnly={!isEditing}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
+      </div>
+
+      <div className="master-footer">
+        <button type="button" className="master-btn-save-primary" onClick={isEditing ? handleSave : handleEditClick} disabled={isSaving}>
+          <span className="material-icons-round">{isEditing ? 'save' : 'edit'}</span>
+          {isEditing ? 'SIMPAN' : 'EDIT'}
+        </button>
+        {isEditing ? (
+          <button type="button" className="master-footer-btn" onClick={() => setIsEditing(false)}>
+            BATAL
+          </button>
+        ) : (
+          <button type="button" className="master-footer-btn" onClick={onExit}>
+            <span className="material-icons-round master-footer-icon">exit_to_app</span>
+            KELUAR
+          </button>
+        )}
       </div>
 
       {showExitConfirm && (
