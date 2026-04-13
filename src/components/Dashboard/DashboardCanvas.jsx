@@ -15,6 +15,7 @@ import { Theme } from '../ToolbarItem/setting/theme/Theme'
 import { User } from '../ToolbarItem/setting/user/User'
 import { LapStock } from '../ToolbarItem/laporan/stok/LapStock'
 import { LapHargaGrosir } from '../ToolbarItem/laporan/harga-grosir/LapHargaGrosir'
+import { LapCashDrawer } from '../ToolbarItem/laporan/cash-drawer/LapCashDrawer'
 
 export function DashboardCanvas({ activeTool, onExit }) {
   if (activeTool === 'warehouse') {
@@ -109,6 +110,14 @@ export function DashboardCanvas({ activeTool, onExit }) {
     return (
       <div className="dashboard-canvas">
         <LapHargaGrosir onExit={onExit} />
+      </div>
+    )
+  }
+
+  if (activeTool === 'lapcashdrawer') {
+    return (
+      <div className="dashboard-canvas">
+        <LapCashDrawer onExit={onExit} />
       </div>
     )
   }

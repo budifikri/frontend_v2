@@ -41,6 +41,8 @@ export const toolbarItems = {
     { key: 'lapbeli', label: 'Lap. Pembelian', mark: 'B', tone: 'orange' },
     { key: 'lapstok', label: 'Lap. Stok', mark: 'S', tone: 'green' },
     { key: 'laprugi', label: 'Lap. Laba/Rugi', mark: 'L', tone: 'amber' },
+    { key: 'divider-3', divider: true },
+    { key: 'lapcashdrawer', label: 'Lap. Cash Drawer', mark: 'D', tone: 'teal' },
   ],
   setting: [
    { key: 'logout', label: 'Logout', mark: 'L', tone: 'slate', backToLogin: true },

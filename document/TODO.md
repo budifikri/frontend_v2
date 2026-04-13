@@ -6,9 +6,9 @@
 
 - connect telegram
 - laporan jual
-- laporan closing
-
-
+- laporan cash drawer / closing
+- laporan pembelian
+- pembuatan dashboard
 - setting printer thermal dan dot matrix
 - Help POS
 - update logo pos
