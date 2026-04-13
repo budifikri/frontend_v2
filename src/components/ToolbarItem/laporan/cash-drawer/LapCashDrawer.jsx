@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useAuth } from '../../../../shared/auth'
 import { getCashDrawers, getCashDrawerSummary } from '../../../../features/laporan/cash-drawer/cashDrawer.api'
+import { getCurrentCompany } from '../../../../features/master/company/company.api'
+import { openReportPrintWindow } from '../../../../utils/reportPrint'
 import { useMasterTableSort } from '../../../../hooks/useMasterTableSort'
 import { useMasterPagination } from '../../../../hooks/useMasterPagination'
 import { MasterTableHeader } from '../../table/MasterTableHeader'
@@ -116,9 +118,12 @@ export function LapCashDrawer({ onExit }) {
     setDetailData(null)
 
     try {
+      console.log('[LapCashDrawer] fetchDetail - drawerId:', drawerId, 'token:', token ? 'exists' : 'missing')
       const result = await getCashDrawerSummary(token, drawerId)
+      console.log('[LapCashDrawer] fetchDetail - result:', result)
       setDetailData(result)
     } catch (err) {
+      console.log('[LapCashDrawer] fetchDetail - error:', err)
       setDetailError(err.message || 'Failed to load cash drawer detail')
     } finally {
       setDetailLoading(false)
@@ -166,10 +171,57 @@ export function LapCashDrawer({ onExit }) {
   }
 
   const handleOpenDetail = () => {
-    const selectedRow = sortedData.find((row) => row.id === selectedId)
     if (selectedRow) {
       fetchDetail(selectedRow.id)
       setShowDetailModal(true)
+    }
+  }
+
+  const handlePrint = async () => {
+    try {
+      const companyInfo = { name: '', address: '', phone: '' };
+      if (token) {
+        const res = await getCurrentCompany(token);
+        if (res?.data) {
+          companyInfo.name = res.data.nama || res.data.name || auth.companyName || '';
+          companyInfo.address = res.data.address || '';
+          companyInfo.phone = res.data.telp || res.data.phone || '';
+        }
+      }
+
+      const printColumns = [
+        { key: 'no', label: 'NO', align: 'text-center', formatter: (_, __, index) => index + 1 },
+        { key: 'open_date', label: 'TGL BUKA', formatter: (v) => formatDate(v) },
+        { key: 'close_date', label: 'TGL TUTUP', formatter: (v) => formatDate(v) },
+        { key: 'status', label: 'STATUS', align: 'text-center' },
+        { key: 'opening_balance', label: 'SALDO AWAL', align: 'text-right', formatter: (v) => formatCurrency(v) },
+        { key: 'cash_in_total', label: 'CASH IN', align: 'text-right', formatter: (v) => formatCurrency(v) },
+        { key: 'cash_out_total', label: 'CASH OUT', align: 'text-right', formatter: (v) => formatCurrency(v) },
+        { key: 'theoretical_balance', label: 'S. AKHIR', align: 'text-right', formatter: (v) => formatCurrency(v) },
+        { key: 'difference', label: 'SELISIH', align: 'text-right', formatter: (v) => formatCurrency(v) },
+        { key: 'cashier_name', label: 'KASIR' },
+        { key: 'warehouse_name', label: 'GUDANG' },
+      ];
+
+      const printData = sortedData.map((item, index) => ({
+        ...item,
+        no: index + 1
+      }));
+
+      openReportPrintWindow({
+        title: 'Laporan Cash Drawer',
+        company: companyInfo,
+        meta: { 
+          date: new Date().toLocaleString('id-ID'), 
+          user: auth.username || 'Admin' 
+        },
+        columns: printColumns,
+        data: printData,
+        footerText: `Laporan Kas per tanggal ${new Date().toLocaleDateString('id-ID')}`,
+      });
+    } catch (err) {
+      console.error('Print error:', err);
+      alert('Gagal mencetak laporan: ' + err.message);
     }
   }
 
@@ -270,9 +322,9 @@ export function LapCashDrawer({ onExit }) {
 
       <div className="master-footer">
         <div className="master-footer-actions">
-          <button type="button" className="master-footer-btn" onClick={() => window.print()} title="Print" aria-label="Print">
-            <span className="material-icons-round master-footer-icon blue">print</span>
-          </button>
+           <button type="button" className="master-footer-btn" onClick={handlePrint} title="Print" aria-label="Print">
+             <span className="material-icons-round master-footer-icon blue">print</span>
+           </button>
 
           <button type="button" className="master-footer-btn" onClick={handleOpenDetail} disabled={!selectedRow} title="Detail" aria-label="Detail">
             <span className="material-icons-round master-footer-icon orange">description</span>

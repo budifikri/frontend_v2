@@ -3,6 +3,8 @@ import { useAuth } from '../../../../shared/auth'
 import { listInventory, getStockCard } from '../../../../features/laporan/stock/stock.api'
 import { listWarehouses } from '../../../../features/master/warehouse/warehouse.api'
 import { listCategories } from '../../../../features/master/category/category.api'
+import { getCurrentCompany } from '../../../../features/master/company/company.api'
+import { openReportPrintWindow } from '../../../../utils/reportPrint'
 import { useMasterTableSort } from '../../../../hooks/useMasterTableSort'
 import { useMasterPagination } from '../../../../hooks/useMasterPagination'
 import { MasterTableHeader } from '../../table/MasterTableHeader'
@@ -289,6 +291,50 @@ export function LapStock({ onExit }) {
     handleStockCard()
   }
 
+  const handlePrint = async () => {
+    try {
+      const companyInfo = { name: '', address: '', phone: '' };
+      if (token) {
+        const res = await getCurrentCompany(token);
+        if (res?.data) {
+          companyInfo.name = res.data.nama || res.data.name || auth.companyName || '';
+          companyInfo.address = res.data.address || '';
+          companyInfo.phone = res.data.telp || res.data.phone || '';
+        }
+      }
+
+      const printColumns = [
+        { key: 'no', label: 'NO', align: 'text-center', formatter: (_, __, index) => index + 1 },
+        { key: 'code', label: 'KODE PRODUK' },
+        { key: 'name', label: 'NAMA PRODUK' },
+        { key: 'category', label: 'KATEGORI' },
+        { key: 'warehouse', label: 'GUDANG' },
+        { key: 'stock', label: 'STOK', align: 'text-right', formatter: (v) => Number(v || 0) },
+        { key: 'unit', label: 'SATUAN', align: 'text-center' },
+      ];
+
+      const printData = sortedData.map((item, index) => ({
+        ...item,
+        no: index + 1
+      }));
+
+      openReportPrintWindow({
+        title: 'Laporan Stok Produk',
+        company: companyInfo,
+        meta: { 
+          date: new Date().toLocaleString('id-ID'), 
+          user: auth.username || 'Admin' 
+        },
+        columns: printColumns,
+        data: printData,
+        footerText: `Laporan Stok per tanggal ${new Date().toLocaleDateString('id-ID')}`,
+      });
+    } catch (err) {
+      console.error('Print error:', err);
+      alert('Gagal mencetak laporan: ' + err.message);
+    }
+  }
+
   const handleStockCardFilterChange = (filter) => {
     setStockCardFilter(filter)
     handleStockCard({ filter })
@@ -389,9 +435,9 @@ export function LapStock({ onExit }) {
 
       <div className="master-footer">
         <div className="master-footer-actions">
-          <button type="button" className="master-footer-btn" onClick={() => window.print()} title="Print" aria-label="Print">
-            <span className="material-icons-round master-footer-icon blue">print</span>
-          </button>
+           <button type="button" className="master-footer-btn" onClick={handlePrint} title="Print" aria-label="Print">
+             <span className="material-icons-round master-footer-icon blue">print</span>
+           </button>
 
           <button type="button" className="master-footer-btn" onClick={handleStockCard} disabled={!selectedRow} title="Stock Card" aria-label="Stock Card">
             <span className="material-icons-round master-footer-icon orange">assignment</span>

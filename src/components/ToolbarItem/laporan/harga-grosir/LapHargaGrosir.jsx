@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useAuth } from '../../../../shared/auth'
 import { listCategories } from '../../../../features/master/category/category.api'
+import { getCurrentCompany } from '../../../../features/master/company/company.api'
+import { openReportPrintWindow } from '../../../../utils/reportPrint'
 import { listPriceTierReportByProduct } from '../../../../features/master/price-tier/priceTier.api'
 import { useMasterTableSort } from '../../../../hooks/useMasterTableSort'
 import { useMasterPagination } from '../../../../hooks/useMasterPagination'
@@ -146,9 +148,52 @@ export function LapHargaGrosir({ onExit }) {
     setScopeFilter(value)
   }
 
-  const handleCategoryChange = (value) => {
-    pager.reset()
-    setCategoryFilter(value)
+  const handlePrint = async () => {
+    try {
+      const companyInfo = { name: '', address: '', phone: '' };
+      if (token) {
+        const res = await getCurrentCompany(token);
+        if (res?.data) {
+          companyInfo.name = res.data.nama || res.data.name || auth.companyName || '';
+          companyInfo.address = res.data.address || '';
+          companyInfo.phone = res.data.telp || res.data.phone || '';
+        }
+      }
+
+      const printColumns = [
+        { key: 'sku', label: 'SKU' },
+        { key: 'product_name', label: 'NAMA PRODUK' },
+        { key: 'unit_name', label: 'SATUAN', align: 'text-center' },
+        { key: 'category_name', label: 'KATEGORI' },
+        { key: 'retail_price', label: 'HARGA RETAIL', align: 'text-right', formatter: (v) => formatNumber(v) },
+        { key: 'grosir_1_price', label: 'GROSIR 1', align: 'text-right', formatter: (v) => formatPrice(v) },
+        { key: 'grosir_1_qty', label: 'QTY 1', align: 'text-center', formatter: (v) => formatQty(v) },
+        { key: 'grosir_2_price', label: 'GROSIR 2', align: 'text-right', formatter: (v) => formatPrice(v) },
+        { key: 'grosir_2_qty', label: 'QTY 2', align: 'text-center', formatter: (v) => formatQty(v) },
+        { key: 'grosir_3_price', label: 'GROSIR 3', align: 'text-right', formatter: (v) => formatPrice(v) },
+        { key: 'grosir_3_qty', label: 'QTY 3', align: 'text-center', formatter: (v) => formatQty(v) },
+      ];
+
+      const printData = sortedData.map((item, index) => ({
+        ...item,
+        no: index + 1
+      }));
+
+      openReportPrintWindow({
+        title: 'Laporan Harga Grosir Produk',
+        company: companyInfo,
+        meta: { 
+          date: new Date().toLocaleString('id-ID'), 
+          user: auth.username || 'Admin' 
+        },
+        columns: printColumns,
+        data: printData,
+        footerText: `Laporan Harga Grosir per tanggal ${new Date().toLocaleDateString('id-ID')}`,
+      });
+    } catch (err) {
+      console.error('Print error:', err);
+      alert('Gagal mencetak laporan: ' + err.message);
+    }
   }
 
   return (
@@ -228,9 +273,9 @@ export function LapHargaGrosir({ onExit }) {
 
       <div className="master-footer">
         <div className="master-footer-actions">
-          <button type="button" className="master-footer-btn" onClick={() => window.print()} title="Print" aria-label="Print">
-            <span className="material-icons-round master-footer-icon blue">print</span>
-          </button>
+           <button type="button" className="master-footer-btn" onClick={handlePrint} title="Print" aria-label="Print">
+             <span className="material-icons-round master-footer-icon blue">print</span>
+           </button>
 
           <button type="button" className="master-footer-btn" onClick={fetchData} disabled={isLoading} title="Refresh" aria-label="Refresh">
             <span className="material-icons-round master-footer-icon green">refresh</span>

@@ -45,14 +45,13 @@ export const toolbarItems = {
     { key: 'lapcashdrawer', label: 'Lap. Cash Drawer', mark: 'D', tone: 'teal' },
   ],
   setting: [
-   { key: 'logout', label: 'Logout', mark: 'L', tone: 'slate', backToLogin: true },
+    { key: 'logout', label: 'Logout', mark: 'L', tone: 'slate', backToLogin: true },
     { key: 'divider-1', divider: true },
     { key: 'theme', label: 'Theme', mark: 'T', tone: 'cyan' },
     { key: 'user', label: 'User', mark: 'U', tone: 'blue' },
     { key: 'company', label: 'Company', mark: 'O', tone: 'red' },
-
-    
-        { key: 'divider-3', divider: true },
+    { key: 'report_setting', label: 'Report Settings', mark: 'R', tone: 'purple' },
+    { key: 'divider-3', divider: true },
     { key: 'backup', label: 'Backup', mark: 'B', tone: 'green' },
     { key: 'restore', label: 'Restore', mark: 'R', tone: 'orange' },
   ],

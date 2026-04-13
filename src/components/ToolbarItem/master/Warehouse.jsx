@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '../../../shared/auth'
 import { listWarehouses, createWarehouse, updateWarehouse, deleteWarehouse } from '../../../features/master/warehouse/warehouse.api'
+import { getCurrentCompany } from '../../../features/master/company/company.api'
+import { openReportPrintWindow } from '../../../utils/reportPrint'
 import { gudangDummyData } from '../../../data'
 import { FooterMaster } from '../footer/FooterMaster'
 import { FooterFormMaster } from '../footer/FooterFormMaster'
@@ -299,10 +301,50 @@ export function Warehouse({ onExit }) {
     }
   }
 
-  const handlePrint = () => {
+  const handlePrint = async () => {
     setShowForm(false)
-    window.print()
+    try {
+      const companyInfo = { name: '', address: '', phone: '' };
+      if (token) {
+        const res = await getCurrentCompany(token);
+        if (res?.data) {
+          companyInfo.name = res.data.nama || res.data.name || auth.companyName || '';
+          companyInfo.address = res.data.address || '';
+          companyInfo.phone = res.data.telp || res.data.phone || '';
+        }
+      }
+
+      const printColumns = [
+        { key: 'no', label: 'NO', align: 'text-center', formatter: (_, __, index) => index + 1 },
+        { key: 'code', label: 'KODE' },
+        { key: 'name', label: 'NAMA' },
+        { key: 'type', label: 'TIPE', align: 'text-center' },
+        { key: 'city', label: 'KOTA' },
+        { key: 'is_active', label: 'STATUS', align: 'text-center', formatter: (v) => v ? 'Aktif' : 'Non-Aktif' },
+      ];
+
+      const printData = sortedData.map((item, index) => ({
+        ...item,
+        no: index + 1
+      }));
+
+      openReportPrintWindow({
+        title: 'Daftar Master Warehouse',
+        company: companyInfo,
+        meta: { 
+          date: new Date().toLocaleString('id-ID'), 
+          user: auth.username || 'Admin' 
+        },
+        columns: printColumns,
+        data: printData,
+        footerText: `Laporan Warehouse dicetak pada ${new Date().toLocaleDateString('id-ID')}`,
+      });
+    } catch (err) {
+      console.error('Print error:', err);
+      alert('Gagal mencetak laporan: ' + err.message);
+    }
   }
+
 
   const handleExportExcel = () => {
     const exportData = data.map(row => ({

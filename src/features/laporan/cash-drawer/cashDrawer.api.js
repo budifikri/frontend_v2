@@ -174,7 +174,14 @@ export async function getCashDrawerSummary(token, drawerId) {
   if (!raw.success) throw new Error(raw.error || raw.message || 'Failed to load cash drawer summary')
 
   const summaryData = raw.data || raw
-  const transactions = (summaryData.Transactions || []).map((item, index) => normalizeCashDrawerTransaction(item, index))
+  console.log('[LapCashDrawer API] summaryData:', summaryData)
+  console.log('[LapCashDrawer API] summaryData.Transactions:', summaryData.Transactions)
+  const rawTransactions = summaryData.Transactions || []
+  console.log('[LapCashDrawer API] rawTransactions length:', rawTransactions.length)
+  const transactions = rawTransactions.map((item, index) => {
+    console.log('[LapCashDrawer API] transaction item:', index, item)
+    return normalizeCashDrawerTransaction(item, index)
+  })
   return {
     drawer: normalizeCashDrawer(raw.drawer ?? raw.data, 0),
     summary: {

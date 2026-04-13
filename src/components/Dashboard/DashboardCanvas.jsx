@@ -13,6 +13,7 @@ import { PurchaseReturn } from '../ToolbarItem/transaksi/PurchaseReturn'
 import { Promotion } from '../ToolbarItem/transaksi/Promotion'
 import { Theme } from '../ToolbarItem/setting/theme/Theme'
 import { User } from '../ToolbarItem/setting/user/User'
+import { ReportSetting } from '../ToolbarItem/setting/ReportSetting'
 import { LapStock } from '../ToolbarItem/laporan/stok/LapStock'
 import { LapHargaGrosir } from '../ToolbarItem/laporan/harga-grosir/LapHargaGrosir'
 import { LapCashDrawer } from '../ToolbarItem/laporan/cash-drawer/LapCashDrawer'
@@ -86,6 +87,14 @@ export function DashboardCanvas({ activeTool, onExit }) {
     return (
       <div className="dashboard-canvas">
         <CompanySetting onExit={onExit} />
+      </div>
+    )
+  }
+
+  if (activeTool === 'report_setting') {
+    return (
+      <div className="dashboard-canvas">
+        <ReportSetting onExit={onExit} />
       </div>
     )
   }
