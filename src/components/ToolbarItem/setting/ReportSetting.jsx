@@ -36,7 +36,7 @@ const SAMPLE_DATA = [
   { no: '3', kode: 'WH003', nama: 'Gudang B', tipe: 'STORAGE', kota: 'Surabaya', status: 'Non-Aktif' },
 ]
 
-export function ReportSetting({ onExit }) {
+export function ReportSetting() {
   const { auth } = useAuth()
   const token = auth?.token
 
@@ -128,97 +128,12 @@ export function ReportSetting({ onExit }) {
       finalCss = settings.custom_template_css || ''
     } else {
       const renderers = {
-        LAYOUT_A: () => `
-          <div class="report-container">
-            <div class="report-header">
-              <h1>${companyData.name}</h1>
-              <div class="company-info">${companyData.address}${companyData.phone ? '<br/>Telp: ' + companyData.phone : ''}</div>
-              <div class="report-title">${previewTitle}</div>
-            </div>
-            <div class="report-meta">
-              <div>Dicetak pada: ${safeDate}</div>
-              <div>Operator: ${safeUser}</div>
-            </div>
-            ${fullTableHtml}
-            <div class="report-footer">
-              <div class="footer-note">${safeFooter}</div>
-              <div class="signature-area"><div>Dicetak Oleh,</div><div class="signature-line">${safeUser}</div></div>
-            </div>
-          </div>
-        `,
-        LAYOUT_B: () => `
-          <div class="report-container modern">
-            <div class="report-header-modern">
-              <div class="company-brand">
-                <h1>${companyData.name}</h1>
-                <div class="company-details">${companyData.address} | ${companyData.phone}</div>
-              </div>
-              <div class="report-title-modern">${previewTitle}</div>
-            </div>
-            <div class="report-meta-modern">
-              <span><strong>Tanggal:</strong> ${safeDate}</span>
-              <span><strong>Operator:</strong> ${safeUser}</span>
-            </div>
-            ${fullTableHtml}
-            <div class="report-footer-modern">
-              <div class="footer-note">${safeFooter}</div>
-              <div class="signature-area"><div>Dicetak Oleh,</div><div class="signature-line">${safeUser}</div></div>
-            </div>
-          </div>
-        `,
-        LAYOUT_C: () => `
-          <div class="report-container compact">
-            <div class="report-header-compact">
-              <div class="header-left">
-                <h1>${companyData.name}</h1>
-                <div class="company-info">${companyData.address}</div>
-              </div>
-              <div class="header-right">
-                <div class="report-title-compact">${previewTitle}</div>
-                <div class="meta-compact">Op: ${safeUser} | ${safeDate}</div>
-              </div>
-            </div>
-            ${fullTableHtml}
-            <div class="report-footer-compact">
-              <div class="footer-note">${safeFooter}</div>
-              <div class="signature-area-compact"><div class="signature-line">${safeUser}</div></div>
-            </div>
-          </div>
-        `,
+        LAYOUT_A: () => '<div class="report-container"><div class="report-header"><h1>' + companyData.name + '</h1><div class="company-info">' + companyData.address + (companyData.phone ? '<br/>Telp: ' + companyData.phone : '') + '</div><div class="report-title">' + previewTitle + '</div></div><div class="report-meta"><div>Dicetak pada: ' + safeDate + '</div><div>Operator: ' + safeUser + '</div></div>' + fullTableHtml + '<div class="report-footer"><div class="footer-note">' + safeFooter + '</div><div class="signature-area"><div>Dicetak Oleh,</div><div class="signature-line">' + safeUser + '</div></div></div></div>',
+        LAYOUT_B: () => '<div class="report-container modern"><div class="report-header-modern"><div class="company-brand"><h1>' + companyData.name + '</h1><div class="company-details">' + companyData.address + ' | ' + companyData.phone + '</div></div><div class="report-title-modern">' + previewTitle + '</div></div><div class="report-meta-modern"><span><strong>Tanggal:</strong> ' + safeDate + '</span><span><strong>Operator:</strong> ' + safeUser + '</span></div>' + fullTableHtml + '<div class="report-footer-modern"><div class="footer-note">' + safeFooter + '</div><div class="signature-area"><div>Dicetak Oleh,</div><div class="signature-line">' + safeUser + '</div></div></div></div>',
+        LAYOUT_C: () => '<div class="report-container compact"><div class="report-header-compact"><div class="header-left"><h1>' + companyData.name + '</h1><div class="company-info">' + companyData.address + '</div></div><div class="header-right"><div class="report-title-compact">' + previewTitle + '</div><div class="meta-compact">Op: ' + safeUser + ' | ' + safeDate + '</div></div></div>' + fullTableHtml + '<div class="report-footer-compact"><div class="footer-note">' + safeFooter + '</div><div class="signature-area-compact"><div class="signature-line">' + safeUser + '</div></div></div></div>',
       }
       finalHtml = renderers[settings.layout_type]?.() || renderers.LAYOUT_A()
-      finalCss = `
-        @page { size: A4; margin: 15mm; }
-        body { font-family: '${fontFamily}', Arial, sans-serif; color: #333; line-height: 1.5; margin: 0; padding: 0; }
-        .report-container { width: 100%; }
-        .report-header { text-align: center; margin-bottom: 25px; border-bottom: 3px double #333; padding-bottom: 10px; }
-        .report-header h1 { margin: 0; font-size: 18pt; text-transform: uppercase; }
-        .company-info { font-size: 9pt; margin-bottom: 8px; }
-        .report-title { margin-top: 10px; font-size: 13pt; font-weight: bold; text-decoration: underline; }
-        .report-meta { display: flex; justify-content: space-between; font-size: 8pt; margin-bottom: 15px; }
-        .report-header-modern { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; border-bottom: 2px solid #000; padding-bottom: 12px; }
-        .company-brand h1 { margin: 0; font-size: 16pt; }
-        .company-details { font-size: 8pt; color: #666; }
-        .report-title-modern { font-size: 14pt; font-weight: bold; text-transform: uppercase; }
-        .report-meta-modern { font-size: 8pt; margin-bottom: 15px; padding-bottom: 5px; }
-        .report-header-compact { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; border-bottom: 1px solid #ccc; padding-bottom: 5px; }
-        .report-header-compact h1 { margin: 0; font-size: 13pt; }
-        .report-title-compact { font-weight: bold; font-size: 10pt; text-align: right; }
-        .meta-compact { font-size: 7pt; text-align: right; color: #666; }
-        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-        th, td { border: 1px solid #333; padding: 6px; text-align: left; font-size: 9pt; }
-        th { background-color: #f2f2f2; font-weight: bold; text-transform: uppercase; }
-        tr:nth-child(even) { background-color: #fafafa; }
-        .text-right { text-align: right; }
-        .text-center { text-align: center; }
-        .report-footer { margin-top: 30px; display: flex; justify-content: space-between; align-items: flex-end; }
-        .report-footer-modern { margin-top: 30px; display: flex; justify-content: space-between; }
-        .report-footer-compact { margin-top: 15px; display: flex; justify-content: space-between; }
-        .footer-note { font-size: 8pt; font-style: italic; color: #666; }
-        .signature-area { text-align: center; width: 150px; }
-        .signature-area-compact { text-align: right; }
-        .signature-line { margin-top: 50px; border-top: 1px solid #333; font-weight: bold; font-size: 9pt; }
-      `
+      finalCss = "@page { size: A4; margin: 15mm; } body { font-family: '" + fontFamily + "', Arial, sans-serif; color: #333; line-height: 1.5; margin: 0; padding: 0; } .report-container { width: 100%; } .report-header { text-align: center; margin-bottom: 25px; border-bottom: 3px double #333; padding-bottom: 10px; } .report-header h1 { margin: 0; font-size: 18pt; text-transform: uppercase; } .company-info { font-size: 9pt; margin-bottom: 8px; } .report-title { margin-top: 10px; font-size: 13pt; font-weight: bold; text-decoration: underline; } .report-meta { display: flex; justify-content: space-between; font-size: 8pt; margin-bottom: 15px; } .report-header-modern { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; border-bottom: 2px solid #000; padding-bottom: 12px; } .company-brand h1 { margin: 0; font-size: 16pt; } .company-details { font-size: 8pt; color: #666; } .report-title-modern { font-size: 14pt; font-weight: bold; text-transform: uppercase; } .report-meta-modern { font-size: 8pt; margin-bottom: 15px; padding-bottom: 5px; } .report-header-compact { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; border-bottom: 1px solid #ccc; padding-bottom: 5px; } .report-header-compact h1 { margin: 0; font-size: 13pt; } .report-title-compact { font-weight: bold; font-size: 10pt; text-align: right; } .meta-compact { font-size: 7pt; text-align: right; color: #666; } table { width: 100%; border-collapse: collapse; margin-bottom: 20px; } th, td { border: 1px solid #333; padding: 6px; text-align: left; font-size: 9pt; } th { background-color: #f2f2f2; font-weight: bold; text-transform: uppercase; } tr:nth-child(even) { background-color: #fafafa; } .text-right { text-align: right; } .text-center { text-align: center; } .report-footer { margin-top: 30px; display: flex; justify-content: space-between; align-items: flex-end; } .report-footer-modern { margin-top: 30px; display: flex; justify-content: space-between; align-items: flex-end; } .report-footer-compact { margin-top: 20px; display: flex; justify-content: space-between; align-items: flex-end; font-size: 8pt; } .footer-note { font-size: 8pt; } .signature-area { text-align: right; } .signature-area-compact { text-align: right; } .signature-line { margin-top: 30px; border-top: 1px solid #333; width: 150px; display: inline-block; }"
     }
 
     return '<!doctype html><html><head><meta charset="utf-8"/><title>Preview - ' + previewTitle + '</title><style>' + finalCss + '</style></head><body>' + finalHtml + '</body></html>'
@@ -250,7 +165,7 @@ export function ReportSetting({ onExit }) {
       const textarea = codeEditorRef.current
       const start = textarea.selectionStart ?? templateCodeHtml.length
       const end = textarea.selectionEnd ?? templateCodeHtml.length
-      const next = `${templateCodeHtml.slice(0, start)}${token}${templateCodeHtml.slice(end)}`
+      const next = templateCodeHtml.slice(0, start) + token + templateCodeHtml.slice(end)
       setTemplateCodeHtml(next)
       setTimeout(() => {
         textarea.focus()
@@ -291,6 +206,11 @@ export function ReportSetting({ onExit }) {
 
   return (
     <div className="master-content">
+      <div className="master-header">
+        <div className="master-header-accent"></div>
+        <h1 className="master-title">Setting Cetak Laporan</h1>
+      </div>
+
       {error && <div className="master-error">{error}</div>}
       {showToast && (
         <div className="toast-notification">
@@ -299,200 +219,201 @@ export function ReportSetting({ onExit }) {
         </div>
       )}
 
-      <div className="receipt-setting-popup" style={{ maxWidth: '1200px', margin: '16px auto' }}>
-        <div className="receipt-setting-header">
-          <span className="material-icons">print</span>
-          <h3>Setting Cetak Laporan</h3>
-          <button className="product-popup-close" onClick={onExit}>
-            <span className="material-icons">close</span>
-          </button>
-        </div>
-
-        <div className="receipt-setting-body">
-          <div className="receipt-setting-form">
-            <div className="receipt-setting-section">
-              <h4>Tata Letak</h4>
-              <div className="receipt-template-mode">
-                <label className="receipt-radio-option">
-                  <input
-                    type="radio"
-                    name="template-mode-report"
-                    checked={settings.layout_type !== 'CUSTOM'}
-                    onChange={() => setSettings(prev => ({ ...prev, layout_type: 'LAYOUT_A' }))}
-                  />
-                  <span>Default Template</span>
-                </label>
-                <label className="receipt-radio-option">
-                  <input
-                    type="radio"
-                    name="template-mode-report"
-                    checked={settings.layout_type === 'CUSTOM'}
-                    onChange={() => {
-                      setSettings(prev => ({
-                        ...prev,
-                        layout_type: 'CUSTOM',
-                        custom_template_html: prev.custom_template_html || DEFAULT_REPORT_SETTINGS.custom_template_html,
-                        custom_template_css: prev.custom_template_css || DEFAULT_REPORT_SETTINGS.custom_template_css,
-                      }))
-                    }}
-                  />
-                  <span>Custom Template</span>
-                </label>
-              </div>
-
-              {settings.layout_type !== 'CUSTOM' ? (
-                <div className="receipt-layout-grid">
-                  {LAYOUT_OPTIONS.map((layout) => (
-                    <button
-                      key={layout.id}
-                      type="button"
-                      className={`receipt-layout-card ${settings.layout_type === layout.id ? 'is-selected' : ''}`}
-                      onClick={() => handleLayoutSelect(layout.id)}
-                    >
-                      <strong>{layout.label}</strong>
-                      <span>{layout.description}</span>
-                    </button>
-                  ))}
-                </div>
-              ) : (
-                <div className="receipt-setting-template-panel in-form">
-                  <div className="receipt-template-section">
-                    <div className="receipt-template-section-header">
-                      <span>HTML Template</span>
-                      <div className="receipt-template-actions">
-                        <button type="button" className="receipt-template-btn" onClick={handleApplyTemplate}>
-                          Apply
-                        </button>
-                        <button
-                          type="button"
-                          className="receipt-template-btn"
-                          onClick={() => {
-                            const currentHtml = showTemplateCode
-                              ? templateCodeHtml
-                              : (wysiwygEditorRef.current?.innerHTML || settings.custom_template_html || '')
-                            setTemplateCodeHtml(currentHtml)
-                            if (showTemplateCode && wysiwygEditorRef.current) {
-                              wysiwygEditorRef.current.innerHTML = currentHtml
-                            }
-                            setShowTemplateCode(prev => !prev)
-                          }}
-                        >
-                          {showTemplateCode ? 'Hide Code' : 'Code'}
-                        </button>
-                        <button type="button" className="receipt-template-btn" onClick={handleResetTemplate}>
-                          Reset
-                        </button>
-                      </div>
-                    </div>
-                    {!showTemplateCode ? (
-                      <>
-                        <div className="receipt-wysiwyg-toolbar">
-                          <button type="button" className="receipt-wysiwyg-btn" title="Bold" onMouseDown={(e) => { e.preventDefault(); if (wysiwygEditorRef.current) wysiwygEditorRef.current.focus(); document.execCommand('bold', false, null) }}>
-                            <strong>B</strong>
-                          </button>
-                          <button type="button" className="receipt-wysiwyg-btn" title="Italic" onMouseDown={(e) => { e.preventDefault(); if (wysiwygEditorRef.current) wysiwygEditorRef.current.focus(); document.execCommand('italic', false, null) }}>
-                            <em>I</em>
-                          </button>
-                          <button type="button" className="receipt-wysiwyg-btn" title="Underline" onMouseDown={(e) => { e.preventDefault(); if (wysiwygEditorRef.current) wysiwygEditorRef.current.focus(); document.execCommand('underline', false, null) }}>
-                            <u>U</u>
-                          </button>
-                          <span className="receipt-wysiwyg-sep" />
-                          <button type="button" className="receipt-wysiwyg-btn" title="Font Size Small" onMouseDown={(e) => { e.preventDefault(); if (wysiwygEditorRef.current) wysiwygEditorRef.current.focus(); document.execCommand('fontSize', false, '2') }} style={{ fontSize: '10px' }}>A</button>
-                          <button type="button" className="receipt-wysiwyg-btn" title="Font Size Normal" onMouseDown={(e) => { e.preventDefault(); if (wysiwygEditorRef.current) wysiwygEditorRef.current.focus(); document.execCommand('fontSize', false, '3') }} style={{ fontSize: '13px' }}>A</button>
-                        </div>
-                        <div
-                          ref={wysiwygEditorRef}
-                          className="receipt-wysiwyg-editor"
-                          contentEditable
-                          suppressContentEditableWarning
-                          dangerouslySetInnerHTML={{ __html: settings.custom_template_html }}
-                        />
-                      </>
-                    ) : (
-                      <div className="receipt-setting-code-panel">
-                        <textarea
-                          ref={codeEditorRef}
-                          className="receipt-setting-code-editor"
-                          value={templateCodeHtml || settings.custom_template_html}
-                          onChange={(e) => setTemplateCodeHtml(e.target.value)}
-                          spellCheck={false}
-                        />
-                      </div>
-                    )}
+      <div className="master-table-wrapper">
+        <div className="master-table-container">
+          <div style={{ padding: '16px' }}>
+            <div className="receipt-setting-body">
+              <div className="receipt-setting-form">
+                <div className="receipt-setting-section">
+                  <h4>Tata Letak</h4>
+                  <div className="receipt-template-mode">
+                    <label className="receipt-radio-option">
+                      <input
+                        type="radio"
+                        name="template-mode-report"
+                        checked={settings.layout_type !== 'CUSTOM'}
+                        onChange={() => setSettings(prev => ({ ...prev, layout_type: 'LAYOUT_A' }))}
+                      />
+                      <span>Default Template</span>
+                    </label>
+                    <label className="receipt-radio-option">
+                      <input
+                        type="radio"
+                        name="template-mode-report"
+                        checked={settings.layout_type === 'CUSTOM'}
+                        onChange={() => {
+                          setSettings(prev => ({
+                            ...prev,
+                            layout_type: 'CUSTOM',
+                            custom_template_html: prev.custom_template_html || DEFAULT_REPORT_SETTINGS.custom_template_html,
+                            custom_template_css: prev.custom_template_css || DEFAULT_REPORT_SETTINGS.custom_template_css,
+                          }))
+                        }}
+                      />
+                      <span>Custom Template</span>
+                    </label>
                   </div>
 
-                  <div className="receipt-template-tokens">
-                    <div className="receipt-template-tokens-title">Data - klik untuk menyisipkan:</div>
-                    <div className="receipt-template-tokens-list">
-                      {REPORT_TEMPLATE_TOKENS.map((token) => (
+                  {settings.layout_type !== 'CUSTOM' ? (
+                    <div className="receipt-layout-grid">
+                      {LAYOUT_OPTIONS.map((layout) => (
                         <button
-                          key={token}
+                          key={layout.id}
                           type="button"
-                          className="receipt-template-token"
-                          onClick={() => handleTokenClick(token)}
+                          className={`receipt-layout-card ${settings.layout_type === layout.id ? 'is-selected' : ''}`}
+                          onClick={() => handleLayoutSelect(layout.id)}
                         >
-                          {token}
+                          <strong>{layout.label}</strong>
+                          <span>{layout.description}</span>
                         </button>
                       ))}
                     </div>
+                  ) : (
+                    <div className="receipt-setting-template-panel in-form">
+                      <div className="receipt-template-section">
+                        <div className="receipt-template-section-header">
+                          <span>HTML Template</span>
+                          <div className="receipt-template-actions">
+                            <button type="button" className="receipt-template-btn" onClick={handleApplyTemplate}>
+                              Apply
+                            </button>
+                            <button
+                              type="button"
+                              className="receipt-template-btn"
+                              onClick={() => {
+                                const currentHtml = showTemplateCode
+                                  ? templateCodeHtml
+                                  : (wysiwygEditorRef.current?.innerHTML || settings.custom_template_html || '')
+                                setTemplateCodeHtml(currentHtml)
+                                if (showTemplateCode && wysiwygEditorRef.current) {
+                                  wysiwygEditorRef.current.innerHTML = currentHtml
+                                }
+                                setShowTemplateCode(prev => !prev)
+                              }}
+                            >
+                              {showTemplateCode ? 'Hide Code' : 'Code'}
+                            </button>
+                            <button type="button" className="receipt-template-btn" onClick={handleResetTemplate}>
+                              Reset
+                            </button>
+                          </div>
+                        </div>
+                        {!showTemplateCode ? (
+                          <>
+                            <div className="receipt-wysiwyg-toolbar">
+                              <button type="button" className="receipt-wysiwyg-btn" title="Bold" onMouseDown={(e) => { e.preventDefault(); if (wysiwygEditorRef.current) wysiwygEditorRef.current.focus(); document.execCommand('bold', false, null) }}>
+                                <strong>B</strong>
+                              </button>
+                              <button type="button" className="receipt-wysiwyg-btn" title="Italic" onMouseDown={(e) => { e.preventDefault(); if (wysiwygEditorRef.current) wysiwygEditorRef.current.focus(); document.execCommand('italic', false, null) }}>
+                                <em>I</em>
+                              </button>
+                              <button type="button" className="receipt-wysiwyg-btn" title="Underline" onMouseDown={(e) => { e.preventDefault(); if (wysiwygEditorRef.current) wysiwygEditorRef.current.focus(); document.execCommand('underline', false, null) }}>
+                                <u>U</u>
+                              </button>
+                              <span className="receipt-wysiwyg-sep" />
+                              <button type="button" className="receipt-wysiwyg-btn" title="Font Size Small" onMouseDown={(e) => { e.preventDefault(); if (wysiwygEditorRef.current) wysiwygEditorRef.current.focus(); document.execCommand('fontSize', false, '2') }} style={{ fontSize: '10px' }}>A</button>
+                              <button type="button" className="receipt-wysiwyg-btn" title="Font Size Normal" onMouseDown={(e) => { e.preventDefault(); if (wysiwygEditorRef.current) wysiwygEditorRef.current.focus(); document.execCommand('fontSize', false, '3') }} style={{ fontSize: '13px' }}>A</button>
+                            </div>
+                            <div
+                              ref={wysiwygEditorRef}
+                              className="receipt-wysiwyg-editor"
+                              contentEditable
+                              suppressContentEditableWarning
+                              dangerouslySetInnerHTML={{ __html: settings.custom_template_html }}
+                            />
+                          </>
+                        ) : (
+                          <div className="receipt-setting-code-panel">
+                            <textarea
+                              ref={codeEditorRef}
+                              className="receipt-setting-code-editor"
+                              value={templateCodeHtml || settings.custom_template_html}
+                              onChange={(e) => setTemplateCodeHtml(e.target.value)}
+                              spellCheck={false}
+                            />
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="receipt-template-tokens">
+                        <div className="receipt-template-tokens-title">Data - klik untuk menyisipkan:</div>
+                        <div className="receipt-template-tokens-list">
+                          {REPORT_TEMPLATE_TOKENS.map((token) => (
+                            <button
+                              key={token}
+                              type="button"
+                              className="receipt-template-token"
+                              onClick={() => handleTokenClick(token)}
+                            >
+                              {token}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="receipt-setting-section">
+                  <h4>Font Cetak</h4>
+                  <select
+                    className="receipt-select"
+                    value={settings.report_font || 'Arial'}
+                    onChange={(e) => handleInputChange('report_font', e.target.value)}
+                  >
+                    {REPORT_FONTS.map((font) => (
+                      <option key={font.value} value={font.value}>{font.label}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="receipt-setting-section">
+                  <h4>Pengaturan Teks</h4>
+                  <div className="receipt-setting-field-inline">
+                    <label htmlFor="report-header-text">Judul Laporan</label>
+                    <input
+                      type="text"
+                      id="report-header-text"
+                      className="receipt-text-input"
+                      value={settings.header_text}
+                      onChange={(e) => handleInputChange('header_text', e.target.value)}
+                      placeholder="Contoh: LAPORAN DATA MASTER"
+                    />
+                  </div>
+                  <div className="receipt-footer-text-wrap">
+                    <label htmlFor="report-footer-text">Text footer</label>
+                    <textarea
+                      id="report-footer-text"
+                      className="receipt-footer-text-input"
+                      value={settings.footer_text}
+                      onChange={(e) => handleInputChange('footer_text', e.target.value)}
+                      rows={3}
+                      placeholder="Teks yang muncul di bawah laporan..."
+                    />
                   </div>
                 </div>
-              )}
-            </div>
-
-            <div className="receipt-setting-section">
-              <h4>Font Cetak</h4>
-              <select
-                className="receipt-select"
-                value={settings.report_font || 'Arial'}
-                onChange={(e) => handleInputChange('report_font', e.target.value)}
-              >
-                {REPORT_FONTS.map((font) => (
-                  <option key={font.value} value={font.value}>{font.label}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="receipt-setting-section">
-              <h4>Pengaturan Teks</h4>
-              <div className="receipt-setting-field-inline">
-                <label htmlFor="report-header-text">Judul Laporan</label>
-                <input
-                  type="text"
-                  id="report-header-text"
-                  className="receipt-text-input"
-                  value={settings.header_text}
-                  onChange={(e) => handleInputChange('header_text', e.target.value)}
-                  placeholder="Contoh: LAPORAN DATA MASTER"
-                />
               </div>
-              <div className="receipt-footer-text-wrap">
-                <label htmlFor="report-footer-text">Text footer</label>
-                <textarea
-                  id="report-footer-text"
-                  className="receipt-footer-text-input"
-                  value={settings.footer_text}
-                  onChange={(e) => handleInputChange('footer_text', e.target.value)}
-                  rows={3}
-                  placeholder="Teks yang muncul di bawah laporan..."
-                />
-              </div>
-            </div>
-          </div>
 
-          <div className="receipt-setting-preview-wrap">
-            <div className="receipt-setting-preview-panel">
-              <div className="receipt-preview-iframe-container" style={{ background: '#fff', padding: '20px', border: '1px solid #ddd', height: '500px', overflow: 'auto' }}>
-                <div style={{ transform: 'scale(0.8)', transformOrigin: 'top left', width: '125%' }} dangerouslySetInnerHTML={{ __html: generatePreviewHtml().replace(/<style>.*<\/style>/, '<style>' + generatePreviewHtml().split('<style>')[1]?.split('</style>')[0] + '</style>') }} />
+              <div className="receipt-setting-preview-wrap">
+                <div className="receipt-setting-preview-panel">
+                  <div className="receipt-preview-iframe-container" style={{ background: '#fff', padding: '20px', border: '1px solid #ddd', height: '500px', overflow: 'auto' }}>
+                    <div style={{ transform: 'scale(0.8)', transformOrigin: 'top left', width: '125%' }} dangerouslySetInnerHTML={{ __html: generatePreviewHtml().replace(/<style>.*<\/style>/, '<style>' + generatePreviewHtml().split('<style>')[1]?.split('</style>')[0] + '</style>') }} />
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         </div>
+      </div>
 
-        <div className="receipt-setting-footer">
-          <button className="payment-btn-cancel" onClick={handleReset}>Reset Default</button>
-          <button className="payment-btn-confirm" onClick={handleSave} disabled={isSaving}>Simpan</button>
-        </div>
+      <div className="master-footer">
+        <button type="button" className="master-btn-save-primary" onClick={handleSave} disabled={isSaving}>
+          <span className="material-icons-round">save</span>
+          SIMPAN
+        </button>
+        <button type="button" className="master-footer-btn" onClick={handleReset}>
+          Reset Default
+        </button>
       </div>
     </div>
   )
