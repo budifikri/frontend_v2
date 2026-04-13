@@ -7,7 +7,6 @@ import { createProduct, deleteProduct, listProducts, updateProduct } from '../..
 import { adjustStock } from '../../../features/laporan/stock/stock.api'
 import { getProductStock } from '../../../features/master/stock-opname/stockOpname.api'
 import { createPriceTier, getPriceTier, updatePriceTier } from '../../../features/master/price-tier/priceTier.api'
-import { getCurrentCompany } from '../../../features/master/company/company.api'
 import { openReportPrintWindow } from '../../../utils/reportPrint'
 import { FooterMaster } from '../footer/FooterMaster'
 import { FooterFormMaster } from '../footer/FooterFormMaster'

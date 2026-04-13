@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useAuth } from '../../../shared/auth'
 import { createCustomer, deleteCustomer, listCustomers, updateCustomer } from '../../../features/master/customer/customer.api'
-import { getCurrentCompany } from '../../../features/master/company/company.api'
 import { openReportPrintWindow } from '../../../utils/reportPrint'
 import { FooterMaster } from '../footer/FooterMaster'
 import { FooterFormMaster } from '../footer/FooterFormMaster'

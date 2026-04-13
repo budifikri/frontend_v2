@@ -224,15 +224,6 @@ export function ReportSetting({ onExit }) {
     return '<!doctype html><html><head><meta charset="utf-8"/><title>Preview - ' + previewTitle + '</title><style>' + finalCss + '</style></head><body>' + finalHtml + '</body></html>'
   }, [settings, companyData, auth?.username])
 
-  const handlePreview = () => {
-    const html = generatePreviewHtml()
-    const previewWindow = window.open('', '_blank', 'width=800,height=900')
-    if (previewWindow) {
-      previewWindow.document.write(html)
-      previewWindow.document.close()
-    }
-  }
-
   const handleSave = async () => {
     setIsSaving(true)
     setError('')

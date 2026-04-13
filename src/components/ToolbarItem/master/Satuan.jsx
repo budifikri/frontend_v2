@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useAuth } from '../../../shared/auth'
 import { listUnits, createUnit, updateUnit, deleteUnit } from '../../../features/master/unit/unit.api'
-import { getCurrentCompany } from '../../../features/master/company/company.api'
 import { openReportPrintWindow } from '../../../utils/reportPrint'
 import { satuanDummyData } from '../../../data'
 import { FooterMaster } from '../footer/FooterMaster'
