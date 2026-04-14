@@ -128,7 +128,9 @@ export function LapPenjualan({ onExit }) {
   const [pagination, setPagination] = useState({ total: 0, hasMore: false })
   const [summary, setSummary] = useState({ totalRows: 0, totalPenjualan: 0 })
   const [isSummaryLoading, setIsSummaryLoading] = useState(false)
-  const pager = useMasterPagination({ initialLimit: 10, total: pagination.total, hasMore: pagination.hasMore })
+  const [isAllRecords, setIsAllRecords] = useState(false)
+  const [tooltipRow, setTooltipRow] = useState(null)
+  const pager = useMasterPagination({ initialLimit: isAllRecords ? 10000 : 10, total: pagination.total, hasMore: pagination.hasMore })
   const { limit, offset, setOffset } = pager
   const { sortConfig, sortedData, handleSort } = useMasterTableSort(sales, {
     initialKey: 'created_at',
@@ -296,6 +298,14 @@ export function LapPenjualan({ onExit }) {
     fetchDetail(sale.id)
   }
 
+  const handleToggleAllRecords = () => {
+    const newValue = !isAllRecords
+    setIsAllRecords(newValue)
+    setOffset(0)
+    // Refetch data dengan limit baru
+    setTimeout(() => fetchData(), 0)
+  }
+
   const handlePrint = () => {
     window.print()
   }
@@ -403,11 +413,14 @@ export function LapPenjualan({ onExit }) {
               <MasterTableHeader columns={TABLE_COLUMNS} sortConfig={sortConfig} onSort={handleSort} />
               <tbody>
                 {sortedData.map((sale, index) => (
-                  <tr
-                    key={sale.id || index}
-                    className={selectedId === sale.id ? 'master-row-selected' : 'master-row'}
-                    onClick={() => handleRowClick(sale)}
-                  >
+              <tr
+                key={sale.id || index}
+                className={selectedId === sale.id ? 'master-row-selected' : 'master-row'}
+                onClick={() => setSelectedId(sale.id)}
+                onDoubleClick={() => handleRowClick(sale)}
+                onMouseEnter={() => setTooltipRow(index)}
+                onMouseLeave={() => setTooltipRow(null)}
+              >
                     <td>{offset + index + 1}</td>
                     <td>{sale.sale_number || '-'}</td>
                     <td>{formatDate(sale.created_at)}</td>
@@ -415,13 +428,19 @@ export function LapPenjualan({ onExit }) {
                     <td>{sale.cashier_name || '-'}</td>
                     <td>{sale.warehouse_name || '-'}</td>
                     <td className="text-right">{formatCurrency(sale.total_amount)}</td>
-                    <td>
-                      <span className={`status-badge status-${sale.status?.toLowerCase()}`}>
-                        {getStatusLabel(sale.status)}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
+              <td style={{ position: 'relative' }}>
+                  <span className={`status-badge status-${sale.status?.toLowerCase()}`}>
+                    {getStatusLabel(sale.status)}
+                  </span>
+                  {tooltipRow === index && (
+                    <div className="row-tooltip">
+                      <span className="material-icons-round">lightbulb</span>
+                      <span>Double click for info detail</span>
+                    </div>
+                  )}
+                </td>
+              </tr>
+            ))}
                 {!isLoading && sortedData.length === 0 && (
                   <tr>
                     <td colSpan={TABLE_COLUMNS.length} className="text-center">No data</td>
@@ -456,14 +475,25 @@ export function LapPenjualan({ onExit }) {
           </div>
 
           <div className="master-footer-info">
+            <label className="checkbox-all-records">
+              <input
+                type="checkbox"
+                checked={isAllRecords}
+                onChange={handleToggleAllRecords}
+              />
+              <span>All Records</span>
+            </label>
+            <span className="footer-divider">|</span>
             <span className="report-total-row">Total Row: {pagination.total}</span>
-            <div className="master-footer-pagination">
-              <button type="button" className="master-page-btn" onClick={pager.goFirst} disabled={!pager.canPrev}>|&lt;</button>
-              <button type="button" className="master-page-btn" onClick={pager.goPrev} disabled={!pager.canPrev}>&lt;</button>
-              <span className="master-page-info">Page {pager.page} of {pager.totalPages}</span>
-              <button type="button" className="master-page-btn" onClick={pager.goNext} disabled={!pager.canNext}>&gt;</button>
-              <button type="button" className="master-page-btn" onClick={pager.goLast} disabled={!pager.canNext}>&gt;|</button>
-            </div>
+            {!isAllRecords && (
+              <div className="master-footer-pagination">
+                <button type="button" className="master-page-btn" onClick={pager.goFirst} disabled={!pager.canPrev}>|&lt;</button>
+                <button type="button" className="master-page-btn" onClick={pager.goPrev} disabled={!pager.canPrev}>&lt;</button>
+                <span className="master-page-info">Page {pager.page} of {pager.totalPages}</span>
+                <button type="button" className="master-page-btn" onClick={pager.goNext} disabled={!pager.canNext}>&gt;</button>
+                <button type="button" className="master-page-btn" onClick={pager.goLast} disabled={!pager.canNext}>&gt;|</button>
+              </div>
+            )}
           </div>
         </div>
 

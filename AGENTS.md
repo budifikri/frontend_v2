@@ -150,3 +150,9 @@ Prefer existing patterns over new abstractions.
 - If desktop behavior changed, `npm run tauri:build -- --debug` passes.
 - Confirm no generated artifacts were accidentally committed.
 - Confirm AGENTS guidance is still accurate after your changes.
+
+# DESIGN
+- jika ada permintaan design, selalu buatkan keyframe visual design
+
+# TODO
+- setiap proses selalu buatkan todo write to code

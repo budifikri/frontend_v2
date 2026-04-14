@@ -106,6 +106,9 @@ export function LapPenjualan({ onExit }) {
   const [warehouses, setWarehouses] = useState([])
 
   const [detailModal, setDetailModal] = useState({ isOpen: false, data: null, isLoading: false })
+  const [selectedId, setSelectedId] = useState(null)
+  const [isAllRecords, setIsAllRecords] = useState(false)
+  const [tooltipRow, setTooltipRow] = useState(null)
 
   const [filters, setFilters] = useState({
     datePreset: 'month',
@@ -340,11 +343,11 @@ export function LapPenjualan({ onExit }) {
               <MasterTableHeader columns={TABLE_COLUMNS} sortConfig={sortConfig} onSort={handleSort} />
               <tbody>
                 {sortedData.map((sale, index) => (
-                  <tr
-                    key={sale.id || index}
-                    className="master-row"
-                    onClick={() => handleRowClick(sale)}
-                  >
+            <tr
+              key={sale.id || index}
+              className="master-row"
+              onDoubleClick={() => handleRowClick(sale)}
+            >
                     <td>{offset + index + 1}</td>
                     <td>{sale.sale_number || '-'}</td>
                     <td>{formatDate(sale.created_at)}</td>
