@@ -1,19 +1,21 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useAuth } from '../../../../shared/auth'
 import { listSales, getSaleById } from './penjualan.api'
 import { useMasterTableSort } from '../../../../hooks/useMasterTableSort'
 import { useMasterPagination } from '../../../../hooks/useMasterPagination'
 import { PenjualanDetailModal } from './PenjualanDetailModal'
 import { listWarehouses } from '../../master/warehouse/warehouse.api'
+import { MasterTableHeader } from '../../../components/ToolbarItem/table/MasterTableHeader'
 
 const TABLE_COLUMNS = [
   { key: 'no', label: 'NO', sortable: false },
-  { key: 'sale_number', label: 'NO. NOTA' },
-  { key: 'customer_name', label: 'KONSUMEN' },
-  { key: 'cashier_name', label: 'KASIR' },
-  { key: 'warehouse_name', label: 'GUDANG' },
-  { key: 'total', label: 'TOTAL' },
-  { key: 'status', label: 'STATUS' },
+  { key: 'sale_number', label: 'NO. NOTA', sortable: true },
+  { key: 'created_at', label: 'TANGGAL', sortable: true },
+  { key: 'customer_name', label: 'KONSUMEN', sortable: true },
+  { key: 'cashier_name', label: 'KASIR', sortable: true },
+  { key: 'warehouse_name', label: 'GUDANG', sortable: true },
+  { key: 'total', label: 'TOTAL', sortable: true },
+  { key: 'status', label: 'STATUS', sortable: true },
 ]
 
 function formatCurrency(value) {
@@ -26,27 +28,13 @@ function formatCurrency(value) {
   }).format(num)
 }
 
-function getDateKey(dateStr) {
-  if (!dateStr) return 'Unknown'
-  try {
-    const date = new Date(dateStr)
-    return date.toLocaleString('id-ID', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-    })
-  } catch {
-    return 'Unknown'
-  }
-}
-
-function formatDisplayDate(dateStr) {
+function formatDate(dateStr) {
   if (!dateStr) return '-'
   try {
     const date = new Date(dateStr)
     return date.toLocaleString('id-ID', {
       day: '2-digit',
-      month: 'long',
+      month: 'short',
       year: 'numeric',
     })
   } catch {
@@ -60,6 +48,7 @@ function getStatusLabel(status) {
     COMPLETED: 'Selesai',
     VOID: 'Batal',
     HOLD: 'Tunda',
+    DONE: 'Selesai',
   }
   return labels[status] || status || '-'
 }
@@ -134,9 +123,17 @@ export function LapPenjualan({ onExit }) {
     search: '',
   })
 
-  const pager = useMasterPagination({ initialLimit: 50, total: 0 })
-  const { limit, offset, total, setOffset, setTotal, setPagination } = pager
-  const { sort, setSort } = useMasterTableSort()
+  const pager = useMasterPagination({ initialLimit: 10, total: 0 })
+  const { limit, offset, setOffset, goFirst, goPrev, goNext, goLast, page, totalPages, canPrev, canNext } = pager
+  const [pagination, setPagination] = useState({ total: 0, hasMore: false })
+  const { sortConfig, sortedData, handleSort } = useMasterTableSort(sales, {
+    initialKey: 'created_at',
+    direction: 'desc',
+    valueGetters: {
+      total: (row) => Number(row.total_amount) || 0,
+      created_at: (row) => new Date(row.created_at || 0).getTime(),
+    },
+  })
 
   const buildFilters = useCallback(() => {
     const f = { ...filters }
@@ -161,21 +158,29 @@ export function LapPenjualan({ onExit }) {
     setIsLoading(true)
     setError(null)
 
+    if (!token) {
+      setSales([])
+      setPagination({ total: 0, hasMore: false })
+      setIsLoading(false)
+      return
+    }
+
     const f = buildFilters()
     const result = await listSales({ ...f, limit, offset }, token)
 
     if (result.success) {
-      setSales(result.data || [])
-      setTotal(result.total || 0)
-      setPagination((p) => ({ ...p, total: result.total || 0, hasMore: result.total > offset + limit }))
+      const salesData = result.data || []
+      setSales(salesData)
+      setPagination({ total: result.total || salesData.length || 0, hasMore: (result.total || salesData.length) > offset + limit })
     } else {
       setError(result.message || 'Failed to fetch sales')
       setSales([])
     }
     setIsLoading(false)
-  }, [buildFilters, limit, offset, token, setTotal, setPagination])
+  }, [buildFilters, limit, offset, token])
 
   const fetchDetail = useCallback(async (id) => {
+    if (!token) return
     setDetailModal((d) => ({ ...d, isLoading: true }))
     const result = await getSaleById(id, token)
     if (result.success) {
@@ -186,40 +191,39 @@ export function LapPenjualan({ onExit }) {
   }, [token])
 
   const fetchWarehouses = useCallback(async () => {
-    const result = await listWarehouses({}, token)
-    if (result.success) {
-      setWarehouses(result.data || [])
+    if (!token) {
+      setWarehouses([])
+      return
     }
-  }, [token])
+    try {
+      const result = await listWarehouses(token, { 
+        include_inactive: false,
+        is_active: true,
+        company_id: auth?.company_id 
+      })
+      setWarehouses(result.items || [])
+    } catch (err) {
+      console.error('Failed to fetch warehouses:', err)
+    }
+  }, [token, auth])
 
   useEffect(() => {
     fetchData()
     fetchWarehouses()
   }, [fetchData, fetchWarehouses])
 
-  const groupedSales = useMemo(() => {
-    const groups = {}
-    sales.forEach((sale) => {
-      const dateKey = getDateKey(sale.created_at)
-      if (!groups[dateKey]) {
-        groups[dateKey] = []
-      }
-      groups[dateKey].push(sale)
-    })
-    return Object.entries(groups).sort((a, b) => new Date(b[0]) - new Date(a[0]))
-  }, [sales])
-
   const handleFilterChange = (key, value) => {
     setFilters((f) => ({ ...f, [key]: value }))
-  }
-
-  const handleApplyFilters = () => {
     setOffset(0)
     fetchData()
   }
 
   const handleRowClick = (sale) => {
     fetchDetail(sale.id)
+  }
+
+  const handlePrint = () => {
+    window.print()
   }
 
   const handleKeyDown = useCallback((event) => {
@@ -233,198 +237,175 @@ export function LapPenjualan({ onExit }) {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [handleKeyDown])
 
-  return (
-    <div className="master-container">
-      <div className="master-header">
-        <h1 className="master-title">Laporan Penjualan</h1>
-        <button type="button" className="master-exit-btn" onClick={onExit}>
-          <span className="material-icons-round">close</span>
-        </button>
-      </div>
-
-      <div className="master-filter-bar">
-        <div className="master-filter-row">
-          <div className="master-filter-group">
-            <label className="master-filter-label">Tanggal</label>
-            <select
-              className="form-select"
-              value={filters.datePreset}
-              onChange={(e) => handleFilterChange('datePreset', e.target.value)}
-            >
-              {DATE_PRESETS.map((p) => (
-                <option key={p.value} value={p.value}>{p.label}</option>
-              ))}
-            </select>
-          </div>
-
-          {filters.datePreset === 'custom' && (
-            <>
+    return (
+      <div className="master-container" style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: '100vh' }}>
+        <div className="master-content" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+          <div className="master-header">
+            <div className="master-header-accent"></div>
+            <h1 className="master-title">Laporan Penjualan</h1>
+            <div className="master-header-filters">
               <div className="master-filter-group">
-                <label className="master-filter-label">Dari</label>
-                <input
-                  type="date"
-                  className="form-input"
-                  value={filters.date_from}
-                  onChange={(e) => handleFilterChange('date_from', e.target.value)}
-                />
+                <label className="master-filter-label">Tanggal</label>
+                <select
+                  className="master-filter-select"
+                  value={filters.datePreset}
+                  onChange={(e) => handleFilterChange('datePreset', e.target.value)}
+                >
+                  {DATE_PRESETS.map((p) => (
+                    <option key={p.value} value={p.value}>{p.label}</option>
+                  ))}
+                </select>
               </div>
-              <div className="master-filter-group">
-                <label className="master-filter-label">Sampai</label>
-                <input
-                  type="date"
-                  className="form-input"
-                  value={filters.date_to}
-                  onChange={(e) => handleFilterChange('date_to', e.target.value)}
-                />
-              </div>
-            </>
-          )}
 
-          <div className="master-filter-group">
-            <label className="master-filter-label">Status</label>
-            <select
-              className="form-select"
-              value={filters.status}
-              onChange={(e) => handleFilterChange('status', e.target.value)}
-            >
-              <option value="all">Semua</option>
-              <option value="COMPLETED">Selesai</option>
-              <option value="VOID">Batal</option>
-              <option value="HOLD">Tunda</option>
-            </select>
+
+            {filters.datePreset === 'custom' && (
+              <>
+                <div className="master-filter-group">
+                  <label className="master-filter-label">Dari</label>
+                  <input
+                    type="date"
+                    className="master-filter-input"
+                    value={filters.date_from}
+                    onChange={(e) => handleFilterChange('date_from', e.target.value)}
+                  />
+                </div>
+                <div className="master-filter-group">
+                  <label className="master-filter-label">Sampai</label>
+                  <input
+                    type="date"
+                    className="master-filter-input"
+                    value={filters.date_to}
+                    onChange={(e) => handleFilterChange('date_to', e.target.value)}
+                  />
+                </div>
+              </>
+            )}
+
+            <div className="master-filter-group">
+              <label className="master-filter-label">Status</label>
+              <select
+                className="master-filter-select"
+                value={filters.status}
+                onChange={(e) => handleFilterChange('status', e.target.value)}
+              >
+                <option value="all">Semua</option>
+                <option value="COMPLETED">Selesai</option>
+                <option value="VOID">Batal</option>
+                <option value="HOLD">Tunda</option>
+              </select>
+            </div>
+
+            <div className="master-filter-group">
+              <label className="master-filter-label">Gudang</label>
+              <select
+                className="master-filter-select"
+                value={filters.warehouse_id}
+                onChange={(e) => handleFilterChange('warehouse_id', e.target.value)}
+              >
+                <option value="">Semua</option>
+                {warehouses.map((w) => (
+                  <option key={w.id} value={w.id}>{w.name}</option>
+                ))}
+              </select>
+            </div>
           </div>
-
-          <div className="master-filter-group">
-            <label className="master-filter-label">Gudang</label>
-            <select
-              className="form-select"
-              value={filters.warehouse_id}
-              onChange={(e) => handleFilterChange('warehouse_id', e.target.value)}
-            >
-              <option value="">Semua</option>
-              {warehouses.map((w) => (
-                <option key={w.id} value={w.id}>{w.name}</option>
-              ))}
-            </select>
-          </div>
-
-          <button
-            type="button"
-            className="master-filter-btn"
-            onClick={handleApplyFilters}
-          >
-            Terapkan
-          </button>
         </div>
-      </div>
 
-      <div className="master-table-container">
-        {isLoading ? (
-          <div className="master-loading">
-            <span className="material-icons-round animate-spin">sync</span>
-            <span>Loading...</span>
-          </div>
-        ) : error ? (
+        {error && (
           <div className="master-error">
             <span className="material-icons-round material-icon red">error</span>
             <span>{error}</span>
           </div>
-        ) : (
-          <>
-            {groupedSales.map(([dateKey, dateSales]) => (
-              <div key={dateKey} className="master-date-group">
-                <div className="master-date-header">{formatDisplayDate(dateKey)}</div>
-                <table className="master-table">
-                  <thead>
-                    <tr>
-                      {TABLE_COLUMNS.map((col) => (
-                        <th
-                          key={col.key}
-                          onClick={() => col.sortable !== false && setSort(col.key)}
-                          className={col.sortable !== false ? 'sortable' : ''}
-                        >
-                          {col.label}
-                          {sort.key === col.key && (
-                            <span className="material-icons-round sort-icon">
-                              {sort.direction === 'asc' ? 'arrow_upward' : 'arrow_downward'}
-                            </span>
-                          )}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {dateSales.length > 0 ? (
-                      dateSales.map((sale, idx) => (
-                        <tr
-                          key={sale.id}
-                          onClick={() => handleRowClick(sale)}
-                          className="clickable"
-                        >
-                          <td>{offset + idx + 1}</td>
-                          <td>{sale.sale_number}</td>
-                          <td>{sale.customer_name || '-'}</td>
-                          <td>{sale.cashier_name || '-'}</td>
-                          <td>{sale.warehouse_name || '-'}</td>
-                          <td className="text-right">{formatCurrency(sale.total_amount)}</td>
-                          <td>
-                            <span className={`status-badge status-${sale.status?.toLowerCase()}`}>
-                              {getStatusLabel(sale.status)}
-                            </span>
-                          </td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td colSpan={TABLE_COLUMNS.length} className="text-center">
-                          No data
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            ))}
-          </>
         )}
-      </div>
 
-      <div className="master-footer">
-        <div className="master-footer-left">
-          <span className="master-total-records">
-            Total: {total} records
-          </span>
+        <div className="master-table-wrapper">
+          <div className="master-table-container">
+            <table className="master-table">
+              <MasterTableHeader columns={TABLE_COLUMNS} sortConfig={sortConfig} onSort={handleSort} />
+              <tbody>
+                {sortedData.map((sale, index) => (
+                  <tr
+                    key={sale.id || index}
+                    className="master-row"
+                    onClick={() => handleRowClick(sale)}
+                  >
+                    <td>{offset + index + 1}</td>
+                    <td>{sale.sale_number || '-'}</td>
+                    <td>{formatDate(sale.created_at)}</td>
+                    <td>{sale.customer_name || '-'}</td>
+                    <td>{sale.cashier_name || '-'}</td>
+                    <td>{sale.warehouse_name || '-'}</td>
+                    <td className="text-right">{formatCurrency(sale.total_amount)}</td>
+                    <td>
+                      <span className={`status-badge status-${sale.status?.toLowerCase()}`}>
+                        {getStatusLabel(sale.status)}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+                {!isLoading && sortedData.length === 0 && (
+                  <tr>
+                    <td colSpan={TABLE_COLUMNS.length} className="text-center">No data</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
-        <div className="master-footer-right">
-          <button
-            type="button"
-            className="master-footer-btn"
-            onClick={() => setOffset(Math.max(0, offset - limit))}
-            disabled={offset === 0}
-          >
-            <span className="material-icons-round">chevron_left</span>
-          </button>
-          <span className="master-page-info">
-            {Math.floor(offset / limit) + 1} / {Math.ceil(total / limit) || 1}
-          </span>
-          <button
-            type="button"
-            className="master-footer-btn"
-            onClick={() => setOffset(offset + limit)}
-            disabled={offset + limit >= total}
-          >
-            <span className="material-icons-round">chevron_right</span>
-          </button>
-        </div>
-      </div>
 
-      <PenjualanDetailModal
-        isOpen={detailModal.isOpen}
-        onClose={() => setDetailModal({ isOpen: false, data: null, isLoading: false })}
-        data={detailModal.data}
-        isLoading={detailModal.isLoading}
-        error={null}
-      />
+        <div className="master-footer" style={{ marginTop: 'auto', position: 'sticky', bottom: 0, background: 'var(--bg-color)', zIndex: 10 }}>
+          <div className="master-footer-actions">
+            <button type="button" className="master-footer-btn" onClick={handlePrint} title="Print" aria-label="Print">
+              <span className="material-icons-round master-footer-icon blue">print</span>
+            </button>
+            <button type="button" className="master-footer-btn" onClick={fetchData} disabled={isLoading} title="Refresh" aria-label="Refresh">
+              <span className="material-icons-round master-footer-icon green">refresh</span>
+            </button>
+            <button type="button" className="master-footer-btn" onClick={onExit} title="Exit" aria-label="Exit">
+              <span className="material-icons-round master-footer-icon red">exit_to_app</span>
+            </button>
+          </div>
+          
+          <div className="master-footer-info">
+            <span className="report-total-row">Total Row: {pagination.total}</span>
+            <div className="master-footer-pagination">
+              <button type="button" className="master-page-btn" onClick={goFirst} disabled={!canPrev}>
+                |&lt;
+              </button>
+              <button type="button" className="master-page-btn" onClick={goPrev} disabled={!canPrev}>
+                &lt;
+              </button>
+              <span className="master-page-info">
+                Page {page} of {totalPages}
+              </span>
+              <button
+                type="button"
+                className="master-page-btn"
+                onClick={goNext}
+                disabled={!canNext}
+              >
+                &gt;
+              </button>
+              <button
+                type="button"
+                className="master-page-btn"
+                onClick={goLast}
+                disabled={!canNext}
+              >
+                 &gt;|
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <PenjualanDetailModal
+          isOpen={detailModal.isOpen}
+          onClose={() => setDetailModal({ isOpen: false, data: null, isLoading: false })}
+          data={detailModal.data}
+          isLoading={detailModal.isLoading}
+          error={null}
+        />
+      </div>
     </div>
   )
 }

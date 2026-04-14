@@ -8,6 +8,7 @@ export async function listWarehouses(token, params = {}) {
     qs.set('keyword', keyword)
     qs.set('q', keyword)
   }
+  if (params.company_id) qs.set('company_id', params.company_id)
   if (params.include_inactive) qs.set('include_inactive', 'true')
   if (params.is_active !== undefined) qs.set('is_active', String(params.is_active))
   if (params.limit !== undefined) qs.set('limit', String(params.limit))

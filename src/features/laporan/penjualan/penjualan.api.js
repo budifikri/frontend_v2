@@ -1,6 +1,6 @@
 import { apiFetch } from '../../../shared/http'
 
-const endpoint = '/sales'
+const endpoint = '/api/sales'
 
 export async function listSales(params = {}, token) {
   const qs = new URLSearchParams()
@@ -16,9 +16,9 @@ export async function listSales(params = {}, token) {
   if (params.offset !== undefined) qs.set('offset', String(params.offset))
 
   const query = qs.toString() ? `?${qs}` : ''
-  return apiFetch('GET', `${endpoint}${query}`, {}, token)
+  return apiFetch(`${endpoint}${query}`, { token })
 }
 
 export async function getSaleById(id, token) {
-  return apiFetch('GET', `${endpoint}/${id}`, {}, token)
+  return apiFetch(`${endpoint}/${id}`, { token })
 }
