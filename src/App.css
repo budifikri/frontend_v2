@@ -2702,6 +2702,12 @@ body.has-wallpaper .cash-register {
   background: #cbd5e1;
 }
 
+.lap-jual-summary {
+  border-top: 1px solid #dbe3ee;
+  border-bottom: 1px solid #dbe3ee;
+  min-height: 38px;
+}
+
 /* Footer */
 .stock-opname-footer {
   background: #dbeafe;

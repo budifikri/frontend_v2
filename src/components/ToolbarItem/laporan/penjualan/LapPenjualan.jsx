@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useAuth } from '../../../../shared/auth'
-import { listSales, getSaleById } from '../../../../features/laporan/penjualan/penjualan.api'
+import { listSales, getSaleById, getSalesSummary } from '../../../../features/laporan/penjualan/penjualan.api'
 import { useMasterTableSort } from '../../../../hooks/useMasterTableSort'
 import { useMasterPagination } from '../../../../hooks/useMasterPagination'
 import { PenjualanDetailModal } from './PenjualanDetailModal'
@@ -133,6 +133,8 @@ export function LapPenjualan({ onExit }) {
   })
 
   const [pagination, setPagination] = useState({ total: 0, hasMore: false })
+  const [summary, setSummary] = useState({ totalRows: 0, totalPenjualan: 0 })
+  const [isSummaryLoading, setIsSummaryLoading] = useState(false)
   const pager = useMasterPagination({ initialLimit: 10, total: pagination.total, hasMore: pagination.hasMore })
   const { limit, offset, setOffset } = pager
   const { sortConfig, sortedData, handleSort } = useMasterTableSort(sales, {
@@ -216,6 +218,31 @@ export function LapPenjualan({ onExit }) {
     }
   }, [token])
 
+  const fetchSummary = useCallback(async () => {
+    setIsSummaryLoading(true)
+
+    if (!token) {
+      setSummary({ totalRows: 0, totalPenjualan: 0 })
+      setIsSummaryLoading(false)
+      return
+    }
+
+    const f = buildFilters()
+    const result = await getSalesSummary(f, token)
+
+    if (result.success) {
+      const payload = result.data || {}
+      setSummary({
+        totalRows: Number(payload.total_rows ?? payload.totalRows ?? 0),
+        totalPenjualan: Number(payload.total_penjualan ?? payload.totalPenjualan ?? 0),
+      })
+    } else {
+      setSummary({ totalRows: 0, totalPenjualan: 0 })
+    }
+
+    setIsSummaryLoading(false)
+  }, [buildFilters, token])
+
   const companyId = auth?.company_id
 
   const fetchWarehouses = useCallback(async () => {
@@ -238,11 +265,26 @@ export function LapPenjualan({ onExit }) {
   useEffect(() => {
     const timerId = setTimeout(() => {
       fetchData()
+    }, 0)
+
+    return () => clearTimeout(timerId)
+  }, [fetchData])
+
+  useEffect(() => {
+    const timerId = setTimeout(() => {
       fetchWarehouses()
     }, 0)
 
     return () => clearTimeout(timerId)
-  }, [fetchData, fetchWarehouses])
+  }, [fetchWarehouses])
+
+  useEffect(() => {
+    const timerId = setTimeout(() => {
+      fetchSummary()
+    }, 0)
+
+    return () => clearTimeout(timerId)
+  }, [fetchSummary])
 
   const handleFilterChange = (key, value) => {
     if (key === 'datePreset' && value === 'custom') {
@@ -263,6 +305,11 @@ export function LapPenjualan({ onExit }) {
 
   const handlePrint = () => {
     window.print()
+  }
+
+  const handleRefresh = () => {
+    fetchData()
+    fetchSummary()
   }
 
   const handleKeyDown = useCallback((event) => {
@@ -391,12 +438,25 @@ export function LapPenjualan({ onExit }) {
           </div>
         </div>
 
+        <div className="stock-opname-summary lap-jual-summary">
+          <span className="summary-title">Summary</span>
+          <div className="summary-items">
+            <span className="summary-item">
+              TOTAL ROWS: <span className="summary-value">{isSummaryLoading ? '...' : summary.totalRows}</span>
+            </span>
+            <span className="summary-divider"></span>
+            <span className="summary-item summary-positive">
+              TOTAL PENJUALAN: <span className="summary-value">{isSummaryLoading ? '...' : formatCurrency(summary.totalPenjualan)}</span>
+            </span>
+          </div>
+        </div>
+
         <div className="master-footer">
           <div className="master-footer-actions">
             <button type="button" className="master-footer-btn" onClick={handlePrint} title="Print" aria-label="Print">
               <span className="material-icons-round master-footer-icon blue">print</span>
             </button>
-            <button type="button" className="master-footer-btn" onClick={fetchData} disabled={isLoading} title="Refresh" aria-label="Refresh">
+            <button type="button" className="master-footer-btn" onClick={handleRefresh} disabled={isLoading || isSummaryLoading} title="Refresh" aria-label="Refresh">
               <span className="material-icons-round master-footer-icon green">refresh</span>
             </button>
             <button type="button" className="master-footer-btn" onClick={onExit} title="Exit" aria-label="Exit">
