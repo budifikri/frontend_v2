@@ -3,7 +3,6 @@ import { useAuth } from '../../../../shared/auth'
 import { listSales, getSaleById } from '../../../../features/laporan/penjualan/penjualan.api'
 import { useMasterTableSort } from '../../../../hooks/useMasterTableSort'
 import { useMasterPagination } from '../../../../hooks/useMasterPagination'
-import { MasterTableHeader } from '../../table/MasterTableHeader'
 import { PenjualanDetailModal } from './PenjualanDetailModal'
 import { listWarehouses } from '../../../../features/master/warehouse/warehouse.api'
 
@@ -136,7 +135,7 @@ export function LapPenjualan({ onExit }) {
   })
 
   const pager = useMasterPagination({ initialLimit: 50, total: 0 })
-  const { limit, offset, total, setOffset, setTotal } = pager
+  const { limit, offset, total, setOffset, setTotal, setPagination } = pager
   const { sort, setSort } = useMasterTableSort()
 
   const buildFilters = useCallback(() => {
@@ -162,6 +161,14 @@ export function LapPenjualan({ onExit }) {
     setIsLoading(true)
     setError(null)
 
+    if (!token) {
+      setSales([])
+      setTotal(0)
+      setPagination((p) => ({ ...p, total: 0, hasMore: false }))
+      setIsLoading(false)
+      return
+    }
+
     const f = buildFilters()
     const result = await listSales({ ...f, limit, offset }, token)
 
@@ -174,9 +181,10 @@ export function LapPenjualan({ onExit }) {
       setSales([])
     }
     setIsLoading(false)
-  }, [buildFilters, limit, offset, token, setTotal])
+  }, [buildFilters, limit, offset, token, setTotal, setPagination])
 
   const fetchDetail = useCallback(async (id) => {
+    if (!token) return
     setDetailModal((d) => ({ ...d, isLoading: true }))
     const result = await getSaleById(id, token)
     if (result.success) {
@@ -187,7 +195,11 @@ export function LapPenjualan({ onExit }) {
   }, [token])
 
   const fetchWarehouses = useCallback(async () => {
-    const result = await listWarehouses({}, token)
+    if (!token) {
+      setWarehouses([])
+      return
+    }
+    const result = await listWarehouses(token, {})
     if (result.success) {
       setWarehouses(result.data || [])
     }
@@ -236,10 +248,12 @@ export function LapPenjualan({ onExit }) {
 
   return (
     <div className="master-container">
-      <MasterTableHeader
-        title="Laporan Penjualan"
-        onExit={onExit}
-      />
+      <div className="master-header">
+        <h1 className="master-title">Laporan Penjualan</h1>
+        <button type="button" className="master-exit-btn" onClick={onExit}>
+          <span className="material-icons-round">close</span>
+        </button>
+      </div>
 
       <div className="master-filter-bar">
         <div className="master-filter-row">

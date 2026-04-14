@@ -148,6 +148,45 @@ export function Warehouse({ onExit }) {
     fetchData()
   }, [fetchData])
 
+  const { sortConfig, sortedData, handleSort } = useMasterTableSort(data, {
+    initialKey: 'code',
+    valueGetters: {
+      is_active: (row) => (row?.is_active ? 1 : 0),
+    },
+  })
+
+  const handleNextRecord = () => {
+    if (currentEditIndex === null || currentEditIndex >= sortedData.length - 1) return
+    const nextItem = sortedData[currentEditIndex + 1]
+    if (!nextItem) return
+    setSelectedId(nextItem.id)
+    setCurrentEditIndex(currentEditIndex + 1)
+    setForm({
+      code: nextItem.code || '',
+      name: nextItem.name || '',
+      type: nextItem.type || 'MAIN',
+      address: nextItem.address || '',
+      city: nextItem.city || '',
+      phone: nextItem.phone || '',
+    })
+  }
+
+  const handlePrevRecord = () => {
+    if (currentEditIndex === null || currentEditIndex <= 0) return
+    const prevItem = sortedData[currentEditIndex - 1]
+    if (!prevItem) return
+    setSelectedId(prevItem.id)
+    setCurrentEditIndex(currentEditIndex - 1)
+    setForm({
+      code: prevItem.code || '',
+      name: prevItem.name || '',
+      type: prevItem.type || 'MAIN',
+      address: prevItem.address || '',
+      city: prevItem.city || '',
+      phone: prevItem.phone || '',
+    })
+  }
+
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (showDeleteConfirm) {
@@ -191,13 +230,6 @@ export function Warehouse({ onExit }) {
     return () => window.removeEventListener('keydown', handleKeyDown)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showForm, showDeleteConfirm, selectedId, data, searchKeyword, handlePrevRecord, handleNextRecord])
-
-  const { sortConfig, sortedData, handleSort } = useMasterTableSort(data, {
-    initialKey: 'code',
-    valueGetters: {
-      is_active: (row) => (row?.is_active ? 1 : 0),
-    },
-  })
 
   const selectedItem = selectedId == null ? null : data.find((item) => item.id === selectedId) || null
   const isEditing = selectedItem != null
@@ -297,38 +329,6 @@ export function Warehouse({ onExit }) {
       phone: target.phone || '',
     })
     setShowForm(true)
-  }
-
-  const handleNextRecord = () => {
-    if (currentEditIndex === null || currentEditIndex >= sortedData.length - 1) return
-    const nextItem = sortedData[currentEditIndex + 1]
-    if (!nextItem) return
-    setSelectedId(nextItem.id)
-    setCurrentEditIndex(currentEditIndex + 1)
-    setForm({
-      code: nextItem.code || '',
-      name: nextItem.name || '',
-      type: nextItem.type || 'MAIN',
-      address: nextItem.address || '',
-      city: nextItem.city || '',
-      phone: nextItem.phone || '',
-    })
-  }
-
-  const handlePrevRecord = () => {
-    if (currentEditIndex === null || currentEditIndex <= 0) return
-    const prevItem = sortedData[currentEditIndex - 1]
-    if (!prevItem) return
-    setSelectedId(prevItem.id)
-    setCurrentEditIndex(currentEditIndex - 1)
-    setForm({
-      code: prevItem.code || '',
-      name: prevItem.name || '',
-      type: prevItem.type || 'MAIN',
-      address: prevItem.address || '',
-      city: prevItem.city || '',
-      phone: prevItem.phone || '',
-    })
   }
 
   const handlePrint = async () => {
