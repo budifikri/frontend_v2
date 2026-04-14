@@ -148,6 +148,11 @@ export function LapHargaGrosir({ onExit }) {
     setScopeFilter(value)
   }
 
+  const handleCategoryChange = (value) => {
+    pager.reset()
+    setCategoryFilter(value)
+  }
+
   const handlePrint = async () => {
     try {
       const companyInfo = { name: '', address: '', phone: '' };

@@ -190,26 +190,32 @@ export function LapPenjualan({ onExit }) {
     }
   }, [token])
 
+  const companyId = auth?.company_id
+
   const fetchWarehouses = useCallback(async () => {
     if (!token) {
       setWarehouses([])
       return
     }
     try {
-      const result = await listWarehouses(token, { 
+      const result = await listWarehouses(token, {
         include_inactive: false,
         is_active: true,
-        company_id: auth?.company_id 
+        company_id: companyId,
       })
       setWarehouses(result.items || [])
     } catch (err) {
       console.error('Failed to fetch warehouses:', err)
     }
-  }, [token, auth])
+  }, [token, companyId])
 
   useEffect(() => {
-    fetchData()
-    fetchWarehouses()
+    const timerId = setTimeout(() => {
+      fetchData()
+      fetchWarehouses()
+    }, 0)
+
+    return () => clearTimeout(timerId)
   }, [fetchData, fetchWarehouses])
 
   const handleFilterChange = (key, value) => {

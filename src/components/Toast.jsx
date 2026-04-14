@@ -2,7 +2,10 @@ import { useEffect, useCallback, useRef } from 'react'
 
 export function Toast({ message, type = 'info', isOpen, onClose, duration = 3000 }) {
   const onCloseRef = useRef(onClose)
-  onCloseRef.current = onClose
+
+  useEffect(() => {
+    onCloseRef.current = onClose
+  }, [onClose])
 
   useEffect(() => {
     if (isOpen && duration > 0) {

@@ -1496,17 +1496,6 @@ export function POS() {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [items.length, showCashInForm, showCashOutForm, showReceiptSettingsPopup, cashInButtonIndex, cashOutButtonIndex, showDeleteConfirm, showClosingForm, closingButtonIndex, showPendingPopup, pendingNotes, pendingSelectedIndex, showPrintPopup, printNotes, printSelectedIndex, handleCashIn, handleCancelCashIn, handleCashOut, handleCancelCashOut, handleDeleteConfirm, handleDeleteCancel, handleCloseDrawer, handleCancelClose, handleRestorePending, handleShowPrintPopup, handlePrintSale, handleOpenReceiptSettings, clearAuth])
 
-  const promos = [
-    'Beli 2 Kopi Gratis 1',
-    'Diskon 10% Khusus Member Baru',
-    'Flash Sale Jam 3 Sore!',
-    'Voucher Cashback Rp 25rb',
-    'Belanja min. 200rb dapat kupon undian',
-    'Weekend Special: Coffee Beans Buy 1 Get 1',
-    'Extra Point for reusable cup users',
-    'Free Cookies for purchase over 300k',
-  ]
-
   const company = `${auth.companyName || ''}`
   const merk = 'PosXpress' 
 

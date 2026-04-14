@@ -68,14 +68,15 @@ export function LapCashDrawer({ onExit }) {
     switch (preset) {
       case 'TODAY':
         return { from: now.toISOString().split('T')[0], to: now.toISOString().split('T')[0] }
-      case 'THISMONTH':
+      case 'THISMONTH': {
         const firstDay = new Date(y, m, 1)
         const lastDay = new Date(y, m + 1, 0)
         return { from: firstDay.toISOString().split('T')[0], to: lastDay.toISOString().split('T')[0] }
+      }
       case 'THISYEAR':
         return { from: `${y}-01-01`, to: `${y}-12-31` }
       case 'CUSTOM':
-        return { from: dateFrom, to: dateFrom }
+        return { from: dateFrom, to: dateTo }
       case 'ALL':
       default:
         return { from: '', to: '' }

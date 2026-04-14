@@ -113,6 +113,7 @@ export function LapPenjualan({ onExit }) {
   const [warehouses, setWarehouses] = useState([])
 
   const [detailModal, setDetailModal] = useState({ isOpen: false, data: null, isLoading: false })
+  const [selectedId, setSelectedId] = useState(null)
 
   const [filters, setFilters] = useState({
     datePreset: 'month',
@@ -123,9 +124,9 @@ export function LapPenjualan({ onExit }) {
     search: '',
   })
 
-  const pager = useMasterPagination({ initialLimit: 10, total: 0 })
-  const { limit, offset, setOffset, goFirst, goPrev, goNext, goLast, page, totalPages, canPrev, canNext } = pager
   const [pagination, setPagination] = useState({ total: 0, hasMore: false })
+  const pager = useMasterPagination({ initialLimit: 10, total: pagination.total, hasMore: pagination.hasMore })
+  const { limit, offset, setOffset } = pager
   const { sortConfig, sortedData, handleSort } = useMasterTableSort(sales, {
     initialKey: 'created_at',
     direction: 'desc',
@@ -169,12 +170,29 @@ export function LapPenjualan({ onExit }) {
     const result = await listSales({ ...f, limit, offset }, token)
 
     if (result.success) {
-      const salesData = result.data || []
+      const salesData = Array.isArray(result.data)
+        ? result.data
+        : (result.items || result.data?.items || result.data?.data || [])
+      const responsePagination = result.pagination || result.data?.pagination || {}
+      const total = Number(
+        result.total
+        ?? responsePagination.total
+        ?? result.data?.total
+        ?? salesData.length
+        ?? 0,
+      )
+      const hasMore = Boolean(
+        responsePagination.has_more
+        ?? responsePagination.hasMore
+        ?? (total > offset + limit),
+      )
+
       setSales(salesData)
-      setPagination({ total: result.total || salesData.length || 0, hasMore: (result.total || salesData.length) > offset + limit })
+      setPagination({ total, hasMore })
     } else {
       setError(result.message || 'Failed to fetch sales')
       setSales([])
+      setPagination({ total: 0, hasMore: false })
     }
     setIsLoading(false)
   }, [buildFilters, limit, offset, token])
@@ -190,35 +208,41 @@ export function LapPenjualan({ onExit }) {
     }
   }, [token])
 
+  const companyId = auth?.company_id
+
   const fetchWarehouses = useCallback(async () => {
     if (!token) {
       setWarehouses([])
       return
     }
     try {
-      const result = await listWarehouses(token, { 
+      const result = await listWarehouses(token, {
         include_inactive: false,
         is_active: true,
-        company_id: auth?.company_id 
+        company_id: companyId,
       })
       setWarehouses(result.items || [])
     } catch (err) {
       console.error('Failed to fetch warehouses:', err)
     }
-  }, [token, auth?.company_id])
+  }, [token, companyId])
 
   useEffect(() => {
-    fetchData()
-    fetchWarehouses()
+    const timerId = setTimeout(() => {
+      fetchData()
+      fetchWarehouses()
+    }, 0)
+
+    return () => clearTimeout(timerId)
   }, [fetchData, fetchWarehouses])
 
   const handleFilterChange = (key, value) => {
     setFilters((f) => ({ ...f, [key]: value }))
     setOffset(0)
-    fetchData()
   }
 
   const handleRowClick = (sale) => {
+    setSelectedId(sale.id)
     fetchDetail(sale.id)
   }
 
@@ -238,8 +262,7 @@ export function LapPenjualan({ onExit }) {
   }, [handleKeyDown])
 
   return (
-    <div className="master-container" style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: '100vh' }}>
-      <div className="master-content" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+    <div className="master-content lap-penjualan-content">
         <div className="master-header">
           <div className="master-header-accent"></div>
           <h1 className="master-title">Laporan Penjualan</h1>
@@ -326,7 +349,7 @@ export function LapPenjualan({ onExit }) {
                 {sortedData.map((sale, index) => (
                   <tr
                     key={sale.id || index}
-                    className="master-row"
+                    className={selectedId === sale.id ? 'master-row-selected' : 'master-row'}
                     onClick={() => handleRowClick(sale)}
                   >
                     <td>{offset + index + 1}</td>
@@ -353,7 +376,7 @@ export function LapPenjualan({ onExit }) {
           </div>
         </div>
 
-        <div className="master-footer" style={{ marginTop: 'auto', position: 'sticky', bottom: 0, background: 'var(--bg-color)', zIndex: 10 }}>
+        <div className="master-footer">
           <div className="master-footer-actions">
             <button type="button" className="master-footer-btn" onClick={handlePrint} title="Print" aria-label="Print">
               <span className="material-icons-round master-footer-icon blue">print</span>
@@ -365,47 +388,26 @@ export function LapPenjualan({ onExit }) {
               <span className="material-icons-round master-footer-icon red">exit_to_app</span>
             </button>
           </div>
-          
+
           <div className="master-footer-info">
             <span className="report-total-row">Total Row: {pagination.total}</span>
             <div className="master-footer-pagination">
-              <button type="button" className="master-page-btn" onClick={goFirst} disabled={!canPrev}>
-                |&lt;
-              </button>
-              <button type="button" className="master-page-btn" onClick={goPrev} disabled={!canPrev}>
-                &lt;
-              </button>
-              <span className="master-page-info">
-                Page {page} of {totalPages}
-              </span>
-              <button
-                type="button"
-                className="master-page-btn"
-                onClick={goNext}
-                disabled={!canNext}
-              >
-                &gt;
-              </button>
-              <button
-                type="button"
-                className="master-page-btn"
-                onClick={goLast}
-                disabled={!canNext}
-              >
-                 &gt;|
-              </button>
+              <button type="button" className="master-page-btn" onClick={pager.goFirst} disabled={!pager.canPrev}>|&lt;</button>
+              <button type="button" className="master-page-btn" onClick={pager.goPrev} disabled={!pager.canPrev}>&lt;</button>
+              <span className="master-page-info">Page {pager.page} of {pager.totalPages}</span>
+              <button type="button" className="master-page-btn" onClick={pager.goNext} disabled={!pager.canNext}>&gt;</button>
+              <button type="button" className="master-page-btn" onClick={pager.goLast} disabled={!pager.canNext}>&gt;|</button>
             </div>
           </div>
         </div>
 
-        <PenjualanDetailModal
-          isOpen={detailModal.isOpen}
-          onClose={() => setDetailModal({ isOpen: false, data: null, isLoading: false })}
-          data={detailModal.data}
-          isLoading={detailModal.isLoading}
-          error={null}
-        />
-      </div>
+      <PenjualanDetailModal
+        isOpen={detailModal.isOpen}
+        onClose={() => setDetailModal({ isOpen: false, data: null, isLoading: false })}
+        data={detailModal.data}
+        isLoading={detailModal.isLoading}
+        error={null}
+      />
     </div>
   )
 }
