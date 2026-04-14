@@ -1439,6 +1439,12 @@ body.has-wallpaper .cash-register {
   gap: 8px;
 }
 
+.master-filter-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .master-filter-label {
   font-size: 0.8rem;
   font-weight: 600;
@@ -1459,6 +1465,32 @@ body.has-wallpaper .cash-register {
   outline: none;
   border-color: #0D9488;
   box-shadow: 0 0 0 2px rgba(13, 148, 136, 0.15);
+}
+
+.master-filter-input {
+  height: 32px;
+  min-width: 140px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #fff;
+  padding: 0 10px;
+  font-size: 0.8rem;
+  color: #334155;
+}
+
+.master-filter-input:focus {
+  outline: none;
+  border-color: #0D9488;
+  box-shadow: 0 0 0 2px rgba(13, 148, 136, 0.15);
+}
+
+.master-filter-input::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.75;
+}
+
+.master-filter-input::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
 }
 
 .master-search-input {
