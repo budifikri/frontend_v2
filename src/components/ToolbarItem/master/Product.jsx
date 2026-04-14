@@ -162,6 +162,7 @@ export function Product({ onExit }) {
 
   const [form, setForm] = useState(DEFAULT_FORM)
   const [selectedId, setSelectedId] = useState(null)
+  const [currentEditIndex, setCurrentEditIndex] = useState(null)
   const [showForm, setShowForm] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [showExitConfirm, setShowExitConfirm] = useState(false)
@@ -554,9 +555,8 @@ export function Product({ onExit }) {
         }
       }
 
-      setForm(DEFAULT_FORM)
-      setSelectedId(null)
-      setShowForm(false)
+      setToastMessage('Data tersimpan')
+      setShowToast(true)
     } catch (err) {
       setError(err.message || 'Failed to save product')
     } finally {
@@ -570,6 +570,7 @@ export function Product({ onExit }) {
 
   function handleNew() {
     setSelectedId(null)
+    setCurrentEditIndex(null)
     setForm(DEFAULT_FORM)
     setActiveTab('general')
     setPriceTierData(DEFAULT_PRICE_TIER)
@@ -577,10 +578,11 @@ export function Product({ onExit }) {
   }
 
   function handleEdit() {
-    const target = selectedItem || data[0]
+    const target = selectedItem || sortedData[0]
     if (!target) return
-
+    const idx = sortedData.findIndex((item) => item.id === target.id)
     setSelectedId(target.id)
+    setCurrentEditIndex(idx)
     setForm({
       sku: target.sku || '',
       barcode: target.barcode || '',
@@ -595,12 +597,62 @@ export function Product({ onExit }) {
     })
     setActiveTab('general')
     setPriceTierData(DEFAULT_PRICE_TIER)
-    
+
     if (token && target.id) {
       loadPriceTierData(target.id)
     }
-    
+
     setShowForm(true)
+  }
+
+  function handleNextRecord() {
+    if (currentEditIndex === null || currentEditIndex >= sortedData.length - 1) return
+    const nextItem = sortedData[currentEditIndex + 1]
+    if (!nextItem) return
+    setSelectedId(nextItem.id)
+    setCurrentEditIndex(currentEditIndex + 1)
+    setForm({
+      sku: nextItem.sku || '',
+      barcode: nextItem.barcode || '',
+      name: nextItem.name || '',
+      description: nextItem.description || '',
+      category_id: nextItem.category?.id || nextItem.category_id || '',
+      unit_id: nextItem.unit?.id || nextItem.unit_id || '',
+      cost_price: Number(nextItem.cost_price || 0),
+      retail_price: Number(nextItem.retail_price || 0),
+      tax_rate: Number(nextItem.tax_rate || 0),
+      reorder_point: Number(nextItem.reorder_point || 0),
+    })
+    setActiveTab('general')
+    setPriceTierData(DEFAULT_PRICE_TIER)
+    if (token && nextItem.id) {
+      loadPriceTierData(nextItem.id)
+    }
+  }
+
+  function handlePrevRecord() {
+    if (currentEditIndex === null || currentEditIndex <= 0) return
+    const prevItem = sortedData[currentEditIndex - 1]
+    if (!prevItem) return
+    setSelectedId(prevItem.id)
+    setCurrentEditIndex(currentEditIndex - 1)
+    setForm({
+      sku: prevItem.sku || '',
+      barcode: prevItem.barcode || '',
+      name: prevItem.name || '',
+      description: prevItem.description || '',
+      category_id: prevItem.category?.id || prevItem.category_id || '',
+      unit_id: prevItem.unit?.id || prevItem.unit_id || '',
+      cost_price: Number(prevItem.cost_price || 0),
+      retail_price: Number(prevItem.retail_price || 0),
+      tax_rate: Number(prevItem.tax_rate || 0),
+      reorder_point: Number(prevItem.reorder_point || 0),
+    })
+    setActiveTab('general')
+    setPriceTierData(DEFAULT_PRICE_TIER)
+    if (token && prevItem.id) {
+      loadPriceTierData(prevItem.id)
+    }
   }
 
   async function loadPriceTierData(productId) {
@@ -703,8 +755,10 @@ export function Product({ onExit }) {
   }
 
 
-  function handleCancelForm() {
+  function handleCloseForm() {
     setShowForm(false)
+    setSelectedId(null)
+    setCurrentEditIndex(null)
     setForm(DEFAULT_FORM)
     setActiveTab('general')
     setPriceTierData(DEFAULT_PRICE_TIER)
@@ -962,6 +1016,9 @@ export function Product({ onExit }) {
 
       {showForm && (
         <div className="master-form-card">
+          <button type="button" className="master-form-close" onClick={handleCloseForm}>
+            <span className="material-icons-round">close</span>
+          </button>
           <div className="master-form-header">
             <span className="material-icons-round master-form-icon">inventory_2</span>
             <h2 className="master-form-title">{selectedItem ? 'Ubah Data Product' : 'Isi Data Product'}</h2>
@@ -1233,8 +1290,12 @@ export function Product({ onExit }) {
 
           <FooterFormMaster
             onSave={handleSave}
-            onCancel={handleCancelForm}
+            onClose={handleCloseForm}
             isSaving={isSaving}
+            onNext={handleNextRecord}
+            onPrev={handlePrevRecord}
+            canNext={currentEditIndex !== null && currentEditIndex < sortedData.length - 1}
+            canPrev={currentEditIndex !== null && currentEditIndex > 0}
           />
         </div>
       )}

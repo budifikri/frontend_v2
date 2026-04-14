@@ -124,6 +124,7 @@ export function Customer({ onExit }) {
 
   const [form, setForm] = useState(DEFAULT_FORM)
   const [selectedId, setSelectedId] = useState(null)
+  const [currentEditIndex, setCurrentEditIndex] = useState(null)
   const [showForm, setShowForm] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [showExitConfirm, setShowExitConfirm] = useState(false)
@@ -298,9 +299,8 @@ export function Customer({ onExit }) {
         }
       }
 
-      setForm(DEFAULT_FORM)
-      setShowForm(false)
-      setSelectedId(null)
+      setToastMessage('Data tersimpan')
+      setShowToast(true)
     } catch (err) {
       setError(err.message || 'Failed to save customer')
     } finally {
@@ -314,15 +314,17 @@ export function Customer({ onExit }) {
 
   function handleNew() {
     setSelectedId(null)
+    setCurrentEditIndex(null)
     setForm(DEFAULT_FORM)
     setShowForm(true)
   }
 
   function handleEdit() {
-    const target = selectedItem || data[0]
+    const target = selectedItem || sortedData[0]
     if (!target) return
-
+    const idx = sortedData.findIndex((item) => item.id === target.id)
     setSelectedId(target.id)
+    setCurrentEditIndex(idx)
     setForm({
       name: target.name || '',
       email: target.email || '',
@@ -337,6 +339,48 @@ export function Customer({ onExit }) {
       bank_branch: target.bank_branch || '',
     })
     setShowForm(true)
+  }
+
+  function handleNextRecord() {
+    if (currentEditIndex === null || currentEditIndex >= sortedData.length - 1) return
+    const nextItem = sortedData[currentEditIndex + 1]
+    if (!nextItem) return
+    setSelectedId(nextItem.id)
+    setCurrentEditIndex(currentEditIndex + 1)
+    setForm({
+      name: nextItem.name || '',
+      email: nextItem.email || '',
+      phone: nextItem.phone || '',
+      address: nextItem.address || '',
+      city: nextItem.city || '',
+      tier: nextItem.tier || 'BRONZE',
+      credit_limit: Number(nextItem.credit_limit || 0),
+      bank_name: nextItem.bank_name || '',
+      bank_account_number: nextItem.bank_account_number || '',
+      bank_account_name: nextItem.bank_account_name || '',
+      bank_branch: nextItem.bank_branch || '',
+    })
+  }
+
+  function handlePrevRecord() {
+    if (currentEditIndex === null || currentEditIndex <= 0) return
+    const prevItem = sortedData[currentEditIndex - 1]
+    if (!prevItem) return
+    setSelectedId(prevItem.id)
+    setCurrentEditIndex(currentEditIndex - 1)
+    setForm({
+      name: prevItem.name || '',
+      email: prevItem.email || '',
+      phone: prevItem.phone || '',
+      address: prevItem.address || '',
+      city: prevItem.city || '',
+      tier: prevItem.tier || 'BRONZE',
+      credit_limit: Number(prevItem.credit_limit || 0),
+      bank_name: prevItem.bank_name || '',
+      bank_account_number: prevItem.bank_account_number || '',
+      bank_account_name: prevItem.bank_account_name || '',
+      bank_branch: prevItem.bank_branch || '',
+    })
   }
 
   function handleDeleteClick() {
@@ -389,8 +433,10 @@ export function Customer({ onExit }) {
   }
 
 
-  function handleCancelForm() {
+  function handleCloseForm() {
     setShowForm(false)
+    setSelectedId(null)
+    setCurrentEditIndex(null)
     setForm(DEFAULT_FORM)
   }
 
@@ -633,6 +679,9 @@ export function Customer({ onExit }) {
 
       {showForm && (
         <div className="master-form-card">
+          <button type="button" className="master-form-close" onClick={handleCloseForm}>
+            <span className="material-icons-round">close</span>
+          </button>
           <div className="master-form-header">
             <span className="material-icons-round master-form-icon">groups</span>
             <h2 className="master-form-title">{selectedItem ? 'Ubah Data Customer' : 'Isi Data Customer'}</h2>
@@ -692,7 +741,15 @@ export function Customer({ onExit }) {
               <input type="text" value={form.bank_account_name} onChange={(e) => setForm({ ...form, bank_account_name: e.target.value })} className="master-form-input" />
             </div>
 
-            <FooterFormMaster onSave={handleSave} onCancel={handleCancelForm} isSaving={isSaving} />
+            <FooterFormMaster
+              onSave={handleSave}
+              onClose={handleCloseForm}
+              isSaving={isSaving}
+              onNext={handleNextRecord}
+              onPrev={handlePrevRecord}
+              canNext={currentEditIndex !== null && currentEditIndex < sortedData.length - 1}
+              canPrev={currentEditIndex !== null && currentEditIndex > 0}
+            />
           </div>
         </div>
       )}

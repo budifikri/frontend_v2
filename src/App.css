@@ -1035,6 +1035,33 @@ body.has-wallpaper .cash-register {
   margin: 0;
 }
 
+.master-form-close {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.master-form-close:hover {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.master-form-close .material-icons-round {
+  font-size: 24px;
+  color: #64748b;
+}
+
+.master-form-card {
+  position: relative;
+}
+
 .product-form-tabs {
   display: flex;
   gap: 4px;
@@ -1287,6 +1314,47 @@ body.has-wallpaper .cash-register {
 .master-btn-cancel-secondary .material-icons-round {
   color: #fff;
   font-size: 20px;
+}
+
+.master-form-nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.master-btn-nav {
+  height: 30px;
+  border: none;
+  border-radius: 8px;
+  padding: 0 8px;
+  background: #64748b;
+  color: #fff;
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 6px rgba(100, 116, 139, 0.3);
+  transition: all 150ms ease;
+}
+
+.master-btn-nav:hover {
+  background: #475569;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 10px rgba(100, 116, 139, 0.4);
+}
+
+.master-btn-nav:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.master-btn-nav .material-icons-round {
+  font-size: 20px;
+  color: #fff;
 }
 
 .master-footer {

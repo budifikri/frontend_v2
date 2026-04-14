@@ -63,6 +63,7 @@ export function Category({ onExit }) {
 
   const [form, setForm] = useState(DEFAULT_FORM)
   const [selectedId, setSelectedId] = useState(null)
+  const [currentEditIndex, setCurrentEditIndex] = useState(null)
   const [showForm, setShowForm] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [showExitConfirm, setShowExitConfirm] = useState(false)
@@ -199,9 +200,8 @@ export function Category({ onExit }) {
         }
       }
 
-      setForm(DEFAULT_FORM)
-      setSelectedId(null)
-      setShowForm(false)
+      setToastMessage('Data tersimpan')
+      setShowToast(true)
     } catch (err) {
       setError(err.message || 'Failed to save category')
     } finally {
@@ -215,6 +215,7 @@ export function Category({ onExit }) {
 
   function handleNew() {
     setSelectedId(null)
+    setCurrentEditIndex(null)
     setForm(DEFAULT_FORM)
     setShowForm(true)
   }
@@ -222,7 +223,9 @@ export function Category({ onExit }) {
   function handleEdit() {
     const target = selectedItem || data[0]
     if (!target) return
+    const idx = sortedData.findIndex((item) => item.id === target.id)
     setSelectedId(target.id)
+    setCurrentEditIndex(idx)
     setForm({
       code: target.code || '',
       name: target.name || '',
@@ -230,6 +233,34 @@ export function Category({ onExit }) {
       parent_id: target.parent_id || '',
     })
     setShowForm(true)
+  }
+
+  function handleNextRecord() {
+    if (currentEditIndex === null || currentEditIndex >= sortedData.length - 1) return
+    const nextItem = sortedData[currentEditIndex + 1]
+    if (!nextItem) return
+    setSelectedId(nextItem.id)
+    setCurrentEditIndex(currentEditIndex + 1)
+    setForm({
+      code: nextItem.code || '',
+      name: nextItem.name || '',
+      description: nextItem.description || '',
+      parent_id: nextItem.parent_id || '',
+    })
+  }
+
+  function handlePrevRecord() {
+    if (currentEditIndex === null || currentEditIndex <= 0) return
+    const prevItem = sortedData[currentEditIndex - 1]
+    if (!prevItem) return
+    setSelectedId(prevItem.id)
+    setCurrentEditIndex(currentEditIndex - 1)
+    setForm({
+      code: prevItem.code || '',
+      name: prevItem.name || '',
+      description: prevItem.description || '',
+      parent_id: prevItem.parent_id || '',
+    })
   }
 
   function handleDeleteClick() {
@@ -429,8 +460,10 @@ export function Category({ onExit }) {
     onExit()
   }
 
-  function handleCancelForm() {
+  function handleCloseForm() {
     setShowForm(false)
+    setSelectedId(null)
+    setCurrentEditIndex(null)
     setForm(DEFAULT_FORM)
   }
 
@@ -509,6 +542,9 @@ export function Category({ onExit }) {
 
       {showForm && (
         <div className="master-form-card">
+          <button type="button" className="master-form-close" onClick={handleCloseForm}>
+            <span className="material-icons-round">close</span>
+          </button>
           <div className="master-form-header">
             <span className="material-icons-round master-form-icon">category</span>
             <h2 className="master-form-title">{selectedItem ? 'Ubah Data Kategori' : 'Isi Data Kategori'}</h2>
@@ -530,7 +566,15 @@ export function Category({ onExit }) {
               <label className="master-form-label">Parent ID :</label>
               <input type="text" value={form.parent_id} onChange={(e) => setForm({ ...form, parent_id: e.target.value })} className="master-form-input" />
             </div>
-            <FooterFormMaster onSave={handleSave} onCancel={handleCancelForm} isSaving={isSaving} />
+            <FooterFormMaster
+              onSave={handleSave}
+              onClose={handleCloseForm}
+              isSaving={isSaving}
+              onNext={handleNextRecord}
+              onPrev={handlePrevRecord}
+              canNext={currentEditIndex !== null && currentEditIndex < sortedData.length - 1}
+              canPrev={currentEditIndex !== null && currentEditIndex > 0}
+            />
           </div>
         </div>
       )}

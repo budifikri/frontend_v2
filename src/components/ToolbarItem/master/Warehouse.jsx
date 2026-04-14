@@ -59,6 +59,7 @@ export function Warehouse({ onExit }) {
   const { limit, offset } = pager
   const [form, setForm] = useState(DEFAULT_FORM)
   const [selectedId, setSelectedId] = useState(null)
+  const [currentEditIndex, setCurrentEditIndex] = useState(null)
   const [showForm, setShowForm] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [showExitConfirm, setShowExitConfirm] = useState(false)
@@ -227,9 +228,8 @@ export function Warehouse({ onExit }) {
           setData([...data, newItem])
         }
       }
-      setForm(DEFAULT_FORM)
-      setSelectedId(null)
-      setShowForm(false)
+      setToastMessage('Data tersimpan')
+      setShowToast(true)
     } catch (err) {
       setError(err.message || 'Failed to save')
     } finally {
@@ -270,35 +270,59 @@ export function Warehouse({ onExit }) {
   }
 
   const handleNew = () => {
-    setShowForm(true)
-    setForm(DEFAULT_FORM)
     setSelectedId(null)
+    setCurrentEditIndex(null)
+    setForm(DEFAULT_FORM)
+    setShowForm(true)
   }
 
   const handleEdit = () => {
-    if (selectedItem) {
-      setForm({
-        code: selectedItem.code || '',
-        name: selectedItem.name || '',
-        type: selectedItem.type || 'MAIN',
-        address: selectedItem.address || '',
-        city: selectedItem.city || '',
-        phone: selectedItem.phone || '',
-      })
-      setShowForm(true)
-    } else if (sortedData.length > 0) {
-      const item = sortedData[0]
-      setSelectedId(item.id)
-      setForm({
-        code: item.code || '',
-        name: item.name || '',
-        type: item.type || 'MAIN',
-        address: item.address || '',
-        city: item.city || '',
-        phone: item.phone || '',
-      })
-      setShowForm(true)
-    }
+    const target = selectedItem || sortedData[0]
+    if (!target) return
+    const idx = sortedData.findIndex((item) => item.id === target.id)
+    setSelectedId(target.id)
+    setCurrentEditIndex(idx)
+    setForm({
+      code: target.code || '',
+      name: target.name || '',
+      type: target.type || 'MAIN',
+      address: target.address || '',
+      city: target.city || '',
+      phone: target.phone || '',
+    })
+    setShowForm(true)
+  }
+
+  const handleNextRecord = () => {
+    if (currentEditIndex === null || currentEditIndex >= sortedData.length - 1) return
+    const nextItem = sortedData[currentEditIndex + 1]
+    if (!nextItem) return
+    setSelectedId(nextItem.id)
+    setCurrentEditIndex(currentEditIndex + 1)
+    setForm({
+      code: nextItem.code || '',
+      name: nextItem.name || '',
+      type: nextItem.type || 'MAIN',
+      address: nextItem.address || '',
+      city: nextItem.city || '',
+      phone: nextItem.phone || '',
+    })
+  }
+
+  const handlePrevRecord = () => {
+    if (currentEditIndex === null || currentEditIndex <= 0) return
+    const prevItem = sortedData[currentEditIndex - 1]
+    if (!prevItem) return
+    setSelectedId(prevItem.id)
+    setCurrentEditIndex(currentEditIndex - 1)
+    setForm({
+      code: prevItem.code || '',
+      name: prevItem.name || '',
+      type: prevItem.type || 'MAIN',
+      address: prevItem.address || '',
+      city: prevItem.city || '',
+      phone: prevItem.phone || '',
+    })
   }
 
   const handlePrint = async () => {
@@ -454,8 +478,10 @@ export function Warehouse({ onExit }) {
     )))
   }
 
-  const handleCancelForm = () => {
+  const handleCloseForm = () => {
     setShowForm(false)
+    setSelectedId(null)
+    setCurrentEditIndex(null)
     setForm(DEFAULT_FORM)
   }
 
@@ -552,12 +578,15 @@ export function Warehouse({ onExit }) {
         </div>
       </div>
 
-      {showForm && (
+{showForm && (
         <div className="master-form-card">
-           <div className="master-form-header">
-             <span className="material-icons-round master-form-icon">store</span>
-             <h2 className="master-form-title">{isEditing ? 'Ubah Data Warehouse' : 'Isi Data Warehouse'}</h2>
-           </div>
+          <button type="button" className="master-form-close" onClick={handleCloseForm}>
+            <span className="material-icons-round">close</span>
+          </button>
+          <div className="master-form-header">
+            <span className="material-icons-round master-form-icon">store</span>
+            <h2 className="master-form-title">{isEditing ? 'Ubah Data Warehouse' : 'Isi Data Warehouse'}</h2>
+          </div>
           <div className="master-form-grid">
             <div className="master-form-group">
               <label className="master-form-label">Kode :</label>
@@ -620,7 +649,15 @@ export function Warehouse({ onExit }) {
                 placeholder="Masukkan telepon..."
               />
             </div>
-            <FooterFormMaster onSave={handleSave} onCancel={handleCancelForm} isSaving={isSaving} />
+            <FooterFormMaster
+              onSave={handleSave}
+              onClose={handleCloseForm}
+              isSaving={isSaving}
+              onNext={handleNextRecord}
+              onPrev={handlePrevRecord}
+              canNext={currentEditIndex !== null && currentEditIndex < sortedData.length - 1}
+              canPrev={currentEditIndex !== null && currentEditIndex > 0}
+            />
           </div>
         </div>
       )}
