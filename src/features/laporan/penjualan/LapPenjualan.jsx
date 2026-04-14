@@ -136,8 +136,7 @@ export function LapPenjualan({ onExit }) {
   })
 
   const pager = useMasterPagination({ initialLimit: 50, total: 0 })
-  const { limit, offset, total, setOffset, setTotal, hasMore } = pager
-  const [pagination, setPagination] = useState({ limit, offset, total: 0, hasMore: false })
+  const { limit, offset, total, setOffset, setTotal } = pager
   const { sort, setSort } = useMasterTableSort()
 
   const buildFilters = useCallback(() => {
