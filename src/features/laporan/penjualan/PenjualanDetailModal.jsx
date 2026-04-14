@@ -1,12 +1,13 @@
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 
 const ITEM_COLUMNS = [
   { key: 'no', label: 'NO', width: '50px' },
   { key: 'product_name', label: 'PRODUK' },
   { key: 'quantity', label: 'QTY', width: '80px' },
-  { key: 'unit', label: 'SATUAN', width: '80px' },
-  { key: 'price', label: 'HARGA', width: '120px' },
-  { key: 'subtotal', label: 'SUBTOTAL', width: '120px' },
+  { key: 'unit', label: 'SATUAN', width: '90px' },
+  { key: 'price', label: 'HARGA', width: '140px' },
+  { key: 'discount', label: 'DISKON', width: '130px' },
+  { key: 'subtotal', label: 'SUBTOTAL', width: '140px' },
 ]
 
 function formatCurrency(value) {
@@ -36,13 +37,7 @@ function formatDate(dateStr) {
 }
 
 function getStatusLabel(status) {
-  const labels = {
-    OPEN: 'Open',
-    COMPLETED: 'Selesai',
-    VOID: 'Batal',
-    HOLD: 'Tunda',
-  }
-  return labels[status] || status || '-'
+  return status || '-'
 }
 
 export function PenjualanDetailModal({
@@ -52,11 +47,15 @@ export function PenjualanDetailModal({
   isLoading,
   error,
 }) {
-  const sale = data?.sale
+  const sale = data?.sale || data || null
   const items = data?.items || []
-  const payments = data?.payments || []
-
-  const [activeTab, setActiveTab] = useState('summary')
+  const totalAmount = Number(
+    sale?.total_amount
+    ?? items.reduce((sum, item) => {
+      const subtotal = Number(item.subtotal ?? item.line_total ?? (Number(item.unit_price ?? item.price ?? 0) * Number(item.quantity ?? 0)))
+      return sum + subtotal
+    }, 0),
+  )
 
   useEffect(() => {
     if (!isOpen) return
@@ -83,21 +82,21 @@ export function PenjualanDetailModal({
             <h2>Detail Penjualan</h2>
           </div>
           <div className="stock-card-header-right">
-            <div className="master-tab-buttons">
-              <button
-                type="button"
-                className={`master-tab-btn ${activeTab === 'summary' ? 'active' : ''}`}
-                onClick={() => setActiveTab('summary')}
-              >
-                Summary
-              </button>
-              <button
-                type="button"
-                className={`master-tab-btn ${activeTab === 'items' ? 'active' : ''}`}
-                onClick={() => setActiveTab('items')}
-              >
-                Items
-              </button>
+            <div className="sale-detail-meta">
+              <div className="sale-detail-meta-item">
+                <span className="sale-detail-meta-label">No. Nota</span>
+                <span className="sale-detail-meta-value">{sale?.sale_number || '-'}</span>
+              </div>
+              <div className="sale-detail-meta-item">
+                <span className="sale-detail-meta-label">Tanggal</span>
+                <span className="sale-detail-meta-value">{formatDate(sale?.sale_date || sale?.created_at)}</span>
+              </div>
+              <div className="sale-detail-meta-item">
+                <span className="sale-detail-meta-label">Status</span>
+                <span className={`sale-detail-meta-value status-badge status-${sale?.status?.toLowerCase()}`}>
+                  {getStatusLabel(sale?.status)}
+                </span>
+              </div>
             </div>
           </div>
         </div>
@@ -117,109 +116,37 @@ export function PenjualanDetailModal({
             </div>
           )}
 
-          {!isLoading && !error && sale && (
-            <>
-              {activeTab === 'summary' && (
-                <div className="cash-drawer-summary-simple">
-                  <div className="summary-simple-row">
-                    <span className="summary-simple-label">No. Nota</span>
-                    <span className="summary-simple-value">{sale.sale_number}</span>
-                  </div>
-                  <div className="summary-simple-row">
-                    <span className="summary-simple-label">Tanggal</span>
-                    <span className="summary-simple-value">{formatDate(sale.sale_date)}</span>
-                  </div>
-                  <div className="summary-simple-row">
-                    <span className="summary-simple-label">Konsumen</span>
-                    <span className="summary-simple-value">{sale.customer_name || '-'}</span>
-                  </div>
-                  <div className="summary-simple-row">
-                    <span className="summary-simple-label">Kasir</span>
-                    <span className="summary-simple-value">{sale.cashier_name || '-'}</span>
-                  </div>
-                  <div className="summary-simple-row">
-                    <span className="summary-simple-label">Gudang</span>
-                    <span className="summary-simple-value">{sale.warehouse_name || '-'}</span>
-                  </div>
-                  <div className="summary-simple-row">
-                    <span className="summary-simple-label">Status</span>
-                    <span className={`summary-simple-value status-badge status-${sale.status?.toLowerCase()}`}>
-                      {getStatusLabel(sale.status)}
-                    </span>
-                  </div>
-                  <div className="summary-simple-row">
-                    <span className="summary-simple-label">Subtotal</span>
-                    <span className="summary-simple-value">{formatCurrency(sale.subtotal)}</span>
-                  </div>
-                  <div className="summary-simple-row">
-                    <span className="summary-simple-label">Diskon</span>
-                    <span className="summary-simple-value text-red">-{formatCurrency(sale.discount_amount)}</span>
-                  </div>
-                  <div className="summary-simple-row">
-                    <span className="summary-simple-label">Pajak</span>
-                    <span className="summary-simple-value text-blue">{formatCurrency(sale.tax_amount)}</span>
-                  </div>
-                  <div className="summary-simple-row">
-                    <span className="summary-simple-label">Total</span>
-                    <span className="summary-simple-value text-green">{formatCurrency(sale.total_amount)}</span>
-                  </div>
-
-                  {payments.length > 0 && (
-                    <>
-                      <div className="summary-simple-row" style={{ marginTop: '8px', borderTop: '1px solid #e5e7eb', paddingTop: '8px' }}>
-                        <span className="summary-simple-label" style={{ fontWeight: 600 }}>Pembayaran</span>
-                      </div>
-                      {payments.map((payment, idx) => (
-                        <div key={idx} className="summary-simple-row">
-                          <span className="summary-simple-label">{payment.payment_method || 'Tunai'}</span>
-                          <span className="summary-simple-value">{formatCurrency(payment.amount)}</span>
-                        </div>
-                      ))}
-                      <div className="summary-simple-row">
-                        <span className="summary-simple-label">Total Bayar</span>
-                        <span className="summary-simple-value text-green">{formatCurrency(sale.paid_amount)}</span>
-                      </div>
-                      <div className="summary-simple-row">
-                        <span className="summary-simple-label">Kembalian</span>
-                        <span className="summary-simple-value">{formatCurrency(sale.change_amount)}</span>
-                      </div>
-                    </>
-                  )}
-                </div>
-              )}
-
-              {activeTab === 'items' && (
-                <div className="master-table-container">
-                  <table className="master-table">
-                    <thead>
-                      <tr>
-                        {ITEM_COLUMNS.map((col) => (
-                          <th key={col.key} style={col.width ? { width: col.width } : {}}>{col.label}</th>
-                        ))}
+          {!isLoading && !error && (
+            <div className="master-table-container">
+              <table className="master-table">
+                <thead>
+                  <tr>
+                    {ITEM_COLUMNS.map((col) => (
+                      <th key={col.key} style={col.width ? { width: col.width } : {}}>{col.label}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {items.length > 0 ? (
+                    items.map((item, index) => (
+                      <tr key={item.id || index} className={index % 2 === 0 ? 'row-even' : 'row-odd'}>
+                        <td>{index + 1}</td>
+                        <td>{item.product_name || item.product_id || '-'}</td>
+                        <td className="text-right">{item.quantity || 0}</td>
+                        <td>{item.unit_name || item.unit || '-'}</td>
+                        <td className="text-right">{formatCurrency(item.original_price ?? item.price ?? item.unit_price)}</td>
+                        <td className="text-right">{formatCurrency(item.discount_amount)}</td>
+                        <td className="text-right">{formatCurrency(item.subtotal ?? item.line_total ?? ((item.unit_price ?? item.price ?? 0) * (item.quantity ?? 0)))}</td>
                       </tr>
-                    </thead>
-                    <tbody>
-                      {items.length > 0 ? (
-                        items.map((item, index) => (
-                          <tr key={item.id || index} className={index % 2 === 0 ? 'row-even' : 'row-odd'}>
-                            <td>{index + 1}</td>
-                            <td>{item.product_name || item.product_id}</td>
-                            <td className="text-right">{item.quantity}</td>
-                            <td>{item.unit || '-'}</td>
-                            <td className="text-right">{formatCurrency(item.price)}</td>
-                            <td className="text-right">{formatCurrency(item.subtotal)}</td>
-                          </tr>
-                        ))
-                      ) : (
-                        <tr>
-                          <td colSpan={ITEM_COLUMNS.length} className="text-center">No data</td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={ITEM_COLUMNS.length} className="text-center">No data</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
 
@@ -233,9 +160,8 @@ export function PenjualanDetailModal({
             </button>
           </div>
           <div className="stock-card-footer-right">
-            {activeTab === 'items' && (
-              <span className="stock-card-total-row">Total Item: {items.length}</span>
-            )}
+            <span className="stock-card-total-row">Total Item: {items.length}</span>
+            <span className="stock-card-total-row sale-detail-footer-total">Total: {formatCurrency(totalAmount)}</span>
           </div>
         </div>
       </div>

@@ -1870,6 +1870,44 @@ body.has-wallpaper .cash-register {
   gap: 16px;
 }
 
+.sale-detail-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.sale-detail-meta-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  background: #eef2ff;
+  border: 1px solid #dbeafe;
+  border-radius: 6px;
+}
+
+.sale-detail-meta-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.sale-detail-meta-value {
+  font-size: 12px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.sale-detail-footer-total {
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: #166534;
+}
+
 .stock-card-modal .delete-master-header .material-icon.orange {
   font-size: 1.5rem;
   color: #f97316;

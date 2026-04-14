@@ -6,6 +6,7 @@ const ITEM_COLUMNS = [
   { key: 'quantity', label: 'QTY', width: '80px' },
   { key: 'unit', label: 'SATUAN', width: '90px' },
   { key: 'price', label: 'HARGA', width: '140px' },
+  { key: 'discount', label: 'DISKON', width: '130px' },
   { key: 'subtotal', label: 'SUBTOTAL', width: '140px' },
 ]
 
@@ -46,8 +47,15 @@ export function PenjualanDetailModal({
   isLoading,
   error,
 }) {
-  const sale = data?.sale
+  const sale = data?.sale || data || null
   const items = data?.items || []
+  const totalAmount = Number(
+    sale?.total_amount
+    ?? items.reduce((sum, item) => {
+      const subtotal = Number(item.subtotal ?? item.line_total ?? (Number(item.unit_price ?? item.price ?? 0) * Number(item.quantity ?? 0)))
+      return sum + subtotal
+    }, 0),
+  )
 
   useEffect(() => {
     if (!isOpen) return
@@ -81,7 +89,7 @@ export function PenjualanDetailModal({
               </div>
               <div className="sale-detail-meta-item">
                 <span className="sale-detail-meta-label">Tanggal</span>
-                <span className="sale-detail-meta-value">{formatDate(sale?.sale_date)}</span>
+                <span className="sale-detail-meta-value">{formatDate(sale?.sale_date || sale?.created_at)}</span>
               </div>
               <div className="sale-detail-meta-item">
                 <span className="sale-detail-meta-label">Status</span>
@@ -125,9 +133,10 @@ export function PenjualanDetailModal({
                         <td>{index + 1}</td>
                         <td>{item.product_name || item.product_id || '-'}</td>
                         <td className="text-right">{item.quantity || 0}</td>
-                        <td>{item.unit || item.unit_name || '-'}</td>
-                        <td className="text-right">{formatCurrency(item.price ?? item.unit_price)}</td>
-                        <td className="text-right">{formatCurrency(item.subtotal ?? item.line_total)}</td>
+                        <td>{item.unit_name || item.unit || '-'}</td>
+                        <td className="text-right">{formatCurrency(item.original_price ?? item.price ?? item.unit_price)}</td>
+                        <td className="text-right">{formatCurrency(item.discount_amount)}</td>
+                        <td className="text-right">{formatCurrency(item.subtotal ?? item.line_total ?? ((item.unit_price ?? item.price ?? 0) * (item.quantity ?? 0)))}</td>
                       </tr>
                     ))
                   ) : (
@@ -152,6 +161,7 @@ export function PenjualanDetailModal({
           </div>
           <div className="stock-card-footer-right">
             <span className="stock-card-total-row">Total Item: {items.length}</span>
+            <span className="stock-card-total-row sale-detail-footer-total">Total: {formatCurrency(totalAmount)}</span>
           </div>
         </div>
       </div>
