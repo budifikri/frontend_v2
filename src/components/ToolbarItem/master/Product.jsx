@@ -327,6 +327,12 @@ export function Product({ onExit }) {
         if (e.key === 'Escape') {
           e.preventDefault()
           setShowForm(false)
+        } else if (e.ctrlKey && e.key === 'ArrowLeft') {
+          e.preventDefault()
+          handlePrevRecord()
+        } else if (e.ctrlKey && e.key === 'ArrowRight') {
+          e.preventDefault()
+          handleNextRecord()
         }
         return
       }
@@ -349,7 +355,7 @@ export function Product({ onExit }) {
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showDeleteConfirm, showForm, selectedItem, data])
+  }, [showDeleteConfirm, showForm, selectedItem, data, handlePrevRecord, handleNextRecord])
 
   const fetchSystemStock = useCallback(async (productId, warehouseId) => {
     if (!token || !productId || !warehouseId) {
@@ -1294,8 +1300,8 @@ export function Product({ onExit }) {
             isSaving={isSaving}
             onNext={handleNextRecord}
             onPrev={handlePrevRecord}
-            canNext={currentEditIndex !== null && currentEditIndex < sortedData.length - 1}
-            canPrev={currentEditIndex !== null && currentEditIndex > 0}
+            canNext={currentEditIndex !== null && sortedData.length > 1 && currentEditIndex < sortedData.length - 1}
+            canPrev={currentEditIndex !== null && sortedData.length > 1 && currentEditIndex > 0}
           />
         </div>
       )}

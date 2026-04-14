@@ -34,7 +34,7 @@ export function FooterFormMaster({
         </button>
       )}
       <div className="master-form-nav">
-        {onPrev && canPrev !== false && (
+        {onPrev && (
           <button
             type="button"
             className="master-btn-nav"
@@ -45,7 +45,7 @@ export function FooterFormMaster({
             <span className="material-icons-round">navigate_before</span>
           </button>
         )}
-        {onNext && canNext !== false && (
+        {onNext && (
           <button
             type="button"
             className="master-btn-nav"

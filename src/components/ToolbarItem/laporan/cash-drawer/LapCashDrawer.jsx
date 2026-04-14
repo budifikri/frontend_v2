@@ -14,8 +14,6 @@ const TABLE_COLUMNS = [
   { key: 'close_date', label: 'TANGGAL TUTUP' },
   { key: 'status', label: 'STATUS' },
   { key: 'opening_balance', label: 'SALDO AWAL' },
-  { key: 'cash_in_total', label: 'CASH IN' },
-  { key: 'cash_out_total', label: 'CASH OUT' },
   { key: 'theoretical_balance', label: 'SALDO AKHIR' },
   { key: 'difference', label: 'SELISIH' },
   { key: 'cashier_name', label: 'NAMA KASIR' },
@@ -59,8 +57,57 @@ export function LapCashDrawer({ onExit }) {
 
   const [searchKeyword, setSearchKeyword] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
-  const [dateFrom, setDateFrom] = useState('')
-  const [dateTo, setDateTo] = useState('')
+  const [datePreset, setDatePreset] = useState('TODAY')
+  const [dateFrom, setDateFrom] = useState(new Date().toISOString().split('T')[0])
+  const [dateTo, setDateTo] = useState(new Date().toISOString().split('T')[0])
+
+  const getDateRange = (preset) => {
+    const now = new Date()
+    const y = now.getFullYear()
+    const m = now.getMonth()
+    switch (preset) {
+      case 'TODAY':
+        return { from: now.toISOString().split('T')[0], to: now.toISOString().split('T')[0] }
+      case 'THISMONTH':
+        const firstDay = new Date(y, m, 1)
+        const lastDay = new Date(y, m + 1, 0)
+        return { from: firstDay.toISOString().split('T')[0], to: lastDay.toISOString().split('T')[0] }
+      case 'THISYEAR':
+        return { from: `${y}-01-01`, to: `${y}-12-31` }
+      case 'CUSTOM':
+        return { from: dateFrom, to: dateFrom }
+      case 'ALL':
+      default:
+        return { from: '', to: '' }
+    }
+  }
+
+  const handleDatePresetChange = (preset) => {
+    setDatePreset(preset)
+    pager.reset()
+    if (preset === 'ALL') {
+      setDateFrom('')
+      setDateTo('')
+    } else {
+      const range = getDateRange(preset)
+      if (preset !== 'CUSTOM') {
+        setDateFrom(range.from)
+        setDateTo(range.to)
+      }
+    }
+  }
+
+  const handleDateFromChange = (value) => {
+    pager.reset()
+    setDateFrom(value)
+    setDatePreset('CUSTOM')
+  }
+
+  const handleDateToChange = (value) => {
+    pager.reset()
+    setDateTo(value)
+    setDatePreset('CUSTOM')
+  }
 
   const [selectedId, setSelectedId] = useState(null)
   const [showDetailModal, setShowDetailModal] = useState(false)
@@ -77,8 +124,7 @@ export function LapCashDrawer({ onExit }) {
       open_date: (row) => new Date(row.open_date || 0).getTime(),
       close_date: (row) => new Date(row.close_date || 0).getTime(),
       opening_balance: (row) => Number(row.opening_balance || 0),
-      cash_in_total: (row) => Number(row.cash_in_total || 0),
-      cash_out_total: (row) => Number(row.cash_out_total || 0),
+      
       theoretical_balance: (row) => Number(row.theoretical_balance || 0),
       difference: (row) => Number(row.difference || 0),
     },
@@ -88,12 +134,16 @@ export function LapCashDrawer({ onExit }) {
     setError('')
     setIsLoading(true)
 
+    const dateRange = getDateRange(datePreset)
+    const finalFrom = dateRange.from
+    const finalTo = dateRange.to
+
     try {
       const result = await getCashDrawers(token, {
         search: searchKeyword.trim() || undefined,
         status: statusFilter !== 'all' ? statusFilter : undefined,
-        date_from: dateFrom || undefined,
-        date_to: dateTo || undefined,
+        date_from: finalFrom || undefined,
+        date_to: finalTo || undefined,
         limit,
         offset,
       })
@@ -150,16 +200,6 @@ export function LapCashDrawer({ onExit }) {
     setStatusFilter(value)
   }
 
-  const handleDateFromChange = (value) => {
-    pager.reset()
-    setDateFrom(value)
-  }
-
-  const handleDateToChange = (value) => {
-    pager.reset()
-    setDateTo(value)
-  }
-
   const handleRowClick = (row) => {
     setSelectedId(row.id)
   }
@@ -195,8 +235,6 @@ export function LapCashDrawer({ onExit }) {
         { key: 'close_date', label: 'TGL TUTUP', formatter: (v) => formatDate(v) },
         { key: 'status', label: 'STATUS', align: 'text-center' },
         { key: 'opening_balance', label: 'SALDO AWAL', align: 'text-right', formatter: (v) => formatCurrency(v) },
-        { key: 'cash_in_total', label: 'CASH IN', align: 'text-right', formatter: (v) => formatCurrency(v) },
-        { key: 'cash_out_total', label: 'CASH OUT', align: 'text-right', formatter: (v) => formatCurrency(v) },
         { key: 'theoretical_balance', label: 'S. AKHIR', align: 'text-right', formatter: (v) => formatCurrency(v) },
         { key: 'difference', label: 'SELISIH', align: 'text-right', formatter: (v) => formatCurrency(v) },
         { key: 'cashier_name', label: 'KASIR' },
@@ -260,20 +298,26 @@ export function LapCashDrawer({ onExit }) {
             <option value="OPEN">OPEN</option>
             <option value="CLOSED">CLOSED</option>
           </select>
-          <input
-            type="date"
-            className="master-filter-input"
-            value={dateFrom}
-            onChange={(e) => handleDateFromChange(e.target.value)}
-            placeholder="Dari tanggal"
-          />
-          <input
-            type="date"
-            className="master-filter-input"
-            value={dateTo}
-            onChange={(e) => handleDateToChange(e.target.value)}
-            placeholder="Sampai tanggal"
-          />
+          <select
+            className="master-filter-select"
+            value={datePreset}
+            onChange={(e) => handleDatePresetChange(e.target.value)}
+          >
+            <option value="TODAY">TODAY</option>
+            <option value="THISMONTH">THIS MONTH</option>
+            <option value="THISYEAR">THIS YEAR</option>
+            <option value="CUSTOM">CUSTOM</option>
+            <option value="ALL">ALL DATA</option>
+          </select>
+          {datePreset === 'CUSTOM' && (
+            <input
+              type="date"
+              className="master-filter-input"
+              value={dateFrom}
+              onChange={(e) => handleDateFromChange(e.target.value)}
+              placeholder="Pilih tanggal"
+            />
+          )}
         </div>
       </div>
 
@@ -300,8 +344,6 @@ export function LapCashDrawer({ onExit }) {
                     </span>
                   </td>
                   <td className="text-right">{formatCurrency(row.opening_balance)}</td>
-                  <td className="text-right">{formatCurrency(row.cash_in_total)}</td>
-                  <td className="text-right">{formatCurrency(row.cash_out_total)}</td>
                   <td className="text-right">{formatCurrency(row.theoretical_balance)}</td>
                   <td className={`text-right ${Number(row.difference) !== 0 ? 'text-red' : ''}`}>
                     {formatCurrency(row.difference)}
@@ -312,7 +354,7 @@ export function LapCashDrawer({ onExit }) {
               ))}
               {!isLoading && sortedData.length === 0 && (
                 <tr>
-                  <td colSpan={11} className="text-center">No data</td>
+                  <td colSpan={9} className="text-center">No data</td>
                 </tr>
               )}
             </tbody>

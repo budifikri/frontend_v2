@@ -750,6 +750,35 @@ body.has-wallpaper .cash-register {
   min-width: 130px;
 }
 
+.master-header-filters input[type="date"],
+.master-header-filters input[type="text"],
+.master-header-filters input[type="number"] {
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  background: #fff;
+  color: #1f2937;
+  min-width: 140px;
+}
+
+.master-header-filters input[type="date"]:focus,
+.master-header-filters input[type="text"]:focus,
+.master-header-filters input[type="number"]:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.master-header-filters input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.5;
+}
+
+.master-header-filters input[type="date"]::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+}
+
 .master-header-filters .master-filter-wrap {
   display: flex;
   align-items: center;

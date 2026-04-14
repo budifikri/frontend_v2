@@ -34,6 +34,7 @@ function normalizeCashDrawerTransaction(raw, index) {
     reference: raw?.reference ?? raw?.no ?? raw?.document_number ?? '-',
     type: raw?.type ?? raw?.transaction_type ?? raw?.jenis ?? '-',
     amount: toNumber(raw?.amount ?? raw?.nominal ?? raw?.value ?? raw?.jumlah, 0),
+    balance_after: toNumber(raw?.balance_after ?? raw?.balanceAfter ?? 0),
     reason: raw?.reason ?? raw?.description ?? raw?.note ?? raw?.keterangan ?? '-',
     created_by: raw?.created_by ?? raw?.user ?? raw?.kasir ?? '-',
   }
@@ -175,8 +176,8 @@ export async function getCashDrawerSummary(token, drawerId) {
 
   const summaryData = raw.data || raw
   console.log('[LapCashDrawer API] summaryData:', summaryData)
-  console.log('[LapCashDrawer API] summaryData.Transactions:', summaryData.Transactions)
-  const rawTransactions = summaryData.Transactions || []
+  console.log('[LapCashDrawer API] summaryData.transactions:', summaryData.transactions)
+  const rawTransactions = summaryData.transactions || []
   console.log('[LapCashDrawer API] rawTransactions length:', rawTransactions.length)
   const transactions = rawTransactions.map((item, index) => {
     console.log('[LapCashDrawer API] transaction item:', index, item)

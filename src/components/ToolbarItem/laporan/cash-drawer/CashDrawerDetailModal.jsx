@@ -3,9 +3,9 @@ import { useEffect, useMemo, useState } from 'react'
 const TRANSACTION_COLUMNS = [
   { key: 'no', label: 'NO', width: '50px' },
   { key: 'date', label: 'TANGGAL', width: '140px' },
-  { key: 'reference', label: 'REFERENSI', width: '120px' },
   { key: 'type', label: 'JENIS', width: '100px' },
   { key: 'amount', label: 'NOMINAL', width: '120px' },
+  { key: 'balance_after', label: 'SALDO', width: '120px' },
   { key: 'reason', label: 'KETERANGAN' },
 ]
 
@@ -59,8 +59,11 @@ export function CashDrawerDetailModal({
   const [typeFilter, setTypeFilter] = useState('all')
 
   const filteredTransactions = useMemo(() => {
-    if (typeFilter === 'all') return allTransactions
-    return allTransactions.filter((t) => t.type === typeFilter)
+    let result = allTransactions
+    if (typeFilter !== 'all') {
+      result = result.filter((t) => t.type === typeFilter)
+    }
+    return result.sort((a, b) => new Date(a.date) - new Date(b.date))
   }, [allTransactions, typeFilter])
 
   const summaryTotals = useMemo(() => {
@@ -228,7 +231,6 @@ export function CashDrawerDetailModal({
                         <tr key={row.id || index} className={index % 2 === 0 ? 'row-even' : 'row-odd'}>
                           <td>{index + 1}</td>
                           <td>{formatDate(row.date)}</td>
-                          <td>{row.reference || '-'}</td>
                           <td>
                             <span className={`type-badge type-${row.type}`}>
                               {getTypeLabel(row.type)}
@@ -237,6 +239,7 @@ export function CashDrawerDetailModal({
                           <td className={`text-right ${Number(row.amount) < 0 ? 'text-red' : 'text-green'}`}>
                             {formatCurrency(row.amount)}
                           </td>
+                          <td className="text-right">{formatCurrency(row.balance_after)}</td>
                           <td>{row.reason || '-'}</td>
                         </tr>
                       ))

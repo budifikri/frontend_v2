@@ -148,6 +148,12 @@ export function Satuan({ onExit }) {
         if (e.key === 'Escape') {
           e.preventDefault()
           setShowForm(false)
+        } else if (e.ctrlKey && e.key === 'ArrowLeft') {
+          e.preventDefault()
+          handlePrevRecord()
+        } else if (e.ctrlKey && e.key === 'ArrowRight') {
+          e.preventDefault()
+          handleNextRecord()
         }
         return
       }
@@ -170,7 +176,7 @@ export function Satuan({ onExit }) {
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showForm, showDeleteConfirm, selectedId, data])
+  }, [showForm, showDeleteConfirm, selectedId, data, handlePrevRecord, handleNextRecord])
 
   async function handleSave() {
     if (!form.code || !form.name) return
@@ -591,8 +597,8 @@ export function Satuan({ onExit }) {
               isSaving={isSaving}
               onNext={handleNextRecord}
               onPrev={handlePrevRecord}
-              canNext={currentEditIndex !== null && currentEditIndex < sortedData.length - 1}
-              canPrev={currentEditIndex !== null && currentEditIndex > 0}
+              canNext={currentEditIndex !== null && sortedData.length > 1 && currentEditIndex < sortedData.length - 1}
+              canPrev={currentEditIndex !== null && sortedData.length > 1 && currentEditIndex > 0}
             />
           </div>
         </div>

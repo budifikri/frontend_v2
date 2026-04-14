@@ -12,8 +12,6 @@ const TABLE_COLUMNS = [
   { key: 'close_date', label: 'TANGGAL TUTUP' },
   { key: 'status', label: 'STATUS' },
   { key: 'opening_balance', label: 'SALDO AWAL' },
-  { key: 'cash_in_total', label: 'CASH IN' },
-  { key: 'cash_out_total', label: 'CASH OUT' },
   { key: 'theoretical_balance', label: 'SALDO AKHIR' },
   { key: 'difference', label: 'SELISIH' },
   { key: 'cashier_name', label: 'NAMA KASIR' },
@@ -75,8 +73,6 @@ export function LapCashDrawer({ onExit }) {
       open_date: (row) => new Date(row.open_date || 0).getTime(),
       close_date: (row) => new Date(row.close_date || 0).getTime(),
       opening_balance: (row) => Number(row.opening_balance || 0),
-      cash_in_total: (row) => Number(row.cash_in_total || 0),
-      cash_out_total: (row) => Number(row.cash_out_total || 0),
       theoretical_balance: (row) => Number(row.theoretical_balance || 0),
       difference: (row) => Number(row.difference || 0),
     },
@@ -248,8 +244,6 @@ export function LapCashDrawer({ onExit }) {
                     </span>
                   </td>
                   <td className="text-right">{formatCurrency(row.opening_balance)}</td>
-                  <td className="text-right">{formatCurrency(row.cash_in_total)}</td>
-                  <td className="text-right">{formatCurrency(row.cash_out_total)}</td>
                   <td className="text-right">{formatCurrency(row.theoretical_balance)}</td>
                   <td className={`text-right ${Number(row.difference) !== 0 ? 'text-red' : ''}`}>
                     {formatCurrency(row.difference)}
@@ -260,7 +254,7 @@ export function LapCashDrawer({ onExit }) {
               ))}
               {!isLoading && sortedData.length === 0 && (
                 <tr>
-                  <td colSpan={11} className="text-center">No data</td>
+                  <td colSpan={9} className="text-center">No data</td>
                 </tr>
               )}
             </tbody>
