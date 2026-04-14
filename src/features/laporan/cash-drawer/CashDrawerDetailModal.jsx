@@ -31,16 +31,31 @@ function formatDate(dateStr) {
   return `${day}-${month}-${year} ${hour}:${minute}`
 }
 
+const TYPE_MAPPING = {
+  'sale': 'SALE_IN',
+  'return': 'RETURN_OUT',
+  'cash_in': 'CASH_IN',
+  'cash_out': 'CASH_OUT',
+}
+
+const REVERSE_TYPE_MAPPING = {
+  'SALE_IN': 'sale',
+  'RETURN_OUT': 'return',
+  'CASH_IN': 'cash_in',
+  'CASH_OUT': 'cash_out',
+}
+
 function getTypeLabel(type) {
   const labels = {
-    sale: 'Penjualan',
-    return: 'Retur',
-    cash_in: 'Cash In',
-    cash_out: 'Cash Out',
+    SALE_IN: 'Penjualan',
+    RETURN_OUT: 'Retur',
+    CASH_IN: 'Cash In',
+    CASH_OUT: 'Cash Out',
+    SALE_OUT: 'Penjualan',
     purchase: 'Pembelian',
     purchase_return: 'Retur Beli',
   }
-  return labels[type?.toLowerCase()] || type || '-'
+  return labels[type?.toUpperCase()] || type || '-'
 }
 
 export function CashDrawerDetailModal({
@@ -51,14 +66,18 @@ export function CashDrawerDetailModal({
   error,
 }) {
   const drawer = data?.drawer
-  const allTransactions = data?.transactions || []
 
+  const [activeTab, setActiveTab] = useState('summary')
   const [typeFilter, setTypeFilter] = useState('all')
 
   const filteredTransactions = useMemo(() => {
-    if (typeFilter === 'all') return allTransactions
-    return allTransactions.filter((t) => t.type === typeFilter)
-  }, [allTransactions, typeFilter])
+    let result = data?.transactions || []
+    if (typeFilter !== 'all') {
+      const dbType = TYPE_MAPPING[typeFilter]
+      result = result.filter((t) => t.type === dbType)
+    }
+    return result.sort((a, b) => new Date(a.date) - new Date(b.date))
+  }, [data, typeFilter])
 
   const summaryTotals = useMemo(() => {
     const s = data?.summary || {}
@@ -97,18 +116,21 @@ export function CashDrawerDetailModal({
             <h2>Detail Cash Drawer</h2>
           </div>
           <div className="stock-card-header-right">
-            <div className="stock-card-filter">
-              <select
-                value={typeFilter}
-                onChange={(e) => setTypeFilter(e.target.value)}
-                className="form-select"
+            <div className="master-tab-buttons">
+              <button
+                type="button"
+                className={`master-tab-btn ${activeTab === 'summary' ? 'active' : ''}`}
+                onClick={() => setActiveTab('summary')}
               >
-                <option value="all">All Jenis</option>
-                <option value="sale">Penjualan</option>
-                <option value="return">Retur</option>
-                <option value="cash_in">Cash In</option>
-                <option value="cash_out">Cash Out</option>
-              </select>
+                Summary
+              </button>
+              <button
+                type="button"
+                className={`master-tab-btn ${activeTab === 'history' ? 'active' : ''}`}
+                onClick={() => setActiveTab('history')}
+              >
+                History
+              </button>
             </div>
           </div>
         </div>
@@ -130,121 +152,98 @@ export function CashDrawerDetailModal({
 
           {!isLoading && !error && (
             <>
-              {drawer && (
-                <div className="cash-drawer-summary">
-                  <div className="summary-row">
-                    <div className="summary-item">
-                      <span className="summary-label">ID</span>
-                      <span className="summary-value">{drawer.id || drawer.drawer_id || '-'}</span>
-                    </div>
-                    <div className="summary-item">
-                      <span className="summary-label">Tanggal Buka</span>
-                      <span className="summary-value">{formatDate(drawer.open_date)}</span>
-                    </div>
-                    <div className="summary-item">
-                      <span className="summary-label">Tanggal Tutup</span>
-                      <span className="summary-value">{drawer.close_date ? formatDate(drawer.close_date) : '-'}</span>
-                    </div>
-                    <div className="summary-item">
-                      <span className="summary-label">Status</span>
-                      <span className={`summary-value status-badge status-${drawer.status}`}>
-                        {drawer.status}
-                      </span>
-                    </div>
+              {activeTab === 'summary' && drawer && (
+                <div className="cash-drawer-summary-simple">
+                  <div className="summary-simple-row">
+                    <span className="summary-simple-label">Saldo Awal</span>
+                    <span className="summary-simple-value">{formatCurrency(drawer.opening_balance)}</span>
                   </div>
-
-                  <div className="summary-row">
-                    <div className="summary-item">
-                      <span className="summary-label">Saldo Awal</span>
-                      <span className="summary-value">{formatCurrency(drawer.opening_balance)}</span>
-                    </div>
-                    <div className="summary-item">
-                      <span className="summary-label">Total Penjualan</span>
-                      <span className="summary-value text-green">{formatCurrency(summaryTotals.total_sales)}</span>
-                    </div>
-                    <div className="summary-item">
-                      <span className="summary-label">Total Retur</span>
-                      <span className="summary-value text-red">{formatCurrency(summaryTotals.total_returns)}</span>
-                    </div>
-                    <div className="summary-item">
-                      <span className="summary-label">Total Cash In</span>
-                      <span className="summary-value text-blue">{formatCurrency(summaryTotals.total_cash_in)}</span>
-                    </div>
+                  <div className="summary-simple-row">
+                    <span className="summary-simple-label">Total Penjualan</span>
+                    <span className="summary-simple-value text-green">{formatCurrency(summaryTotals.total_sales)}</span>
                   </div>
-
-                  <div className="summary-row">
-                    <div className="summary-item">
-                      <span className="summary-label">Total Cash Out</span>
-                      <span className="summary-value text-orange">{formatCurrency(summaryTotals.total_cash_out)}</span>
-                    </div>
-                    <div className="summary-item">
-                      <span className="summary-label">Saldo Akhir (Teori)</span>
-                      <span className="summary-value">{formatCurrency(drawer.theoretical_balance)}</span>
-                    </div>
-                    <div className="summary-item">
-                      <span className="summary-label">Saldo Aktual</span>
-                      <span className="summary-value">{formatCurrency(drawer.actual_balance)}</span>
-                    </div>
-                    <div className="summary-item">
-                      <span className="summary-label">Selisih</span>
-                      <span className={`summary-value ${Number(drawer.difference) !== 0 ? 'text-red' : ''}`}>
-                        {formatCurrency(drawer.difference)}
-                      </span>
-                    </div>
+                  <div className="summary-simple-row">
+                    <span className="summary-simple-label">Total Retur</span>
+                    <span className="summary-simple-value text-red">{formatCurrency(summaryTotals.total_returns)}</span>
                   </div>
-
-                  <div className="summary-row">
-                    <div className="summary-item">
-                      <span className="summary-label">Kasir Buka</span>
-                      <span className="summary-value">{drawer.opened_by || '-'}</span>
-                    </div>
-                    <div className="summary-item">
-                      <span className="summary-label">Kasir Tutup</span>
-                      <span className="summary-value">{drawer.closed_by || '-'}</span>
-                    </div>
-                    <div className="summary-item summary-full">
-                      <span className="summary-label">Catatan</span>
-                      <span className="summary-value">{drawer.notes || '-'}</span>
-                    </div>
+                  <div className="summary-simple-row">
+                    <span className="summary-simple-label">Total Cash In</span>
+                    <span className="summary-simple-value text-blue">{formatCurrency(summaryTotals.total_cash_in)}</span>
+                  </div>
+                  <div className="summary-simple-row">
+                    <span className="summary-simple-label">Total Cash Out</span>
+                    <span className="summary-simple-value text-orange">{formatCurrency(summaryTotals.total_cash_out)}</span>
+                  </div>
+                  <div className="summary-simple-row">
+                    <span className="summary-simple-label">Saldo Akhir (Teori)</span>
+                    <span className="summary-simple-value">{formatCurrency(drawer.theoretical_balance)}</span>
+                  </div>
+                  <div className="summary-simple-row">
+                    <span className="summary-simple-label">Saldo Aktual</span>
+                    <span className="summary-simple-value">{formatCurrency(drawer.actual_balance)}</span>
+                  </div>
+                  <div className="summary-simple-row">
+                    <span className="summary-simple-label">Selisih</span>
+                    <span className={`summary-simple-value ${Number(drawer.difference) !== 0 ? 'text-red' : ''}`}>
+                      {formatCurrency(drawer.difference)}
+                    </span>
                   </div>
                 </div>
               )}
 
-              <div className="master-table-container">
-                <table className="master-table">
-                  <thead>
-                    <tr>
-                      {TRANSACTION_COLUMNS.map((col) => (
-                        <th key={col.key} style={col.width ? { width: col.width } : {}}>{col.label}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredTransactions.length > 0 ? (
-                      filteredTransactions.map((row, index) => (
-                        <tr key={row.id || index} className={index % 2 === 0 ? 'row-even' : 'row-odd'}>
-                          <td>{index + 1}</td>
-                          <td>{formatDate(row.date)}</td>
-                          <td>{row.reference || '-'}</td>
-                          <td>
-                            <span className={`type-badge type-${row.type}`}>
-                              {getTypeLabel(row.type)}
-                            </span>
-                          </td>
-                          <td className={`text-right ${Number(row.amount) < 0 ? 'text-red' : 'text-green'}`}>
-                            {formatCurrency(row.amount)}
-                          </td>
-                          <td>{row.reason || '-'}</td>
+              {activeTab === 'history' && (
+                <>
+                  <div className="stock-card-filter-bar">
+                    <select
+                      value={typeFilter}
+                      onChange={(e) => setTypeFilter(e.target.value)}
+                      className="form-select"
+                    >
+                      <option value="all">Semua</option>
+                      <option value="sale">Penjualan</option>
+                      <option value="return">Retur</option>
+                      <option value="cash_in">Cash In</option>
+                      <option value="cash_out">Cash Out</option>
+                    </select>
+                  </div>
+
+                  <div className="master-table-container">
+                    <table className="master-table">
+                      <thead>
+                        <tr>
+                          {TRANSACTION_COLUMNS.map((col) => (
+                            <th key={col.key} style={col.width ? { width: col.width } : {}}>{col.label}</th>
+                          ))}
                         </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td colSpan={6} className="text-center">No data</td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
+                      </thead>
+                      <tbody>
+                        {filteredTransactions.length > 0 ? (
+                          filteredTransactions.map((row, index) => (
+                            <tr key={row.id || index} className={index % 2 === 0 ? 'row-even' : 'row-odd'}>
+                              <td>{index + 1}</td>
+                              <td>{formatDate(row.date)}</td>
+                              <td>{row.reference || '-'}</td>
+                              <td>
+                                <span className={`type-badge type-${row.type}`}>
+                                  {getTypeLabel(row.type)}
+                                </span>
+                              </td>
+                              <td className={`text-right ${Number(row.amount) < 0 ? 'text-red' : 'text-green'}`}>
+                                {formatCurrency(row.amount)}
+                              </td>
+                              <td>{row.reason || '-'}</td>
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <td colSpan={6} className="text-center">No data</td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              )}
             </>
           )}
         </div>
@@ -259,7 +258,9 @@ export function CashDrawerDetailModal({
             </button>
           </div>
           <div className="stock-card-footer-right">
-            <span className="stock-card-total-row">Total Row: {filteredTransactions.length}</span>
+            {activeTab === 'history' && (
+              <span className="stock-card-total-row">Total Row: {filteredTransactions.length}</span>
+            )}
           </div>
         </div>
       </div>
