@@ -104,6 +104,8 @@ export async function getCashDrawers(token, params = {}) {
   const qs = new URLSearchParams()
   const dateFrom = params.date_from?.trim?.()
   const dateTo = params.date_to?.trim?.()
+  console.log('[LapCashDrawer API] getCashDrawers - date_from:', dateFrom)
+  console.log('[LapCashDrawer API] getCashDrawers - date_to:', dateTo)
   if (dateFrom) qs.set('date_from', dateFrom)
   if (dateTo) qs.set('date_to', dateTo)
   if (params.status) qs.set('status', String(params.status).toUpperCase())

@@ -103,12 +103,6 @@ export function LapCashDrawer({ onExit }) {
     setDatePreset('CUSTOM')
   }
 
-  const handleDateToChange = (value) => {
-    pager.reset()
-    setDateTo(value)
-    setDatePreset('CUSTOM')
-  }
-
   const [selectedId, setSelectedId] = useState(null)
   const [showDetailModal, setShowDetailModal] = useState(false)
   const [detailData, setDetailData] = useState(null)
@@ -137,6 +131,10 @@ export function LapCashDrawer({ onExit }) {
     const dateRange = getDateRange(datePreset)
     const finalFrom = dateRange.from
     const finalTo = dateRange.to
+
+    console.log('[LapCashDrawer] fetchData - datePreset:', datePreset)
+    console.log('[LapCashDrawer] fetchData - finalFrom:', finalFrom)
+    console.log('[LapCashDrawer] fetchData - finalTo:', finalTo)
 
     try {
       const result = await getCashDrawers(token, {
