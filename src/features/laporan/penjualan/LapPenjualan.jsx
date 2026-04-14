@@ -43,14 +43,7 @@ function formatDate(dateStr) {
 }
 
 function getStatusLabel(status) {
-  const labels = {
-    OPEN: 'Open',
-    COMPLETED: 'Selesai',
-    VOID: 'Batal',
-    HOLD: 'Tunda',
-    DONE: 'Selesai',
-  }
-  return labels[status] || status || '-'
+  return status || '-'
 }
 
 const DATE_PRESETS = [
@@ -310,10 +303,11 @@ export function LapPenjualan({ onExit }) {
                 value={filters.status}
                 onChange={(e) => handleFilterChange('status', e.target.value)}
               >
-                <option value="all">Semua</option>
-                <option value="COMPLETED">Selesai</option>
-                <option value="VOID">Batal</option>
-                <option value="HOLD">Tunda</option>
+                <option value="all">ALL</option>
+                <option value="PENDING">PENDING</option>
+                <option value="DONE">DONE</option>
+                <option value="CANCELLED">CANCELLED</option>
+                <option value="REFUNDED">REFUNDED</option>
               </select>
             </div>
 
