@@ -123,9 +123,9 @@ export function LapPenjualan({ onExit }) {
     search: '',
   })
 
-  const pager = useMasterPagination({ initialLimit: 10, total: 0 })
-  const { limit, offset, setOffset, goFirst, goPrev, goNext, goLast, page, totalPages, canPrev, canNext } = pager
   const [pagination, setPagination] = useState({ total: 0, hasMore: false })
+  const pager = useMasterPagination({ initialLimit: 10, total: pagination.total, hasMore: pagination.hasMore })
+  const { limit, offset, setOffset, goFirst, goPrev, goNext, goLast, page, totalPages, canPrev, canNext } = pager
   const { sortConfig, sortedData, handleSort } = useMasterTableSort(sales, {
     initialKey: 'created_at',
     direction: 'desc',
@@ -169,12 +169,29 @@ export function LapPenjualan({ onExit }) {
     const result = await listSales({ ...f, limit, offset }, token)
 
     if (result.success) {
-      const salesData = result.data || []
+      const salesData = Array.isArray(result.data)
+        ? result.data
+        : (result.items || result.data?.items || result.data?.data || [])
+      const responsePagination = result.pagination || result.data?.pagination || {}
+      const total = Number(
+        result.total
+        ?? responsePagination.total
+        ?? result.data?.total
+        ?? salesData.length
+        ?? 0,
+      )
+      const hasMore = Boolean(
+        responsePagination.has_more
+        ?? responsePagination.hasMore
+        ?? (total > offset + limit),
+      )
+
       setSales(salesData)
-      setPagination({ total: result.total || salesData.length || 0, hasMore: (result.total || salesData.length) > offset + limit })
+      setPagination({ total, hasMore })
     } else {
       setError(result.message || 'Failed to fetch sales')
       setSales([])
+      setPagination({ total: 0, hasMore: false })
     }
     setIsLoading(false)
   }, [buildFilters, limit, offset, token])
@@ -221,7 +238,6 @@ export function LapPenjualan({ onExit }) {
   const handleFilterChange = (key, value) => {
     setFilters((f) => ({ ...f, [key]: value }))
     setOffset(0)
-    fetchData()
   }
 
   const handleRowClick = (sale) => {
