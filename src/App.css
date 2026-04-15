@@ -541,7 +541,8 @@
   width: 100%;
   min-width: 64px;
   height: 40px;
-  border: 1px solid transparent;
+  border: none;
+  outline: none;
   border-radius: 4px;
   background: transparent;
   color: #334155;
@@ -552,6 +553,7 @@
   gap: 8px;
   font-size: 12px;
   font-weight: 500;
+  font-family: inherit;
 }
 
 .toolbar-popup-item .icon {

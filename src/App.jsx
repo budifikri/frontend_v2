@@ -15,7 +15,7 @@ import { login } from './features/auth/login.api'
 import { applyTitlebarColors, applyWallpaper } from './utils/colorHelper'
 import { resolveShortcutTool } from './utils/shortcutHelper'
 
-const IMPLEMENTED_TOOLS = new Set(['warehouse', 'satuan', 'categori', 'product', 'customer', 'supplier', 'company', 'theme', 'user', 'lapstok', 'laphargagrosir', 'lapjual', 'lapbeli', 'opname', 'beli', 'receive', 'retur', 'promotion', 'lapcashdrawer', 'report_setting', 'laplabarugi', 'lappengeluaran'])
+const IMPLEMENTED_TOOLS = new Set(['warehouse', 'satuan', 'categori', 'product', 'customer', 'supplier', 'company', 'theme', 'user', 'lapstok', 'laphargagrosir', 'lapjual', 'lapbeli', 'opname', 'beli', 'receive', 'retur', 'promotion', 'lapcashdrawer', 'report_setting'])
 
 function AppContent() {
   const { auth, setAuth, clearAuth } = useAuth()
@@ -154,8 +154,12 @@ function AppContent() {
     setActiveTool(null)
   }
 
-  const handleToolClick = (toolKey) => {
-    activateTool(toolKey, toolKey)
+  const handleToolClick = (toolKey, label) => {
+    if (!IMPLEMENTED_TOOLS.has(toolKey)) {
+      window.alert(`${label || toolKey} masih dalam pengembangan`)
+      return
+    }
+    activateTool(toolKey, label || toolKey)
   }
 
   const handleExit = () => {

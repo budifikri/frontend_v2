@@ -31,8 +31,8 @@ export function DashboardToolbar({ activeMenu, onLoginClick, onToolClick, shortc
     setOpenPopupKey(openPopupKey === key ? null : key)
   }
 
-  const handleSubItemClick = (subKey) => {
-    onToolClick?.(subKey)
+  const handleSubItemClick = (subKey, subLabel) => {
+    window.alert(`${subLabel || subKey} masih dalam pengembangan`)
     setOpenPopupKey(null)
   }
 
@@ -101,7 +101,7 @@ export function DashboardToolbar({ activeMenu, onLoginClick, onToolClick, shortc
                 key={sub.key}
                 type="button"
                 className="toolbar-popup-item"
-                onClick={() => handleSubItemClick(sub.key)}
+                onClick={() => handleSubItemClick(sub.key, sub.label)}
               >
                 <span className={`icon tone-${sub.tone}`}>{sub.mark}</span>
                 <span>{sub.label}</span>
