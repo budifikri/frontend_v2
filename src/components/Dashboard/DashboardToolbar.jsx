@@ -7,6 +7,7 @@ export function DashboardToolbar({ activeMenu, onLoginClick, onToolClick, shortc
   const [popupPosition, setPopupPosition] = useState({ top: 0, left: 0 })
   const popupButtonRef = useRef(null)
   const dropdownRef = useRef(null)
+  const popupMenuRef = useRef(null)
 
   useEffect(() => {
     if (shortcutPopupKey) {
@@ -32,14 +33,14 @@ export function DashboardToolbar({ activeMenu, onLoginClick, onToolClick, shortc
   }
 
   const handleSubItemClick = (subKey, subLabel) => {
-    window.alert(`${subLabel || subKey} masih dalam pengembangan`)
+    onToolClick?.(subKey, subLabel)
     setOpenPopupKey(null)
   }
 
   const handleClickOutside = (e) => {
-    if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
-      setOpenPopupKey(null)
-    }
+    const isInsideButton = dropdownRef.current?.contains(e.target)
+    const isInsidePopup = popupMenuRef.current?.contains(e.target)
+    if (!isInsideButton && !isInsidePopup) setOpenPopupKey(null)
   }
 
   useEffect(() => {
@@ -87,6 +88,7 @@ export function DashboardToolbar({ activeMenu, onLoginClick, onToolClick, shortc
       })}
       {openPopupKey && (
         <div
+          ref={popupMenuRef}
           className="toolbar-popup-dropdown-inline"
           style={{
             position: 'fixed',

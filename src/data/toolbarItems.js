@@ -36,8 +36,14 @@ export const toolbarItems = {
     { key: 'laphargagrosir', label: 'Lap. Harga Grosir', mark: 'G', tone: 'blue' },
     
     { key: 'divider-2', divider: true },
+    { key: 'penjualan', label: 'Penjualan', mark: 'J', tone: 'blue', isPopup: true, subItems: [
+      { key: 'lapjual', label: 'Detail Penjualan', mark: 'D', tone: 'blue' },
+      { key: 'lapcashdrawer', label: 'Lap. Cash Drawer', mark: 'D', tone: 'orange' },
+      ]
     
-    { key: 'lapjual', label: 'Lap. Penjualan', mark: 'J', tone: 'blue' },
+     },
+    
+  
     { key: 'lapbeli', label: 'Lap. Pembelian', mark: 'B', tone: 'orange' },
     { key: 'lapstok', label: 'Lap. Stok', mark: 'S', tone: 'green' },
     { key: 'keuangan', label: 'Keuangan', mark: 'K', tone: 'amber', isPopup: true, subItems: [
@@ -45,7 +51,7 @@ export const toolbarItems = {
       { key: 'lappengeluaran', label: 'Laporan Pengeluaran', mark: 'P', tone: 'orange' },
     ] },
     { key: 'divider-3', divider: true },
-    { key: 'lapcashdrawer', label: 'Lap. Cash Drawer', mark: 'D', tone: 'teal' },
+ 
   ],
   setting: [
     { key: 'logout', label: 'Logout', mark: 'L', tone: 'slate', backToLogin: true },

@@ -506,6 +506,10 @@
   background: linear-gradient(180deg, #f87171, #dc2626);
 }
 
+.toolbar-item .icon.tone-purple {
+  background: linear-gradient(180deg, #a855f7, #7c3aed);
+}
+
 .toolbar-popup-container {
   position: relative;
 }
@@ -583,6 +587,10 @@
 
 .toolbar-popup-item .icon.tone-amber {
   background: linear-gradient(180deg, #fbbf24, #d97706);
+}
+
+.toolbar-popup-item .icon.tone-purple {
+  background: linear-gradient(180deg, #a855f7, #7c3aed);
 }
 
 .toolbar-popup-item:hover {
