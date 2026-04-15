@@ -397,14 +397,6 @@ export function LapStock({ onExit }) {
             <option value="minus">Stock Minus</option>
             <option value="empty">Stock Empty</option>
           </select>
-          <label className="checkbox-all-records">
-            <input
-              type="checkbox"
-              checked={pager.isAllRecords}
-              onChange={(e) => pager.toggleAllRecords(e.target.checked)}
-            />
-            <span>All Records</span>
-          </label>
         </div>
       </div>
 
@@ -461,15 +453,25 @@ export function LapStock({ onExit }) {
         </div>
 
         <div className="master-footer-info">
+          <label className="checkbox-all-records">
+            <input
+              type="checkbox"
+              checked={pager.isAllRecords}
+              onChange={(e) => pager.toggleAllRecords(e.target.checked)}
+            />
+            <span>All Records</span>
+          </label>
+          <span className="footer-divider">|</span>
           <span className="report-total-row">Total Row: {pagination.total}</span>
-          <div className="master-footer-pagination" style={{ visibility: pager.isAllRecords ? 'hidden' : 'visible' }}>
-            <button type="button" className="master-page-btn" onClick={pager.goFirst} disabled={!pager.canPrev}>|&lt;</button>
-            <button type="button" className="master-page-btn" onClick={pager.goPrev} disabled={!pager.canPrev}>&lt;</button>
-            <span className="master-page-info">Page {pager.page} of {pager.totalPages}</span>
-            <button type="button" className="master-page-btn" onClick={pager.goNext} disabled={!pager.canNext}>&gt;</button>
-            <button type="button" className="master-page-btn" onClick={pager.goLast} disabled={!pager.canNext}>&gt;|</button>
-          </div>
-        
+          {!pager.isAllRecords && (
+            <div className="master-footer-pagination">
+              <button type="button" className="master-page-btn" onClick={pager.goFirst} disabled={!pager.canPrev}>|&lt;</button>
+              <button type="button" className="master-page-btn" onClick={pager.goPrev} disabled={!pager.canPrev}>&lt;</button>
+              <span className="master-page-info">Page {pager.page} of {pager.totalPages}</span>
+              <button type="button" className="master-page-btn" onClick={pager.goNext} disabled={!pager.canNext}>&gt;</button>
+              <button type="button" className="master-page-btn" onClick={pager.goLast} disabled={!pager.canNext}>&gt;|</button>
+            </div>
+          )}
         </div>
       </div>
 
