@@ -9,6 +9,23 @@ export function buildShortcutMap(menuKey) {
 
     const markKey = String(item.mark).toLowerCase()
 
+    if (item.isPopup && item.subItems?.length > 0) {
+      if (shortcutMap.has(markKey)) {
+        const existing = shortcutMap.get(markKey)
+        console.warn(
+          `Duplicate shortcut '${markKey.toUpperCase()}' in menu '${menuKey}': '${existing.key}' and '${item.key}'. Keeping first one.`
+        )
+        return
+      }
+      shortcutMap.set(markKey, {
+        key: item.key,
+        label: item.label || item.key,
+        isPopup: true,
+        subItems: item.subItems,
+      })
+      return
+    }
+
     if (shortcutMap.has(markKey)) {
       const existing = shortcutMap.get(markKey)
       console.warn(

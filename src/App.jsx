@@ -26,6 +26,7 @@ function AppContent() {
   const [password, setPassword] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
+  const [shortcutPopupKey, setShortcutPopupKey] = useState(null)
 
   const activateTool = useCallback((toolKey, label = toolKey) => {
     if (!toolKey) return
@@ -86,7 +87,17 @@ function AppContent() {
       const shortcutTool = resolveShortcutTool(activeMenu, key)
       if (shortcutTool?.key) {
         event.preventDefault()
-        activateTool(shortcutTool.key, shortcutTool.label)
+        if (shortcutTool.isPopup && shortcutTool.subItems?.length > 0) {
+          setShortcutPopupKey(shortcutTool.key)
+          setTimeout(() => setShortcutPopupKey(null), 100)
+        } else if (!IMPLEMENTED_TOOLS.has(shortcutTool.key)) {
+          window.alert(`${shortcutTool.label} masih dalam pengembangan`)
+        } else {
+          activateTool(shortcutTool.key, shortcutTool.label)
+        }
+      } else if (key) {
+        event.preventDefault()
+        window.alert(`Menu dengan shortcut '${key.toUpperCase()}' tidak ada`)
       }
     }
 
@@ -164,6 +175,7 @@ function AppContent() {
             activeMenu={activeMenu}
             onLoginClick={handleLogout}
             onToolClick={handleToolClick}
+            shortcutPopupKey={shortcutPopupKey}
           />
           <DashboardCanvas activeTool={activeTool} onExit={handleExit} />
         </section>

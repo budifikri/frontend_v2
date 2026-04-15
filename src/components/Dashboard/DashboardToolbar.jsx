@@ -1,12 +1,21 @@
 import { useState, useRef, useEffect } from 'react'
 import { toolbarItems } from '../../data'
 
-export function DashboardToolbar({ activeMenu, onLoginClick, onToolClick }) {
+export function DashboardToolbar({ activeMenu, onLoginClick, onToolClick, shortcutPopupKey }) {
   const items = toolbarItems[activeMenu] || toolbarItems.master
   const [openPopupKey, setOpenPopupKey] = useState(null)
   const [popupPosition, setPopupPosition] = useState({ top: 0, left: 0 })
   const popupButtonRef = useRef(null)
   const dropdownRef = useRef(null)
+
+  useEffect(() => {
+    if (shortcutPopupKey) {
+      const popupItem = items.find((t) => t.isPopup && t.key === shortcutPopupKey)
+      if (popupItem) {
+        setOpenPopupKey(shortcutPopupKey)
+      }
+    }
+  }, [shortcutPopupKey, items])
 
   useEffect(() => {
     if (openPopupKey && popupButtonRef.current) {
@@ -54,9 +63,11 @@ export function DashboardToolbar({ activeMenu, onLoginClick, onToolClick }) {
                 ref={popupButtonRef}
                 onClick={() => handlePopupClick(tool.key)}
               >
-                <span className={`icon tone-${tool.tone}`}>{tool.mark}</span>
+                <span className={`icon tone-${tool.tone}`}>
+                  {tool.mark}
+                  <span className="toolbar-popdown-icon">▼</span>
+                </span>
                 <span>{tool.label}</span>
-                <span className="material-icons-round toolbar-popup-arrow">expand_less</span>
               </button>
             </div>
           )
