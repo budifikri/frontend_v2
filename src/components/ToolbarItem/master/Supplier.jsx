@@ -257,6 +257,10 @@ export function Supplier({ onExit }) {
     setIsActiveFilter(value)
   }
 
+  function handleToggleAllRecords(value) {
+    pager.toggleAllRecords(value)
+  }
+
   async function handleSave() {
     if (!form.name) return
 
@@ -771,6 +775,8 @@ export function Supplier({ onExit }) {
         onExportExcel={handleExportExcel}
         onImportExcel={handleImportExcel}
         onGenerateTemplate={handleGenerateTemplate}
+        isAllRecords={pager.isAllRecords}
+        onToggleAllRecords={handleToggleAllRecords}
       />
 
       {showDeleteConfirm && (

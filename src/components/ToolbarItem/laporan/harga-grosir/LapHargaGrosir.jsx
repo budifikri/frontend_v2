@@ -237,6 +237,14 @@ export function LapHargaGrosir({ onExit }) {
               <option key={item.id} value={item.id}>{item.name}</option>
             ))}
           </select>
+          <label className="checkbox-all-records">
+            <input
+              type="checkbox"
+              checked={pager.isAllRecords}
+              onChange={(e) => pager.toggleAllRecords(e.target.checked)}
+            />
+            <span>All Records</span>
+          </label>
         </div>
       </div>
 
@@ -293,7 +301,7 @@ export function LapHargaGrosir({ onExit }) {
 
         <div className="master-footer-info">
           <span className="report-total-row">Total Row: {pagination.total}</span>
-          <div className="master-footer-pagination">
+          <div className="master-footer-pagination" style={{ visibility: pager.isAllRecords ? 'hidden' : 'visible' }}>
             <button type="button" className="master-page-btn" onClick={pager.goFirst} disabled={!pager.canPrev}>|&lt;</button>
             <button type="button" className="master-page-btn" onClick={pager.goPrev} disabled={!pager.canPrev}>&lt;</button>
             <span className="master-page-info">Page {pager.page} of {pager.totalPages}</span>

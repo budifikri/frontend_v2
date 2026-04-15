@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useAuth } from '../../../shared/auth'
 import { listCategories } from '../../../features/master/category/category.api'
 import { listUnits } from '../../../features/master/unit/unit.api'
@@ -309,6 +309,27 @@ export function Product({ onExit }) {
     },
   })
 
+  const tableContainerRef = useRef(null)
+  const [scrollTop, setScrollTop] = useState(0)
+
+  const ROW_HEIGHT = 40
+  const VISIBLE_ROWS = 20
+
+  const virtualOffset = useMemo(() => {
+    return Math.floor(scrollTop / ROW_HEIGHT)
+  }, [scrollTop])
+
+  const visibleRows = useMemo(() => {
+    if (!sortedData || sortedData.length === 0) return []
+    const start = virtualOffset
+    const end = Math.min(start + VISIBLE_ROWS + 2, sortedData.length)
+    return sortedData.slice(start, end)
+  }, [sortedData, virtualOffset])
+
+  const handleScroll = useCallback((e) => {
+    setScrollTop(e.target.scrollTop)
+  }, [])
+
   const variance = useMemo(() => {
     return adjustForm.physical_stock - adjustForm.system_stock
   }, [adjustForm.physical_stock, adjustForm.system_stock])
@@ -404,6 +425,10 @@ export function Product({ onExit }) {
   function handleStatusFilter(value) {
     pager.reset()
     setIsActiveFilter(value)
+  }
+
+  function handleToggleAllRecords(value) {
+    pager.toggleAllRecords(value)
   }
 
   function validatePriceTiers(tiers, retailPrice) {
@@ -982,41 +1007,82 @@ export function Product({ onExit }) {
 
       <div className="master-table-wrapper">
         <div className="master-table-container">
-          <table className="master-table">
-            <MasterTableHeader columns={TABLE_COLUMNS} sortConfig={sortConfig} onSort={handleSort} />
-            <tbody>
-              {sortedData.map((row, index) => (
-                <tr
-                  key={row.id || index}
-                  className={selectedId === row.id ? 'master-row-selected' : 'master-row'}
-                  onClick={() => handleSelect(row)}
-                  onDoubleClick={() => handleEdit()}
-                >
-                  <td>{offset + index + 1}</td>
-                  <td>{row.sku || '-'}</td>
-                  <td>{row.name || '-'}</td>
-                  <td>{row.category?.name || row.categoryName || categoryNameById.get(String(row.category_id || '')) || '-'}</td>
-                  <td>{row.unit?.name || row.unitName || unitNameById.get(String(row.unit_id || '')) || '-'}</td>
-                  <td>{Number(row.retail_price || 0).toLocaleString()}</td>
-                  <td>
-                    <MasterStatusToggle
-                      active={isActiveProduct(row)}
-                      loading={togglingId === row.id}
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        handleToggleStatus(row)
-                      }}
-                    />
-                  </td>
-                </tr>
-              ))}
-              {!isLoading && sortedData.length === 0 && (
-                <tr>
-                  <td colSpan={7} className="text-center">No data</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+          {pager.isAllRecords && sortedData.length > 100 ? (
+            <div 
+              className="virtual-table-container" 
+              ref={tableContainerRef} 
+              onScroll={handleScroll} 
+              style={{ overflow: 'auto', maxHeight: '60vh' }}
+            >
+              <table className="master-table">
+                <MasterTableHeader columns={TABLE_COLUMNS} sortConfig={sortConfig} onSort={handleSort} />
+                <tbody style={{ display: 'block', height: `${sortedData.length * ROW_HEIGHT}px`, position: 'relative' }}>
+                  {visibleRows.map((row, index) => (
+                    <tr
+                      key={row.id || index}
+                      style={{ position: 'absolute', top: `${(virtualOffset + index) * ROW_HEIGHT}px`, height: `${ROW_HEIGHT}px`, display: 'table', width: '100%', tableLayout: 'fixed' }}
+                      className={selectedId === row.id ? 'master-row-selected' : 'master-row'}
+                      onClick={() => handleSelect(row)}
+                      onDoubleClick={() => handleEdit()}
+                    >
+                      <td>{virtualOffset + index + 1}</td>
+                      <td>{row.sku || '-'}</td>
+                      <td>{row.name || '-'}</td>
+                      <td>{row.category?.name || row.categoryName || categoryNameById.get(String(row.category_id || '')) || '-'}</td>
+                      <td>{row.unit?.name || row.unitName || unitNameById.get(String(row.unit_id || '')) || '-'}</td>
+                      <td>{Number(row.retail_price || 0).toLocaleString()}</td>
+                      <td>
+                        <MasterStatusToggle
+                          active={isActiveProduct(row)}
+                          loading={togglingId === row.id}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleToggleStatus(row)
+                          }}
+                        />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <table className="master-table">
+              <MasterTableHeader columns={TABLE_COLUMNS} sortConfig={sortConfig} onSort={handleSort} />
+              <tbody>
+                {sortedData.map((row, index) => (
+                  <tr
+                    key={row.id || index}
+                    className={selectedId === row.id ? 'master-row-selected' : 'master-row'}
+                    onClick={() => handleSelect(row)}
+                    onDoubleClick={() => handleEdit()}
+                  >
+                    <td>{offset + index + 1}</td>
+                    <td>{row.sku || '-'}</td>
+                    <td>{row.name || '-'}</td>
+                    <td>{row.category?.name || row.categoryName || categoryNameById.get(String(row.category_id || '')) || '-'}</td>
+                    <td>{row.unit?.name || row.unitName || unitNameById.get(String(row.unit_id || '')) || '-'}</td>
+                    <td>{Number(row.retail_price || 0).toLocaleString()}</td>
+                    <td>
+                      <MasterStatusToggle
+                        active={isActiveProduct(row)}
+                        loading={togglingId === row.id}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleToggleStatus(row)
+                        }}
+                      />
+                    </td>
+                  </tr>
+                ))}
+                {!isLoading && sortedData.length === 0 && (
+                  <tr>
+                    <td colSpan={7} className="text-center">No data</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          )}
         </div>
       </div>
 
@@ -1328,6 +1394,8 @@ export function Product({ onExit }) {
         onExportExcel={handleExportExcel}
         onImportExcel={handleImportExcel}
         onGenerateTemplate={handleGenerateTemplate}
+        isAllRecords={pager.isAllRecords}
+        onToggleAllRecords={handleToggleAllRecords}
       />
 
       {showDeleteConfirm && (

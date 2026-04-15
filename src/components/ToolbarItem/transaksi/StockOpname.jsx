@@ -436,6 +436,17 @@ export function StockOpname({ onExit }) {
               <option value="rejected">Rejected</option>
             </select>
           </div>
+
+          <div className="master-filter-wrap">
+            <label className="checkbox-all-records">
+              <input
+                type="checkbox"
+                checked={pager.isAllRecords}
+                onChange={(e) => pager.toggleAllRecords(e.target.checked)}
+              />
+              <span>All Records</span>
+            </label>
+          </div>
         </div>
       </div>
 
@@ -566,6 +577,8 @@ export function StockOpname({ onExit }) {
         onPrevPage={pager.goPrev}
         onNextPage={pager.goNext}
         onLastPage={pager.goLast}
+        isAllRecords={pager.isAllRecords}
+        onToggleAllRecords={pager.toggleAllRecords}
       />
 
       {showDeleteConfirm && (

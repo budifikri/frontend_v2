@@ -4,13 +4,12 @@
 - perbaikan cetak laporan, fungsi print sepertinya cuman dari screenshoot data 
 - perbaikan sequence no nota penjualan yang acak, seharusnya urut
 ## TODO
-- penambahan fitur next record saat ubah data
+
 - Backup
 - Restore
 - simpan setting cetak (font, format layout) ke database 
 - connect telegram
-- laporan jual
-- laporan cash drawer / closing
+
 - laporan pembelian
 - pembuatan dashboard
 - setting printer thermal dan dot matrix
@@ -25,6 +24,15 @@
   - perubahan harga jual berdasarkan promo (lebih diutamakan dari pada harga grosir) 
 
 ## DONE
+15 april 2026
+- laporan jual
+  - detail penjualan
+- feature view all record di semua data tabel / alternative pagination 
+
+
+14 april 2026
+- penambahan fitur next record saat ubah data 
+- laporan cash drawer / closing
 12april 2026
 - perbaikan font dan cetak
 - optional PPN

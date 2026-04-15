@@ -326,6 +326,10 @@ export function Category({ onExit }) {
     setIsActiveFilter(value)
   }
 
+  function handleToggleAllRecords(value) {
+    pager.toggleAllRecords(value)
+  }
+
   function handlePrint() {
     setShowForm(false)
     const printColumns = [
@@ -607,6 +611,8 @@ export function Category({ onExit }) {
         onExportExcel={handleExportExcel}
         onImportExcel={handleImportExcel}
         onGenerateTemplate={handleGenerateTemplate}
+        isAllRecords={pager.isAllRecords}
+        onToggleAllRecords={handleToggleAllRecords}
       />
 
       {showDeleteConfirm && (

@@ -1,8 +1,16 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useCallback } from 'react'
+
+const ALL_RECORDS_LIMIT = 999999
 
 export function useMasterPagination({ initialLimit = 10, total = 0, hasMore = false } = {}) {
   const [offset, setOffset] = useState(0)
-  const limit = initialLimit
+  const [isAllRecords, setIsAllRecords] = useState(false)
+  const limit = isAllRecords ? ALL_RECORDS_LIMIT : initialLimit
+
+  const toggleAllRecords = useCallback((value) => {
+    setIsAllRecords(value)
+    setOffset(0)
+  }, [])
 
   const page = Math.floor(offset / limit) + 1
   const totalPages = useMemo(() => {
@@ -38,5 +46,8 @@ export function useMasterPagination({ initialLimit = 10, total = 0, hasMore = fa
     goNext,
     goLast,
     reset,
+    isAllRecords,
+    setIsAllRecords,
+    toggleAllRecords,
   }
 }

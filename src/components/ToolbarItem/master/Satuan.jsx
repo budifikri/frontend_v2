@@ -470,6 +470,10 @@ export function Satuan({ onExit }) {
     setIsActiveFilter(value)
   }
 
+  function handleToggleAllRecords(value) {
+    pager.toggleAllRecords(value)
+  }
+
   function handleExitClick() {
     setShowExitConfirm(true)
   }
@@ -626,6 +630,8 @@ export function Satuan({ onExit }) {
         onExportExcel={handleExportExcel}
         onImportExcel={handleImportExcel}
         onGenerateTemplate={handleGenerateTemplate}
+        isAllRecords={pager.isAllRecords}
+        onToggleAllRecords={handleToggleAllRecords}
       />
 
       {showDeleteConfirm && (

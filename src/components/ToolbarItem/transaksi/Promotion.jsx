@@ -453,6 +453,10 @@ export function Promotion({ onExit }) {
     setIsActiveFilter(value)
   }
 
+  function handleToggleAllRecords(value) {
+    pager.toggleAllRecords(value)
+  }
+
   function handlePrint() {
     setShowForm(false)
     window.print()
@@ -532,6 +536,17 @@ export function Promotion({ onExit }) {
               <option value="inactive">Inactive</option>
               <option value="all">All</option>
             </select>
+          </div>
+
+          <div className="master-filter-wrap">
+            <label className="checkbox-all-records">
+              <input
+                type="checkbox"
+                checked={pager.isAllRecords}
+                onChange={(e) => pager.toggleAllRecords(e.target.checked)}
+              />
+              <span>All Records</span>
+            </label>
           </div>
         </div>
       </div>
@@ -797,6 +812,8 @@ export function Promotion({ onExit }) {
         onPrevPage={pager.goPrev}
         onNextPage={pager.goNext}
         onLastPage={pager.goLast}
+        isAllRecords={pager.isAllRecords}
+        onToggleAllRecords={handleToggleAllRecords}
       />
 
       {showDeleteConfirm && (

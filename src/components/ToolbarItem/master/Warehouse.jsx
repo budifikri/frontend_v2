@@ -510,6 +510,10 @@ export function Warehouse({ onExit }) {
     setIsActiveFilter(value)
   }
 
+  const handleToggleAllRecords = (value) => {
+    pager.toggleAllRecords(value)
+  }
+
   return (
     <div className="master-content">
       <div className="master-header">
@@ -690,6 +694,8 @@ export function Warehouse({ onExit }) {
         onExportExcel={handleExportExcel}
         onImportExcel={handleImportExcel}
         onGenerateTemplate={handleGenerateTemplate}
+        isAllRecords={pager.isAllRecords}
+        onToggleAllRecords={handleToggleAllRecords}
       />
 
       {showDeleteConfirm && (

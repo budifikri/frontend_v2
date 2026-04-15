@@ -27,6 +27,8 @@ export function FooterMaster({
   onExportExcel,
   onImportExcel,
   onGenerateTemplate,
+  isAllRecords = false,
+  onToggleAllRecords,
 }) {
   const _formatCurrency = (amount) => {
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(amount)
@@ -112,8 +114,18 @@ export function FooterMaster({
       </div>
 
       <div className="master-footer-info">
+        {onToggleAllRecords && (
+          <label className="checkbox-all-records">
+            <input
+              type="checkbox"
+              checked={isAllRecords}
+              onChange={(e) => onToggleAllRecords(e.target.checked)}
+            />
+            <span>All Records</span>
+          </label>
+        )}
         <span>Total Row: {totalRow}</span>
-        <div className="master-footer-pagination">
+        <div className="master-footer-pagination" style={{ visibility: isAllRecords ? 'hidden' : 'visible' }}>
           <button type="button" className="master-page-btn" title="First Page" onClick={onFirstPage} disabled={!canPrev}>
             <span className="material-icons-round master-page-icon">first_page</span>
           </button>

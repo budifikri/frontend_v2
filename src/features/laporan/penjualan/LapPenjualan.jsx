@@ -106,9 +106,6 @@ export function LapPenjualan({ onExit }) {
   const [warehouses, setWarehouses] = useState([])
 
   const [detailModal, setDetailModal] = useState({ isOpen: false, data: null, isLoading: false })
-  const [selectedId, setSelectedId] = useState(null)
-  const [isAllRecords, setIsAllRecords] = useState(false)
-  const [tooltipRow, setTooltipRow] = useState(null)
 
   const [filters, setFilters] = useState({
     datePreset: 'month',

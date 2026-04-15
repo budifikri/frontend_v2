@@ -359,6 +359,17 @@ export function StockReceive({ onExit }) {
               <option value="receive">Receive</option>
             </select>
           </div>
+
+          <div className="master-filter-wrap">
+            <label className="checkbox-all-records">
+              <input
+                type="checkbox"
+                checked={pager.isAllRecords}
+                onChange={(e) => pager.toggleAllRecords(e.target.checked)}
+              />
+              <span>All Records</span>
+            </label>
+          </div>
         </div>
       </div>
 
@@ -417,6 +428,8 @@ export function StockReceive({ onExit }) {
         onPrevPage={pager.goPrev}
         onNextPage={pager.goNext}
         onLastPage={pager.goLast}
+        isAllRecords={pager.isAllRecords}
+        onToggleAllRecords={pager.toggleAllRecords}
       />
 
       {showExitConfirm && (
