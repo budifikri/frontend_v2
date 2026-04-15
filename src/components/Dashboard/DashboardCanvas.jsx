@@ -19,6 +19,8 @@ import { LapHargaGrosir } from '../ToolbarItem/laporan/harga-grosir/LapHargaGros
 import { LapCashDrawer } from '../ToolbarItem/laporan/cash-drawer/LapCashDrawer'
 import { LapPenjualan } from '../ToolbarItem/laporan/penjualan/LapPenjualan'
 import { LapPembelian } from '../ToolbarItem/laporan/pembelian/LapPembelian'
+import { LapLabaRugi } from '../ToolbarItem/laporan/laba-rugi/LapLabaRugi'
+import { LapPengeluaran } from '../ToolbarItem/laporan/pengeluaran/LapPengeluaran'
 
 export function DashboardCanvas({ activeTool, onExit }) {
   if (activeTool === 'warehouse') {
@@ -145,6 +147,22 @@ export function DashboardCanvas({ activeTool, onExit }) {
     return (
       <div className="dashboard-canvas">
         <LapPembelian onExit={onExit} />
+      </div>
+    )
+  }
+
+  if (activeTool === 'laplabarugi') {
+    return (
+      <div className="dashboard-canvas">
+        <LapLabaRugi onExit={onExit} />
+      </div>
+    )
+  }
+
+  if (activeTool === 'lappengeluaran') {
+    return (
+      <div className="dashboard-canvas">
+        <LapPengeluaran onExit={onExit} />
       </div>
     )
   }

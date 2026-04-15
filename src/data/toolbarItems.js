@@ -40,7 +40,10 @@ export const toolbarItems = {
     { key: 'lapjual', label: 'Lap. Penjualan', mark: 'J', tone: 'blue' },
     { key: 'lapbeli', label: 'Lap. Pembelian', mark: 'B', tone: 'orange' },
     { key: 'lapstok', label: 'Lap. Stok', mark: 'S', tone: 'green' },
-    { key: 'laprugi', label: 'Lap. Laba/Rugi', mark: 'L', tone: 'amber' },
+    { key: 'keuangan', label: 'Keuangan', mark: 'K', tone: 'amber', isPopup: true, subItems: [
+      { key: 'laplabarugi', label: 'Laporan Laba Rugi', mark: 'L', tone: 'blue' },
+      { key: 'lappengeluaran', label: 'Laporan Pengeluaran', mark: 'P', tone: 'orange' },
+    ] },
     { key: 'divider-3', divider: true },
     { key: 'lapcashdrawer', label: 'Lap. Cash Drawer', mark: 'D', tone: 'teal' },
   ],
