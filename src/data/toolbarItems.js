@@ -15,20 +15,19 @@ export const toolbarItems = {
   transaksi: [
   { key: 'logout', label: 'Logout', mark: 'L', tone: 'slate', backToLogin: true },
     { key: 'divider-1', divider: true },
-         { key: 'penjualan', label: 'Penjualan', mark: 'J', tone: 'blue', isPopup: true, subItems: [
+   { key: 'penjualan', label: 'Penjualan', mark: 'J', tone: 'blue', isPopup: true, subItems: [
     { key: 'promotion', label: 'Promotion', mark: 'M', tone: 'purple' },
 
     ]},
     { key: 'pembelian', label: 'Pembelian', mark: 'P', tone: 'amber', isPopup: true, subItems: [
-    { key: 'beli', label: 'Order Pembelian', mark: 'P', tone: 'orange' },
+ { key: 'beli', label: 'Order Pembelian', mark: 'P', tone: 'orange' },
     { key: 'receive', label: 'Stock Receive', mark: 'S', tone: 'cyan' },
     { key: 'retur', label: 'Retur Pembelian', mark: 'R', tone: 'green' },
-]},
-    
-    { key: 'inventory', label: 'Inventory', mark: 'I', tone: 'blue', isPopup: true, subItems: [
-    { key: 'opname', label: 'Stock Opname', mark: 'O', tone: 'slate' },
     ]},
     
+    { key: 'inventory', label: 'Inventory', mark: 'I', tone: 'blue', isPopup: true, subItems: [
+    { key: 'opname', label: 'Stock Opname', mark: 'O', tone: 'cyan' },
+    ]},
     // { key: 'divider-2', divider: true },
     // { key: 'jual', label: 'Penjualan', mark: 'J', tone: 'blue' },
     // { key: 'resep', label: 'Resep', mark: 'R', tone: 'pink' },
@@ -55,11 +54,8 @@ export const toolbarItems = {
     { key: 'lapbeli', label: 'Detil Pembelian', mark: 'B', tone: 'orange' },
     ]},
  
-    { key: 'inventory', label: 'Inventory', mark: 'I', tone: 'blue', isPopup: true, subItems: [
-    
-    { key: 'lapstok', label: 'Lap. Stok', mark: 'S', tone: 'green' },
-]},
-    
+{ key: 'lapstok', label: 'Lap. Stok', mark: 'S', tone: 'green' },
+     
     { key: 'keuangan', label: 'Keuangan', mark: 'K', tone: 'amber', isPopup: true, subItems: [
       { key: 'laplabarugi', label: 'Laporan Laba Rugi', mark: 'L', tone: 'blue' },
       { key: 'lappengeluaran', label: 'Laporan Pengeluaran', mark: 'P', tone: 'orange' },
@@ -74,8 +70,7 @@ export const toolbarItems = {
     { key: 'company', label: 'Company', mark: 'O', tone: 'red' },
     { key: 'report_setting', label: 'Report Settings', mark: 'R', tone: 'purple' },
     { key: 'divider-3', divider: true },
-    { key: 'backup', label: 'Backup', mark: 'B', tone: 'green' },
-    { key: 'restore', label: 'Restore', mark: 'R', tone: 'orange' },
+    { key: 'backup', label: 'Backup and Restore', mark: 'B', tone: 'green' },
   ],
   help: [
   { key: 'logout', label: 'Logout', mark: 'L', tone: 'slate', backToLogin: true },
