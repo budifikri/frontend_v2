@@ -7,7 +7,7 @@ import {
   deleteBackup,
   getSchedule,
   updateSchedule,
-  getDownloadUrl,
+  downloadBackup,
   validateBackup,
   restoreBackup,
   connectRestoreProgress,
@@ -82,14 +82,26 @@ export function BackupRestore({ onExit }) {
     }
   }
 
-  const handleDownload = (filename) => {
-    window.open(getDownloadUrl(filename), '_blank')
+  const handleDownload = async (filename) => {
+    try {
+      const { blob, filename: downloadName } = await downloadBackup(token, filename)
+      const objectUrl = window.URL.createObjectURL(blob)
+      const anchor = document.createElement('a')
+      anchor.href = objectUrl
+      anchor.download = downloadName || filename
+      document.body.appendChild(anchor)
+      anchor.click()
+      anchor.remove()
+      window.URL.revokeObjectURL(objectUrl)
+    } catch (err) {
+      setToast({ type: 'error', message: err.message || 'Gagal download backup' })
+    }
   }
 
   const handleSaveSchedule = async (data) => {
     try {
-      await updateSchedule(token, data)
-      setSchedule(data)
+      const nextSchedule = await updateSchedule(token, data)
+      setSchedule(nextSchedule)
       setShowScheduleModal(false)
       setToast({ type: 'success', message: 'Schedule disimpan' })
     } catch (err) {
@@ -568,13 +580,18 @@ function BackupScheduleModal({ schedule, onSave, onClose }) {
     schedule: schedule?.schedule || '0 2 * * *',
     retention_days: schedule?.retention_days || 7,
     frequency: getFrequency(schedule?.schedule || '0 2 * * *'),
-    hour: parseInt((schedule?.schedule || '0 2 * * *').split(' ')[1]) || 2,
+    hour: (schedule?.schedule || '0 2 * * *').split(' ')[1] || '2',
     day: (schedule?.schedule || '0 2 * * *').split(' ')[4] || '1',
   })
 
   const handleSave = () => {
-    const cronExpression = buildCronExpression(form)
-    onSave({ ...form, schedule: cronExpression })
+    const nextForm = {
+      ...form,
+      day: String(form.day),
+      hour: String(form.hour),
+    }
+    const cronExpression = buildCronExpression(nextForm)
+    onSave({ ...nextForm, schedule: cronExpression })
   }
 
   return (
@@ -628,17 +645,6 @@ function BackupScheduleModal({ schedule, onSave, onClose }) {
                 <span className="material-icons-round">date_range</span>
                 <span>Mingguan</span>
               </label>
-              <label className={`frequency-option ${form.frequency === 'custom' ? 'selected' : ''}`}>
-                <input
-                  type="radio"
-                  name="frequency"
-                  value="custom"
-                  checked={form.frequency === 'custom'}
-                  onChange={() => setForm({ ...form, frequency: 'custom' })}
-                />
-                <span className="material-icons-round">settings</span>
-                <span>Custom</span>
-              </label>
             </div>
           </div>
 
@@ -665,7 +671,7 @@ function BackupScheduleModal({ schedule, onSave, onClose }) {
                 <select
                   className="master-filter-select"
                   value={form.hour}
-                  onChange={(e) => setForm({ ...form, hour: parseInt(e.target.value) })}
+                  onChange={(e) => setForm({ ...form, hour: e.target.value })}
                 >
                   {[...Array(24)].map((_, i) => (
                     <option key={i} value={i}>
@@ -681,9 +687,9 @@ function BackupScheduleModal({ schedule, onSave, onClose }) {
             <div className="schedule-field">
               <label>Jam</label>
               <select
-                className="master-filter-select"
-                value={form.hour}
-                onChange={(e) => setForm({ ...form, hour: parseInt(e.target.value) })}
+              className="master-filter-select"
+              value={form.hour}
+              onChange={(e) => setForm({ ...form, hour: e.target.value })}
               >
                 {[...Array(24)].map((_, i) => (
                   <option key={i} value={i}>

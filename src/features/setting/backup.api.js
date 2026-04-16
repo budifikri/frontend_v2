@@ -41,10 +41,19 @@ export async function getSchedule(token) {
 }
 
 export async function updateSchedule(token, scheduleData) {
+  const payload = {
+    enabled: Boolean(scheduleData?.enabled),
+    schedule: scheduleData?.schedule || '0 2 * * *',
+    retention_days: Number(scheduleData?.retention_days || 7),
+    frequency: scheduleData?.frequency || 'daily',
+    day: scheduleData?.day !== undefined ? String(scheduleData.day) : '',
+    hour: scheduleData?.hour !== undefined ? String(scheduleData.hour) : '',
+  }
+
   const result = await apiFetch('/api/backup/schedule', {
     method: 'POST',
     token,
-    body: scheduleData,
+    body: payload,
   })
   if (!result.success) {
     throw new Error(result.error || result.message || 'Gagal menyimpan schedule')
@@ -52,9 +61,31 @@ export async function updateSchedule(token, scheduleData) {
   return result.data
 }
 
-export function getDownloadUrl(filename) {
+export async function downloadBackup(token, filename) {
   const encoded = encodeURIComponent(filename)
-  return `${baseUrl}/api/backup/download/${encoded}`
+  const response = await fetch(`${baseUrl}/api/backup/download/${encoded}`, {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  })
+
+  if (!response.ok) {
+    let message = 'Gagal download backup'
+    const contentType = response.headers.get('content-type') || ''
+    if (contentType.includes('application/json')) {
+      const errorJson = await response.json().catch(() => null)
+      message = errorJson?.error || errorJson?.message || message
+    }
+    throw new Error(message)
+  }
+
+  const blob = await response.blob()
+  const header = response.headers.get('content-disposition') || ''
+  const match = header.match(/filename="?([^";]+)"?/i)
+  const downloadName = match?.[1] || filename
+
+  return { blob, filename: downloadName }
 }
 
 export async function validateBackup(token, filename) {
