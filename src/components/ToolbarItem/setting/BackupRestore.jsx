@@ -11,6 +11,8 @@ import {
   validateBackup,
   restoreBackup,
   connectRestoreProgress,
+  deleteData,
+  getTableCounts,
   formatFileSize,
   formatDate,
   formatDateTime,
@@ -139,6 +141,13 @@ export function BackupRestore({ onExit }) {
           <span className="material-icons-round">restore</span>
           Restore
         </button>
+        <button
+          className={`backup-tab ${activeTab === 'delete' ? 'active' : ''}`}
+          onClick={() => setActiveTab('delete')}
+        >
+          <span className="material-icons-round">delete</span>
+          Hapus Data
+        </button>
       </div>
 
       <div className="backup-content">
@@ -160,6 +169,12 @@ export function BackupRestore({ onExit }) {
             token={token}
             onToast={setToast}
             onExit={onExit}
+          />
+        )}
+        {activeTab === 'delete' && (
+          <DeleteDataTab
+            token={token}
+            onToast={setToast}
           />
         )}
       </div>
@@ -738,6 +753,191 @@ function BackupScheduleModal({ schedule, onSave, onClose }) {
           </button>
         </div>
       </div>
+    </div>
+  )
+}
+
+function DeleteDataTab({ token, onToast }) {
+  const [scope, setScope] = useState('master')
+  const [backupConfirmed, setBackupConfirmed] = useState(false)
+  const [deleteConfirmed, setDeleteConfirmed] = useState(false)
+  const [counts, setCounts] = useState(null)
+  const [loading, setLoading] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+
+  useEffect(() => {
+    loadCounts()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scope])
+
+  const loadCounts = async () => {
+    setLoading(true)
+    try {
+      const data = await getTableCounts(token, scope)
+      setCounts(data)
+    } catch (err) {
+      console.error('Failed to load counts:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleDelete = async () => {
+    if (!window.confirm(`Yakin ingin menghapus semua ${scope === 'all' ? 'data' : scope === 'master' ? 'data master' : 'data transaksi'}?`)) {
+      return
+    }
+
+    setDeleting(true)
+    try {
+      await deleteData(token, scope)
+      onToast({ type: 'success', message: `Berhasil menghapus data ${scope === 'master' ? 'master' : scope === 'transaction' ? 'transaksi' : 'semua'}` })
+      setBackupConfirmed(false)
+      setDeleteConfirmed(false)
+      loadCounts()
+    } catch (err) {
+      onToast({ type: 'error', message: err.message })
+    } finally {
+      setDeleting(false)
+    }
+  }
+
+  const canDelete = backupConfirmed && deleteConfirmed && !deleting
+
+  const scopeLabels = {
+    all: 'Semua Data',
+    master: 'Data Master',
+    transaction: 'Data Transaksi',
+  }
+
+  return (
+    <div className="delete-data-tab-content">
+      <div className="delete-warning-card master-form-card">
+        <div className="delete-warning-icon">
+          <span className="material-icons-round">warning</span>
+        </div>
+        <div className="delete-warning-content">
+          <h3>PERINGATAN!</h3>
+          <p>Menghapus data akan MEMPERMANEN menghapus semua data dari scope yang dipilih. Proses ini TIDAK DAPAT DIBATALKAN!</p>
+          <label className="checkbox-label delete-warning-checkbox">
+            <input
+              type="checkbox"
+              checked={backupConfirmed}
+              onChange={(e) => setBackupConfirmed(e.target.checked)}
+            />
+            <span className="checkbox-custom"></span>
+            <span>Saya sudah membuat backup sebelum menghapus data</span>
+          </label>
+        </div>
+      </div>
+
+      <div className="delete-scope-card master-form-card">
+        <h3>
+          <span className="material-icons-round">delete_sweep</span>
+          Pilih Scope Data yang Akan Dihapus
+        </h3>
+
+        <div className="delete-scope-options">
+          <label className={`delete-scope-option ${scope === 'all' ? 'selected' : ''}`}>
+            <input
+              type="radio"
+              name="deleteScope"
+              value="all"
+              checked={scope === 'all'}
+              onChange={() => setScope('all')}
+            />
+            <span className="material-icons-round">delete_forever</span>
+            <span className="delete-scope-title">Semua Data</span>
+            <span className="delete-scope-desc">Master + Transaksi</span>
+          </label>
+
+          <label className={`delete-scope-option ${scope === 'master' ? 'selected' : ''}`}>
+            <input
+              type="radio"
+              name="deleteScope"
+              value="master"
+              checked={scope === 'master'}
+              onChange={() => setScope('master')}
+            />
+            <span className="material-icons-round">inventory_2</span>
+            <span className="delete-scope-title">Data Master</span>
+            <span className="delete-scope-desc">Users, Products, dll</span>
+          </label>
+
+          <label className={`delete-scope-option ${scope === 'transaction' ? 'selected' : ''}`}>
+            <input
+              type="radio"
+              name="deleteScope"
+              value="transaction"
+              checked={scope === 'transaction'}
+              onChange={() => setScope('transaction')}
+            />
+            <span className="material-icons-round">receipt_long</span>
+            <span className="delete-scope-title">Data Transaksi</span>
+            <span className="delete-scope-desc">Sales, Purchases, dll</span>
+          </label>
+        </div>
+      </div>
+
+      <div className="delete-preview-card master-form-card">
+        <h3>
+          <span className="material-icons-round">analytics</span>
+          Preview: {scopeLabels[scope]}
+        </h3>
+
+        {loading ? (
+          <div className="delete-preview-loading">
+            <span className="material-icons-round spinning">sync</span>
+            Memuat...
+          </div>
+        ) : counts ? (
+          <>
+            <div className="delete-preview-list">
+              {counts.tables.map((t) => (
+                <div key={t.table_name} className="delete-preview-item">
+                  <span className="delete-preview-table">{t.table_name}</span>
+                  <span className="delete-preview-count">{formatNumber(t.row_count)} data</span>
+                </div>
+              ))}
+            </div>
+            <div className="delete-preview-total">
+              Total: <strong>{formatNumber(counts.total)}</strong> data
+            </div>
+          </>
+        ) : (
+          <p className="delete-preview-empty">Tidak ada data</p>
+        )}
+      </div>
+
+      <div className="delete-confirm-card master-form-card">
+        <label className={`checkbox-label delete-confirm-checkbox ${!backupConfirmed ? 'disabled' : ''}`}>
+          <input
+            type="checkbox"
+            checked={deleteConfirmed}
+            onChange={(e) => setDeleteConfirmed(e.target.checked)}
+            disabled={!backupConfirmed}
+          />
+          <span className="checkbox-custom"></span>
+          <span>Saya memahami bahwa data akan dihapus permanen dan tidak dapat dikembalikan</span>
+        </label>
+      </div>
+
+      <button
+        className="delete-btn-danger"
+        onClick={handleDelete}
+        disabled={!canDelete}
+      >
+        {deleting ? (
+          <>
+            <span className="material-icons-round spinning">sync</span>
+            Menghapus...
+          </>
+        ) : (
+          <>
+            <span className="material-icons-round">delete_forever</span>
+            Hapus {scopeLabels[scope]}
+          </>
+        )}
+      </button>
     </div>
   )
 }

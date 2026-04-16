@@ -112,6 +112,26 @@ export function connectRestoreProgress(token) {
   return new EventSource(`${baseUrl}/api/restore/progress?token=${token}`)
 }
 
+export async function deleteData(token, scope) {
+  const result = await apiFetch('/api/backup/delete', {
+    method: 'POST',
+    token,
+    body: { scope, backuped: true },
+  })
+  if (!result.success) {
+    throw new Error(result.error || result.message || 'Gagal menghapus data')
+  }
+  return result.data
+}
+
+export async function getTableCounts(token, scope) {
+  const result = await apiFetch(`/api/backup/count/${scope}`, { token })
+  if (!result.success) {
+    throw new Error(result.error || result.message || 'Gagal mengambil jumlah data')
+  }
+  return result.data
+}
+
 export function formatFileSize(bytes) {
   if (bytes === 0) return '0 B'
   const k = 1024
