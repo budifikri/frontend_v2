@@ -168,7 +168,6 @@ export function BackupRestore({ onExit }) {
             backups={backups}
             token={token}
             onToast={setToast}
-            onExit={onExit}
           />
         )}
         {activeTab === 'delete' && (
@@ -320,13 +319,15 @@ function BackupTab({ backups, loading, creating, schedule, onCreate, onDelete, o
   )
 }
 
-function RestoreTab({ backups, token, onToast, onExit }) {
+function RestoreTab({ backups, token, onToast }) {
   const [selectedFile, setSelectedFile] = useState(null)
   const [validation, setValidation] = useState(null)
   const [confirmed, setConfirmed] = useState(false)
   const [restoring, setRestoring] = useState(false)
   const [progress, setProgress] = useState(null)
   const [showConfirmModal, setShowConfirmModal] = useState(false)
+  const [showSuccessModal, setShowSuccessModal] = useState(false)
+  const [restoreResult, setRestoreResult] = useState(null)
 
   const handleFileSelect = async (filename) => {
     setSelectedFile(filename)
@@ -348,43 +349,76 @@ function RestoreTab({ backups, token, onToast, onExit }) {
     setShowConfirmModal(true)
   }
 
+  const resetRestoreForm = () => {
+    setSelectedFile(null)
+    setValidation(null)
+    setConfirmed(false)
+    setRestoring(false)
+    setProgress(null)
+    setShowConfirmModal(false)
+  }
+
   const executeRestore = async () => {
+    console.log('[DEBUG] executeRestore: Starting...')
     setShowConfirmModal(false)
     setRestoring(true)
     setProgress({ stage: 'preparing', progress: 0, message: 'Mempersiapkan restore...' })
 
+    console.log('[DEBUG] executeRestore: Connecting to SSE...')
     const eventSource = connectRestoreProgress(token)
 
+    eventSource.onopen = () => {
+      console.log('[DEBUG] executeRestore: SSE connected')
+    }
+
     eventSource.onmessage = (e) => {
+      console.log('[DEBUG] executeRestore: onmessage', e.data)
       try {
         const data = JSON.parse(e.data)
+        console.log('[DEBUG] executeRestore: Parsed progress data', data)
         setProgress(data)
       } catch (err) {
-        console.error('Failed to parse SSE data:', err)
+        console.error('[DEBUG] executeRestore: Failed to parse SSE data:', err)
       }
     }
 
     eventSource.addEventListener('complete', (e) => {
-      const result = JSON.parse(e.data)
+      console.log('[DEBUG] executeRestore: complete event raw data:', e.data)
+      let result
+      try {
+        result = typeof e.data === 'string' ? JSON.parse(e.data) : e.data
+      } catch (parseErr) {
+        console.error('[DEBUG] executeRestore: parse error', parseErr, 'raw:', e.data)
+        result = { status: 'error', error: 'Failed to parse response' }
+      }
+      console.log('[DEBUG] executeRestore: parsed result:', result, 'rows_restored:', result?.rows_restored)
       setRestoring(false)
       eventSource.close()
       if (result.status === 'success') {
-        onToast({ type: 'success', message: `Restore berhasil! ${formatNumber(result.rows_restored)} baris dikembalikan.` })
-        onExit()
+        setRestoreResult({
+          rows_restored: result.rows_restored,
+          tables_cleared: result.tables_cleared,
+          duration: result.duration,
+        })
+        setShowSuccessModal(true)
       } else {
         onToast({ type: 'error', message: result.error || 'Restore gagal' })
       }
     })
 
-    eventSource.addEventListener('error', () => {
+    eventSource.addEventListener('error', (e) => {
+      console.error('[DEBUG] executeRestore: SSE error', e)
       setRestoring(false)
       eventSource.close()
       onToast({ type: 'error', message: 'Koneksi terputus' })
     })
 
     try {
-      await restoreBackup(token, selectedFile)
+      console.log('[DEBUG] executeRestore: Calling restoreBackup API...')
+      const result = await restoreBackup(token, selectedFile)
+      console.log('[DEBUG] executeRestore: restoreBackup completed', result)
     } catch (err) {
+      console.error('[DEBUG] executeRestore: restoreBackup error', err)
       setRestoring(false)
       eventSource.close()
       onToast({ type: 'error', message: err.message })
@@ -580,6 +614,47 @@ function RestoreTab({ backups, token, onToast, onExit }) {
               <button className="restore-btn-danger" onClick={executeRestore}>
                 <span className="material-icons-round">restore</span>
                 Ya, Restore Sekarang
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showSuccessModal && restoreResult && (
+        <div className="master-dialog-overlay" onClick={() => { setShowSuccessModal(false); resetRestoreForm() }}>
+          <div className="master-dialog restore-success-dialog" onClick={(e) => e.stopPropagation()}>
+            <div className="dialog-header success">
+              <span className="material-icons-round">check_circle</span>
+              Restore Berhasil
+            </div>
+            <div className="dialog-content">
+              <div className="success-result-grid">
+                <div className="result-item">
+                  <span className="material-icons-round">table_rows</span>
+                  <div className="result-info">
+                    <label>Baris Dikembalikan</label>
+                    <span className="result-value">{formatNumber(restoreResult.rows_restored || 0)}</span>
+                  </div>
+                </div>
+                <div className="result-item">
+                  <span className="material-icons-round">delete_sweep</span>
+                  <div className="result-info">
+                    <label>Tabel Dihapus</label>
+                    <span className="result-value">{restoreResult.tables_cleared || 0}</span>
+                  </div>
+                </div>
+                <div className="result-item">
+                  <span className="material-icons-round">timer</span>
+                  <div className="result-info">
+                    <label>Durasi</label>
+                    <span className="result-value">{restoreResult.duration || '-'}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="dialog-footer">
+              <button className="master-btn-save-primary" onClick={() => { setShowSuccessModal(false); resetRestoreForm() }}>
+                OK
               </button>
             </div>
           </div>
