@@ -11,7 +11,7 @@ Fitur untuk menghapus data dari tabel database berdasarkan scope yang dipilih. U
 | Scope | Tabel | Deskripsi |
 |-------|-------|-----------|
 | **Data Master** | `users`, `warehouses`, `customers`, `suppliers`, `products`, `categories`, `units_of_measure`, `promotions`, `promotion_products`, `promotion_categories`, `promotion_customers`, `price_tiers` | Data referensi/induk |
-| **Data Transaksi** | `sales`, `sale_items`, `sale_payments`, `purchase_orders`, `purchase_order_items`, `purchase_returns`, `purchase_return_items`, `invoices_incoming`, `invoices_outgoing`, `invoice_items`, `invoice_payments`, `cash_drawers`, `cash_drawer_transactions`, `stock_opnames`, `stock_opname_items`, `item_exchanges`, `exchange_items`, `sales_returns`, `sales_return_items` | Data transaksi |
+| **Data Transaksi** | `sales`, `sale_items`, `sale_payments`, `purchase_orders`, `purchase_order_items`, `purchase_returns`, `purchase_return_items`, `invoices_incoming`, `invoices_outgoing`, `invoice_items`, `invoice_payments`, `cash_drawers`, `cash_drawer_transactions`, `stock_opnames`, `stock_opname_items`, `item_exchanges`, `exchange_items`, `sales_returns`, `sales_return_items`, `stock_transfers`, `stock_transfer_items`, `stock_movements`, `inventory` | Data transaksi |
 
 | Scope | Tabel | Deskripsi |
 |-------|-------|-----------|
@@ -164,41 +164,129 @@ type ScopeCountResponse struct {
 ```go
 // internal/services/backup_service.go
 
-var masterTables = []string{
-    "users",
-    "warehouses",
-    "customers",
-    "suppliers",
-    "products",
-    "categories",
-    "units_of_measure",
-    "promotions",
-    "promotion_products",
-    "promotion_categories",
-    "promotion_customers",
-    "price_tiers",
+func (s *BackupService) getTablesByScope(scope string) []string {
+    switch scope {
+    case "master":
+        return []string{
+            "promotion_products",
+            "promotion_categories",
+            "promotion_customers",
+            "price_tiers",
+            "promotions",
+            "products",
+            "categories",
+            "units_of_measure",
+            "customers",
+            "suppliers",
+            "users",
+            "warehouses",
+        }
+    case "transaction":
+        return []string{
+            "exchange_items",
+            "sales_return_items",
+            "sale_items",
+            "sale_payments",
+            "purchase_return_items",
+            "purchase_order_items",
+            "invoice_items",
+            "invoice_payments",
+            "cash_drawer_transactions",
+            "stock_opname_items",
+            "stock_transfer_items",
+            "item_exchanges",
+            "sales_returns",
+            "purchase_returns",
+            "sales",
+            "purchase_orders",
+            "invoices_incoming",
+            "invoices_outgoing",
+            "cash_drawers",
+            "stock_opnames",
+            "stock_transfers",
+            "stock_movements",
+            "inventory",
+        }
+    case "all":
+        allTables := s.getTablesByScope("transaction")
+        allTables = append(allTables, s.getTablesByScope("master")...)
+        return allTables
+    default:
+        return s.getTablesByScope("master")
+    }
 }
 
-var transactionTables = []string{
-    "sales",
-    "sale_items",
-    "sale_payments",
-    "purchase_orders",
-    "purchase_order_items",
-    "purchase_returns",
-    "purchase_return_items",
-    "invoices_incoming",
-    "invoices_outgoing",
-    "invoice_items",
-    "invoice_payments",
-    "cash_drawers",
-    "cash_drawer_transactions",
-    "stock_opnames",
-    "stock_opname_items",
-    "item_exchanges",
-    "exchange_items",
-    "sales_returns",
-    "sales_return_items",
+func (s *BackupService) scopedTableQuery(tx *gorm.DB, tableName string, companyID uuid.UUID) *gorm.DB {
+    companySales := tx.Table("sales").Select("id").Where("company_id = ?", companyID)
+    companyWarehouses := tx.Table("warehouses").Select("id").Where("company_id = ?", companyID)
+    companyCustomers := tx.Table("customers").Select("id").Where("company_id = ?", companyID)
+    companyProducts := tx.Table("products").Select("id").Where("company_id = ?", companyID)
+    companyCategories := tx.Table("categories").Select("id").Where("company_id = ?", companyID)
+    companyPurchaseOrders := tx.Table("purchase_orders").Select("id").Where("company_id = ?", companyID)
+    companyPurchaseReturns := tx.Table("purchase_returns").Select("id").Where("company_id = ?", companyID)
+    companyCashDrawers := tx.Table("cash_drawers").Select("id").Where("company_id = ?", companyID)
+    companyStockOpnames := tx.Table("stock_opnames").Select("id").Where("company_id = ?", companyID)
+    companyIncomingInvoices := tx.Table("invoices_incoming").Select("id").Where("company_id = ?", companyID)
+    companyOutgoingInvoices := tx.Table("invoices_outgoing").Select("id").Where("company_id = ?", companyID)
+    companySalesReturns := tx.Table("sales_returns").Select("id").Where("sale_id IN (?)", companySales)
+    companyExchanges := tx.Table("item_exchanges").Select("id").Where("sale_id IN (?)", companySales).
+        Or("warehouse_id IN (?)", companyWarehouses).
+        Or("customer_id IN (?)", companyCustomers)
+    companyStockTransfers := tx.Table("stock_transfers").Select("id").
+        Where("from_warehouse_id IN (?)", companyWarehouses).
+        Or("to_warehouse_id IN (?)", companyWarehouses)
+
+    switch tableName {
+    case "users", "warehouses", "customers", "suppliers", "sales", "purchase_orders",
+         "purchase_returns", "invoices_incoming", "invoices_outgoing", "cash_drawers", "stock_opnames":
+        return tx.Table(tableName).Where("company_id = ?", companyID)
+    case "products", "categories", "units_of_measure":
+        return tx.Table(tableName).Where("company_id = ?", companyID)
+    case "sale_items", "sale_payments", "sales_returns":
+        return tx.Table(tableName).Where("sale_id IN (?)", companySales)
+    case "sales_return_items":
+        return tx.Table(tableName).Where("return_id IN (?)", companySalesReturns)
+    case "item_exchanges":
+        return tx.Table(tableName).Where("sale_id IN (?)", companySales).
+            Or("warehouse_id IN (?)", companyWarehouses).
+            Or("customer_id IN (?)", companyCustomers)
+    case "exchange_items":
+        return tx.Table(tableName).Where("exchange_id IN (?)", companyExchanges)
+    case "purchase_order_items":
+        return tx.Table(tableName).Where("po_id IN (?)", companyPurchaseOrders)
+    case "purchase_return_items":
+        return tx.Table(tableName).Where("return_id IN (?)", companyPurchaseReturns)
+    case "invoice_items", "invoice_payments":
+        return tx.Table(tableName).Where(
+            "(invoice_type = 'INCOMING' AND invoice_id IN (?)) OR (invoice_type = 'OUTGOING' AND invoice_id IN (?))",
+            companyIncomingInvoices, companyOutgoingInvoices)
+    case "cash_drawer_transactions":
+        return tx.Table(tableName).Where("cash_drawer_id IN (?)", companyCashDrawers)
+    case "stock_opname_items":
+        return tx.Table(tableName).Where("opname_id IN (?)", companyStockOpnames)
+    case "stock_transfer_items":
+        return tx.Table(tableName).Where("transfer_id IN (?)", companyStockTransfers)
+    case "stock_transfers":
+        return tx.Table(tableName).Where("from_warehouse_id IN (?)", companyWarehouses).
+            Or("to_warehouse_id IN (?)", companyWarehouses)
+    case "stock_movements", "inventory":
+        return tx.Table(tableName).Where("warehouse_id IN (?)", companyWarehouses)
+    case "price_tiers", "promotion_products":
+        return tx.Table(tableName).Where("product_id IN (?)", companyProducts)
+    case "promotion_categories":
+        return tx.Table(tableName).Where("category_id IN (?)", companyCategories)
+    case "promotion_customers":
+        return tx.Table(tableName).Where("customer_id IN (?)", companyCustomers)
+    case "promotions":
+        promotionByProducts := tx.Table("promotion_products").Select("promotion_id").Where("product_id IN (?)", companyProducts)
+        promotionByCategories := tx.Table("promotion_categories").Select("promotion_id").Where("category_id IN (?)", companyCategories)
+        promotionByCustomers := tx.Table("promotion_customers").Select("promotion_id").Where("customer_id IN (?)", companyCustomers)
+        return tx.Table(tableName).Where("id IN (?)", promotionByProducts).
+            Or("id IN (?)", promotionByCategories).
+            Or("id IN (?)", promotionByCustomers)
+    default:
+        return tx.Table(tableName).Where("1 = 0")
+    }
 }
 
 func (s *BackupService) GetTableCounts(companyID uuid.UUID, scope string) (*models.ScopeCountResponse, error) {
@@ -207,8 +295,9 @@ func (s *BackupService) GetTableCounts(companyID uuid.UUID, scope string) (*mode
     var total int64
 
     for _, table := range tables {
-        count, err := s.countTableData(table, companyID, scope)
-        if err != nil {
+        var count int64
+        query := s.scopedTableQuery(s.db, table, companyID)
+        if err := query.Count(&count).Error; err != nil {
             continue
         }
         counts = append(counts, models.TableCount{
@@ -227,45 +316,48 @@ func (s *BackupService) GetTableCounts(companyID uuid.UUID, scope string) (*mode
 
 func (s *BackupService) DeleteData(companyID uuid.UUID, scope string) (*models.DeleteDataResponse, error) {
     tables := s.getTablesByScope(scope)
-    
-    var deletedRecords = make(map[string]int64)
+
+    deletedRecords := make(map[string]int64)
     var tablesCleared []string
     var totalRecords int64
 
-    for _, table := range tables {
-        count, err := s.deleteTableData(table, companyID, scope)
-        if err != nil {
-            return nil, fmt.Errorf("error deleting table %s: %w", table, err)
+    err := s.db.Transaction(func(tx *gorm.DB) error {
+        for _, table := range tables {
+            query := s.scopedTableQuery(tx, table, companyID)
+            result := query.Delete(nil)
+            if result.Error != nil {
+                return fmt.Errorf("error deleting table %s: %w", table, result.Error)
+            }
+            rowsAffected := result.RowsAffected
+            if rowsAffected > 0 {
+                deletedRecords[table] = rowsAffected
+                tablesCleared = append(tablesCleared, table)
+                totalRecords += rowsAffected
+            }
         }
-        if count > 0 {
-            deletedRecords[table] = count
-            tablesCleared = append(tablesCleared, table)
-            totalRecords += count
-        }
+        return nil
+    })
+    if err != nil {
+        return nil, err
     }
 
     return &models.DeleteDataResponse{
-        Scope:           scope,
-        TablesCleared:   tablesCleared,
-        RecordsDeleted:  deletedRecords,
-        TotalRecords:    totalRecords,
+        Scope:          scope,
+        TablesCleared:  tablesCleared,
+        RecordsDeleted: deletedRecords,
+        TotalRecords:   totalRecords,
     }, nil
 }
+```
 
-func (s *BackupService) deleteTableData(table string, companyID uuid.UUID, scope string) (int64, error) {
-    if scope == "master" {
-        return s.db.Table(table).Where("company_id = ?", companyID).Delete(nil).RowsAffected, nil
-    } else if scope == "transaction" {
-        // Transaction tables with company_id
-        txResult := s.db.Table(table).Where("company_id = ?", companyID).Delete(nil)
-        if txResult.Error != nil {
-            return 0, txResult.Error
-        }
-        return txResult.RowsAffected, nil
-    }
-    // All - handle per table
-    return 0, nil
-}
+### Catatan Penting
+
+1. **FK-Safe Delete Order**: Tabel child dihapus sebelum parent. Contoh: `sale_items` sebelum `sales`.
+
+2. **Transaction Scope**: Semua tabel inventory (`stock_*`, `inventory`) di-scope-kan ke `warehouse_id` company.
+
+3. **Scoped Query**: Setiap tabel punya query filter khusus untuk filter data per company (bukan delete global).
+
 ```
 
 ### 4. Handler

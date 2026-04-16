@@ -89,7 +89,10 @@ export async function downloadBackup(token, filename) {
 }
 
 export async function validateBackup(token, filename) {
-  const result = await apiFetch(`/api/restore/validate?filename=${encodeURIComponent(filename)}`, { token })
+  const result = await apiFetch(`/api/restore/validate?filename=${encodeURIComponent(filename)}`, {
+    method: 'POST',
+    token,
+  })
   if (!result.success) {
     throw new Error(result.error || result.message || 'Gagal validasi file backup')
   }
