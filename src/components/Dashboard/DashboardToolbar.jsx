@@ -5,31 +5,39 @@ export function DashboardToolbar({ activeMenu, onLoginClick, onToolClick, shortc
   const items = toolbarItems[activeMenu] || toolbarItems.master
   const [openPopupKey, setOpenPopupKey] = useState(null)
   const [popupPosition, setPopupPosition] = useState({ top: 0, left: 0 })
-  const popupButtonRef = useRef(null)
-  const dropdownRef = useRef(null)
+  const popupButtonRefs = useRef({})
+  const toolbarRef = useRef(null)
   const popupMenuRef = useRef(null)
 
   useEffect(() => {
     if (shortcutPopupKey) {
       const popupItem = items.find((t) => t.isPopup && t.key === shortcutPopupKey)
       if (popupItem) {
+        const buttonElement = popupButtonRefs.current[shortcutPopupKey]
+        if (buttonElement) {
+          const rect = buttonElement.getBoundingClientRect()
+          setPopupPosition({
+            top: rect.bottom + 4,
+            left: rect.left,
+          })
+        }
         setOpenPopupKey(shortcutPopupKey)
       }
     }
   }, [shortcutPopupKey, items])
 
-  useEffect(() => {
-    if (openPopupKey && popupButtonRef.current) {
-      const rect = popupButtonRef.current.getBoundingClientRect()
-      setPopupPosition({
-        top: rect.bottom + 4,
-        left: rect.left,
-      })
+  const handlePopupClick = (key, event) => {
+    if (openPopupKey === key) {
+      setOpenPopupKey(null)
+      return
     }
-  }, [openPopupKey])
 
-  const handlePopupClick = (key) => {
-    setOpenPopupKey(openPopupKey === key ? null : key)
+    const rect = event.currentTarget.getBoundingClientRect()
+    setPopupPosition({
+      top: rect.bottom + 4,
+      left: rect.left,
+    })
+    setOpenPopupKey(key)
   }
 
   const handleSubItemClick = (subKey, subLabel) => {
@@ -38,7 +46,7 @@ export function DashboardToolbar({ activeMenu, onLoginClick, onToolClick, shortc
   }
 
   const handleClickOutside = (e) => {
-    const isInsideButton = dropdownRef.current?.contains(e.target)
+    const isInsideButton = toolbarRef.current?.contains(e.target)
     const isInsidePopup = popupMenuRef.current?.contains(e.target)
     if (!isInsideButton && !isInsidePopup) setOpenPopupKey(null)
   }
@@ -49,7 +57,7 @@ export function DashboardToolbar({ activeMenu, onLoginClick, onToolClick, shortc
   }, [])
 
   return (
-    <div className="dashboard-toolbar">
+    <div className="dashboard-toolbar" ref={toolbarRef}>
       {items.map((tool) => {
         if (tool.divider) {
           return <span key={tool.key} className="toolbar-divider" aria-hidden="true" />
@@ -57,12 +65,14 @@ export function DashboardToolbar({ activeMenu, onLoginClick, onToolClick, shortc
 
         if (tool.isPopup) {
           return (
-            <div key={tool.key} style={{ position: 'relative' }} className="toolbar-popup-container" ref={dropdownRef}>
+            <div key={tool.key} style={{ position: 'relative' }} className="toolbar-popup-container">
               <button
                 type="button"
                 className="toolbar-item"
-                ref={popupButtonRef}
-                onClick={() => handlePopupClick(tool.key)}
+                ref={(el) => {
+                  popupButtonRefs.current[tool.key] = el
+                }}
+                onClick={(event) => handlePopupClick(tool.key, event)}
               >
                 <span className={`icon tone-${tool.tone}`}>
                   {tool.mark}

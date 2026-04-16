@@ -15,14 +15,20 @@ export const toolbarItems = {
   transaksi: [
   { key: 'logout', label: 'Logout', mark: 'L', tone: 'slate', backToLogin: true },
     { key: 'divider-1', divider: true },
-    { key: 'beli', label: 'Pembelian', mark: 'P', tone: 'orange' },
-    { key: 'receive', label: 'Stock Receive', mark: 'S', tone: 'cyan' },
-    { key: 'divider-2', divider: true },
-    { key: 'retur', label: 'Retur Pembelian', mark: 'R', tone: 'green' },
-    { key: 'divider-4', divider: true },
-    { key: 'opname', label: 'Stock Opname', mark: 'O', tone: 'slate' },
-    { key: 'divider-5', divider: true },
+         { key: 'penjualan', label: 'Penjualan', mark: 'J', tone: 'blue', isPopup: true, subItems: [
     { key: 'promotion', label: 'Promotion', mark: 'M', tone: 'purple' },
+
+    ]},
+    { key: 'pembelian', label: 'Pembelian', mark: 'P', tone: 'amber', isPopup: true, subItems: [
+    { key: 'beli', label: 'Order Pembelian', mark: 'P', tone: 'orange' },
+    { key: 'receive', label: 'Stock Receive', mark: 'S', tone: 'cyan' },
+    { key: 'retur', label: 'Retur Pembelian', mark: 'R', tone: 'green' },
+]},
+    
+    { key: 'inventory', label: 'Inventory', mark: 'I', tone: 'blue', isPopup: true, subItems: [
+    { key: 'opname', label: 'Stock Opname', mark: 'O', tone: 'slate' },
+    ]},
+    
     // { key: 'divider-2', divider: true },
     // { key: 'jual', label: 'Penjualan', mark: 'J', tone: 'blue' },
     // { key: 'resep', label: 'Resep', mark: 'R', tone: 'pink' },
@@ -32,25 +38,32 @@ export const toolbarItems = {
   ],
   laporan: [
     { key: 'logout', label: 'Logout', mark: 'L', tone: 'slate', backToLogin: true },
-    { key: 'divider-1', divider: true },
-    { key: 'laphargagrosir', label: 'Lap. Harga Grosir', mark: 'G', tone: 'blue' },
+
     
     { key: 'divider-2', divider: true },
     { key: 'penjualan', label: 'Penjualan', mark: 'J', tone: 'blue', isPopup: true, subItems: [
       { key: 'lapjual', label: 'Detail Penjualan', mark: 'D', tone: 'blue' },
       { key: 'lapcashdrawer', label: 'Lap. Cash Drawer', mark: 'D', tone: 'orange' },
+      { key: 'laphargagrosir', label: 'Lap. Harga Grosir', mark: 'G', tone: 'blue' },
+    
       ]
     
      },
     
+    { key: 'pembelian', label: 'Pembelian', mark: 'P', tone: 'amber', isPopup: true, subItems: [
   
-    { key: 'lapbeli', label: 'Lap. Pembelian', mark: 'B', tone: 'orange' },
+    { key: 'lapbeli', label: 'Detil Pembelian', mark: 'B', tone: 'orange' },
+    ]},
+ 
+    { key: 'inventory', label: 'Inventory', mark: 'I', tone: 'blue', isPopup: true, subItems: [
+    
     { key: 'lapstok', label: 'Lap. Stok', mark: 'S', tone: 'green' },
+]},
+    
     { key: 'keuangan', label: 'Keuangan', mark: 'K', tone: 'amber', isPopup: true, subItems: [
       { key: 'laplabarugi', label: 'Laporan Laba Rugi', mark: 'L', tone: 'blue' },
       { key: 'lappengeluaran', label: 'Laporan Pengeluaran', mark: 'P', tone: 'orange' },
     ] },
-    { key: 'divider-3', divider: true },
  
   ],
   setting: [
