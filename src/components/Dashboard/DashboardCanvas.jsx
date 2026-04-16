@@ -21,6 +21,7 @@ import { LapPenjualan } from '../ToolbarItem/laporan/penjualan/LapPenjualan'
 import { LapPembelian } from '../ToolbarItem/laporan/pembelian/LapPembelian'
 import { LapLabaRugi } from '../ToolbarItem/laporan/laba-rugi/LapLabaRugi'
 import { LapPengeluaran } from '../ToolbarItem/laporan/pengeluaran/LapPengeluaran'
+import { BackupRestore } from '../ToolbarItem/setting/BackupRestore'
 
 export function DashboardCanvas({ activeTool, onExit }) {
   if (activeTool === 'warehouse') {
@@ -203,6 +204,14 @@ export function DashboardCanvas({ activeTool, onExit }) {
     return (
       <div className="dashboard-canvas">
         <Promotion onExit={onExit} />
+      </div>
+    )
+  }
+
+  if (activeTool === 'backup') {
+    return (
+      <div className="dashboard-canvas">
+        <BackupRestore onExit={onExit} />
       </div>
     )
   }
