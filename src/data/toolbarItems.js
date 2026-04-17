@@ -71,6 +71,7 @@ export const toolbarItems = {
     { key: 'report_setting', label: 'Report Settings', mark: 'R', tone: 'purple' },
     { key: 'divider-3', divider: true },
     { key: 'backup', label: 'Backup and Restore', mark: 'B', tone: 'green' },
+    { key: 'telegram', label: 'Telegram', mark: 'G', tone: 'blue' },
   ],
   help: [
   { key: 'logout', label: 'Logout', mark: 'L', tone: 'slate', backToLogin: true },

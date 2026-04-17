@@ -269,20 +269,23 @@ export function CompanySetting({ onExit }) {
       </div>
 
       <div className="master-footer">
+      <div className="master-footer-actions">
         <button type="button" className="master-btn-save-primary" onClick={isEditing ? handleSave : handleEditClick} disabled={isSaving}>
           <span className="material-icons-round">{isEditing ? 'save' : 'edit'}</span>
           {isEditing ? 'SIMPAN' : 'EDIT'}
         </button>
         {isEditing ? (
-          <button type="button" className="master-footer-btn" onClick={() => setIsEditing(false)}>
+          <button type="button" className="master-btn-cancel-secondary" onClick={() => setIsEditing(false)}>
             BATAL
           </button>
         ) : (
           <button type="button" className="master-footer-btn" onClick={onExit}>
-            <span className="material-icons-round master-footer-icon">exit_to_app</span>
-            KELUAR
+            <span className="material-icons-round master-footer-icon red">exit_to_app</span>
+            
           </button>
         )}
+        </div><div>
+           </div>
       </div>
 
       {showExitConfirm && (

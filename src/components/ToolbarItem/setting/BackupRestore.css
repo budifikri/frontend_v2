@@ -135,6 +135,25 @@
   margin-right: 8px;
 }
 
+.backup-content-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.backup-left-column,
+.backup-right-column {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+@media (max-width: 900px) {
+  .backup-content-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .backup-list-card {
   padding: 0;
   overflow: hidden;

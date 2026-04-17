@@ -24,7 +24,9 @@ import {
 import './BackupRestore.css'
 
 export function BackupRestore({ onExit }) {
-  const { token, user } = useAuthContext()
+  const { auth } = useAuth()
+  const token = auth?.token
+  const user = { companyName: auth?.companyName }
   const [activeTab, setActiveTab] = useState('backup')
   const [backups, setBackups] = useState([])
   const [loading, setLoading] = useState(false)
@@ -116,6 +118,11 @@ export function BackupRestore({ onExit }) {
       <div className="master-header backup-master-header">
         <div className="master-header-accent"></div>
         <h1 className="master-title">Backup & Restore Database</h1>
+
+           <div className="backup-footer-company master-header-filters ">
+            <span className="material-icons-round">business</span>
+            {user?.companyName || 'Company'}
+          </div>
       </div>
 
       <div className="backup-content">
@@ -169,16 +176,14 @@ export function BackupRestore({ onExit }) {
             <span className="material-icons-round">delete</span>
             Hapus Data
           </button>
-        </div>
-        <div className="backup-footer-right">
-          <button className="master-exit-btn" onClick={onExit}>
-            <span className="material-icons-round">exit_to_app</span>
-            Exit
+          <button className="master-footer-btn" onClick={onExit}>
+            <span className="material-icons-round master-footer-icon red">exit_to_app</span>
+            
           </button>
-          <div className="backup-footer-company">
-            <span className="material-icons-round">business</span>
-            {user?.companyName || 'Company'}
-          </div>
+        </div>
+        <div className="backup-footer-right">        
+          
+       
         </div>
       </div>
 
@@ -201,94 +206,89 @@ export function BackupRestore({ onExit }) {
   )
 }
 
-function useAuthContext() {
-  const { auth } = useAuth()
-  return {
-    token: auth?.token,
-    user: auth,
-  }
-}
-
 function BackupTab({ backups, loading, creating, schedule, onCreate, onDelete, onDownload, onOpenSchedule }) {
   return (
-    <div className="backup-tab-content">
-      <div className="backup-hero-card master-form-card">
-        <div className="backup-hero-icon">
-          <span className="material-icons-round">backup</span>
-        </div>
-        <h3>Backup Database</h3>
-        <p>Simpan data company ke file .sql untuk keamanan data</p>
+    <div className="backup-content-grid">
+      <div className="backup-left-column">
+        <div className="backup-hero-card master-form-card">
+          <div className="backup-hero-icon">
+            <span className="material-icons-round">backup</span>
+          </div>
+          <h3>Backup Database</h3>
+          <p>Simpan data company ke file .sql untuk keamanan data</p>
 
-        <button
-          className="master-btn-save-primary backup-create-btn"
-          onClick={onCreate}
-          disabled={creating}
-        >
-          {creating ? (
-            <>
-              <span className="material-icons-round spinning">sync</span>
-              Membuat Backup...
-            </>
-          ) : (
-            <>
-              <span className="material-icons-round">save</span>
-              Buat Backup Sekarang
-            </>
-          )}
-        </button>
-      </div>
-
-      <div className="backup-list-card master-form-card">
-        <div className="backup-list-header">
-          <h3>
-            <span className="material-icons-round">folder</span>
-            Daftar Backup
-          </h3>
-          <button className="backup-schedule-btn" onClick={onOpenSchedule}>
-            <span className="material-icons-round">schedule</span>
-            Schedule
-            {schedule?.enabled && <span className="schedule-indicator active"></span>}
+          <button
+            className="master-btn-save-primary backup-create-btn"
+            onClick={onCreate}
+            disabled={creating}
+          >
+            {creating ? (
+              <>
+                <span className="material-icons-round spinning">sync</span>
+                Membuat Backup...
+              </>
+            ) : (
+              <>
+                <span className="material-icons-round">save</span>
+                Buat Backup Sekarang
+              </>
+            )}
           </button>
         </div>
+      </div>
 
-        {loading ? (
-          <div className="backup-loading">
-            <span className="material-icons-round spinning">sync</span>
-            Memuat...
+      <div className="backup-right-column">
+        <div className="backup-list-card master-form-card">
+          <div className="backup-list-header">
+            <h3>
+              <span className="material-icons-round">folder</span>
+              Daftar Backup
+            </h3>
+            <button className="backup-schedule-btn" onClick={onOpenSchedule}>
+              <span className="material-icons-round">schedule</span>
+              Schedule
+              {schedule?.enabled && <span className="schedule-indicator active"></span>}
+            </button>
           </div>
-        ) : backups.length === 0 ? (
-          <div className="backup-empty">
-            <span className="material-icons-round">folder_open</span>
-            <p>Belum ada backup</p>
-          </div>
-        ) : (
-          <div className="backup-table-wrapper">
-            <table className="backup-table">
-              <thead>
-                <tr>
-                  <th>File</th>
-                  <th>Ukuran</th>
-                  <th>Tanggal</th>
-                  <th>Tipe</th>
-                  <th>Aksi</th>
-                </tr>
-              </thead>
-              <tbody>
-                {backups.map((backup) => (
-                  <tr key={backup.id}>
-                    <td className="backup-filename">
-                      <span className="material-icons-round">description</span>
-                      {backup.filename}
-                    </td>
-                    <td className="backup-size">{formatFileSize(backup.file_size)}</td>
-                    <td className="backup-date">{formatDate(backup.created_at)}</td>
-                    <td className="backup-type">
-                      <span className={`backup-type-badge ${backup.is_auto ? 'auto' : 'manual'}`}>
-                        {backup.is_auto ? 'Auto' : 'Manual'}
-                      </span>
-                    </td>
-                    <td className="backup-actions">
-                      <button
+
+          {loading ? (
+            <div className="backup-loading">
+              <span className="material-icons-round spinning">sync</span>
+              Memuat...
+            </div>
+          ) : backups.length === 0 ? (
+            <div className="backup-empty">
+              <span className="material-icons-round">folder_open</span>
+              <p>Belum ada backup</p>
+            </div>
+          ) : (
+            <div className="backup-table-wrapper">
+              <table className="backup-table">
+                <thead>
+                  <tr>
+                    <th>File</th>
+                    <th>Ukuran</th>
+                    <th>Tanggal</th>
+                    <th>Tipe</th>
+                    <th>Aksi</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {backups.map((backup) => (
+                    <tr key={backup.id}>
+                      <td className="backup-filename">
+                        <span className="material-icons-round">description</span>
+                        {backup.filename}
+                      </td>
+                      <td className="backup-size">{formatFileSize(backup.file_size)}</td>
+                      <td className="backup-date">{formatDate(backup.created_at)}</td>
+                      <td className="backup-type">
+                        <span className={`backup-type-badge ${backup.is_auto ? 'auto' : 'manual'}`}>
+                          {backup.is_auto ? 'Auto' : 'Manual'}
+                        </span>
+                      </td>
+                      <td className="backup-actions">
+                        <button
                         className="backup-action-btn download"
                         onClick={() => onDownload(backup.filename)}
                         title="Download"
@@ -318,6 +318,7 @@ function BackupTab({ backups, loading, creating, schedule, onCreate, onDelete, o
             </span>
           </div>
         )}
+        </div>
       </div>
     </div>
   )
@@ -432,169 +433,173 @@ function RestoreTab({ backups, token, onToast }) {
   const manualBackups = backups.filter(b => !b.is_auto)
 
   return (
-    <div className="restore-tab-content">
-      <div className="restore-warning-card master-form-card">
-        <div className="restore-warning-icon">
-          <span className="material-icons-round">warning</span>
-        </div>
-        <div className="restore-warning-content">
-          <h3>Peringatan!</h3>
-          <p>Restore akan <strong>menghapus SEMUA data company saat ini</strong> dan menggantinya dengan data dari file backup.</p>
-          <ul className="restore-warning-list">
-            <li>
-              <span className="material-icons-round">check_circle</span>
-              Data company lain TIDAK terpengaruh
-            </li>
-            <li>
-              <span className="material-icons-round">check_circle</span>
-              Backup otomatis akan dibuat sebelum restore
-            </li>
-            <li>
-              <span className="material-icons-round">check_circle</span>
-              Proses restore tidak bisa dibatalkan
-            </li>
-          </ul>
+    <div className="backup-content-grid">
+      <div className="backup-left-column">
+        <div className="restore-warning-card master-form-card">
+          <div className="restore-warning-icon">
+            <span className="material-icons-round">warning</span>
+          </div>
+          <div className="restore-warning-content">
+            <h3>Peringatan!</h3>
+            <p>Restore akan <strong>menghapus SEMUA data company saat ini</strong> dan menggantinya dengan data dari file backup.</p>
+            <ul className="restore-warning-list">
+              <li>
+                <span className="material-icons-round">check_circle</span>
+                Data company lain TIDAK terpengaruh
+              </li>
+              <li>
+                <span className="material-icons-round">check_circle</span>
+                Backup otomatis akan dibuat sebelum restore
+              </li>
+              <li>
+                <span className="material-icons-round">check_circle</span>
+                Proses restore tidak bisa dibatalkan
+              </li>
+            </ul>
+          </div>
         </div>
       </div>
 
-      <div className="restore-file-card master-form-card">
-        <h3>
-          <span className="material-icons-round">folder_open</span>
-          Pilih File Backup
-        </h3>
-
-        {manualBackups.length === 0 ? (
-          <div className="restore-no-backups">
-            <span className="material-icons-round">info</span>
-            <p>Tidak ada backup yang tersedia. Buat backup terlebih dahulu.</p>
-          </div>
-        ) : (
-          <div className="restore-file-select">
-            <select
-              className="master-filter-select"
-              value={selectedFile || ''}
-              onChange={(e) => handleFileSelect(e.target.value)}
-              disabled={restoring}
-            >
-              <option value="">-- Pilih File Backup --</option>
-              {manualBackups.map((backup) => (
-                <option key={backup.id} value={backup.filename}>
-                  {backup.filename}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
-
-        {validation && (
-          <div className="restore-validation">
-            <div className="validation-header">
-              <span className="material-icons-round">description</span>
-              Detail Backup
-            </div>
-            <div className="validation-grid">
-              <div className="validation-item">
-                <label>Ukuran File</label>
-                <span>{formatFileSize(validation.file_size)}</span>
-              </div>
-              <div className="validation-item">
-                <label>Tanggal Dibuat</label>
-                <span>{formatDateTime(validation.created_at)}</span>
-              </div>
-              <div className="validation-item">
-                <label>Estimasi Tables</label>
-                <span>{validation.table_count} tables</span>
-              </div>
-              <div className="validation-item">
-                <label>Estimasi Rows</label>
-                <span>{formatNumber(validation.row_count)} rows</span>
-              </div>
-              <div className="validation-item full">
-                <label>Company</label>
-                <span className="validation-company">
-                  <span className="material-icons-round">check_circle</span>
-                  {validation.company_name}
-                </span>
-              </div>
-            </div>
-            <div className="validation-status success">
-              <span className="material-icons-round">verified</span>
-              File valid - siap di-restore
-            </div>
-          </div>
-        )}
-      </div>
-
-      {selectedFile && validation && !restoring && (
-        <div className="restore-confirm-card master-form-card">
-          <label className="checkbox-label restore-confirm-checkbox">
-            <input
-              type="checkbox"
-              checked={confirmed}
-              onChange={(e) => setConfirmed(e.target.checked)}
-            />
-            <span className="checkbox-custom"></span>
-            <span>Saya mengerti dan ingin melanjutkan restore</span>
-          </label>
-        </div>
-      )}
-
-      {restoring && progress && (
-        <div className="restore-progress-card master-form-card">
+      <div className="backup-right-column">
+        <div className="restore-file-card master-form-card">
           <h3>
-            <span className="material-icons-round spinning">sync</span>
-            Progress Restore
+            <span className="material-icons-round">folder_open</span>
+            Pilih File Backup
           </h3>
 
-          <div className="restore-progress-bar">
-            <div
-              className="restore-progress-fill"
-              style={{ width: `${progress.progress}%` }}
-            ></div>
-          </div>
-
-          <div className="restore-progress-info">
-            <span className="restore-progress-percent">{Math.round(progress.progress)}%</span>
-            <span className="restore-progress-message">{progress.message}</span>
-          </div>
-
-          <div className="restore-log">
-            <div className="restore-log-entry success">
-              <span className="material-icons-round">check_circle</span>
-              Membuat safety backup...
+          {manualBackups.length === 0 ? (
+            <div className="restore-no-backups">
+              <span className="material-icons-round">info</span>
+              <p>Tidak ada backup yang tersedia. Buat backup terlebih dahulu.</p>
             </div>
-            {progress.stage === 'clearing' && (
-              <div className="restore-log-entry active">
-                <span className="material-icons-round">arrow_forward</span>
-                Clearing: {progress.table || 'tables'}
+          ) : (
+            <div className="restore-file-select">
+              <select
+                className="master-filter-select"
+                value={selectedFile || ''}
+                onChange={(e) => handleFileSelect(e.target.value)}
+                disabled={restoring}
+              >
+                <option value="">-- Pilih File Backup --</option>
+                {manualBackups.map((backup) => (
+                  <option key={backup.id} value={backup.filename}>
+                    {backup.filename}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {validation && (
+            <div className="restore-validation">
+              <div className="validation-header">
+                <span className="material-icons-round">description</span>
+                Detail Backup
               </div>
-            )}
-            {progress.stage === 'restoring' && (
-              <>
-                <div className="restore-log-entry success">
-                  <span className="material-icons-round">check_circle</span>
-                  Clearing completed
+              <div className="validation-grid">
+                <div className="validation-item">
+                  <label>Ukuran File</label>
+                  <span>{formatFileSize(validation.file_size)}</span>
                 </div>
+                <div className="validation-item">
+                  <label>Tanggal Dibuat</label>
+                  <span>{formatDateTime(validation.created_at)}</span>
+                </div>
+                <div className="validation-item">
+                  <label>Estimasi Tables</label>
+                  <span>{validation.table_count} tables</span>
+                </div>
+                <div className="validation-item">
+                  <label>Estimasi Rows</label>
+                  <span>{formatNumber(validation.row_count)} rows</span>
+                </div>
+                <div className="validation-item full">
+                  <label>Company</label>
+                  <span className="validation-company">
+                    <span className="material-icons-round">check_circle</span>
+                    {validation.company_name}
+                  </span>
+                </div>
+              </div>
+              <div className="validation-status success">
+                <span className="material-icons-round">verified</span>
+                File valid - siap di-restore
+              </div>
+            </div>
+          )}
+        </div>
+
+        {selectedFile && validation && !restoring && (
+          <div className="restore-confirm-card master-form-card">
+            <label className="checkbox-label restore-confirm-checkbox">
+              <input
+                type="checkbox"
+                checked={confirmed}
+                onChange={(e) => setConfirmed(e.target.checked)}
+              />
+              <span className="checkbox-custom"></span>
+              <span>Saya mengerti dan ingin melanjutkan restore</span>
+            </label>
+          </div>
+        )}
+
+        {restoring && progress && (
+          <div className="restore-progress-card master-form-card">
+            <h3>
+              <span className="material-icons-round spinning">sync</span>
+              Progress Restore
+            </h3>
+
+            <div className="restore-progress-bar">
+              <div
+                className="restore-progress-fill"
+                style={{ width: `${progress.progress}%` }}
+              ></div>
+            </div>
+
+            <div className="restore-progress-info">
+              <span className="restore-progress-percent">{Math.round(progress.progress)}%</span>
+              <span className="restore-progress-message">{progress.message}</span>
+            </div>
+
+            <div className="restore-log">
+              <div className="restore-log-entry success">
+                <span className="material-icons-round">check_circle</span>
+                Membuat safety backup...
+              </div>
+              {progress.stage === 'clearing' && (
                 <div className="restore-log-entry active">
                   <span className="material-icons-round">arrow_forward</span>
-                  Restoring: {progress.table || 'data'}
+                  Clearing: {progress.table || 'tables'}
                 </div>
-              </>
-            )}
+              )}
+              {progress.stage === 'restoring' && (
+                <>
+                  <div className="restore-log-entry success">
+                    <span className="material-icons-round">check_circle</span>
+                    Clearing completed
+                  </div>
+                  <div className="restore-log-entry active">
+                    <span className="material-icons-round">arrow_forward</span>
+                    Restoring: {progress.table || 'data'}
+                  </div>
+                </>
+              )}
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {selectedFile && validation && !restoring && (
-        <button
-          className="restore-btn-danger"
-          onClick={handleRestore}
-          disabled={!confirmed}
-        >
-          <span className="material-icons-round">restore</span>
-          Restore Database
-        </button>
-      )}
+        {selectedFile && validation && !restoring && (
+          <button
+            className="restore-btn-danger"
+            onClick={handleRestore}
+            disabled={!confirmed}
+          >
+            <span className="material-icons-round">restore</span>
+            Restore Database
+          </button>
+        )}
+      </div>
 
       {showConfirmModal && (
         <div className="master-dialog-overlay" onClick={() => setShowConfirmModal(false)}>
@@ -889,134 +894,138 @@ function DeleteDataTab({ token, onToast }) {
   }
 
   return (
-    <div className="delete-data-tab-content">
-      <div className="delete-warning-card master-form-card">
-        <div className="delete-warning-icon">
-          <span className="material-icons-round">warning</span>
+    <div className="backup-content-grid">
+      <div className="backup-left-column">
+        <div className="delete-warning-card master-form-card">
+          <div className="delete-warning-icon">
+            <span className="material-icons-round">warning</span>
+          </div>
+          <div className="delete-warning-content">
+            <h3>PERINGATAN!</h3>
+            <p>Menghapus data akan MEMPERMANEN menghapus semua data dari scope yang dipilih. Proses ini TIDAK DAPAT DIBATALKAN!</p>
+            <label className="checkbox-label delete-warning-checkbox">
+              <input
+                type="checkbox"
+                checked={backupConfirmed}
+                onChange={(e) => setBackupConfirmed(e.target.checked)}
+              />
+              <span className="checkbox-custom"></span>
+              <span>Saya sudah membuat backup sebelum menghapus data</span>
+            </label>
+          </div>
         </div>
-        <div className="delete-warning-content">
-          <h3>PERINGATAN!</h3>
-          <p>Menghapus data akan MEMPERMANEN menghapus semua data dari scope yang dipilih. Proses ini TIDAK DAPAT DIBATALKAN!</p>
-          <label className="checkbox-label delete-warning-checkbox">
+      </div>
+
+      <div className="backup-right-column">
+        <div className="delete-scope-card master-form-card">
+          <h3>
+            <span className="material-icons-round">delete_sweep</span>
+            Pilih Scope Data yang Akan Dihapus
+          </h3>
+
+          <div className="delete-scope-options">
+            <label className={`delete-scope-option ${scope === 'all' ? 'selected' : ''}`}>
+              <input
+                type="radio"
+                name="deleteScope"
+                value="all"
+                checked={scope === 'all'}
+                onChange={() => setScope('all')}
+              />
+              <span className="material-icons-round">delete_forever</span>
+              <span className="delete-scope-title">Semua Data</span>
+              <span className="delete-scope-desc">Master + Transaksi</span>
+            </label>
+
+            <label className={`delete-scope-option ${scope === 'master' ? 'selected' : ''}`}>
+              <input
+                type="radio"
+                name="deleteScope"
+                value="master"
+                checked={scope === 'master'}
+                onChange={() => setScope('master')}
+              />
+              <span className="material-icons-round">inventory_2</span>
+              <span className="delete-scope-title">Data Master</span>
+              <span className="delete-scope-desc">Users, Products, dll</span>
+            </label>
+
+            <label className={`delete-scope-option ${scope === 'transaction' ? 'selected' : ''}`}>
+              <input
+                type="radio"
+                name="deleteScope"
+                value="transaction"
+                checked={scope === 'transaction'}
+                onChange={() => setScope('transaction')}
+              />
+              <span className="material-icons-round">receipt_long</span>
+              <span className="delete-scope-title">Data Transaksi</span>
+              <span className="delete-scope-desc">Sales, Purchases, dll</span>
+            </label>
+          </div>
+        </div>
+
+        <div className="delete-preview-card master-form-card">
+          <h3>
+            <span className="material-icons-round">analytics</span>
+            Preview: {scopeLabels[scope]}
+          </h3>
+
+          {loading ? (
+            <div className="delete-preview-loading">
+              <span className="material-icons-round spinning">sync</span>
+              Memuat...
+            </div>
+          ) : counts ? (
+            <>
+              <div className="delete-preview-list">
+                {counts.tables.map((t) => (
+                  <div key={t.table_name} className="delete-preview-item">
+                    <span className="delete-preview-table">{t.table_name}</span>
+                    <span className="delete-preview-count">{formatNumber(t.row_count)} data</span>
+                  </div>
+                ))}
+              </div>
+              <div className="delete-preview-total">
+                Total: <strong>{formatNumber(counts.total)}</strong> data
+              </div>
+            </>
+          ) : (
+            <p className="delete-preview-empty">Tidak ada data</p>
+          )}
+        </div>
+
+        <div className="delete-confirm-card master-form-card">
+          <label className={`checkbox-label delete-confirm-checkbox ${!backupConfirmed ? 'disabled' : ''}`}>
             <input
               type="checkbox"
-              checked={backupConfirmed}
-              onChange={(e) => setBackupConfirmed(e.target.checked)}
+              checked={deleteConfirmed}
+              onChange={(e) => setDeleteConfirmed(e.target.checked)}
+              disabled={!backupConfirmed}
             />
             <span className="checkbox-custom"></span>
-            <span>Saya sudah membuat backup sebelum menghapus data</span>
+            <span>Saya memahami bahwa data akan dihapus permanen dan tidak dapat dikembalikan</span>
           </label>
         </div>
+
+        <button
+          className="delete-btn-danger"
+          onClick={handleDelete}
+          disabled={!canDelete}
+        >
+          {deleting ? (
+            <>
+              <span className="material-icons-round spinning">sync</span>
+              Menghapus...
+            </>
+          ) : (
+            <>
+              <span className="material-icons-round">delete_forever</span>
+              Hapus {scopeLabels[scope]}
+            </>
+          )}
+        </button>
       </div>
-
-      <div className="delete-scope-card master-form-card">
-        <h3>
-          <span className="material-icons-round">delete_sweep</span>
-          Pilih Scope Data yang Akan Dihapus
-        </h3>
-
-        <div className="delete-scope-options">
-          <label className={`delete-scope-option ${scope === 'all' ? 'selected' : ''}`}>
-            <input
-              type="radio"
-              name="deleteScope"
-              value="all"
-              checked={scope === 'all'}
-              onChange={() => setScope('all')}
-            />
-            <span className="material-icons-round">delete_forever</span>
-            <span className="delete-scope-title">Semua Data</span>
-            <span className="delete-scope-desc">Master + Transaksi</span>
-          </label>
-
-          <label className={`delete-scope-option ${scope === 'master' ? 'selected' : ''}`}>
-            <input
-              type="radio"
-              name="deleteScope"
-              value="master"
-              checked={scope === 'master'}
-              onChange={() => setScope('master')}
-            />
-            <span className="material-icons-round">inventory_2</span>
-            <span className="delete-scope-title">Data Master</span>
-            <span className="delete-scope-desc">Users, Products, dll</span>
-          </label>
-
-          <label className={`delete-scope-option ${scope === 'transaction' ? 'selected' : ''}`}>
-            <input
-              type="radio"
-              name="deleteScope"
-              value="transaction"
-              checked={scope === 'transaction'}
-              onChange={() => setScope('transaction')}
-            />
-            <span className="material-icons-round">receipt_long</span>
-            <span className="delete-scope-title">Data Transaksi</span>
-            <span className="delete-scope-desc">Sales, Purchases, dll</span>
-          </label>
-        </div>
-      </div>
-
-      <div className="delete-preview-card master-form-card">
-        <h3>
-          <span className="material-icons-round">analytics</span>
-          Preview: {scopeLabels[scope]}
-        </h3>
-
-        {loading ? (
-          <div className="delete-preview-loading">
-            <span className="material-icons-round spinning">sync</span>
-            Memuat...
-          </div>
-        ) : counts ? (
-          <>
-            <div className="delete-preview-list">
-              {counts.tables.map((t) => (
-                <div key={t.table_name} className="delete-preview-item">
-                  <span className="delete-preview-table">{t.table_name}</span>
-                  <span className="delete-preview-count">{formatNumber(t.row_count)} data</span>
-                </div>
-              ))}
-            </div>
-            <div className="delete-preview-total">
-              Total: <strong>{formatNumber(counts.total)}</strong> data
-            </div>
-          </>
-        ) : (
-          <p className="delete-preview-empty">Tidak ada data</p>
-        )}
-      </div>
-
-      <div className="delete-confirm-card master-form-card">
-        <label className={`checkbox-label delete-confirm-checkbox ${!backupConfirmed ? 'disabled' : ''}`}>
-          <input
-            type="checkbox"
-            checked={deleteConfirmed}
-            onChange={(e) => setDeleteConfirmed(e.target.checked)}
-            disabled={!backupConfirmed}
-          />
-          <span className="checkbox-custom"></span>
-          <span>Saya memahami bahwa data akan dihapus permanen dan tidak dapat dikembalikan</span>
-        </label>
-      </div>
-
-      <button
-        className="delete-btn-danger"
-        onClick={handleDelete}
-        disabled={!canDelete}
-      >
-        {deleting ? (
-          <>
-            <span className="material-icons-round spinning">sync</span>
-            Menghapus...
-          </>
-        ) : (
-          <>
-            <span className="material-icons-round">delete_forever</span>
-            Hapus {scopeLabels[scope]}
-          </>
-        )}
-      </button>
     </div>
   )
 }

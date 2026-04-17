@@ -22,6 +22,7 @@ import { LapPembelian } from '../ToolbarItem/laporan/pembelian/LapPembelian'
 import { LapLabaRugi } from '../ToolbarItem/laporan/laba-rugi/LapLabaRugi'
 import { LapPengeluaran } from '../ToolbarItem/laporan/pengeluaran/LapPengeluaran'
 import { BackupRestore } from '../ToolbarItem/setting/BackupRestore'
+import { Telegram } from '../ToolbarItem/setting/Telegram'
 
 export function DashboardCanvas({ activeTool, onExit }) {
   if (activeTool === 'warehouse') {
@@ -212,6 +213,14 @@ export function DashboardCanvas({ activeTool, onExit }) {
     return (
       <div className="dashboard-canvas">
         <BackupRestore onExit={onExit} />
+      </div>
+    )
+  }
+
+  if (activeTool === 'telegram') {
+    return (
+      <div className="dashboard-canvas">
+        <Telegram onExit={onExit} />
       </div>
     )
   }

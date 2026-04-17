@@ -407,13 +407,18 @@ export function ReportSetting() {
       </div>
 
       <div className="master-footer">
+            <div className="master-footer-actions">
         <button type="button" className="master-btn-save-primary" onClick={handleSave} disabled={isSaving}>
           <span className="material-icons-round">save</span>
           SIMPAN
         </button>
-        <button type="button" className="master-footer-btn" onClick={handleReset}>
-          Reset Default
+        <button type="button" className="master-btn-cancel-secondary" onClick={handleReset}>
+         Reset Default
         </button>
+     </div><div>
+           </div>
+
+        
       </div>
     </div>
   )

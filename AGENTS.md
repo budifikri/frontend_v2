@@ -156,3 +156,5 @@ Prefer existing patterns over new abstractions.
 
 # TODO
 - setiap proses selalu buatkan todo write to code
+# RESPONSE AI
+- jelaskan dalam bahasa indonesia
