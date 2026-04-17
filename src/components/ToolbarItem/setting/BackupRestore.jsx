@@ -113,41 +113,9 @@ export function BackupRestore({ onExit }) {
 
   return (
     <div className="backup-restore-container">
-      <div className="backup-header master-header">
-        <div className="backup-header-left">
-          <button className="master-exit-btn" onClick={onExit}>
-            <span className="material-icons-round">arrow_back</span>
-          </button>
-          <h2>Backup & Restore Database</h2>
-        </div>
-        <div className="company-badge">
-          <span className="material-icons-round">business</span>
-          {user?.companyName || 'Company'}
-        </div>
-      </div>
-
-      <div className="backup-tabs">
-        <button
-          className={`backup-tab ${activeTab === 'backup' ? 'active' : ''}`}
-          onClick={() => setActiveTab('backup')}
-        >
-          <span className="material-icons-round">backup</span>
-          Backup
-        </button>
-        <button
-          className={`backup-tab ${activeTab === 'restore' ? 'active' : ''}`}
-          onClick={() => setActiveTab('restore')}
-        >
-          <span className="material-icons-round">restore</span>
-          Restore
-        </button>
-        <button
-          className={`backup-tab ${activeTab === 'delete' ? 'active' : ''}`}
-          onClick={() => setActiveTab('delete')}
-        >
-          <span className="material-icons-round">delete</span>
-          Hapus Data
-        </button>
+      <div className="master-header backup-master-header">
+        <div className="master-header-accent"></div>
+        <h1 className="master-title">Backup & Restore Database</h1>
       </div>
 
       <div className="backup-content">
@@ -176,6 +144,42 @@ export function BackupRestore({ onExit }) {
             onToast={setToast}
           />
         )}
+      </div>
+
+      <div className="master-footer backup-footer">
+        <div className="backup-footer-tabs">
+          <button
+            className={`backup-tab ${activeTab === 'backup' ? 'active' : ''}`}
+            onClick={() => setActiveTab('backup')}
+          >
+            <span className="material-icons-round">backup</span>
+            Backup
+          </button>
+          <button
+            className={`backup-tab ${activeTab === 'restore' ? 'active' : ''}`}
+            onClick={() => setActiveTab('restore')}
+          >
+            <span className="material-icons-round">restore</span>
+            Restore
+          </button>
+          <button
+            className={`backup-tab ${activeTab === 'delete' ? 'active' : ''}`}
+            onClick={() => setActiveTab('delete')}
+          >
+            <span className="material-icons-round">delete</span>
+            Hapus Data
+          </button>
+        </div>
+        <div className="backup-footer-right">
+          <button className="master-exit-btn" onClick={onExit}>
+            <span className="material-icons-round">exit_to_app</span>
+            Exit
+          </button>
+          <div className="backup-footer-company">
+            <span className="material-icons-round">business</span>
+            {user?.companyName || 'Company'}
+          </div>
+        </div>
       </div>
 
       {showScheduleModal && (
