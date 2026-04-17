@@ -136,8 +136,6 @@ export function Telegram({ onExit }) {
   }), [])
 
   const fetchData = useCallback(async () => {
-    setError('')
-
     try {
       if (!token) return
 
@@ -146,7 +144,10 @@ export function Telegram({ onExit }) {
         setForm(mapFormFromData(data))
       }
     } catch (err) {
-      setError(err.message || 'Failed to load telegram config')
+      setToastMessage(err.message || 'Gagal memuat konfigurasi telegram')
+      setToastType('error')
+      setShowToast(true)
+      setTimeout(() => setShowToast(false), 3000)
     }
   }, [token])
 
@@ -244,23 +245,20 @@ export function Telegram({ onExit }) {
     onExit()
   }
 
-  return (
+return (
     <div className="master-content">
       <div className="master-header">
         <div className="master-header-accent"></div>
         <h1 className="master-title">Pengaturan Telegram</h1>
-
-
-         <div className="backup-footer-company master-header-filters ">
-            <span className="material-icons-round">business</span>
-            {user?.companyName || 'Company'}
-          </div>
+        <div className="backup-footer-company master-header-filters">
+          <span className="material-icons-round">business</span>
+          {user?.companyName || 'Company'}
+        </div>
       </div>
 
-      {error && <div className="master-error">{error}</div>}
       {showToast && (
-        <div className="toast-notification">
-          <span className="material-icons-round">check_circle</span>
+        <div className={`toast-notification toast-${toastType}`}>
+          <span className="material-icons-round">{toastType === 'success' ? 'check_circle' : 'error'}</span>
           {toastMessage}
         </div>
       )}
@@ -427,24 +425,24 @@ export function Telegram({ onExit }) {
               </div>
 
               <div className="receipt-setting-preview-wrap">
-                <div className="receipt-setting-preview-tabs">
+                <div className="product-form-tabs">
                   <button
                     type="button"
-                    className={`receipt-setting-tab ${activePreview === 'penjualan' ? 'is-active' : ''}`}
+                    className={`product-form-tab ${activePreview === 'penjualan' ? 'active' : ''}`}
                     onClick={() => setActivePreview('penjualan')}
                   >
                     Penjualan
                   </button>
                   <button
                     type="button"
-                    className={`receipt-setting-tab ${activePreview === 'pembelian' ? 'is-active' : ''}`}
+                    className={`product-form-tab ${activePreview === 'pembelian' ? 'active' : ''}`}
                     onClick={() => setActivePreview('pembelian')}
                   >
                     Pembelian
                   </button>
                   <button
                     type="button"
-                    className={`receipt-setting-tab ${activePreview === 'stock_opname' ? 'is-active' : ''}`}
+                    className={`product-form-tab ${activePreview === 'stock_opname' ? 'active' : ''}`}
                     onClick={() => setActivePreview('stock_opname')}
                   >
                     Stock Opname
@@ -459,25 +457,21 @@ export function Telegram({ onExit }) {
         </div>
       </div>
 
-      <div className="master-footer">
-      <div className="master-footer-actions">
+<div className="master-footer">
         <button type="button" className="master-btn-save-primary" onClick={isEditing ? handleSave : handleEditClick} disabled={isSaving}>
           <span className="material-icons-round">{isEditing ? 'save' : 'edit'}</span>
           {isEditing ? 'SIMPAN' : 'EDIT'}
         </button>
         {isEditing ? (
-          <button type="button" className="master-btn-cancel-secondary" onClick={() => setIsEditing(false)}>
+          <button type="button" className="master-footer-btn" onClick={() => setIsEditing(false)}>
             BATAL
           </button>
         ) : (
           <button type="button" className="master-footer-btn" onClick={onExit}>
-            <span className="material-icons-round master-footer-icon red">exit_to_app</span>
- 
+            <span className="material-icons-round master-footer-icon">exit_to_app</span>
+            KELUAR
           </button>
         )}
-
-            </div><div>
-           </div>
       </div>
 
       {showExitConfirm && (
