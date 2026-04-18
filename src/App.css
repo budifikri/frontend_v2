@@ -1136,6 +1136,27 @@ body.has-wallpaper .cash-register {
   flex-wrap: wrap;
 }
 
+.master-form-header-telegram {
+  display: flex;
+  align-items: center;
+  gap: 0px 8px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  justify-content: space-between;
+}
+
+
+.receipt-setting-preview-panel-telegram {
+    border: 1px solid #cbd5e1;
+    border-radius: 10px;
+    background: #eef2ff;
+    padding: 12px;
+    min-height: 420px;
+    max-height: 62vh;
+    overflow: auto;
+    width: 100%;
+}
+
 .master-form-icon {
   color: var(--secondcolor-bg);
   font-size: 24px;

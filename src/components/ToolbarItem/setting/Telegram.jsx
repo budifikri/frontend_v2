@@ -423,7 +423,10 @@ return (
                   )}
                 </div>
               </div>
-
+        <div className="master-form-header-telegram">
+     
+            <h2 className="master-form-title">Preview Message</h2>
+           
               <div className="receipt-setting-preview-wrap">
                 <div className="product-form-tabs">
                   <button
@@ -448,9 +451,15 @@ return (
                     Stock Opname
                   </button>
                 </div>
-                <div className="receipt-setting-preview-panel">
+</div>
+
+                
+                <div className="receipt-setting-preview-panel-telegram">
                   <pre className="telegram-preview-text">{previewMessages[activePreview]}</pre>
                 </div>
+
+
+                
               </div>
             </div>
           </div>
@@ -458,20 +467,24 @@ return (
       </div>
 
 <div className="master-footer">
+
+<div className="master-footer-actions">
         <button type="button" className="master-btn-save-primary" onClick={isEditing ? handleSave : handleEditClick} disabled={isSaving}>
           <span className="material-icons-round">{isEditing ? 'save' : 'edit'}</span>
           {isEditing ? 'SIMPAN' : 'EDIT'}
         </button>
         {isEditing ? (
-          <button type="button" className="master-footer-btn" onClick={() => setIsEditing(false)}>
+              <button type="button" className="master-btn-cancel-secondary" onClick={() => setIsEditing(false)}>
             BATAL
           </button>
         ) : (
-          <button type="button" className="master-footer-btn" onClick={onExit}>
-            <span className="material-icons-round master-footer-icon">exit_to_app</span>
-            KELUAR
+       <button type="button" className="master-footer-btn" onClick={onExit}>
+            <span className="material-icons-round master-footer-icon red">exit_to_app</span>
+            
           </button>
         )}
+                </div><div>
+           </div>
       </div>
 
       {showExitConfirm && (
