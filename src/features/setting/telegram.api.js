@@ -20,12 +20,13 @@ export async function saveTelegramConfig(token, config) {
   return result.data
 }
 
-export async function testTelegramConnection(token, telegramId) {
+export async function testTelegramConnection(token, telegramId, type) {
   const result = await apiFetch('/api/telegram/test', {
     method: 'POST',
     token,
     body: {
       telegram_id: telegramId,
+      type: type,
     },
   })
   if (!result.success) {

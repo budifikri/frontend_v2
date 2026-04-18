@@ -228,7 +228,7 @@ export function Telegram({ onExit }) {
     }
   }
 
-  async function handleTest(telegramId, type) {
+  async function handleTest(telegramId, typeLabel) {
     if (!telegramId) {
       setToastMessage('Telegram ID harus diisi')
       setToastType('error')
@@ -237,11 +237,19 @@ export function Telegram({ onExit }) {
       return
     }
 
+    const typeMap = {
+      'Penjualan': 'penjualan',
+      'Pembelian': 'pembelian',
+      'Stock Opname': 'stock_opname',
+      'Closing Drawer': 'closing_drawer',
+    }
+    const type = typeMap[typeLabel] || typeLabel
+
     setTesting(true)
 
     try {
-      await testTelegramConnection(token, telegramId)
-      setToastMessage(`Koneksi ${type} berhasil!`)
+      await testTelegramConnection(token, telegramId, type)
+      setToastMessage(`Koneksi ${typeLabel} berhasil!`)
       setToastType('success')
       setShowToast(true)
 
@@ -249,7 +257,7 @@ export function Telegram({ onExit }) {
         setShowToast(false)
       }, 3000)
     } catch (err) {
-      setToastMessage(`Koneksi ${type} gagal: ` + (err.message || 'Unknown error'))
+      setToastMessage(`Koneksi ${typeLabel} gagal: ` + (err.message || 'Unknown error'))
       setToastType('error')
       setShowToast(true)
       setTimeout(() => setShowToast(false), 3000)
@@ -319,7 +327,7 @@ export function Telegram({ onExit }) {
                             type="button"
                             className="master-btn-secondary test-btn"
                             onClick={() => handleTest(form.telegram_id_penjualan, 'Penjualan')}
-                            disabled={testing || !form.telegram_id_penjualan}
+                            disabled={testing || !form.telegram_id_penjualan || !form.notify_penjualan}
                           >
                             TEST
                           </button>
@@ -363,7 +371,7 @@ export function Telegram({ onExit }) {
                             type="button"
                             className="master-btn-secondary test-btn"
                             onClick={() => handleTest(form.telegram_id_pembelian, 'Pembelian')}
-                            disabled={testing || !form.telegram_id_pembelian}
+                            disabled={testing || !form.telegram_id_pembelian || !form.notify_pembelian}
                           >
                             TEST
                           </button>
@@ -407,7 +415,7 @@ export function Telegram({ onExit }) {
                             type="button"
                             className="master-btn-secondary test-btn"
                             onClick={() => handleTest(form.telegram_id_stock_opname, 'Stock Opname')}
-                            disabled={testing || !form.telegram_id_stock_opname}
+                            disabled={testing || !form.telegram_id_stock_opname || !form.notify_stock_opname}
                           >
                             TEST
                           </button>
@@ -451,7 +459,7 @@ export function Telegram({ onExit }) {
                             type="button"
                             className="master-btn-secondary test-btn"
                             onClick={() => handleTest(form.telegram_id_closing_drawer, 'Closing Drawer')}
-                            disabled={testing || !form.telegram_id_closing_drawer}
+                            disabled={testing || !form.telegram_id_closing_drawer || !form.notify_closing_drawer}
                           >
                             TEST
                           </button>
