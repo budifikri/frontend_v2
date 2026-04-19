@@ -318,41 +318,58 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
       } else if (showActionPopup) {
         handleActionSelect(actionPopupIndex)
       } else {
-        const supplierMatch = search.match(/^\+([A-Za-z])$/)
+        const currentSearch = search.trim()
+        const supplierMatch = currentSearch.match(/^\+([A-Za-z])$/)
         if (supplierMatch) {
           const letter = supplierMatch[1].toUpperCase()
-          setSupplierResults(supplierOptions.filter(s => s.name.toUpperCase().includes(letter)))
-          setPopupSelectedIndex(0)
-          setShowSupplierPopup(true)
+          const filtered = supplierOptions.filter(s => s.name.toUpperCase().includes(letter))
+          if (filtered.length > 0) {
+            setSupplierResults(filtered)
+            setPopupSelectedIndex(0)
+            setShowSupplierPopup(true)
+            setSearch('')
+          } else {
+            setToastMessage(`Supplier dengan huruf "${letter}" tidak ditemukan`)
+            setToastType('warning')
+            setShowToast(true)
+          }
           return
         }
 
-        const qtyMatch = search.match(/^\+(\d+)$/)
-        if (qtyMatch && items.length > 0) {
+        const qtyMatch = currentSearch.match(/^\+(\d+)$/)
+        if (qtyMatch && items.length > 0 && selectedIndex >= 0 && selectedIndex < items.length) {
           const newQty = parseInt(qtyMatch[1], 10)
-          if (newQty >= 0 && selectedIndex >= 0 && selectedIndex < items.length) {
+          if (newQty >= 0) {
             const selectedItem = items[selectedIndex]
             updateItem(selectedItem.id, { quantity: newQty })
+            setToastMessage(`Qty ${selectedItem.product_name} menjadi ${newQty}`)
+            setToastType('success')
+            setShowToast(true)
           }
           setSearch('')
+          if (searchInputRef.current) searchInputRef.current.focus()
           return
         }
 
-        const priceMatch = search.match(/^\+\+(\d+)$/)
-        if (priceMatch && items.length > 0) {
+        const priceMatch = currentSearch.match(/^\+\+(\d+)$/)
+        if (priceMatch && items.length > 0 && selectedIndex >= 0 && selectedIndex < items.length) {
           const newPrice = parseInt(priceMatch[1], 10)
-          if (newPrice >= 0 && selectedIndex >= 0 && selectedIndex < items.length) {
+          if (newPrice >= 0) {
             const selectedItem = items[selectedIndex]
             updateItem(selectedItem.id, { unit_price: newPrice })
+            setToastMessage(`Harga ${selectedItem.product_name} menjadi ${newPrice}`)
+            setToastType('success')
+            setShowToast(true)
           }
           setSearch('')
+          if (searchInputRef.current) searchInputRef.current.focus()
           return
         }
 
-        if (search.trim()) {
+        if (currentSearch) {
           setIsLoadingProducts(true)
           try {
-            const result = await listProducts(token, { search: search.trim(), limit: 50 })
+            const result = await listProducts(token, { search: currentSearch, limit: 50 })
             const products = result.items.map(p => ({
               id: p.id,
               name: p.name,
