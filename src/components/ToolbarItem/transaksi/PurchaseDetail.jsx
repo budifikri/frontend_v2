@@ -509,8 +509,8 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
         <div className="po-receipt-header-top">
           <h1 className="po-receipt-title">PURCHASE ORDER</h1>
           <div className="po-supplier-display">
-            <span className="po-supplier-label">Supplier:</span>
-            <span className="po-supplier-name">{header.supplier_name || header.supplier_id || 'Belum dipilih'}</span>
+            <span className="po-supplier-label">Status :</span>
+            <span className="po-supplier-name">DRAFT</span>
           </div>
         </div>
         <div className="po-meta-info">
@@ -518,6 +518,11 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
             <span className="po-meta-label">No. PO</span>
             <span className="po-meta-value">{header.po_number || '-'}</span>
           </div>
+   <div className="po-meta-item">
+            <span className="po-meta-label">Supplier:</span>
+            <span className="po-meta-value">{header.supplier_name || header.supplier_id || 'Belum dipilih'}</span>
+          </div>
+          
           <div className="po-meta-item">
             <span className="po-meta-label">Tanggal</span>
             <span className="po-meta-value">{header.po_date || '-'}</span>
