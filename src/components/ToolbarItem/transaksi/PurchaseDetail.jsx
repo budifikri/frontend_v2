@@ -119,36 +119,6 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
   }, [propSelectedId])
 
   useEffect(() => {
-    if (!propSelectedId) {
-      const saved = localStorage.getItem('pos_pending_notes')
-      if (saved) {
-        try {
-          const parsed = JSON.parse(saved)
-          if (parsed.po_mode && parsed.po_data) {
-            const { header: savedHeader, items: savedItems } = parsed.po_data
-            if (savedHeader) {
-              setHeader(prev => ({
-                ...prev,
-                supplier_id: savedHeader.supplier_id || '',
-                supplier_name: savedHeader.supplier_name || '',
-                warehouse_id: savedHeader.warehouse_id || prev.warehouse_id,
-                po_date: savedHeader.po_date || prev.po_date,
-                expected_date: savedHeader.expected_date || prev.expected_date,
-                notes: savedHeader.notes || '',
-              }))
-            }
-            if (savedItems && savedItems.length > 0) {
-              setItems(savedItems)
-            }
-          }
-        } catch (e) {
-          console.error('[PurchaseDetail] Failed to parse pending PO:', e)
-        }
-      }
-    }
-  }, [propSelectedId])
-
-  useEffect(() => {
     if (!propSelectedId && (header.supplier_id || items.length > 0)) {
       const pendingData = {
         po_data: { header, items },
