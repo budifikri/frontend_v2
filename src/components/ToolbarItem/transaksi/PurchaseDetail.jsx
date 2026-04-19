@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useAuth } from '../../../shared/auth'
 import { getPurchase, createPurchase, updatePurchase, listSuppliers, generatePONumber } from '../../../features/transaksi/purchase/purchase.api'
 import { listWarehouses } from '../../../features/master/warehouse/warehouse.api'
@@ -30,12 +30,21 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
   const [toastMessage, setToastMessage] = useState('')
   const [toastType, setToastType] = useState('info')
 
+  const supplierSelectRef = useRef(null)
+
+  // Helper: calculate default expected date (PO date + 7 days)
+  const getDefaultExpectedDate = (poDate) => {
+    const d = new Date(poDate || new Date().toISOString().split('T')[0])
+    d.setDate(d.getDate() + 7)
+    return d.toISOString().split('T')[0]
+  }
+
   const [header, setHeader] = useState({
     po_number: generatePONumber(),
     supplier_id: '',
     warehouse_id: '',
     po_date: new Date().toISOString().split('T')[0],
-    expected_date: '',
+    expected_date: getDefaultExpectedDate(),
     status: 'draft',
     notes: '',
   })
@@ -50,10 +59,15 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
         { id: 'SUP001', name: 'PT. Supplier Utama' },
         { id: 'SUP002', name: 'CV. Berkah Jaya' },
       ])
-      setWarehouseOptions([
-        { id: 'WH001', name: 'Gudang Utama' },
+      const warehouses = [
+        { id: 'MAIN', name: 'Gudang Utama' },
         { id: 'WH002', name: 'Gudang Cabang' },
-      ])
+      ]
+      setWarehouseOptions(warehouses)
+      // Auto-set warehouse to MAIN if available (only for new PO)
+      if (!propSelectedId) {
+        setHeader(prev => ({ ...prev, warehouse_id: 'MAIN' }))
+      }
       return
     }
     try {
@@ -61,8 +75,15 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
         listSuppliers(token, { limit: 200 }),
         listWarehouses(token, { limit: 200 }),
       ])
+      const warehouses = warehouseRes.items || []
       setSupplierOptions(supplierRes.items || [])
-      setWarehouseOptions(warehouseRes.items || [])
+      setWarehouseOptions(warehouses)
+
+      // Auto-set warehouse to MAIN if available (only for new PO)
+      const mainWarehouse = warehouses.find(w => w.id === 'MAIN')
+      if (!propSelectedId && mainWarehouse) {
+        setHeader(prev => ({ ...prev, warehouse_id: mainWarehouse.id }))
+      }
     } catch (err) {
       console.error('[PurchaseDetail] Failed to load lookups:', err)
       if (err.message?.includes('Company dengan ID tersebut tidak ditemukan')) {
@@ -78,6 +99,16 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
   }, [token])
 
   useEffect(() => { fetchLookups() }, [fetchLookups])
+
+  // Auto-focus to supplier when form opens (only for new PO)
+  useEffect(() => {
+    if (!propSelectedId && supplierSelectRef.current) {
+      const timer = setTimeout(() => {
+        supplierSelectRef.current?.focus()
+      }, 100)
+      return () => clearTimeout(timer)
+    }
+  }, [propSelectedId])
 
   // Load existing purchase
   useEffect(() => {
@@ -307,7 +338,7 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (showAddModal || showExitConfirm) return
-      if (e.key === 'F1') { e.preventDefault(); setShowAddModal(true) }
+      if ((e.ctrlKey || e.metaKey) && e.key === '+') { e.preventDefault(); setShowAddModal(true) }
       else if (e.key === 'Delete' && selectedIds.length > 0) { e.preventDefault(); removeItem(selectedIds) }
       else if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); handleSave() }
       else if (e.key === 'Escape') { e.preventDefault(); setShowExitConfirm(true) }
@@ -370,14 +401,14 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
         <div className="stock-opname-header-form">
           <div className="form-group">
             <label className="master-form-label">Supplier *</label>
-            <select value={header.supplier_id} onChange={(e) => setHeader({ ...header, supplier_id: e.target.value })} className="master-form-input">
+            <select ref={supplierSelectRef} value={header.supplier_id} onChange={(e) => setHeader({ ...header, supplier_id: e.target.value })} className="master-form-input">
               <option value="">Select supplier...</option>
               {supplierOptionsForSelect.map(item => (<option key={item.id} value={item.id}>{item.name}</option>))}
             </select>
           </div>
           <div className="form-group">
             <label className="master-form-label">PO Date *</label>
-            <input type="date" value={header.po_date} onChange={(e) => setHeader({ ...header, po_date: e.target.value })} className="master-form-input" />
+            <input type="date" value={header.po_date} onChange={(e) => setHeader(prev => ({ ...prev, po_date: e.target.value, expected_date: getDefaultExpectedDate(e.target.value) }))} className="master-form-input" />
           </div>
           <div className="form-group">
             <label className="master-form-label">Expected Date</label>
@@ -482,7 +513,7 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
                 {items.length === 0 && (
                   <tr>
                     <td colSpan={9} className="text-center py-8 text-muted">
-                      No items added yet. Click "Add" (F1) to start.
+                      No items added yet. Click "Add" (Ctrl++) to start.
                     </td>
                   </tr>
                 )}
@@ -522,7 +553,7 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
       <footer className="stock-opname-footer">
         <div className="footer-content">
           <div className="footer-actions-left">
-            <button type="button" className="master-footer-btn" onClick={() => setShowAddModal(true)} title="Add Item (F1)" aria-label="New">
+            <button type="button" className="master-footer-btn" onClick={() => setShowAddModal(true)} title="Add Item (Ctrl++)" aria-label="New">
               <span className="material-icons-round master-footer-icon orange">add_box</span>
               <span className="master-footer-key">+</span>
             </button>
