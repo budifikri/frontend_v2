@@ -473,28 +473,110 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
   const formatCurrency = (amount) =>
     new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(amount)
 
-  return (
-    <div className="po-receipt-container">
+return (
+    <div className="po-layout-container">
       <Toast message={toastMessage} type={toastType} isOpen={showToast} onClose={() => setShowToast(false)} duration={5000} />
 
-      <header className="po-receipt-header">
-        <div className="po-receipt-header-top">
-          <h1 className="po-receipt-title">PURCHASE ORDER</h1>
-          <div className="po-supplier-display">
-            <span className="po-supplier-label">Status :</span>
-            <span className="po-supplier-name">DRAFT</span>
+      <div className="po-main-content">
+        <div className="po-items-wrapper">
+          {error && <div className="master-error" style={{ marginBottom: 12 }}>{error}</div>}
+          
+          {items.length === 0 ? (
+            <div className="po-empty-items">
+              <span className="material-icons">receipt_long</span>
+              <p>Belum ada item. Ketik nama produk di bawah untuk menambah.</p>
+            </div>
+          ) : (
+            <table className="po-items-table">
+              <thead>
+                <tr>
+                  <th>No</th>
+                  <th>Produk</th>
+                  <th>Harga</th>
+                  <th>Qty</th>
+                  <th>Total</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {items.map((item, index) => (
+                  <tr key={item.id} className={selectedIndex === index ? 'selected' : ''} onClick={() => setSelectedIndex(index)}>
+                    <td>{index + 1}</td>
+                    <td>
+                      <div className="po-product-name">{item.product_name}</div>
+                      <div className="po-product-sku">{item.sku}</div>
+                    </td>
+                    <td>{formatCurrency(item.unit_price)}</td>
+                    <td><span className="po-item-qty">{item.quantity}</span></td>
+                    <td>{formatCurrency(item.line_total)}</td>
+                    <td>
+                      <button className="po-delete-btn" onClick={(e) => { e.stopPropagation(); handleDeleteItem(item.id, item.product_name) }}>
+                        <span className="material-icons" style={{ fontSize: 18 }}>delete</span>
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+
+        <div className="po-footer-input">
+          <div className="po-search-container">
+            <span className="material-icons">search</span>
+            <input
+              ref={searchInputRef}
+              type="text"
+              className="po-search-input"
+              placeholder="Ketik produk, +huruf=supplier, +qty, ++harga..."
+              value={search}
+              onChange={(e) => handleSearchChange(e.target.value)}
+              onKeyDown={handleSearchKeyDown}
+              autoFocus
+            />
+          </div>
+          <div className="po-action-buttons">
+            <button 
+              className="po-btn po-btn-exit" 
+              onClick={() => setShowExitConfirm(true)}
+              disabled={isSaving}
+            >
+              <span className="material-icons">exit_to_app</span>
+              KELUAR
+            </button>
+            <button 
+              className="po-btn po-btn-print" 
+              disabled={items.length === 0}
+            >
+              <span className="material-icons">print</span>
+              CETAK
+            </button>
+            <button className="po-btn po-btn-save" onClick={handleSave} disabled={isSaving || isLoading || items.length === 0 || !header.supplier_id}>
+              <span className="material-icons">save</span>
+              SIMPAN
+            </button>
           </div>
         </div>
+      </div>
+
+      <aside className="po-sidebar">
+        <div className="po-header-section">
+          <h1 className="po-title">PURCHASE ORDER</h1>
+          <div className="po-status-display">
+            <span className="po-status-label">Status :</span>
+            <span className="po-status-value">DRAFT</span>
+          </div>
+        </div>
+
         <div className="po-meta-info">
           <div className="po-meta-item">
             <span className="po-meta-label">No. PO</span>
             <span className="po-meta-value">{header.po_number || '-'}</span>
           </div>
-   <div className="po-meta-item">
+          <div className="po-meta-item">
             <span className="po-meta-label">Supplier:</span>
             <span className="po-meta-value">{header.supplier_name || header.supplier_id || 'Belum dipilih'}</span>
           </div>
-          
           <div className="po-meta-item">
             <span className="po-meta-label">Tanggal</span>
             <span className="po-meta-value">{header.po_date || '-'}</span>
@@ -504,127 +586,40 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
             <span className="po-meta-value">{warehouseOptions.find(w => w.id === header.warehouse_id)?.name || '-'}</span>
           </div>
         </div>
-      </header>
 
-      <main className="po-items-container">
-        {error && <div className="master-error" style={{ marginBottom: 12 }}>{error}</div>}
-        
-        {items.length === 0 ? (
-          <div className="po-empty-items">
-            <span className="material-icons">receipt_long</span>
-            <p>Belum ada item. Ketik nama produk di bawah untuk menambah.</p>
-          </div>
-        ) : (
-          <table className="po-items-table">
-            <thead>
-              <tr>
-                <th>No</th>
-                <th>Produk</th>
-                <th>Harga</th>
-                <th>Qty</th>
-                <th>Total</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((item, index) => (
-                <tr key={item.id} className={selectedIndex === index ? 'selected' : ''} onClick={() => setSelectedIndex(index)}>
-                  <td>{index + 1}</td>
-                  <td>
-                    <div style={{ fontWeight: 500 }}>{item.product_name}</div>
-                    <div style={{ fontSize: 11, color: '#94a3b8' }}>{item.sku}</div>
-                  </td>
-                  <td>{formatCurrency(item.unit_price)}</td>
-                  <td><span className="po-item-qty">{item.quantity}</span></td>
-                  <td>{formatCurrency(item.line_total)}</td>
-                  <td>
-                    <button className="po-delete-btn" onClick={(e) => { e.stopPropagation(); handleDeleteItem(item.id, item.product_name) }}>
-                      <span className="material-icons" style={{ fontSize: 18 }}>delete</span>
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </main>
-
-      <div className="po-summary-section">
-        <div className="po-summary-row">
-          <span className="po-summary-label">Subtotal (Items: {summary.itemCount} , Total Qty: {items.reduce((sum, item) => sum + (item.quantity || 0), 0)}) </span>
-          <span className="po-summary-value">{formatCurrency(summary.subtotal)}</span>
-        </div>
-        {summary.discountTotal > 0 && (
+        <div className="po-summary-section">
           <div className="po-summary-row">
-            <span className="po-summary-label">Diskon</span>
-            <span className="po-summary-value">-{formatCurrency(summary.discountTotal)}</span>
+            <span>Subtotal (Items: {summary.itemCount} , Total Qty: {items.reduce((sum, item) => sum + (item.quantity || 0), 0)})</span>
+            <span>{formatCurrency(summary.subtotal)}</span>
           </div>
-        )}
-        {summary.taxTotal > 0 && (
-          <div className="po-summary-row">
-            <span className="po-summary-label">PPN ({((summary.taxTotal / (summary.subtotal - summary.discountTotal)) * 100).toFixed(1)}%)</span>
-            <span className="po-summary-value">{formatCurrency(summary.taxTotal)}</span>
-          </div>
-        )}
-        <div className="po-summary-divider"></div>
-        <div className="po-summary-row po-summary-total">
-          <span className="po-summary-label">GRAND TOTAL</span>
-          <span className="po-summary-value">{formatCurrency(summary.grandTotal)}</span>
+          {summary.discountTotal > 0 && (
+            <div className="po-summary-row">
+              <span>Diskon</span>
+              <span>-{formatCurrency(summary.discountTotal)}</span>
+            </div>
+          )}
+          {summary.taxTotal > 0 && (
+            <div className="po-summary-row">
+              <span>PPN ({((summary.taxTotal / (summary.subtotal - summary.discountTotal)) * 100).toFixed(1)}%)</span>
+              <span>{formatCurrency(summary.taxTotal)}</span>
+            </div>
+          )}
+          <div className="po-summary-total-label">GRAND TOTAL</div>
+          <div className="po-summary-total-value">{formatCurrency(summary.grandTotal)}</div>
         </div>
-      {/* <div className="po-summary-stats">
-         <span>Items: {summary.itemCount}</span>
-        <span>Total Qty: {items.reduce((sum, item) => sum + (item.quantity || 0), 0)}</span>
-        </div>  */}
-      </div>
-
-      <footer className="po-footer-input">
-        <div className="po-search-container">
-          <span className="material-icons">search</span>
-          <input
-            ref={searchInputRef}
-            type="text"
-            className="po-search-input"
-            placeholder="Ketik produk, +huruf=supplier, +qty, ++harga..."
-            value={search}
-            onChange={(e) => handleSearchChange(e.target.value)}
-            onKeyDown={handleSearchKeyDown}
-            autoFocus
-          />
-        </div>
-        <button 
-          className="po-action-btn po-action-btn-cancel" 
-          onClick={() => setShowExitConfirm(true)}
-          disabled={isSaving}
-          style={{ padding: '12px 20px' }}
-        >
-          <span className="material-icons" style={{ fontSize: 18, marginRight: 4 }}>exit_to_app</span>
-          KELUAR
-        </button>
-        <button 
-          className="po-action-btn po-action-btn-cancel" 
-          disabled={items.length === 0}
-          style={{ padding: '12px 20px', background: '#64748b', color: '#fff' }}
-        >
-          <span className="material-icons" style={{ fontSize: 18, marginRight: 4 }}>print</span>
-          CETAK
-        </button>
-        <button className="po-save-btn" onClick={handleSave} disabled={isSaving || isLoading || items.length === 0 || !header.supplier_id}>
-          <span className="material-icons">save</span>
-          SIMPAN
-        </button>
-      </footer>
+      </aside>
 
       {showSupplierPopup && (
-        <div className="po-popup-overlay" onClick={() => setShowSupplierPopup(false)}>
-          <div className="po-popup" onClick={(e) => e.stopPropagation()}>
-            <div className="po-popup-header">
+        <div className="popup-overlay" onClick={() => setShowSupplierPopup(false)}>
+          <div className="popup" onClick={(e) => e.stopPropagation()}>
+            <div className="popup-header">
               <h3>CARI SUPPLIER</h3>
-              <button className="po-popup-close" onClick={() => setShowSupplierPopup(false)}>
+              <button className="popup-close" onClick={() => setShowSupplierPopup(false)}>
                 <span className="material-icons">close</span>
               </button>
             </div>
-            <div className="po-popup-table-wrapper">
-              <table className="po-popup-table">
+            <div className="popup-table-wrapper">
+              <table className="popup-table">
                 <thead><tr><th>No</th><th>Nama Supplier</th><th></th></tr></thead>
                 <tbody>
                   {supplierResults.length === 0 ? (
@@ -634,14 +629,14 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
                       <tr key={supplier.id} className={popupSelectedIndex === idx ? 'selected' : ''} onClick={() => handleSelectSupplier(supplier)}>
                         <td>{idx + 1}</td>
                         <td>{supplier.name}</td>
-                        <td><button className="po-popup-btn">PILIH</button></td>
+                        <td><button className="popup-btn">PILIH</button></td>
                       </tr>
                     ))
                   )}
                 </tbody>
               </table>
             </div>
-            <div className="po-popup-footer">
+            <div className="popup-footer">
               <span>↑↓ Navigasi</span>
               <span>Enter: Pilih | Esc: Tutup</span>
             </div>
@@ -650,16 +645,16 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
       )}
 
       {showProductPopup && (
-        <div className="po-popup-overlay" onClick={() => setShowProductPopup(false)}>
-          <div className="po-popup" onClick={(e) => e.stopPropagation()}>
-            <div className="po-popup-header">
+        <div className="popup-overlay" onClick={() => setShowProductPopup(false)}>
+          <div className="popup" onClick={(e) => e.stopPropagation()}>
+            <div className="popup-header">
               <h3>DAFTAR PRODUK</h3>
-              <button className="po-popup-close" onClick={() => setShowProductPopup(false)}>
+              <button className="popup-close" onClick={() => setShowProductPopup(false)}>
                 <span className="material-icons">close</span>
               </button>
             </div>
-            <div className="po-popup-table-wrapper">
-              <table className="po-popup-table">
+            <div className="popup-table-wrapper">
+              <table className="popup-table">
                 <thead><tr><th>No</th><th>Nama Produk</th><th>Satuan</th><th>Harga</th></tr></thead>
                 <tbody>
                   {isLoadingProducts ? (
@@ -679,7 +674,7 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
                 </tbody>
               </table>
             </div>
-            <div className="po-popup-footer">
+            <div className="popup-footer">
               <span>↑↓ Navigasi</span>
               <span>Enter: Pilih | Esc: Tutup</span>
             </div>
@@ -688,17 +683,17 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
       )}
 
       {showActionPopup && (
-        <div className="po-popup-overlay" onClick={() => setShowActionPopup(false)}>
-          <div className="po-popup po-action-popup" onClick={(e) => e.stopPropagation()}>
-            <div className="po-popup-header"><h3>AKHIRI TRANSAKSI</h3></div>
+        <div className="popup-overlay" onClick={() => setShowActionPopup(false)}>
+          <div className="popup action-popup" onClick={(e) => e.stopPropagation()}>
+            <div className="popup-header"><h3>AKHIRI TRANSAKSI</h3></div>
             <div style={{ padding: 24 }}>
               <p>Anda ingin menyimpan Purchase Order ini?</p>
-              <div className="po-action-buttons">
-                <button className={`po-action-btn po-action-btn-save ${actionPopupIndex === 0 ? 'selected' : ''}`} onClick={() => handleActionSelect(0)}>SIMPAN</button>
-                <button className={`po-action-btn po-action-btn-cancel ${actionPopupIndex === 1 ? 'selected' : ''}`} onClick={() => handleActionSelect(1)}>BATAL</button>
+              <div className="action-buttons">
+                <button className={`action-btn action-btn-save ${actionPopupIndex === 0 ? 'selected' : ''}`} onClick={() => handleActionSelect(0)}>SIMPAN</button>
+                <button className={`action-btn action-btn-cancel ${actionPopupIndex === 1 ? 'selected' : ''}`} onClick={() => handleActionSelect(1)}>BATAL</button>
               </div>
             </div>
-            <div className="po-popup-footer">
+            <div className="popup-footer">
               <span>Enter: Pilih</span>
               <span>Esc: Tutup</span>
             </div>
@@ -707,14 +702,14 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
       )}
 
       {showExitConfirm && (
-        <div className="po-popup-overlay">
-          <div className="po-popup po-action-popup">
-            <div className="po-popup-header"><h3>KONFIRMASI KELUAR</h3></div>
+        <div className="popup-overlay">
+          <div className="popup action-popup">
+            <div className="popup-header"><h3>KONFIRMASI KELUAR</h3></div>
             <div style={{ padding: 24 }}>
               <p>Anda yakin ingin keluar dari halaman ini?</p>
-              <div className="po-action-buttons">
-                <button className="po-action-btn po-action-btn-save" onClick={() => { setShowExitConfirm(false); onExit() }}>YA</button>
-                <button className="po-action-btn po-action-btn-cancel" onClick={() => setShowExitConfirm(false)}>TIDAK</button>
+              <div className="action-buttons">
+                <button className="action-btn action-btn-save" onClick={() => { setShowExitConfirm(false); onExit() }}>YA</button>
+                <button className="action-btn action-btn-cancel" onClick={() => setShowExitConfirm(false)}>TIDAK</button>
               </div>
             </div>
           </div>
