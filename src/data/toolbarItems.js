@@ -20,7 +20,7 @@ export const toolbarItems = {
 
     ]},
     { key: 'pembelian', label: 'Pembelian', mark: 'P', tone: 'amber', isPopup: true, subItems: [
- { key: 'beli', label: 'Order Pembelian', mark: 'P', tone: 'orange' },
+ { key: 'beli', label: 'Order Pembelian', mark: 'B', tone: 'orange' },
     { key: 'receive', label: 'Stock Receive', mark: 'S', tone: 'cyan' },
     { key: 'retur', label: 'Retur Pembelian', mark: 'R', tone: 'green' },
     ]},

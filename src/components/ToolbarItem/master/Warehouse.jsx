@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useAuth } from '../../../shared/auth'
 import { listWarehouses, createWarehouse, updateWarehouse, deleteWarehouse } from '../../../features/master/warehouse/warehouse.api'
 import { getCurrentCompany } from '../../../features/master/company/company.api'
@@ -12,6 +12,7 @@ import { MasterTableHeader } from '../table/MasterTableHeader'
 import { MasterStatusToggle } from '../table/MasterStatusToggle'
 import { useMasterTableSort } from '../../../hooks/useMasterTableSort'
 import { useMasterPagination } from '../../../hooks/useMasterPagination'
+import { useMasterTableKeyboardNav } from '../../../hooks/useMasterTableKeyboardNav'
 import { exportToExcel, generateTemplate, validateImportFile } from '../../../utils/excelUtils'
 import { Toast } from '../../../components/Toast'
 
@@ -64,6 +65,7 @@ export function Warehouse({ onExit }) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [showExitConfirm, setShowExitConfirm] = useState(false)
   const [showImportConfirm, setShowImportConfirm] = useState(false)
+  const tableRef = useRef(null)
   const [pendingImportData, setPendingImportData] = useState(null)
   const [showToast, setShowToast] = useState(false)
   const [toastMessage, setToastMessage] = useState('')
@@ -331,6 +333,15 @@ export function Warehouse({ onExit }) {
     setShowForm(true)
   }
 
+  useMasterTableKeyboardNav({
+    data: sortedData,
+    selectedId,
+    setSelectedId,
+    handleEdit,
+    tableRef,
+    isModalOpen: showForm || showDeleteConfirm || showExitConfirm || showImportConfirm,
+  })
+
   const handlePrint = async () => {
     setShowForm(false)
     try {
@@ -549,7 +560,7 @@ export function Warehouse({ onExit }) {
 
       {error && <div className="master-error">{error}</div>}
 
-      <div className="master-table-wrapper">
+      <div className="master-table-wrapper" ref={tableRef} tabIndex={0}>
         <div className="master-table-container">
           <table className="master-table">
             <MasterTableHeader columns={TABLE_COLUMNS} sortConfig={sortConfig} onSort={handleSort} />

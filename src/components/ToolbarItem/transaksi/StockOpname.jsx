@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState, useRef } from 'react'
 import { useAuth } from '../../../shared/auth'
 import {
   listStockOpname,
@@ -15,6 +15,7 @@ import { DeleteMaster } from '../footer/DeleteMaster'
 import { MasterTableHeader } from '../table/MasterTableHeader'
 import { useMasterTableSort } from '../../../hooks/useMasterTableSort'
 import { useMasterPagination } from '../../../hooks/useMasterPagination'
+import { useMasterTableKeyboardNav } from '../../../hooks/useMasterTableKeyboardNav'
 import { StockOpnameDetail } from './StockOpnameDetail'
 import { Toast } from '../../Toast'
 
@@ -128,6 +129,7 @@ export function StockOpname({ onExit }) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [showExitConfirm, setShowExitConfirm] = useState(false)
   const [showDetail, setShowDetail] = useState(false)
+  const tableRef = useRef(null)
 
   // Toast state
   const [toast, setToast] = useState({
@@ -255,6 +257,15 @@ export function StockOpname({ onExit }) {
       setShowDeleteConfirm(true)
     }
   }
+
+  useMasterTableKeyboardNav({
+    data: sortedData,
+    selectedId,
+    setSelectedId,
+    handleEdit: handleViewDetail,
+    tableRef,
+    isModalOpen: showForm || showDeleteConfirm || showExitConfirm || showDetail,
+  })
 
   const handleConfirmDelete = async () => {
     if (!selectedItem) {
@@ -452,7 +463,7 @@ export function StockOpname({ onExit }) {
 
       {error && <div className="master-error">{error}</div>}
 
-      <div className="master-table-wrapper">
+      <div className="master-table-wrapper" ref={tableRef} tabIndex={0}>
         <div className="master-table-container">
           <table className="master-table">
             <MasterTableHeader columns={TABLE_COLUMNS} sortConfig={sortConfig} onSort={handleSort} />

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState, useRef } from 'react'
 import { useAuth } from '../../../shared/auth'
 import { listCategories, createCategory, updateCategory, deactivateCategory } from '../../../features/master/category/category.api'
 import { getCurrentCompany } from '../../../features/master/company/company.api'
@@ -11,6 +11,7 @@ import { MasterTableHeader } from '../table/MasterTableHeader'
 import { MasterStatusToggle } from '../table/MasterStatusToggle'
 import { useMasterTableSort } from '../../../hooks/useMasterTableSort'
 import { useMasterPagination } from '../../../hooks/useMasterPagination'
+import { useMasterTableKeyboardNav } from '../../../hooks/useMasterTableKeyboardNav'
 import { exportToExcel, generateTemplate, validateImportFile } from '../../../utils/excelUtils'
 import { Toast } from '../../../components/Toast'
 
@@ -72,6 +73,7 @@ export function Category({ onExit }) {
   const [showToast, setShowToast] = useState(false)
   const [toastMessage, setToastMessage] = useState('')
   const [togglingId, setTogglingId] = useState(null)
+  const tableRef = useRef(null)
 
   const fetchData = useCallback(async () => {
     setError('')
@@ -135,6 +137,15 @@ export function Category({ onExit }) {
     valueGetters: {
       is_active: (row) => (isActiveCategory(row) ? 1 : 0),
     },
+  })
+
+  useMasterTableKeyboardNav({
+    data: sortedData,
+    selectedId,
+    setSelectedId,
+    handleEdit,
+    tableRef,
+    isModalOpen: showForm || showDeleteConfirm || showExitConfirm || showImportConfirm,
   })
 
   useEffect(() => {
@@ -512,7 +523,7 @@ export function Category({ onExit }) {
 
       {error && <div className="master-error">{error}</div>}
 
-      <div className="master-table-wrapper">
+      <div className="master-table-wrapper" ref={tableRef} tabIndex={0}>
         <div className="master-table-container">
           <table className="master-table">
             <MasterTableHeader columns={TABLE_COLUMNS} sortConfig={sortConfig} onSort={handleSort} />

@@ -917,6 +917,11 @@ body.has-wallpaper .cash-register {
   flex-direction: column;
 }
 
+.master-table-wrapper:focus,
+.master-table-wrapper:focus-visible {
+  outline: none;
+}
+
 .master-table-container {
   background: #fff;
   border-radius: 8px;

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState, useRef } from 'react'
 import { useAuth } from '../../../shared/auth'
 import { listUnits, createUnit, updateUnit, deleteUnit } from '../../../features/master/unit/unit.api'
 import { getCurrentCompany } from '../../../features/master/company/company.api'
@@ -12,6 +12,7 @@ import { MasterTableHeader } from '../table/MasterTableHeader'
 import { MasterStatusToggle } from '../table/MasterStatusToggle'
 import { useMasterTableSort } from '../../../hooks/useMasterTableSort'
 import { useMasterPagination } from '../../../hooks/useMasterPagination'
+import { useMasterTableKeyboardNav } from '../../../hooks/useMasterTableKeyboardNav'
 import { exportToExcel, generateTemplate, validateImportFile } from '../../../utils/excelUtils'
 import { Toast } from '../../../components/Toast'
 
@@ -67,6 +68,7 @@ export function Satuan({ onExit }) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [showExitConfirm, setShowExitConfirm] = useState(false)
   const [showImportConfirm, setShowImportConfirm] = useState(false)
+  const tableRef = useRef(null)
   const [pendingImportData, setPendingImportData] = useState(null)
   const [showToast, setShowToast] = useState(false)
   const [toastMessage, setToastMessage] = useState('')
@@ -128,6 +130,15 @@ export function Satuan({ onExit }) {
     valueGetters: {
       is_active: (row) => (row?.is_active ? 1 : 0),
     },
+  })
+
+  useMasterTableKeyboardNav({
+    data: sortedData,
+    selectedId,
+    setSelectedId,
+    handleEdit,
+    tableRef,
+    isModalOpen: showForm || showDeleteConfirm || showExitConfirm || showImportConfirm,
   })
 
   useEffect(() => {
@@ -518,7 +529,7 @@ export function Satuan({ onExit }) {
 
       {error && <div className="master-error">{error}</div>}
 
-      <div className="master-table-wrapper">
+      <div className="master-table-wrapper" ref={tableRef} tabIndex={0}>
         <div className="master-table-container">
           <table className="master-table">
             <MasterTableHeader columns={TABLE_COLUMNS} sortConfig={sortConfig} onSort={handleSort} />

@@ -6,6 +6,7 @@ import { DeleteMaster } from '../footer/DeleteMaster'
 import { MasterTableHeader } from '../table/MasterTableHeader'
 import { useMasterTableSort } from '../../../hooks/useMasterTableSort'
 import { useMasterPagination } from '../../../hooks/useMasterPagination'
+import { useMasterTableKeyboardNav } from '../../../hooks/useMasterTableKeyboardNav'
 import { PurchaseReturnDetail } from './PurchaseReturnDetail'
 import { Toast } from '../../Toast'
 
@@ -104,6 +105,7 @@ export function PurchaseReturn({ onExit }) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [showExitConfirm, setShowExitConfirm] = useState(false)
   const [showDetail, setShowDetail] = useState(false)
+  const tableRef = useRef(null)
 
   const [dateFilter, setDateFilter] = useState('this_month')
   const [showDateModal, setShowDateModal] = useState(false)
@@ -223,6 +225,15 @@ export function PurchaseReturn({ onExit }) {
       setShowDeleteConfirm(true)
     }
   }, [selectedItem])
+
+  useMasterTableKeyboardNav({
+    data: sortedData,
+    selectedId,
+    setSelectedId,
+    handleEdit: handleViewDetail,
+    tableRef,
+    isModalOpen: showDeleteConfirm || showExitConfirm || showDetail || showDateModal,
+  })
 
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -392,7 +403,7 @@ export function PurchaseReturn({ onExit }) {
 
       {error && <div className="master-error">{error}</div>}
 
-      <div className="master-table-wrapper">
+      <div className="master-table-wrapper" ref={tableRef} tabIndex={0}>
         <div className="master-table-container">
           <table className="master-table">
             <MasterTableHeader columns={TABLE_COLUMNS} sortConfig={sortConfig} onSort={handleSort} />

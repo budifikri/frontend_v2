@@ -6,6 +6,7 @@ import { DeleteMaster } from '../footer/DeleteMaster'
 import { MasterTableHeader } from '../table/MasterTableHeader'
 import { useMasterTableSort } from '../../../hooks/useMasterTableSort'
 import { useMasterPagination } from '../../../hooks/useMasterPagination'
+import { useMasterTableKeyboardNav } from '../../../hooks/useMasterTableKeyboardNav'
 import { StockReceiveDetail } from './StockReceiveDetail'
 import { Toast } from '../../Toast'
 
@@ -121,6 +122,7 @@ export function StockReceive({ onExit }) {
   const [selectedId, setSelectedId] = useState(null)
   const [showExitConfirm, setShowExitConfirm] = useState(false)
   const [showDetail, setShowDetail] = useState(false)
+  const tableRef = useRef(null)
 
   const [dateFilter, setDateFilter] = useState('this_month')
   const [showDateModal, setShowDateModal] = useState(false)
@@ -230,6 +232,15 @@ export function StockReceive({ onExit }) {
     setSelectedId(target.id)
     setShowDetail(true)
   }, [selectedItem, sortedData])
+
+  useMasterTableKeyboardNav({
+    data: sortedData,
+    selectedId,
+    setSelectedId,
+    handleEdit: handleViewDetail,
+    tableRef,
+    isModalOpen: showExitConfirm || showDetail || showDateModal,
+  })
 
   const handlePrint = () => window.print()
   const handleExitClick = () => setShowExitConfirm(true)
@@ -375,7 +386,7 @@ export function StockReceive({ onExit }) {
 
       {error && <div className="master-error">{error}</div>}
 
-      <div className="master-table-wrapper">
+      <div className="master-table-wrapper" ref={tableRef} tabIndex={0}>
         <div className="master-table-container">
           <table className="master-table">
             <MasterTableHeader columns={TABLE_COLUMNS} sortConfig={sortConfig} onSort={handleSort} />

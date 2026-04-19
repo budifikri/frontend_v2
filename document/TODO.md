@@ -4,11 +4,8 @@
 - perbaikan cetak laporan, fungsi print sepertinya cuman dari screenshoot data 
 - perbaikan sequence no nota penjualan yang acak, seharusnya urut
 ## TODO
-
-- Backup
-- Restore
+- perbaikan thema dan shorcut detil pembelian 
 - simpan setting cetak (font, format layout) ke database 
-- connect telegram
 
 - laporan pembelian
 - pembuatan dashboard
@@ -24,6 +21,9 @@
   - perubahan harga jual berdasarkan promo (lebih diutamakan dari pada harga grosir) 
 
 ## DONE
+
+17 April 2026
+- backup dan restore
 15 april 2026
 - laporan jual
   - detail penjualan

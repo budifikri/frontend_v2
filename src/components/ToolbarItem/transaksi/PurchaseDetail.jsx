@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, useLayoutEffect } from 'react'
 import { useAuth } from '../../../shared/auth'
 import { getPurchase, createPurchase, updatePurchase, listSuppliers, generatePONumber } from '../../../features/transaksi/purchase/purchase.api'
 import { listProducts } from '../../../features/master/product/product.api'
@@ -109,14 +109,41 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
     }
   }, [warehouseOptions, propSelectedId])
 
+  const focusSearchInput = () => {
+    if (searchInputRef.current) {
+      searchInputRef.current.focus()
+      searchInputRef.current.select()
+    }
+  }
+
   useEffect(() => {
-    if (!propSelectedId && searchInputRef.current) {
+    if (!propSelectedId) {
       const timer = setTimeout(() => {
-        searchInputRef.current?.focus()
+        focusSearchInput()
       }, 100)
       return () => clearTimeout(timer)
     }
   }, [propSelectedId])
+
+  useEffect(() => {
+    if (showActionPopup === false && !propSelectedId) {
+      const timer = setTimeout(() => {
+        focusSearchInput()
+      }, 100)
+      return () => clearTimeout(timer)
+    }
+  }, [showActionPopup, propSelectedId])
+
+  // Force focus on mount and re-focus when needed
+  useLayoutEffect(() => {
+    if (!propSelectedId) {
+      requestAnimationFrame(() => {
+        if (searchInputRef.current) {
+          searchInputRef.current.focus()
+        }
+      })
+    }
+  }, [])
 
   useEffect(() => {
     if (!propSelectedId && (header.supplier_id || items.length > 0)) {
@@ -208,7 +235,7 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
     return { subtotal, discountTotal, taxTotal, grandTotal, itemCount: items.length }
   }, [items])
 
-  const handleSave = useCallback(async () => {
+  const handleSaveWithStatus = useCallback(async (status) => {
     if (!header.supplier_id) { 
       setError('Supplier harus dipilih'); 
       return 
@@ -225,9 +252,10 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
     setIsSaving(true)
     setError('')
 
+    const targetStatus = status || header.status || 'DRAFT'
+
     try {
       if (token) {
-        const targetStatus = header.status || 'DRAFT'
         const itemsCopy = items.map(it => ({ ...it }))
         const payload = {
           supplier_id: header.supplier_id,
@@ -256,8 +284,9 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
         clearPendingPO()
         onExit()
         if (onSaveSuccess) {
+          const msg = targetStatus === 'APPROVED' ? 'Purchase Order disimpan dan di-approve' : 'Purchase Order berhasil disimpan'
           setTimeout(() => {
-            onSaveSuccess('Purchase Order berhasil disimpan', 'success')
+            onSaveSuccess(msg, 'success')
           }, 300)
         }
       } else {
@@ -289,7 +318,7 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (showExitConfirm || showSupplierPopup || showProductPopup || showActionPopup) return
-      if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); handleSave() }
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); handleSaveWithStatus() }
       else if (e.key === 'Delete' && items.length > 0 && selectedIndex >= 0) { 
         e.preventDefault()
         const itemToDelete = items[selectedIndex]
@@ -301,13 +330,31 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [showExitConfirm, showSupplierPopup, showProductPopup, showActionPopup, handleSave, items, selectedIndex])
+  }, [showExitConfirm, showSupplierPopup, showProductPopup, showActionPopup, handleSaveWithStatus, items, selectedIndex])
 
   const handleSearchChange = (value) => {
     setSearch(value)
   }
 
   const handleSearchKeyDown = async (e) => {
+    // Intercept + key specifically and force insert if not handled by browser
+    if (e.key === '+' && searchInputRef.current) {
+      e.preventDefault()
+      const input = searchInputRef.current
+      const start = input.selectionStart ?? input.value.length
+      const end = input.selectionEnd ?? input.value.length
+      const newValue = input.value.substring(0, start) + '+' + input.value.substring(end)
+      setSearch(newValue)
+      // Move cursor after +
+      setTimeout(() => {
+        if (input) {
+          const newPos = start + 1
+          input.setSelectionRange(newPos, newPos)
+        }
+      }, 0)
+      return
+    }
+    
     if (e.key === 'Enter') {
       e.preventDefault()
       
@@ -406,7 +453,7 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
         setPopupSelectedIndex(popupSelectedIndex + 1)
       } else if (showProductPopup && popupSelectedIndex < productResults.length - 1) {
         setPopupSelectedIndex(popupSelectedIndex + 1)
-      } else if (showActionPopup && actionPopupIndex < 1) {
+      } else if (showActionPopup && actionPopupIndex < 4) {
         setActionPopupIndex(actionPopupIndex + 1)
       } else if (items.length > 0) {
         const nextIndex = selectedIndex < items.length - 1 ? selectedIndex + 1 : items.length - 1
@@ -425,9 +472,13 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
         setSelectedIndex(prevIndex)
       }
     } else if (e.key === 'Escape') {
+      const wasOpen = showSupplierPopup || showProductPopup || showActionPopup
       if (showSupplierPopup) setShowSupplierPopup(false)
       else if (showProductPopup) setShowProductPopup(false)
       else if (showActionPopup) setShowActionPopup(false)
+      if (wasOpen) {
+        setTimeout(() => focusSearchInput(), 50)
+      }
     }
   }
 
@@ -435,7 +486,7 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
     setHeader(prev => ({ ...prev, supplier_id: supplier.id, supplier_name: supplier.name }))
     setShowSupplierPopup(false)
     setSearch('')
-    if (searchInputRef.current) searchInputRef.current.focus()
+    setTimeout(() => focusSearchInput(), 50)
   }
 
   const handleSelectProduct = async (product) => {
@@ -447,7 +498,7 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
       setShowProductPopup(false)
       setSearch('')
       setSelectedIndex(existingIndex)
-      if (searchInputRef.current) searchInputRef.current.focus()
+      setTimeout(() => focusSearchInput(), 50)
       return
     }
     const newItem = {
@@ -465,16 +516,32 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
     setShowProductPopup(false)
     setSearch('')
     setSelectedIndex(items.length)
-    if (searchInputRef.current) searchInputRef.current.focus()
+    setTimeout(() => focusSearchInput(), 50)
   }
 
-  const handleActionSelect = (index) => {
+  const handleActionSelect = async (index) => {
+    setShowActionPopup(false)
+    setSearch('')
+
     if (index === 0) {
-      handleSave()
-    } else {
-      setShowActionPopup(false)
-      setSearch('')
+      await handleSaveWithStatus('DRAFT')
+    } else if (index === 1) {
+      await handleSaveWithStatus('APPROVED')
+    } else if (index === 2) {
+      window.print()
+    } else if (index === 3) {
+      setItems([])
+      setSelectedIndex(0)
+      setToastMessage('Items dibersihkan')
+      setToastType('info')
+      setShowToast(true)
+    } else if (index === 4) {
+      onExit()
     }
+
+    setTimeout(() => {
+      focusSearchInput()
+    }, 100)
   }
 
   const handleDeleteItem = (itemId, itemName = '') => {
@@ -544,12 +611,13 @@ return (
             <input
               ref={searchInputRef}
               type="text"
+              inputMode="text"
               className="po-search-input"
               placeholder="Ketik produk, +huruf=supplier, +qty, ++harga..."
               value={search}
               onChange={(e) => handleSearchChange(e.target.value)}
               onKeyDown={handleSearchKeyDown}
-              autoFocus
+              autoComplete="off"
             />
           </div>
           <div className="po-action-buttons">
@@ -568,7 +636,7 @@ return (
               <span className="material-icons">print</span>
               CETAK
             </button>
-            <button className="po-btn po-btn-save" onClick={handleSave} disabled={isSaving || isLoading || items.length === 0 || !header.supplier_id}>
+            <button className="po-btn po-btn-save" onClick={() => handleSaveWithStatus()} disabled={isSaving || isLoading || items.length === 0 || !header.supplier_id}>
               <span className="material-icons">save</span>
               SIMPAN
             </button>
@@ -702,17 +770,47 @@ return (
       {showActionPopup && (
         <div className="popup-overlay" onClick={() => setShowActionPopup(false)}>
           <div className="popup action-popup" onClick={(e) => e.stopPropagation()}>
-            <div className="popup-header"><h3>AKHIRI TRANSAKSI</h3></div>
-            <div style={{ padding: 24 }}>
-              <p>Anda ingin menyimpan Purchase Order ini?</p>
-              <div className="action-buttons">
-                <button className={`action-btn action-btn-save ${actionPopupIndex === 0 ? 'selected' : ''}`} onClick={() => handleActionSelect(0)}>SIMPAN</button>
-                <button className={`action-btn action-btn-cancel ${actionPopupIndex === 1 ? 'selected' : ''}`} onClick={() => handleActionSelect(1)}>BATAL</button>
+            <div className="popup-header"><h3>PILIH AKSI</h3></div>
+            <div className="action-popup-list">
+              <div 
+                className={`action-popup-item ${actionPopupIndex === 0 ? 'is-selected' : ''}`}
+                onClick={() => handleActionSelect(0)}
+              >
+                <span className="material-icons">save</span>
+                <span>Simpan</span>
+              </div>
+              <div 
+                className={`action-popup-item ${actionPopupIndex === 1 ? 'is-selected' : ''}`}
+                onClick={() => handleActionSelect(1)}
+              >
+                <span className="material-icons">check_circle</span>
+                <span>Simpan dan Approve</span>
+              </div>
+              <div 
+                className={`action-popup-item ${actionPopupIndex === 2 ? 'is-selected' : ''}`}
+                onClick={() => handleActionSelect(2)}
+              >
+                <span className="material-icons">print</span>
+                <span>Cetak</span>
+              </div>
+              <div 
+                className={`action-popup-item ${actionPopupIndex === 3 ? 'is-selected' : ''}`}
+                onClick={() => handleActionSelect(3)}
+              >
+                <span className="material-icons">cancel</span>
+                <span>Batal</span>
+              </div>
+              <div 
+                className={`action-popup-item ${actionPopupIndex === 4 ? 'is-selected' : ''}`}
+                onClick={() => handleActionSelect(4)}
+              >
+                <span className="material-icons">exit_to_app</span>
+                <span>Keluar</span>
               </div>
             </div>
             <div className="popup-footer">
-              <span>Enter: Pilih</span>
-              <span>Esc: Tutup</span>
+              <span>↑↓ Pilih</span>
+              <span>Enter: OK | Esc: Tutup</span>
             </div>
           </div>
         </div>

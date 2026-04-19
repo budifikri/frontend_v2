@@ -17,6 +17,7 @@ import { MasterTableHeader } from '../table/MasterTableHeader'
 import { MasterStatusToggle } from '../table/MasterStatusToggle'
 import { useMasterTableSort } from '../../../hooks/useMasterTableSort'
 import { useMasterPagination } from '../../../hooks/useMasterPagination'
+import { useMasterTableKeyboardNav } from '../../../hooks/useMasterTableKeyboardNav'
 import { exportToExcel, generateTemplate, validateImportFile } from '../../../utils/excelUtils'
 import { Toast } from '../../../components/Toast'
 
@@ -179,6 +180,7 @@ export function Product({ onExit }) {
     physical_stock: 0,
   })
   const [togglingId, setTogglingId] = useState(null)
+  const tableRef = useRef(null)
 
   const categoryNameById = useMemo(() => {
     const map = new Map()
@@ -307,6 +309,15 @@ export function Product({ onExit }) {
       retail_price: (row) => Number(row?.retail_price || 0),
       is_active: (row) => (isActiveProduct(row) ? 1 : 0),
     },
+  })
+
+  useMasterTableKeyboardNav({
+    data: sortedData,
+    selectedId,
+    setSelectedId,
+    handleEdit,
+    tableRef,
+    isModalOpen: showForm || showDeleteConfirm || showExitConfirm || showImportConfirm,
   })
 
   const tableContainerRef = useRef(null)
@@ -1005,7 +1016,7 @@ export function Product({ onExit }) {
         </div>
       )}
 
-      <div className="master-table-wrapper">
+      <div className="master-table-wrapper" ref={tableRef} tabIndex={0}>
         <div className="master-table-container">
           {pager.isAllRecords && sortedData.length > 100 ? (
             <div 

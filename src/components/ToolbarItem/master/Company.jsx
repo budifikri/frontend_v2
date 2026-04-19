@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState, useRef } from 'react'
 import { useAuth } from '../../../shared/auth'
 import { createCompany, deleteCompany, listCompanies, updateCompany } from '../../../features/master/company/company.api'
 import { FooterMaster } from '../footer/FooterMaster'
@@ -10,6 +10,7 @@ import { MasterTableHeader } from '../table/MasterTableHeader'
 import { MasterStatusToggle } from '../table/MasterStatusToggle'
 import { useMasterTableSort } from '../../../hooks/useMasterTableSort'
 import { useMasterPagination } from '../../../hooks/useMasterPagination'
+import { useMasterTableKeyboardNav } from '../../../hooks/useMasterTableKeyboardNav'
 import { exportToExcel, generateTemplate, validateImportFile } from '../../../utils/excelUtils'
 
 const DEFAULT_FORM = {
@@ -103,6 +104,7 @@ export function Company({ onExit }) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [showExitConfirm, setShowExitConfirm] = useState(false)
   const [showImportConfirm, setShowImportConfirm] = useState(false)
+  const tableRef = useRef(null)
   const [pendingImportData, setPendingImportData] = useState(null)
   const [showToast, setShowToast] = useState(false)
   const [toastMessage, setToastMessage] = useState('')
@@ -123,6 +125,15 @@ export function Company({ onExit }) {
       telp: (row) => row?.telp || row?.phone || '',
       is_active: (row) => (isActiveCompany(row) ? 1 : 0),
     },
+  })
+
+  useMasterTableKeyboardNav({
+    data: sortedData,
+    selectedId,
+    setSelectedId,
+    handleEdit,
+    tableRef,
+    isModalOpen: showForm || showDeleteConfirm || showExitConfirm || showImportConfirm,
   })
 
   const fetchData = useCallback(async () => {
@@ -483,7 +494,7 @@ export function Company({ onExit }) {
 
       {error && <div className="master-error">{error}</div>}
 
-      <div className="master-table-wrapper">
+      <div className="master-table-wrapper" ref={tableRef} tabIndex={0}>
         <div className="master-table-container">
           <table className="master-table">
             <MasterTableHeader columns={TABLE_COLUMNS} sortConfig={sortConfig} onSort={handleSort} />
