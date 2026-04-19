@@ -398,7 +398,9 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
               setPopupSelectedIndex(0)
               setShowProductPopup(true)
             } else {
-              setError('Produk tidak ditemukan')
+              setToastMessage('Produk tidak ditemukan')
+              setToastType('warning')
+              setShowToast(true)
             }
           } catch (err) {
             console.error('Failed to load products:', err)
@@ -619,6 +621,23 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
             autoFocus
           />
         </div>
+        <button 
+          className="po-action-btn po-action-btn-cancel" 
+          onClick={() => setShowExitConfirm(true)}
+          disabled={isSaving}
+          style={{ padding: '12px 20px' }}
+        >
+          <span className="material-icons" style={{ fontSize: 18, marginRight: 4 }}>exit_to_app</span>
+          KELUAR
+        </button>
+        <button 
+          className="po-action-btn po-action-btn-cancel" 
+          disabled={items.length === 0}
+          style={{ padding: '12px 20px', background: '#64748b', color: '#fff' }}
+        >
+          <span className="material-icons" style={{ fontSize: 18, marginRight: 4 }}>print</span>
+          CETAK
+        </button>
         <button className="po-save-btn" onClick={handleSave} disabled={isSaving || isLoading || items.length === 0 || !header.supplier_id}>
           <span className="material-icons">save</span>
           SIMPAN
