@@ -574,7 +574,7 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
 
       <div className="po-summary-section">
         <div className="po-summary-row">
-          <span className="po-summary-label">Subtotal</span>
+          <span className="po-summary-label">Subtotal (Items: {summary.itemCount} , Total Qty: {items.reduce((sum, item) => sum + (item.quantity || 0), 0)}) </span>
           <span className="po-summary-value">{formatCurrency(summary.subtotal)}</span>
         </div>
         {summary.discountTotal > 0 && (
@@ -594,10 +594,10 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
           <span className="po-summary-label">GRAND TOTAL</span>
           <span className="po-summary-value">{formatCurrency(summary.grandTotal)}</span>
         </div>
-        <div className="po-summary-stats">
-          <span>Items: {summary.itemCount}</span>
-          <span>Total Qty: {items.reduce((sum, item) => sum + (item.quantity || 0), 0)}</span>
-        </div>
+      {/* <div className="po-summary-stats">
+         <span>Items: {summary.itemCount}</span>
+        <span>Total Qty: {items.reduce((sum, item) => sum + (item.quantity || 0), 0)}</span>
+        </div>  */}
       </div>
 
       <footer className="po-footer-input">

@@ -176,7 +176,7 @@
 .po-summary-section {
   background: #fff;
   border-top: 1px dashed #e2e8f0;
-  padding:0px 16px 50px;
+  padding:0px 16px 72px;
   flex-shrink: 0;
 }
 
@@ -233,7 +233,7 @@
 }
 
 .po-search-container {
-  flex: 1;
+
   position: relative;
   display: flex;
   align-items: center;
@@ -247,7 +247,7 @@
 }
 
 .po-search-input {
-  width: 100%;
+  width: 500px;
   background: #334155;
   border: 1px solid #475569;
   border-radius: 8px;
