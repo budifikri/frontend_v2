@@ -605,7 +605,7 @@
     radial-gradient(ellipse at center, rgba(255, 255, 255, 0.08) 0%, transparent 70%);
   background-size: cover;
   background-position: center;
-  height: calc(100vh - 32px - 72px - 48px); /* Restore height calculation, minus fixed footer */
+  height: calc(100vh - 32px  - 48px); /* Restore height calculation, minus fixed footer */
   display: flex;
   flex-direction: column;
   padding: 0;
@@ -929,6 +929,7 @@ body.has-wallpaper .cash-register {
   min-height: 200px;
   margin:0px 16px ;
   position: relative;
+  justify-content:space-between;
 }
 
 .master-table-sticky-footer {
@@ -959,6 +960,7 @@ body.has-wallpaper .cash-register {
   border-collapse: collapse;
   font-size: 0.875rem;
   margin-bottom:12px;
+  
 }
 
 .master-table thead {

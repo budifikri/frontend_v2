@@ -175,12 +175,14 @@ function AppContent() {
             activeMenu={activeMenu}
             onMenuChange={handleMenuChange}
           />
-          <DashboardToolbar
-            activeMenu={activeMenu}
-            onLoginClick={handleLogout}
-            onToolClick={handleToolClick}
-            shortcutPopupKey={shortcutPopupKey}
-          />
+          {!activeTool && (
+            <DashboardToolbar
+              activeMenu={activeMenu}
+              onLoginClick={handleLogout}
+              onToolClick={handleToolClick}
+              shortcutPopupKey={shortcutPopupKey}
+            />
+          )}
           <DashboardCanvas activeTool={activeTool} onExit={handleExit} />
         </section>
         <DashboardFooter username={auth.username} role={auth.role} />
