@@ -1,19 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useAuth } from '../../../shared/auth'
 import { getPurchase, createPurchase, updatePurchase, listSuppliers, generatePONumber } from '../../../features/transaksi/purchase/purchase.api'
+import { listProducts } from '../../../features/master/product/product.api'
 import { listWarehouses } from '../../../features/master/warehouse/warehouse.api'
-import { AddPurchaseItemModal } from './AddPurchaseItemModal'
 import { DeleteMaster } from '../footer/DeleteMaster'
 import { Toast } from '../../../components/Toast'
-
-const STATUS_OPTIONS = [
-  { value: 'draft', label: 'Draft' },
-  { value: 'pending', label: 'Pending Approval' },
-  { value: 'approved', label: 'Approved' },
-  { value: 'rejected', label: 'Rejected' },
-  { value: 'cancelled', label: 'Cancelled' },
-  { value: 'completed', label: 'Completed' },
-]
+import './PurchaseDetail.css'
 
 export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSuccess }) {
   const { auth } = useAuth()
@@ -22,7 +14,6 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
   const [isLoading, setIsLoading] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState('')
-  const [showAddModal, setShowAddModal] = useState(false)
   const [showExitConfirm, setShowExitConfirm] = useState(false)
   const [supplierOptions, setSupplierOptions] = useState([])
   const [warehouseOptions, setWarehouseOptions] = useState([])
@@ -30,9 +21,6 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
   const [toastMessage, setToastMessage] = useState('')
   const [toastType, setToastType] = useState('info')
 
-  const supplierSelectRef = useRef(null)
-
-  // Helper: calculate default expected date (PO date + 7 days)
   const getDefaultExpectedDate = (poDate) => {
     const d = new Date(poDate || new Date().toISOString().split('T')[0])
     d.setDate(d.getDate() + 7)
@@ -42,6 +30,7 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
   const [header, setHeader] = useState({
     po_number: generatePONumber(),
     supplier_id: '',
+    supplier_name: '',
     warehouse_id: '',
     po_date: new Date().toISOString().split('T')[0],
     expected_date: getDefaultExpectedDate(),
@@ -50,9 +39,20 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
   })
 
   const [items, setItems] = useState([])
-  const [selectedIds, setSelectedIds] = useState([])
 
-  // Fetch lookups
+  // POS-style state for PO input
+  const [search, setSearch] = useState('')
+  const searchInputRef = useRef(null)
+  const [selectedIndex, setSelectedIndex] = useState(0)
+  const [showSupplierPopup, setShowSupplierPopup] = useState(false)
+  const [showProductPopup, setShowProductPopup] = useState(false)
+  const [showActionPopup, setShowActionPopup] = useState(false)
+  const [supplierResults, setSupplierResults] = useState([])
+  const [productResults, setProductResults] = useState([])
+  const [popupSelectedIndex, setPopupSelectedIndex] = useState(0)
+  const [actionPopupIndex, setActionPopupIndex] = useState(0)
+  const [isLoadingProducts, setIsLoadingProducts] = useState(false)
+
   const fetchLookups = useCallback(async () => {
     if (!token) {
       setSupplierOptions([
@@ -64,7 +64,6 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
         { id: 'WH002', name: 'Toko456', type: 'BRANCH' },
       ]
       setWarehouseOptions(warehouses)
-      // Auto-set warehouse to MAIN if available (only for new PO)
       if (!propSelectedId) {
         const mainWh = warehouses.find(w => w.type?.toUpperCase() === 'MAIN')
         if (mainWh) {
@@ -81,8 +80,6 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
       const warehouses = warehouseRes.items || []
       setSupplierOptions(supplierRes.items || [])
       setWarehouseOptions(warehouses)
-
-      // Auto-set warehouse to MAIN if available (only for new PO)
       const mainWarehouse = warehouses.find(w => w.type?.toUpperCase() === 'MAIN')
       if (!propSelectedId && mainWarehouse) {
         setHeader(prev => ({ ...prev, warehouse_id: mainWarehouse.id }))
@@ -103,7 +100,6 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
 
   useEffect(() => { fetchLookups() }, [fetchLookups])
 
-  // Auto-set warehouse to MAIN when warehouses loaded (only for new PO and empty warehouse_id)
   useEffect(() => {
     if (!propSelectedId && warehouseOptions.length > 0) {
       const mainWh = warehouseOptions.find(w => w.type?.toUpperCase() === 'MAIN')
@@ -113,53 +109,85 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
     }
   }, [warehouseOptions, propSelectedId])
 
-  // Auto-focus to supplier when form opens (only for new PO)
   useEffect(() => {
-    if (!propSelectedId && supplierSelectRef.current) {
+    if (!propSelectedId && searchInputRef.current) {
       const timer = setTimeout(() => {
-        supplierSelectRef.current?.focus()
+        searchInputRef.current?.focus()
       }, 100)
       return () => clearTimeout(timer)
     }
   }, [propSelectedId])
 
-  // Load existing purchase
+  useEffect(() => {
+    if (!propSelectedId) {
+      const saved = localStorage.getItem('pos_pending_notes')
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved)
+          if (parsed.po_mode && parsed.po_data) {
+            const { header: savedHeader, items: savedItems } = parsed.po_data
+            if (savedHeader) {
+              setHeader(prev => ({
+                ...prev,
+                supplier_id: savedHeader.supplier_id || '',
+                supplier_name: savedHeader.supplier_name || '',
+                warehouse_id: savedHeader.warehouse_id || prev.warehouse_id,
+                po_date: savedHeader.po_date || prev.po_date,
+                expected_date: savedHeader.expected_date || prev.expected_date,
+                notes: savedHeader.notes || '',
+              }))
+            }
+            if (savedItems && savedItems.length > 0) {
+              setItems(savedItems)
+            }
+          }
+        } catch (e) {
+          console.error('[PurchaseDetail] Failed to parse pending PO:', e)
+        }
+      }
+    }
+  }, [propSelectedId])
+
+  useEffect(() => {
+    if (!propSelectedId && (header.supplier_id || items.length > 0)) {
+      const pendingData = {
+        po_data: { header, items },
+        po_mode: true,
+        timestamp: Date.now(),
+      }
+      localStorage.setItem('pos_pending_notes', JSON.stringify(pendingData))
+    }
+  }, [header, items, propSelectedId])
+
+  const clearPendingPO = useCallback(() => {
+    localStorage.removeItem('pos_pending_notes')
+  }, [])
+
   useEffect(() => {
     if (!propSelectedId) return
     const loadPurchase = async () => {
       setIsLoading(true)
       try {
         const data = await getPurchase(token, propSelectedId)
-        console.log('[PurchaseDetail] Loaded data:', data)
-        console.log('[PurchaseDetail] Data status:', data.status)
-
-        // Normalize status to lowercase for consistency
         const normalizedStatus = (data.status || 'draft').toLowerCase()
-
-        // Helper to extract date portion from ISO datetime
         const normalizeDate = (dateStr) => {
           if (!dateStr) return ''
-          // If already in YYYY-MM-DD format, return as-is
           if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr
-          // If ISO datetime, extract date portion
           if (/^\d{4}-\d{2}-\d{2}T/.test(dateStr)) return dateStr.split('T')[0]
-          // Try to parse as Date and format
           const d = new Date(dateStr)
           if (isNaN(d.getTime())) return dateStr
           return d.toISOString().split('T')[0]
         }
-
         setHeader({
           po_number: data.po_number || generatePONumber(),
           supplier_id: data.supplier_id || '',
+          supplier_name: data.supplier_name || '',
           warehouse_id: data.warehouse_id || '',
           po_date: normalizeDate(data.po_date || data.order_date),
           expected_date: normalizeDate(data.expected_date || data.expected_delivery),
           status: normalizedStatus,
           notes: data.notes || '',
         })
-        console.log('[PurchaseDetail] Normalized status:', normalizedStatus)
-
         if (data.items && data.items.length > 0) {
           setItems(data.items.map(item => ({
             id: item.id,
@@ -173,7 +201,6 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
             line_total: item.line_total,
           })))
         }
-        console.log('[PurchaseDetail] Header after load:', { status: normalizedStatus })
       } catch (err) {
         console.error('[PurchaseDetail] Error loading data:', err)
         setError('Failed to load purchase order')
@@ -184,24 +211,6 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
     loadPurchase()
   }, [propSelectedId, token])
 
-  // Add item
-  const addItem = useCallback((newItem) => {
-    const itemWithId = {
-      id: newItem.id || `item-${Date.now()}`,
-      product_id: newItem.product_id,
-      product_name: newItem.product_name,
-      sku: newItem.sku,
-      quantity: newItem.quantity,
-      unit_price: newItem.unit_price,
-      discount: newItem.discount || 0,
-      tax_rate: newItem.tax_rate || 0,
-      line_total: (newItem.quantity || 0) * (newItem.unit_price || 0),
-    }
-    setItems((prev) => [...prev, itemWithId])
-    setShowAddModal(false)
-  }, [])
-
-  // Update item
   const updateItem = useCallback((itemId, updates) => {
     setItems((prev) => prev.map((item) => {
       if (item.id === itemId) {
@@ -213,22 +222,12 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
     }))
   }, [])
 
-  // Remove item
-  const removeItem = useCallback((ids) => {
-    const idsToRemove = Array.isArray(ids) ? ids : [ids]
-    setItems((prev) => prev.filter((item) => !idsToRemove.includes(item.id)))
-    setSelectedIds([])
-  }, [])
-
-  // Calculations
   const summary = useMemo(() => {
     const subtotal = items.reduce((sum, item) => sum + ((item.quantity || 0) * (item.unit_price || 0)), 0)
-    // Discount is stored as percentage, calculate the actual discount amount
     const discountTotal = items.reduce((sum, item) => {
       const lineSubtotal = (item.quantity || 0) * (item.unit_price || 0)
       return sum + (lineSubtotal * ((item.discount || 0) / 100))
     }, 0)
-    // Tax is calculated on (line subtotal - discount amount)
     const taxTotal = items.reduce((sum, item) => {
       const lineSubtotal = (item.quantity || 0) * (item.unit_price || 0)
       const lineDiscount = lineSubtotal * ((item.discount || 0) / 100)
@@ -239,7 +238,6 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
     return { subtotal, discountTotal, taxTotal, grandTotal, itemCount: items.length }
   }, [items])
 
-  // Handle save
   const handleSave = useCallback(async () => {
     if (!header.supplier_id) { 
       setError('Supplier harus dipilih'); 
@@ -256,16 +254,10 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
 
     setIsSaving(true)
     setError('')
-    setToastMessage('')
-    setToastType('info')
-    setShowToast(false)
 
     try {
       if (token) {
-        // Swagger spec: Create/Update Purchase Order
-        // Required fields: supplier_id, warehouse_id, po_date, expected_date, items
         const targetStatus = header.status || 'DRAFT'
-        // Copy items to avoid mutating shared references
         const itemsCopy = items.map(it => ({ ...it }))
         const payload = {
           supplier_id: header.supplier_id,
@@ -285,43 +277,21 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
           })),
         }
 
-        console.log('[PurchaseDetail] === SAVE REQUEST ===')
-        console.log('[PurchaseDetail] Current header status:', targetStatus)
-        console.log('[PurchaseDetail] URL:', propSelectedId ? `/api/purchases/${propSelectedId}` : '/api/purchases')
-        console.log('[PurchaseDetail] Method:', propSelectedId ? 'PUT' : 'POST')
-        console.log('[PurchaseDetail] Payload:', JSON.stringify(payload, null, 2))
-
-        let result
         if (propSelectedId) {
-          // UPDATE existing
-          result = await updatePurchase(token, propSelectedId, payload)
-          console.log('[PurchaseDetail] === UPDATE RESPONSE ===')
-          console.log('[PurchaseDetail] Response:', result)
-          console.log('[PurchaseDetail] Response data.status:', result.data?.status)
+          await updatePurchase(token, propSelectedId, payload)
         } else {
-          // CREATE new
-          console.log('[PurchaseDetail] Creating NEW purchase order...')
-          result = await createPurchase(token, payload)
-          console.log('[PurchaseDetail] === CREATE RESPONSE ===')
-          console.log('[PurchaseDetail] Created ID:', result.data?.id)
-          console.log('[PurchaseDetail] Response data.status:', result.data?.status)
+          await createPurchase(token, payload)
         }
 
-        // Status is now included in the main PUT request - no separate status update needed
-        console.log('[PurchaseDetail] Status included in main request, no separate update needed')
-
-        // Close first, then show toast from parent
-        console.log('[PurchaseDetail] Calling onExit()...')
+        clearPendingPO()
         onExit()
         if (onSaveSuccess) {
           setTimeout(() => {
-            console.log('[PurchaseDetail] Showing success toast...')
             onSaveSuccess('Purchase Order berhasil disimpan', 'success')
           }, 300)
         }
       } else {
-        // Offline mode
-        console.log('[PurchaseDetail] Offline mode - simulating save')
+        clearPendingPO()
         onExit()
         if (onSaveSuccess) {
           setTimeout(() => {
@@ -330,8 +300,7 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
         }
       }
     } catch (err) {
-      console.error('[PurchaseDetail] === SAVE ERROR ===')
-      console.error('[PurchaseDetail] Error:', err)
+      console.error('[PurchaseDetail] === SAVE ERROR ===', err)
       if (err.message?.includes('Company dengan ID tersebut tidak ditemukan')) {
         setToastMessage('Company dengan ID tersebut tidak ditemukan')
         setToastType('error')
@@ -345,264 +314,417 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
     } finally {
       setIsSaving(false)
     }
-  }, [header, items, token, propSelectedId, onExit, onSaveSuccess])
+  }, [header, items, token, propSelectedId, onExit, onSaveSuccess, clearPendingPO])
 
-  // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (showAddModal || showExitConfirm) return
-      if ((e.ctrlKey || e.metaKey) && e.key === '+') { e.preventDefault(); setShowAddModal(true) }
-      else if (e.key === 'Delete' && selectedIds.length > 0) { e.preventDefault(); removeItem(selectedIds) }
-      else if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); handleSave() }
+      if (showExitConfirm || showSupplierPopup || showProductPopup || showActionPopup) return
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); handleSave() }
+      else if (e.key === 'Delete' && items.length > 0 && selectedIndex >= 0) { 
+        e.preventDefault()
+        const itemToDelete = items[selectedIndex]
+        if (itemToDelete) {
+          handleDeleteItem(itemToDelete.id, itemToDelete.product_name)
+        }
+      }
       else if (e.key === 'Escape') { e.preventDefault(); setShowExitConfirm(true) }
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [showAddModal, showExitConfirm, selectedIds, handleSave, removeItem])
+  }, [showExitConfirm, showSupplierPopup, showProductPopup, showActionPopup, handleSave, items, selectedIndex])
 
-  const supplierOptionsForSelect = useMemo(() =>
-    supplierOptions.map(item => ({ id: item.id, name: item.name })), [supplierOptions])
+  const handleSearchChange = (value) => {
+    setSearch(value)
+  }
 
-  const warehouseOptionsForSelect = useMemo(() =>
-    warehouseOptions.map(item => ({ id: item.id, name: item.name })), [warehouseOptions])
+  const handleSearchKeyDown = async (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      
+      if (showSupplierPopup && supplierResults.length > 0) {
+        await handleSelectSupplier(supplierResults[popupSelectedIndex])
+      } else if (showProductPopup && productResults.length > 0) {
+        await handleSelectProduct(productResults[popupSelectedIndex])
+      } else if (showActionPopup) {
+        handleActionSelect(actionPopupIndex)
+      } else {
+        const supplierMatch = search.match(/^\+([A-Za-z])$/)
+        if (supplierMatch) {
+          const letter = supplierMatch[1].toUpperCase()
+          setSupplierResults(supplierOptions.filter(s => s.name.toUpperCase().includes(letter)))
+          setPopupSelectedIndex(0)
+          setShowSupplierPopup(true)
+          return
+        }
+
+        const qtyMatch = search.match(/^\+(\d+)$/)
+        if (qtyMatch && items.length > 0) {
+          const newQty = parseInt(qtyMatch[1], 10)
+          if (newQty >= 0 && selectedIndex >= 0 && selectedIndex < items.length) {
+            const selectedItem = items[selectedIndex]
+            updateItem(selectedItem.id, { quantity: newQty })
+          }
+          setSearch('')
+          return
+        }
+
+        const priceMatch = search.match(/^\+\+(\d+)$/)
+        if (priceMatch && items.length > 0) {
+          const newPrice = parseInt(priceMatch[1], 10)
+          if (newPrice >= 0 && selectedIndex >= 0 && selectedIndex < items.length) {
+            const selectedItem = items[selectedIndex]
+            updateItem(selectedItem.id, { unit_price: newPrice })
+          }
+          setSearch('')
+          return
+        }
+
+        if (search.trim()) {
+          setIsLoadingProducts(true)
+          try {
+            const result = await listProducts(token, { search: search.trim(), limit: 50 })
+            const products = result.items.map(p => ({
+              id: p.id,
+              name: p.name,
+              sku: p.sku,
+              unit: p.unit_name || p.unit || 'Pcs',
+              cost_price: Number(p.cost_price || p.purchase_price || 0),
+              price: Number(p.cost_price || p.purchase_price || 0),
+            }))
+            if (products.length === 1) {
+              await handleSelectProduct(products[0])
+            } else if (products.length > 1) {
+              setProductResults(products)
+              setPopupSelectedIndex(0)
+              setShowProductPopup(true)
+            } else {
+              setError('Produk tidak ditemukan')
+            }
+          } catch (err) {
+            console.error('Failed to load products:', err)
+            setProductResults([])
+          } finally {
+            setIsLoadingProducts(false)
+          }
+        } else if (search === '' && items.length > 0) {
+          setShowActionPopup(true)
+          setActionPopupIndex(0)
+        }
+      }
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      if (showSupplierPopup && popupSelectedIndex < supplierResults.length - 1) {
+        setPopupSelectedIndex(popupSelectedIndex + 1)
+      } else if (showProductPopup && popupSelectedIndex < productResults.length - 1) {
+        setPopupSelectedIndex(popupSelectedIndex + 1)
+      } else if (showActionPopup && actionPopupIndex < 1) {
+        setActionPopupIndex(actionPopupIndex + 1)
+      } else if (items.length > 0) {
+        const nextIndex = selectedIndex < items.length - 1 ? selectedIndex + 1 : items.length - 1
+        setSelectedIndex(nextIndex)
+      }
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      if (showSupplierPopup && popupSelectedIndex > 0) {
+        setPopupSelectedIndex(popupSelectedIndex - 1)
+      } else if (showProductPopup && popupSelectedIndex > 0) {
+        setPopupSelectedIndex(popupSelectedIndex - 1)
+      } else if (showActionPopup && actionPopupIndex > 0) {
+        setActionPopupIndex(actionPopupIndex - 1)
+      } else if (items.length > 0) {
+        const prevIndex = selectedIndex > 0 ? selectedIndex - 1 : 0
+        setSelectedIndex(prevIndex)
+      }
+    } else if (e.key === 'Escape') {
+      if (showSupplierPopup) setShowSupplierPopup(false)
+      else if (showProductPopup) setShowProductPopup(false)
+      else if (showActionPopup) setShowActionPopup(false)
+    }
+  }
+
+  const handleSelectSupplier = (supplier) => {
+    setHeader(prev => ({ ...prev, supplier_id: supplier.id, supplier_name: supplier.name }))
+    setShowSupplierPopup(false)
+    setSearch('')
+    if (searchInputRef.current) searchInputRef.current.focus()
+  }
+
+  const handleSelectProduct = async (product) => {
+    const existingIndex = items.findIndex(item => item.product_id === product.id)
+    if (existingIndex >= 0) {
+      setToastMessage(`${product.name} sudah ada di daftar`)
+      setToastType('warning')
+      setShowToast(true)
+      setShowProductPopup(false)
+      setSearch('')
+      setSelectedIndex(existingIndex)
+      if (searchInputRef.current) searchInputRef.current.focus()
+      return
+    }
+    const newItem = {
+      id: `item-${Date.now()}`,
+      product_id: product.id,
+      product_name: product.name,
+      sku: product.sku,
+      quantity: 1,
+      unit_price: product.cost_price || product.price || 0,
+      discount: 0,
+      tax_rate: 0,
+      line_total: product.cost_price || product.price || 0,
+    }
+    setItems(prev => [...prev, newItem])
+    setShowProductPopup(false)
+    setSearch('')
+    setSelectedIndex(items.length)
+    if (searchInputRef.current) searchInputRef.current.focus()
+  }
+
+  const handleActionSelect = (index) => {
+    if (index === 0) {
+      handleSave()
+    } else {
+      setShowActionPopup(false)
+      setSearch('')
+    }
+  }
+
+  const handleDeleteItem = (itemId, itemName = '') => {
+    setItems(prev => prev.filter(item => item.id !== itemId))
+    if (selectedIndex >= items.length - 1) {
+      setSelectedIndex(Math.max(0, items.length - 2))
+    }
+    setToastMessage(itemName ? `${itemName} dihapus` : 'Item dihapus')
+    setToastType('info')
+    setShowToast(true)
+  }
 
   const formatCurrency = (amount) =>
     new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(amount)
 
-  // Handle status change with logging
-  const handleStatusChange = (newStatus) => {
-    console.log('[PurchaseDetail] Status button clicked, changing from', header.status, 'to', newStatus)
-    setHeader(prev => {
-      const updated = { ...prev, status: newStatus }
-      console.log('[PurchaseDetail] Status updated, new header:', updated)
-      return updated
-    })
-  }
-
   return (
-    <div className="stock-opname-container">
-      <Toast
-        message={toastMessage}
-        type={toastType}
-        isOpen={showToast}
-        onClose={() => setShowToast(false)}
-        duration={5000}
-      />
-      {/* Header */}
-      <header className="stock-opname-header">
-        <div className="stock-opname-header-top">
-          <div className="stock-opname-title-section">
-            <div className="stock-opname-accent-bar"></div>
-            <h1 className="stock-opname-title">PURCHASE ORDER - {propSelectedId ? header.po_number : 'NEW'}</h1>
-          </div>
-          <div className="stock-opname-status-group">
-            {propSelectedId && (
-              <>
-                <button type="button" className={`status-button ${header.status === 'draft' ? 'status-button-active' : 'status-button-inactive'}`} onClick={() => handleStatusChange('draft')}>
-                  Draft
-                </button>
-                <button type="button" className={`status-button ${header.status === 'pending' ? 'status-button-active' : 'status-button-inactive'}`} onClick={() => handleStatusChange('pending')}>
-                  Pending
-                </button>
-                <button type="button" className={`status-button ${header.status === 'approved' ? 'status-button-active' : 'status-button-inactive'}`} onClick={() => handleStatusChange('approved')}>
-                  Approve
-                </button>
-              </>
-            )}
+    <div className="po-receipt-container">
+      <Toast message={toastMessage} type={toastType} isOpen={showToast} onClose={() => setShowToast(false)} duration={5000} />
+
+      <header className="po-receipt-header">
+        <div className="po-receipt-header-top">
+          <h1 className="po-receipt-title">PURCHASE ORDER</h1>
+          <div className="po-supplier-display">
+            <span className="po-supplier-label">Supplier:</span>
+            <span className="po-supplier-name">{header.supplier_name || header.supplier_id || 'Belum dipilih'}</span>
           </div>
         </div>
-        <div className="stock-opname-header-form">
-          <div className="form-group">
-            <label className="master-form-label">Supplier *</label>
-            <select ref={supplierSelectRef} value={header.supplier_id} onChange={(e) => setHeader({ ...header, supplier_id: e.target.value })} className="master-form-input">
-              <option value="">Select supplier...</option>
-              {supplierOptionsForSelect.map(item => (<option key={item.id} value={item.id}>{item.name}</option>))}
-            </select>
+        <div className="po-meta-info">
+          <div className="po-meta-item">
+            <span className="po-meta-label">No. PO</span>
+            <span className="po-meta-value">{header.po_number || '-'}</span>
           </div>
-          <div className="form-group">
-            <label className="master-form-label">PO Date *</label>
-            <input type="date" value={header.po_date} onChange={(e) => setHeader(prev => ({ ...prev, po_date: e.target.value, expected_date: getDefaultExpectedDate(e.target.value) }))} className="master-form-input" />
+          <div className="po-meta-item">
+            <span className="po-meta-label">Tanggal</span>
+            <span className="po-meta-value">{header.po_date || '-'}</span>
           </div>
-          <div className="form-group">
-            <label className="master-form-label">Expected Date</label>
-            <input type="date" value={header.expected_date} onChange={(e) => setHeader({ ...header, expected_date: e.target.value })} className="master-form-input" />
-          </div>
-          <div className="form-group">
-            <label className="master-form-label">Warehouse *</label>
-            <select value={header.warehouse_id} onChange={(e) => setHeader({ ...header, warehouse_id: e.target.value })} className="master-form-input">
-              <option value="">Select warehouse...</option>
-              {warehouseOptionsForSelect.map(item => (<option key={item.id} value={item.id}>{item.name}</option>))}
-            </select>
-          </div>
-          <div className="form-group">
-            <label className="master-form-label">Notes</label>
-            <textarea value={header.notes} onChange={(e) => setHeader({ ...header, notes: e.target.value })} className="master-form-input master-form-textarea" rows={2} placeholder="Add remarks..." />
+          <div className="po-meta-item">
+            <span className="po-meta-label">Gudang</span>
+            <span className="po-meta-value">{warehouseOptions.find(w => w.id === header.warehouse_id)?.name || '-'}</span>
           </div>
         </div>
       </header>
 
-      {error && <div className="master-error">{error}</div>}
-
-      {/* Items Table */}
-      <main className="stock-opname-items">
-        <div className="stock-opname-table-container">
-          <div className="table-wrapper custom-scrollbar">
-            <table className="stock-opname-table master-table">
-              <thead className="table-header">
-                <tr>
-                  <th className="table-checkbox" style={{ width: '40px' }}>
-                    <input
-                      type="checkbox"
-                      className="table-checkbox-input"
-                      checked={selectedIds.length === items.length && items.length > 0}
-                      onChange={(e) => setSelectedIds(e.target.checked ? items.map(i => i.id) : [])}
-                    />
-                  </th>
-                  <th style={{ width: '60px' }}>No</th>
-                  <th>SKU</th>
-                  <th>Product</th>
-                  <th className="table-center" style={{ width: '100px' }}>QTY PO</th>
-                  <th className="table-center" style={{ width: '120px' }}>Unit Price</th>
-                  <th className="table-center" style={{ width: '100px' }}>Discount %</th>
-                  <th className="table-center" style={{ width: '80px' }}>Tax %</th>
-                  <th className="table-center" style={{ width: '120px' }}>Total</th>
+      <main className="po-items-container">
+        {error && <div className="master-error" style={{ marginBottom: 12 }}>{error}</div>}
+        
+        {items.length === 0 ? (
+          <div className="po-empty-items">
+            <span className="material-icons">receipt_long</span>
+            <p>Belum ada item. Ketik nama produk di bawah untuk menambah.</p>
+          </div>
+        ) : (
+          <table className="po-items-table">
+            <thead>
+              <tr>
+                <th>No</th>
+                <th>Produk</th>
+                <th>Harga</th>
+                <th>Qty</th>
+                <th>Total</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((item, index) => (
+                <tr key={item.id} className={selectedIndex === index ? 'selected' : ''} onClick={() => setSelectedIndex(index)}>
+                  <td>{index + 1}</td>
+                  <td>
+                    <div style={{ fontWeight: 500 }}>{item.product_name}</div>
+                    <div style={{ fontSize: 11, color: '#94a3b8' }}>{item.sku}</div>
+                  </td>
+                  <td>{formatCurrency(item.unit_price)}</td>
+                  <td><span className="po-item-qty">{item.quantity}</span></td>
+                  <td>{formatCurrency(item.line_total)}</td>
+                  <td>
+                    <button className="po-delete-btn" onClick={(e) => { e.stopPropagation(); handleDeleteItem(item.id, item.product_name) }}>
+                      <span className="material-icons" style={{ fontSize: 18 }}>delete</span>
+                    </button>
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {items.map((item, index) => (
-                  <tr
-                    key={item.id}
-                    className={selectedIds.includes(item.id) ? 'master-row-selected' : 'master-row'}
-                    onClick={() => setSelectedIds([item.id])}
-                  >
-                    <td className="table-checkbox">
-                      <input
-                        type="checkbox"
-                        className="table-checkbox-input"
-                        checked={selectedIds.includes(item.id)}
-                        onChange={(e) => setSelectedIds(e.target.checked ? [item.id] : [])}
-                      />
-                    </td>
-                    <td className="table-center text-muted">{index + 1}</td>
-                    <td className="font-bold">{item.sku || '-'}</td>
-                    <td className="table-product">
-                      <div className="product-name">{item.product_name || '-'}</div>
-                    </td>
-                    <td className="table-center">
-                      <input
-                        type="number"
-                        value={item.quantity}
-                        onChange={(e) => updateItem(item.id, { quantity: Number(e.target.value) })}
-                        className="physical-input"
-                      />
-                    </td>
-                    <td className="table-center">
-                      <input
-                        type="number"
-                        value={item.unit_price}
-                        onChange={(e) => updateItem(item.id, { unit_price: Number(e.target.value) })}
-                        className="physical-input"
-                      />
-                    </td>
-                    <td className="table-center">
-                      <input
-                        type="number"
-                        value={item.discount}
-                        onChange={(e) => updateItem(item.id, { discount: Number(e.target.value) })}
-                        className="physical-input"
-                      />
-                    </td>
-                    <td className="table-center">
-                      <input
-                        type="number"
-                        value={item.tax_rate}
-                        onChange={(e) => updateItem(item.id, { tax_rate: Number(e.target.value) })}
-                        className="physical-input"
-                      />
-                    </td>
-                    <td className="table-center font-bold">{formatCurrency(item.line_total)}</td>
-                  </tr>
-                ))}
-                {items.length === 0 && (
-                  <tr>
-                    <td colSpan={9} className="text-center py-8 text-muted">
-                      No items added yet. Click "Add" (Ctrl++) to start.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* Summary */}
-        <div className="stock-opname-summary">
-          <span className="summary-title">Summary</span>
-          <div className="summary-items">
-            <span className="summary-item">
-              TOTAL ITEMS: <span className="summary-value">{summary.itemCount}</span>
-            </span>
-            <span className="summary-divider"></span>
-            <span className="summary-item">
-              SUBTOTAL: <span className="summary-value">{formatCurrency(summary.subtotal)}</span>
-            </span>
-            <span className="summary-divider"></span>
-            <span className="summary-item">
-              DISCOUNT: <span className="summary-value">{formatCurrency(summary.discountTotal)}</span>
-            </span>
-            <span className="summary-divider"></span>
-            <span className="summary-item">
-              TAX: <span className="summary-value">{formatCurrency(summary.taxTotal)}</span>
-            </span>
-            <span className="summary-divider"></span>
-            <span className="summary-item summary-positive">
-              GRAND TOTAL: <span className="summary-value">{formatCurrency(summary.grandTotal)}</span>
-            </span>
-          </div>
-        </div>
+              ))}
+            </tbody>
+          </table>
+        )}
       </main>
 
-      {/* Action Footer - Sticky Bottom */}
-      <footer className="stock-opname-footer">
-        <div className="footer-content">
-          <div className="footer-actions-left">
-            <button type="button" className="master-footer-btn" onClick={() => setShowAddModal(true)} title="Add Item (Ctrl++)" aria-label="New">
-              <span className="material-icons-round master-footer-icon orange">add_box</span>
-              <span className="master-footer-key">+</span>
-            </button>
-            <button type="button" className="master-footer-btn" onClick={() => removeItem(selectedIds)} disabled={selectedIds.length === 0} title="Remove Selected (DEL)" aria-label="Delete">
-              <span className="material-icons-round master-footer-icon orange">remove_circle</span>
-              <span className="master-footer-key">DEL</span>
-            </button>
-            <button type="button" className="master-footer-btn" onClick={handleSave} disabled={isSaving || isLoading} title="Save (Ctrl+S)" aria-label="Save">
-              <span className="material-icons-round master-footer-icon green">save</span>
-            </button>
-            <button type="button" className="master-footer-btn" onClick={() => setShowExitConfirm(true)} disabled={isSaving} title="Exit (Esc)" aria-label="Exit">
-              <span className="material-icons-round master-footer-icon red">exit_to_app</span>
-            </button>
-          </div>
+      <div className="po-summary-section">
+        <div className="po-summary-row">
+          <span className="po-summary-label">Subtotal</span>
+          <span className="po-summary-value">{formatCurrency(summary.subtotal)}</span>
         </div>
+        {summary.discountTotal > 0 && (
+          <div className="po-summary-row">
+            <span className="po-summary-label">Diskon</span>
+            <span className="po-summary-value">-{formatCurrency(summary.discountTotal)}</span>
+          </div>
+        )}
+        {summary.taxTotal > 0 && (
+          <div className="po-summary-row">
+            <span className="po-summary-label">PPN ({((summary.taxTotal / (summary.subtotal - summary.discountTotal)) * 100).toFixed(1)}%)</span>
+            <span className="po-summary-value">{formatCurrency(summary.taxTotal)}</span>
+          </div>
+        )}
+        <div className="po-summary-divider"></div>
+        <div className="po-summary-row po-summary-total">
+          <span className="po-summary-label">GRAND TOTAL</span>
+          <span className="po-summary-value">{formatCurrency(summary.grandTotal)}</span>
+        </div>
+        <div className="po-summary-stats">
+          <span>Items: {summary.itemCount}</span>
+          <span>Total Qty: {items.reduce((sum, item) => sum + (item.quantity || 0), 0)}</span>
+        </div>
+      </div>
+
+      <footer className="po-footer-input">
+        <div className="po-search-container">
+          <span className="material-icons">search</span>
+          <input
+            ref={searchInputRef}
+            type="text"
+            className="po-search-input"
+            placeholder="Ketik produk, +huruf=supplier, +qty, ++harga..."
+            value={search}
+            onChange={(e) => handleSearchChange(e.target.value)}
+            onKeyDown={handleSearchKeyDown}
+            autoFocus
+          />
+        </div>
+        <button className="po-save-btn" onClick={handleSave} disabled={isSaving || isLoading || items.length === 0 || !header.supplier_id}>
+          <span className="material-icons">save</span>
+          SIMPAN
+        </button>
       </footer>
 
-      {/* Modals */}
-      <AddPurchaseItemModal
-        isOpen={showAddModal}
-        onClose={() => setShowAddModal(false)}
-        onAdd={addItem}
-        token={token}
-      />
-      {showAddModal && console.log('[PurchaseDetail] AddModal open, token:', !!token)}
+      {showSupplierPopup && (
+        <div className="po-popup-overlay" onClick={() => setShowSupplierPopup(false)}>
+          <div className="po-popup" onClick={(e) => e.stopPropagation()}>
+            <div className="po-popup-header">
+              <h3>CARI SUPPLIER</h3>
+              <button className="po-popup-close" onClick={() => setShowSupplierPopup(false)}>
+                <span className="material-icons">close</span>
+              </button>
+            </div>
+            <div className="po-popup-table-wrapper">
+              <table className="po-popup-table">
+                <thead><tr><th>No</th><th>Nama Supplier</th><th></th></tr></thead>
+                <tbody>
+                  {supplierResults.length === 0 ? (
+                    <tr><td colSpan={3} style={{ textAlign: 'center', color: '#94a3b8' }}>Supplier tidak ditemukan</td></tr>
+                  ) : (
+                    supplierResults.map((supplier, idx) => (
+                      <tr key={supplier.id} className={popupSelectedIndex === idx ? 'selected' : ''} onClick={() => handleSelectSupplier(supplier)}>
+                        <td>{idx + 1}</td>
+                        <td>{supplier.name}</td>
+                        <td><button className="po-popup-btn">PILIH</button></td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+            <div className="po-popup-footer">
+              <span>↑↓ Navigasi</span>
+              <span>Enter: Pilih | Esc: Tutup</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showProductPopup && (
+        <div className="po-popup-overlay" onClick={() => setShowProductPopup(false)}>
+          <div className="po-popup" onClick={(e) => e.stopPropagation()}>
+            <div className="po-popup-header">
+              <h3>DAFTAR PRODUK</h3>
+              <button className="po-popup-close" onClick={() => setShowProductPopup(false)}>
+                <span className="material-icons">close</span>
+              </button>
+            </div>
+            <div className="po-popup-table-wrapper">
+              <table className="po-popup-table">
+                <thead><tr><th>No</th><th>Nama Produk</th><th>Satuan</th><th>Harga</th></tr></thead>
+                <tbody>
+                  {isLoadingProducts ? (
+                    <tr><td colSpan={4} style={{ textAlign: 'center', color: '#94a3b8' }}>Memuat...</td></tr>
+                  ) : productResults.length === 0 ? (
+                    <tr><td colSpan={4} style={{ textAlign: 'center', color: '#94a3b8' }}>Produk tidak ditemukan</td></tr>
+                  ) : (
+                    productResults.map((product, idx) => (
+                      <tr key={product.id} className={popupSelectedIndex === idx ? 'selected' : ''} onClick={() => handleSelectProduct(product)}>
+                        <td>{idx + 1}</td>
+                        <td>{product.name}</td>
+                        <td>{product.unit}</td>
+                        <td style={{ textAlign: 'right' }}>{formatCurrency(product.cost_price || product.price)}</td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+            <div className="po-popup-footer">
+              <span>↑↓ Navigasi</span>
+              <span>Enter: Pilih | Esc: Tutup</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showActionPopup && (
+        <div className="po-popup-overlay" onClick={() => setShowActionPopup(false)}>
+          <div className="po-popup po-action-popup" onClick={(e) => e.stopPropagation()}>
+            <div className="po-popup-header"><h3>AKHIRI TRANSAKSI</h3></div>
+            <div style={{ padding: 24 }}>
+              <p>Anda ingin menyimpan Purchase Order ini?</p>
+              <div className="po-action-buttons">
+                <button className={`po-action-btn po-action-btn-save ${actionPopupIndex === 0 ? 'selected' : ''}`} onClick={() => handleActionSelect(0)}>SIMPAN</button>
+                <button className={`po-action-btn po-action-btn-cancel ${actionPopupIndex === 1 ? 'selected' : ''}`} onClick={() => handleActionSelect(1)}>BATAL</button>
+              </div>
+            </div>
+            <div className="po-popup-footer">
+              <span>Enter: Pilih</span>
+              <span>Esc: Tutup</span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showExitConfirm && (
-        <DeleteMaster
-          itemName="keluar dari halaman ini"
-          title="Konfirmasi Keluar"
-          confirmText="Ya"
-          cancelText="Tidak"
-          isExit={true}
-          onConfirm={() => { setShowExitConfirm(false); onExit() }}
-          onCancel={() => setShowExitConfirm(false)}
-        />
+        <div className="po-popup-overlay">
+          <div className="po-popup po-action-popup">
+            <div className="po-popup-header"><h3>KONFIRMASI KELUAR</h3></div>
+            <div style={{ padding: 24 }}>
+              <p>Anda yakin ingin keluar dari halaman ini?</p>
+              <div className="po-action-buttons">
+                <button className="po-action-btn po-action-btn-save" onClick={() => { setShowExitConfirm(false); onExit() }}>YA</button>
+                <button className="po-action-btn po-action-btn-cancel" onClick={() => setShowExitConfirm(false)}>TIDAK</button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )
