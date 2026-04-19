@@ -682,9 +682,7 @@ export function Supplier({ onExit }) {
 
       {showForm && (
         <div className="master-form-card">
-          <button type="button" className="master-form-close" onClick={handleCloseForm}>
-            <span className="material-icons-round">close</span>
-          </button>
+   
           <div className="master-form-header">
             <span className="material-icons-round master-form-icon">local_shipping</span>
             <h2 className="master-form-title">{selectedItem ? 'Ubah Data Supplier' : 'Isi Data Supplier'}</h2>

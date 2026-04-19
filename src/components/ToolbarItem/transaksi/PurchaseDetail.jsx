@@ -60,13 +60,16 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
         { id: 'SUP002', name: 'CV. Berkah Jaya' },
       ])
       const warehouses = [
-        { id: 'MAIN', name: 'Gudang Utama' },
-        { id: 'WH002', name: 'Gudang Cabang' },
+        { id: 'WH001', name: 'Toko123', type: 'MAIN' },
+        { id: 'WH002', name: 'Toko456', type: 'BRANCH' },
       ]
       setWarehouseOptions(warehouses)
       // Auto-set warehouse to MAIN if available (only for new PO)
       if (!propSelectedId) {
-        setHeader(prev => ({ ...prev, warehouse_id: 'MAIN' }))
+        const mainWh = warehouses.find(w => w.type?.toUpperCase() === 'MAIN')
+        if (mainWh) {
+          setHeader(prev => ({ ...prev, warehouse_id: mainWh.id }))
+        }
       }
       return
     }
@@ -80,7 +83,7 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
       setWarehouseOptions(warehouses)
 
       // Auto-set warehouse to MAIN if available (only for new PO)
-      const mainWarehouse = warehouses.find(w => w.id === 'MAIN')
+      const mainWarehouse = warehouses.find(w => w.type?.toUpperCase() === 'MAIN')
       if (!propSelectedId && mainWarehouse) {
         setHeader(prev => ({ ...prev, warehouse_id: mainWarehouse.id }))
       }
@@ -99,6 +102,16 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
   }, [token])
 
   useEffect(() => { fetchLookups() }, [fetchLookups])
+
+  // Auto-set warehouse to MAIN when warehouses loaded (only for new PO and empty warehouse_id)
+  useEffect(() => {
+    if (!propSelectedId && warehouseOptions.length > 0) {
+      const mainWh = warehouseOptions.find(w => w.type?.toUpperCase() === 'MAIN')
+      if (mainWh) {
+        setHeader(prev => ({ ...prev, warehouse_id: mainWh.id }))
+      }
+    }
+  }, [warehouseOptions, propSelectedId])
 
   // Auto-focus to supplier when form opens (only for new PO)
   useEffect(() => {

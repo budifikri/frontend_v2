@@ -689,9 +689,7 @@ export function Customer({ onExit }) {
 
       {showForm && (
         <div className="master-form-card">
-          <button type="button" className="master-form-close" onClick={handleCloseForm}>
-            <span className="material-icons-round">close</span>
-          </button>
+    
           <div className="master-form-header">
             <span className="material-icons-round master-form-icon">groups</span>
             <h2 className="master-form-title">{selectedItem ? 'Ubah Data Customer' : 'Isi Data Customer'}</h2>

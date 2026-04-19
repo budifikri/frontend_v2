@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { listProducts } from '../../../features/master/product/product.api'
 
 export function AddPurchaseItemModal({ isOpen, onClose, onAdd, token }) {
@@ -12,6 +12,15 @@ export function AddPurchaseItemModal({ isOpen, onClose, onAdd, token }) {
   const [highlightedIndex, setHighlightedIndex] = useState(-1)
   const [isProductSelected, setIsProductSelected] = useState(false)
   const [productOptions, setProductOptions] = useState([])
+  const quantityInputRef = useRef(null)
+
+  // Auto-focus to quantity when product is selected
+  useEffect(() => {
+    if (isProductSelected && quantityInputRef.current) {
+      const timer = setTimeout(() => quantityInputRef.current?.focus(), 100)
+      return () => clearTimeout(timer)
+    }
+  }, [isProductSelected])
 
   // Fetch products
   useEffect(() => {
@@ -105,8 +114,8 @@ export function AddPurchaseItemModal({ isOpen, onClose, onAdd, token }) {
   const lineTotal = (Number(quantity) || 0) * (Number(unitPriceValue) || 0)
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-container" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => { if (!isProductSelected) handleKeyDown(e); else if (e.key === 'Escape') onClose() }} tabIndex={-1}>
+    <div className="modal-overlay" onClick={() => onClose()}>
+      <div className="modal-container" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => { if (e.key === 'Escape') { e.preventDefault(); onClose() } else if (!isProductSelected) handleKeyDown(e) }} tabIndex={-1}>
         <div className="modal-header">
           <div className="modal-icon"><span className="material-icons-round">add</span></div>
           <h2 className="modal-title">Add Item to Purchase Order</h2>
@@ -117,7 +126,7 @@ export function AddPurchaseItemModal({ isOpen, onClose, onAdd, token }) {
             <label className="form-label">Search Product <span className="required-mark">*</span></label>
             <div className="search-wrapper">
               <span className="material-icons-round search-icon">search</span>
-              <input data-testid="po-add-item-search" type="text" value={searchQuery} onChange={(e) => { setSearchQuery(e.target.value); setSelectedId(''); setIsProductSelected(false); setUnitPrice(0) }} className="form-input search-input" placeholder="Search by SKU or product name..." autoFocus disabled={isProductSelected} />
+              <input data-testid="po-add-item-search" type="text" value={searchQuery} onChange={(e) => { setSearchQuery(e.target.value); setSelectedId(''); setIsProductSelected(false); setUnitPrice(0) }} className="form-input search-input" placeholder="Search by SKU or product name..." autoFocus disabled={isProductSelected} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault() } else if (e.key === 'Tab') { e.stopPropagation() } }} />
               {isProductSelected && (<button type="button" className="search-clear-btn" onClick={() => { setSearchQuery(''); setSelectedId(''); setIsProductSelected(false); setUnitPrice(0) }} title="Clear"><span className="material-icons-round">close</span></button>)}
             </div>
           </div>
@@ -126,7 +135,7 @@ export function AddPurchaseItemModal({ isOpen, onClose, onAdd, token }) {
             <div className="product-list">
               <div className="product-list-container">
               {filteredProducts.map((product, index) => (
-                  <div data-testid={`po-product-item-${product.id}`} key={product.id} className={`product-list-item ${selectedId === product.id ? 'selected' : ''} ${highlightedIndex === index ? 'highlighted' : ''}`} onClick={() => { setSelectedId(product.id); setSearchQuery(product.name); setIsProductSelected(true); setUnitPrice(product.cost_price || product.retail_price || 0); setHighlightedIndex(-1) }} onMouseEnter={() => setHighlightedIndex(index)}>
+                  <div data-testid={`po-product-item-${product.id}`} key={product.id} className={`product-list-item ${selectedId === product.id ? 'selected' : ''} ${highlightedIndex === index ? 'highlighted' : ''}`} onClick={() => { setSearchQuery(''); onAdd({ product_id: product.id, product_name: product.name, sku: product.code, quantity: 1, unit_price: product.cost_price || product.retail_price || 0, discount: 0, tax_rate: 0 }) }} onMouseEnter={() => setHighlightedIndex(index)}>
                     <div className="product-list-sku">{product.code}</div>
                     <div className="product-list-name">{product.name}</div>
                     <div className="product-list-price">Rp {Number(product.cost_price || product.retail_price).toLocaleString('id-ID')}</div>
@@ -146,11 +155,11 @@ export function AddPurchaseItemModal({ isOpen, onClose, onAdd, token }) {
               <div className="form-row">
                 <div className="form-group">
                   <label className="form-label">Quantity *</label>
-                  <input type="number" value={quantity} onChange={(e) => setQuantity(Number(e.target.value))} className="form-input" min="1" />
+                  <input ref={quantityInputRef} type="number" value={quantity} onChange={(e) => setQuantity(Number(e.target.value))} className="form-input" min="1" onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAdd() } }} />
                 </div>
                 <div className="form-group">
                   <label className="form-label">Unit Price *</label>
-                  <input type="number" value={unitPriceValue} onChange={(e) => setUnitPrice(Number(e.target.value))} className="form-input" min="0" />
+                  <input type="number" value={unitPriceValue} onChange={(e) => setUnitPrice(Number(e.target.value))} className="form-input" min="0" onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAdd() } }} />
                 </div>
               </div>
               {/* <div className="form-row">

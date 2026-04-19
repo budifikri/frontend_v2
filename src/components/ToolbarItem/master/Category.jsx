@@ -552,9 +552,7 @@ export function Category({ onExit }) {
 
       {showForm && (
         <div className="master-form-card">
-          <button type="button" className="master-form-close" onClick={handleCloseForm}>
-            <span className="material-icons-round">close</span>
-          </button>
+   
           <div className="master-form-header">
             <span className="material-icons-round master-form-icon">category</span>
             <h2 className="master-form-title">{selectedItem ? 'Ubah Data Kategori' : 'Isi Data Kategori'}</h2>

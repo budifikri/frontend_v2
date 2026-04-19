@@ -590,9 +590,7 @@ export function Warehouse({ onExit }) {
 
 {showForm && (
         <div className="master-form-card">
-          <button type="button" className="master-form-close" onClick={handleCloseForm}>
-            <span className="material-icons-round">close</span>
-          </button>
+     
           <div className="master-form-header">
             <span className="material-icons-round master-form-icon">store</span>
             <h2 className="master-form-title">{isEditing ? 'Ubah Data Warehouse' : 'Isi Data Warehouse'}</h2>
