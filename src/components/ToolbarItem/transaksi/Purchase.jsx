@@ -16,9 +16,8 @@ const TABLE_COLUMNS = [
   { key: 'supplier_name', label: 'SUPPLIER', sortable: true },
   { key: 'warehouse_name', label: 'WAREHOUSE', sortable: true },
   { key: 'po_date', label: 'DATE', sortable: true, width: '120px' },
-  { key: 'status', label: 'STATUS PO', sortable: true },
-  { key: 'status_receive', label: 'STATUS RECEIVE', sortable: true },
   { key: 'grand_total', label: 'TOTAL', sortable: true },
+  { key: 'status', label: 'STATUS PO/RECEIVE', sortable: true, width: '220px' },
 ]
 
 const DUMMY_PURCHASES = [
@@ -34,27 +33,20 @@ const DUMMY_PURCHASES = [
   },
 ]
 
-function getStatusBadgeClass(status) {
-  const statusLower = status?.toLowerCase()
-  
-  // Handle STATUS PO enum: draft, approve, pending
-  if (statusLower === 'draft') return 'status-badge-pending'
-  if (statusLower === 'approve') return 'status-badge-approved'
-  if (statusLower === 'approved') return 'status-badge-approved'
-  if (statusLower === 'pending') return 'status-badge-approved'
-  
-  // Handle STATUS RECEIVE enum: draft, reject, receive
-  if (statusLower === 'reject') return 'status-badge-rejected'
-  if (statusLower === 'receive') return 'status-badge-posted'
-  
-  // Fallback for old/legacy statuses
-  const legacyClasses = {
-    approved: 'status-badge-posted',
-    rejected: 'status-badge-rejected',
-    cancelled: 'status-badge-rejected',
-    completed: 'status-badge-posted',
-  }
-  return legacyClasses[statusLower] || 'status-badge-pending'
+function getPoStatusMeta(status) {
+  const value = String(status || '').toLowerCase()
+  if (value === 'approve' || value === 'approved') return { label: 'Approve', variant: 'approve' }
+  if (value === 'pending') return { label: 'Pending', variant: 'pending' }
+  if (value === 'reject' || value === 'rejected') return { label: 'Reject', variant: 'reject' }
+  return { label: 'Draft', variant: 'draft' }
+}
+
+function getReceiveStatusMeta(status) {
+  const value = String(status || '').toLowerCase()
+  if (value === 'receive') return { label: 'Receive', variant: 'receive' }
+  if (value === 'reject' || value === 'rejected') return { label: 'Reject', variant: 'reject' }
+  if (value === 'pending') return { label: 'Pending', variant: 'pending' }
+  return { label: 'Draft', variant: 'draft' }
 }
 
 function formatDate(dateStr) {
@@ -448,53 +440,48 @@ export function Purchase({ onExit }) {
             </select>
           </div>
 
-          <div className="master-filter-wrap">
-            <label className="checkbox-all-records">
-              <input
-                type="checkbox"
-                checked={pager.isAllRecords}
-                onChange={(e) => pager.toggleAllRecords(e.target.checked)}
-              />
-              <span>All Records</span>
-            </label>
-          </div>
+          
         </div>
       </div>
 
       {error && <div className="master-error">{error}</div>}
 
       <div className="master-table-wrapper" ref={tableRef} tabIndex={0}>
-        <div className="master-table-container">
-          <table className="master-table">
+        <div className="master-table-container purchase-list-table-container">
+          <table className="master-table purchase-list-table">
             <MasterTableHeader columns={TABLE_COLUMNS} sortConfig={sortConfig} onSort={handleSort} />
             <tbody>
-              {sortedData.map((row, index) => (
-                <tr
-                  key={row.id || index}
-                  className={selectedId === row.id ? 'master-row-selected' : 'master-row'}
-                  onClick={() => handleSelect(row)}
-                  onDoubleClick={() => handleViewDetail()}
-                >
-                  <td>{offset + index + 1}</td>
-                  <td>{row.po_number || '-'}</td>
-                  <td>{row.supplier_name || '-'}</td>
-                  <td>{row.warehouse_name || '-'}</td>
-                  <td>{formatDate(row.po_date)}</td>
-                  <td>
-                    <span className={`status-badge ${getStatusBadgeClass(row.status)}`}>
-                      {row.status || '-'}
-                    </span>
-                  </td>
-                  <td>
-                    <span className={`status-badge ${getStatusBadgeClass(row.status_receive)}`}>
-                      {row.status_receive || '-'}
-                    </span>
-                  </td>
-                  <td className="text-right">{formatCurrency(row.grand_total)}</td>
-                </tr>
-              ))}
+              {sortedData.map((row, index) => {
+                const poStatus = getPoStatusMeta(row.status)
+                const receiveStatus = getReceiveStatusMeta(row.status_receive)
+                return (
+                  <tr
+                    key={row.id || index}
+                    className={selectedId === row.id ? 'master-row-selected' : 'master-row'}
+                    onClick={() => handleSelect(row)}
+                    onDoubleClick={() => handleViewDetail()}
+                  >
+                    <td className="text-right">{offset + index + 1}</td>
+                    <td >{row.po_number || '-'}</td>
+                    <td>{row.supplier_name || '-'}</td>
+                    <td>{row.warehouse_name || '-'}</td>
+                    <td>{formatDate(row.po_date)}</td>
+                    <td className="text-right">{formatCurrency(row.grand_total)}</td>
+                    <td className="text-center">
+                      <div className="purchase-status-stack">
+                        <span className={`purchase-status-pill is-${poStatus.variant}`}>
+                          {poStatus.label}
+                        </span>
+                        <span className={`purchase-status-pill is-${receiveStatus.variant}`}>
+                          {receiveStatus.label}
+                        </span>
+                      </div>
+                    </td>
+                  </tr>
+                )
+              })}
               {!isLoading && sortedData.length === 0 && (
-                <tr><td colSpan={8} className="text-center">No data</td></tr>
+                <tr><td colSpan={7} className="text-center">No data</td></tr>
               )}
             </tbody>
           </table>

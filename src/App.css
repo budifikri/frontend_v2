@@ -982,6 +982,7 @@ body.has-wallpaper .cash-register {
   /* warna table  */
   /* background: linear-gradient(180deg, #374151 0%, #1F2937 100%); */
   background:var(--secondcolor-bg);
+  
   color: #fff;
   text-transform: uppercase;
   font-weight: 600;
@@ -3702,6 +3703,109 @@ body.has-wallpaper .cash-register {
   font-size: 0.875rem;
   font-weight: 600;
   text-transform: uppercase;
+}
+
+.purchase-list-table-container {
+  animation: purchase-table-enter 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.purchase-list-table tbody tr.master-row {
+  animation: purchase-row-reveal 180ms cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+}
+
+.purchase-list-table tbody tr.master-row:nth-child(1) { animation-delay: 20ms; }
+.purchase-list-table tbody tr.master-row:nth-child(2) { animation-delay: 35ms; }
+.purchase-list-table tbody tr.master-row:nth-child(3) { animation-delay: 50ms; }
+.purchase-list-table tbody tr.master-row:nth-child(4) { animation-delay: 65ms; }
+.purchase-list-table tbody tr.master-row:nth-child(5) { animation-delay: 80ms; }
+.purchase-list-table tbody tr.master-row:nth-child(6) { animation-delay: 95ms; }
+
+.purchase-status-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 72px;
+  height: 22px;
+  padding: 0 12px;
+  border: none;
+  border-radius: 6px;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  line-height: 1;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.15);
+  animation: purchase-pill-pop 180ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.purchase-status-stack {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.purchase-status-pill.is-draft {
+  background-color: #94a3b8;
+}
+
+.purchase-status-pill.is-approve,
+.purchase-status-pill.is-receive {
+  background-color: #22c55e;
+}
+
+.purchase-status-pill.is-pending {
+  background-color: #fb923c;
+}
+
+.purchase-status-pill.is-reject {
+  background-color: #ef4444;
+}
+
+@keyframes purchase-table-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.995);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes purchase-row-reveal {
+  from {
+    opacity: 0;
+    transform: translateX(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes purchase-pill-pop {
+  0% {
+    opacity: 0;
+    transform: translateY(2px) scale(0.92);
+  }
+  70% {
+    opacity: 1;
+    transform: translateY(0) scale(1.03);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .purchase-list-table-container,
+  .purchase-list-table tbody tr.master-row,
+  .purchase-status-pill {
+    animation: none !important;
+  }
 }
 
 .purchase-header-form {

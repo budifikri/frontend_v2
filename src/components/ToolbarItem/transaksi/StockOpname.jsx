@@ -448,16 +448,7 @@ export function StockOpname({ onExit }) {
             </select>
           </div>
 
-          <div className="master-filter-wrap">
-            <label className="checkbox-all-records">
-              <input
-                type="checkbox"
-                checked={pager.isAllRecords}
-                onChange={(e) => pager.toggleAllRecords(e.target.checked)}
-              />
-              <span>All Records</span>
-            </label>
-          </div>
+         
         </div>
       </div>
 

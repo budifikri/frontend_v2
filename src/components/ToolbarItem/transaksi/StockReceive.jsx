@@ -371,16 +371,7 @@ export function StockReceive({ onExit }) {
             </select>
           </div>
 
-          <div className="master-filter-wrap">
-            <label className="checkbox-all-records">
-              <input
-                type="checkbox"
-                checked={pager.isAllRecords}
-                onChange={(e) => pager.toggleAllRecords(e.target.checked)}
-              />
-              <span>All Records</span>
-            </label>
-          </div>
+         
         </div>
       </div>
 
@@ -398,7 +389,7 @@ export function StockReceive({ onExit }) {
                   onClick={() => handleSelect(row)}
                   onDoubleClick={() => handleViewDetail()}
                 >
-                  <td>{offset + index + 1}</td>
+                  <td className="text-right">{offset + index + 1}</td>
                   <td>{row.receive_number || row.po_number || '-'}</td>
                   <td>{row.supplier_name || '-'}</td>
                   <td>{row.warehouse_name || '-'}</td>
