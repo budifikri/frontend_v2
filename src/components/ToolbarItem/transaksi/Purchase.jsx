@@ -263,7 +263,12 @@ export function Purchase({ onExit }) {
 
   useEffect(() => {
     const handleKeyDown = (e) => {
+      console.debug('[Purchase.jsx] keydown:', e.key, '| showDetail:', showDetail, '| showExitConfirm:', showExitConfirm)
       if (showDeleteConfirm || showExitConfirm) return
+      if (showDetail) {
+        console.debug('[Purchase.jsx] ESC blocked - showDetail is true')
+        return
+      }
       if (e.key === 'F2') {
         e.preventDefault()
         handleViewDetail()
@@ -280,7 +285,7 @@ export function Purchase({ onExit }) {
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [showDeleteConfirm, showExitConfirm, handleViewDetail, handleDeleteClick, handleNew])
+  }, [showDeleteConfirm, showExitConfirm, showDetail, fetchData, handleViewDetail, handleDeleteClick, handleNew])
 
   const handleConfirmDelete = async () => {
     if (!selectedItem) {

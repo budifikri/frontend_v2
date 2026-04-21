@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useLayoutEffect } from 'react'
 import { useAuth } from '../../../shared/auth'
-import { getPurchase, createPurchase, updatePurchase, listSuppliers, generatePONumber } from '../../../features/transaksi/purchase/purchase.api'
+import { getPurchase, createPurchase, updatePurchase, updatePurchaseStatus, listSuppliers, generatePONumber } from '../../../features/transaksi/purchase/purchase.api'
 import { listProducts } from '../../../features/master/product/product.api'
 import { listWarehouses } from '../../../features/master/warehouse/warehouse.api'
 import { DeleteMaster } from '../footer/DeleteMaster'
@@ -52,6 +52,13 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
   const [popupSelectedIndex, setPopupSelectedIndex] = useState(0)
   const [actionPopupIndex, setActionPopupIndex] = useState(0)
   const [isLoadingProducts, setIsLoadingProducts] = useState(false)
+
+  const normalizeStatusPoForApi = useCallback((status) => {
+    const value = String(status || 'draft').toLowerCase()
+    if (value === 'approved') return 'approve'
+    if (value === 'approve' || value === 'draft' || value === 'pending') return value
+    return 'draft'
+  }, [])
 
   const fetchLookups = useCallback(async () => {
     if (!token) {
@@ -109,41 +116,33 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
     }
   }, [warehouseOptions, propSelectedId])
 
-  const focusSearchInput = () => {
-    if (searchInputRef.current) {
-      searchInputRef.current.focus()
-      searchInputRef.current.select()
-    }
-  }
-
-  useEffect(() => {
-    if (!propSelectedId) {
-      const timer = setTimeout(() => {
-        focusSearchInput()
-      }, 100)
-      return () => clearTimeout(timer)
-    }
-  }, [propSelectedId])
-
-  useEffect(() => {
-    if (showActionPopup === false && !propSelectedId) {
-      const timer = setTimeout(() => {
-        focusSearchInput()
-      }, 100)
-      return () => clearTimeout(timer)
-    }
-  }, [showActionPopup, propSelectedId])
-
-  // Force focus on mount and re-focus when needed
-  useLayoutEffect(() => {
-    if (!propSelectedId) {
-      requestAnimationFrame(() => {
-        if (searchInputRef.current) {
-          searchInputRef.current.focus()
-        }
-      })
-    }
+  const focusSearchInput = useCallback((selectText = false) => {
+    const input = searchInputRef.current
+    if (!input) return
+    input.focus()
+    if (selectText) input.select()
   }, [])
+
+  const queueFocusSearchInput = useCallback((selectText = false, delay = 0) => {
+    window.setTimeout(() => {
+      requestAnimationFrame(() => {
+        focusSearchInput(selectText)
+      })
+    }, delay)
+  }, [focusSearchInput])
+
+  useEffect(() => {
+    if (showSupplierPopup || showProductPopup || showActionPopup || showExitConfirm) return
+    queueFocusSearchInput(false)
+    const retryTimer = window.setTimeout(() => {
+      queueFocusSearchInput(false)
+    }, 120)
+    return () => window.clearTimeout(retryTimer)
+  }, [propSelectedId, showSupplierPopup, showProductPopup, showActionPopup, showExitConfirm, queueFocusSearchInput])
+
+  useLayoutEffect(() => {
+    queueFocusSearchInput(false)
+  }, [propSelectedId, queueFocusSearchInput])
 
   useEffect(() => {
     if (!propSelectedId && (header.supplier_id || items.length > 0)) {
@@ -237,7 +236,9 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
 
   const handleSaveWithStatus = useCallback(async (status) => {
     if (!header.supplier_id) { 
-      setError('Supplier harus dipilih'); 
+      setToastMessage('Supplier harus dipilih')
+      setToastType('warning')
+      setShowToast(true)
       return 
     }
     if (!header.warehouse_id) { 
@@ -252,7 +253,7 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
     setIsSaving(true)
     setError('')
 
-    const targetStatus = status || header.status || 'DRAFT'
+    const targetStatus = normalizeStatusPoForApi(status || header.status || 'draft')
 
     try {
       if (token) {
@@ -263,8 +264,8 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
           po_date: header.po_date || null,
           expected_date: header.expected_date || null,
           notes: header.notes || '',
-          status_po: targetStatus,
-          status_receive: header.status_receive || 'DRAFT',
+            status_po: targetStatus,
+            status_receive: String(header.status_receive || 'draft').toLowerCase(),
           items: itemsCopy.map(item => ({
             ...(item.id && !String(item.id).startsWith('item-') ? { id: item.id } : {}),
             product_id: item.product_id,
@@ -278,13 +279,17 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
         if (propSelectedId) {
           await updatePurchase(token, propSelectedId, payload)
         } else {
-          await createPurchase(token, payload)
+          const created = await createPurchase(token, payload)
+          const createdId = created?.data?.id || created?.id
+          if (createdId && targetStatus !== 'draft') {
+            await updatePurchaseStatus(token, createdId, targetStatus)
+          }
         }
 
         clearPendingPO()
         onExit()
         if (onSaveSuccess) {
-          const msg = targetStatus === 'APPROVED' ? 'Purchase Order disimpan dan di-approve' : 'Purchase Order berhasil disimpan'
+          const msg = targetStatus === 'approve' ? 'Purchase Order disimpan dan di-approve' : 'Purchase Order berhasil disimpan'
           setTimeout(() => {
             onSaveSuccess(msg, 'success')
           }, 300)
@@ -313,7 +318,7 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
     } finally {
       setIsSaving(false)
     }
-  }, [header, items, token, propSelectedId, onExit, onSaveSuccess, clearPendingPO])
+  }, [header, items, token, propSelectedId, onExit, onSaveSuccess, clearPendingPO, normalizeStatusPoForApi])
 
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -326,7 +331,12 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
           handleDeleteItem(itemToDelete.id, itemToDelete.product_name)
         }
       }
-      else if (e.key === 'Escape') { e.preventDefault(); setShowExitConfirm(true) }
+      else if (e.key === 'Escape') { 
+        e.preventDefault()
+        e.stopPropagation()
+        console.debug('[PurchaseDetail.jsx] ESC pressed - showing exit confirm')
+        setShowExitConfirm(true) 
+      }
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
@@ -472,13 +482,21 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
         setSelectedIndex(prevIndex)
       }
     } else if (e.key === 'Escape') {
-      const wasOpen = showSupplierPopup || showProductPopup || showActionPopup
-      if (showSupplierPopup) setShowSupplierPopup(false)
-      else if (showProductPopup) setShowProductPopup(false)
-      else if (showActionPopup) setShowActionPopup(false)
-      if (wasOpen) {
+      const isPopupOpen = showSupplierPopup || showProductPopup || showActionPopup
+
+      if (isPopupOpen) {
+        e.preventDefault()
+        e.stopPropagation()
+        if (showSupplierPopup) setShowSupplierPopup(false)
+        else if (showProductPopup) setShowProductPopup(false)
+        else if (showActionPopup) setShowActionPopup(false)
         setTimeout(() => focusSearchInput(), 50)
+        return
       }
+
+      e.preventDefault()
+      e.stopPropagation()
+      setShowExitConfirm(true)
     }
   }
 
@@ -617,7 +635,12 @@ return (
               value={search}
               onChange={(e) => handleSearchChange(e.target.value)}
               onKeyDown={handleSearchKeyDown}
+              onBlur={() => {
+                if (showSupplierPopup || showProductPopup || showActionPopup || showExitConfirm) return
+                queueFocusSearchInput(false, 0)
+              }}
               autoComplete="off"
+              autoFocus
             />
           </div>
           <div className="po-action-buttons">
@@ -817,18 +840,15 @@ return (
       )}
 
       {showExitConfirm && (
-        <div className="popup-overlay">
-          <div className="popup action-popup">
-            <div className="popup-header"><h3>KONFIRMASI KELUAR</h3></div>
-            <div style={{ padding: 24 }}>
-              <p>Anda yakin ingin keluar dari halaman ini?</p>
-              <div className="action-buttons">
-                <button className="action-btn action-btn-save" onClick={() => { setShowExitConfirm(false); onExit() }}>YA</button>
-                <button className="action-btn action-btn-cancel" onClick={() => setShowExitConfirm(false)}>TIDAK</button>
-              </div>
-            </div>
-          </div>
-        </div>
+        <DeleteMaster
+          itemName="keluar dari halaman ini"
+          title="Konfirmasi Keluar"
+          confirmText="Ya"
+          cancelText="Tidak"
+          isExit={true}
+          onConfirm={() => { setShowExitConfirm(false); onExit() }}
+          onCancel={() => setShowExitConfirm(false)}
+        />
       )}
     </div>
   )
