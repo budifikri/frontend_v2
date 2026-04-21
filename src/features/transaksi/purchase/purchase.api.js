@@ -399,9 +399,26 @@ export async function updatePurchase(token, id, input) {
 }
 
 export async function updatePurchaseStatus(token, id, status) {
-  const url = `/api/purchases/${encodeURIComponent(id)}/status`
+  const normalizedStatus = String(status || '').toLowerCase()
+  const safeId = encodeURIComponent(id)
+
+  let url = `/api/purchases/${safeId}/status`
+  let method = 'PUT'
+  let body = { status: normalizedStatus }
+
+  if (normalizedStatus === 'approve' || normalizedStatus === 'approved') {
+    url = `/api/purchases/${safeId}/approve`
+    body = undefined
+  } else if (normalizedStatus === 'pending') {
+    url = `/api/purchases/${safeId}/pending`
+    body = undefined
+  }
+
   console.log('[PurchaseAPI] updatePurchaseStatus REQUEST URL:', url)
-  console.log('[PurchaseAPI] updatePurchaseStatus PAYLOAD:', { status })
+  console.log('[PurchaseAPI] updatePurchaseStatus METHOD:', method)
+  if (body) {
+    console.log('[PurchaseAPI] updatePurchaseStatus PAYLOAD:', body)
+  }
 
   if (!token) {
     console.log('[PurchaseAPI] No token - simulating status update')
@@ -409,19 +426,19 @@ export async function updatePurchaseStatus(token, id, status) {
     if (index === -1) {
       throw new Error('Purchase order not found')
     }
-    DUMMY_PURCHASES[index].status = status
+    DUMMY_PURCHASES[index].status = normalizedStatus
     DUMMY_PURCHASES[index].updated_at = new Date().toISOString()
     return {
       success: true,
       data: normalizePurchase(DUMMY_PURCHASES[index]),
-      message: `Purchase order status updated to ${status}`,
+      message: `Purchase order status updated to ${normalizedStatus}`,
     }
   }
 
   const raw = await apiFetch(url, {
-    method: 'POST',
+    method,
     token,
-    body: { status },
+    ...(body ? { body } : {}),
   })
   console.log('[PurchaseAPI] updatePurchaseStatus RESPONSE:', raw)
 

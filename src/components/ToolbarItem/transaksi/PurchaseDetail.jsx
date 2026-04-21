@@ -264,8 +264,8 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
           po_date: header.po_date || null,
           expected_date: header.expected_date || null,
           notes: header.notes || '',
-            status_po: targetStatus,
-            status_receive: String(header.status_receive || 'draft').toLowerCase(),
+          status_po: targetStatus,
+          status_receive: String(header.status_receive || 'draft').toLowerCase(),
           items: itemsCopy.map(item => ({
             ...(item.id && !String(item.id).startsWith('item-') ? { id: item.id } : {}),
             product_id: item.product_id,
@@ -277,7 +277,13 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
         }
 
         if (propSelectedId) {
+          if (targetStatus === 'approve') {
+            payload.status_po = ''
+          }
           await updatePurchase(token, propSelectedId, payload)
+          if (targetStatus === 'approve') {
+            await updatePurchaseStatus(token, propSelectedId, 'approve')
+          }
         } else {
           const created = await createPurchase(token, payload)
           const createdId = created?.data?.id || created?.id
