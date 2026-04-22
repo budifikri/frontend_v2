@@ -60,6 +60,10 @@ function formatCurrency(amount) {
   return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(amount)
 }
 
+function formatNumber(amount) {
+  return new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(Number(amount) || 0)
+}
+
 // Helper functions for date filter
 function getDateRange(filterType, customFrom, customTo) {
   const now = new Date()
@@ -100,6 +104,7 @@ export function Purchase({ onExit }) {
 
   const [data, setData] = useState([])
   const [pagination, setPagination] = useState({ has_more: false, total: 0 })
+  const [summaryCounts, setSummaryCounts] = useState({ totalOrders: 0, draftCount: 0, approvedCount: 0 })
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -171,8 +176,14 @@ export function Purchase({ onExit }) {
       }
       const total = items.length
       const sliced = items.slice(offset, offset + limit)
+      const draft = items.filter(item => String(item.status || '').toLowerCase() === 'draft').length
+      const approved = items.filter(item => {
+        const status = String(item.status || '').toLowerCase()
+        return status === 'approve' || status === 'approved'
+      }).length
       setData(sliced)
       setPagination({ total, has_more: offset + limit < total })
+      setSummaryCounts({ totalOrders: total, draftCount: draft, approvedCount: approved })
       setIsLoading(false)
       return
     }
@@ -193,10 +204,31 @@ export function Purchase({ onExit }) {
         total: Number(nextPagination.total ?? 0),
         has_more: Boolean(nextPagination.has_more),
       })
+
+      const baseSummaryParams = {
+        search: searchKeyword.trim() || undefined,
+        date_from: date_from || undefined,
+        date_to: date_to || undefined,
+        limit: 1,
+        offset: 0,
+      }
+
+      const [totalSummary, draftSummary, approvedSummary] = await Promise.all([
+        listPurchases(token, baseSummaryParams),
+        listPurchases(token, { ...baseSummaryParams, status: 'draft' }),
+        listPurchases(token, { ...baseSummaryParams, status: 'approve' }),
+      ])
+
+      setSummaryCounts({
+        totalOrders: Number(totalSummary?.pagination?.total ?? 0),
+        draftCount: Number(draftSummary?.pagination?.total ?? 0),
+        approvedCount: Number(approvedSummary?.pagination?.total ?? 0),
+      })
     } catch (err) {
       setError(err.message || 'Failed to load purchases')
       setData([])
       setPagination({ total: 0, has_more: false })
+      setSummaryCounts({ totalOrders: 0, draftCount: 0, approvedCount: 0 })
     } finally {
       setIsLoading(false)
     }
@@ -221,6 +253,9 @@ export function Purchase({ onExit }) {
   })
 
   const totalAmount = sortedData.reduce((sum, row) => sum + (Number(row.grand_total) || 0), 0)
+  const totalOrders = summaryCounts.totalOrders
+  const draftCount = summaryCounts.draftCount
+  const approvedCount = summaryCounts.approvedCount
 
   const selectedItem = selectedId == null ? null : data.find((row) => row.id === selectedId) || null
 
@@ -461,19 +496,19 @@ export function Purchase({ onExit }) {
                     onClick={() => handleSelect(row)}
                     onDoubleClick={() => handleViewDetail()}
                   >
-                    <td className="text-right">{offset + index + 1}</td>
-                    <td >{row.po_number || '-'}</td>
-                    <td>{row.supplier_name || '-'}</td>
-                    <td>{row.warehouse_name || '-'}</td>
-                    <td>{formatDate(row.po_date)}</td>
-                    <td className="text-right">{formatCurrency(row.grand_total)}</td>
+                    <td className="text-right purchase-col-no">{offset + index + 1}</td>
+                    <td className="purchase-col-po">{row.po_number || '-'}</td>
+                    <td className="purchase-col-supplier">{row.supplier_name || '-'}</td>
+                    <td className="purchase-col-warehouse">{row.warehouse_name || '-'}</td>
+                    <td className="purchase-col-date">{formatDate(row.po_date)}</td>
+                    <td className="text-right purchase-col-total">{formatCurrency(row.grand_total)}</td>
                     <td className="text-center">
                       <div className="purchase-status-stack">
                         <span className={`purchase-status-pill is-${poStatus.variant}`}>
-                          {poStatus.label}
+                          PO {poStatus.label}
                         </span>
                         <span className={`purchase-status-pill is-${receiveStatus.variant}`}>
-                          {receiveStatus.label}
+                          REC {receiveStatus.label}
                         </span>
                       </div>
                     </td>
@@ -485,9 +520,28 @@ export function Purchase({ onExit }) {
               )}
             </tbody>
           </table>
-          <div className="master-table-sticky-footer">
-            {/* <span>Total Row: {pagination.total}</span>  */}
-            <span>Total: {formatCurrency(totalAmount)}</span>
+          <div className="master-table-sticky-footer purchase-table-summary">
+            <div className="purchase-table-summary-left">
+              <div className="purchase-summary-item">
+                <p>Total Orders</p>
+                <strong>{totalOrders}</strong>
+              </div>
+              <div className="purchase-summary-item is-draft">
+                <p>Draft</p>
+                <strong>{draftCount}</strong>
+              </div>
+              <div className="purchase-summary-item is-approved">
+                <p>Approved</p>
+                <strong>{approvedCount}</strong>
+              </div>
+            </div>
+            <div className="purchase-table-summary-right">
+              <p>Total Purchase Order</p>
+              <div className="purchase-total-value">
+                <span className="purchase-total-currency">Rp</span>
+                <strong>{formatNumber(totalAmount)}</strong>
+              </div>
+            </div>
           </div>
         </div>
       </div>
