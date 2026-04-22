@@ -33,6 +33,8 @@ const DUMMY_PURCHASES = [
   },
 ]
 
+const ALL_RECORDS_SUMMARY_LIMIT = 999999
+
 function getPoStatusMeta(status) {
   const value = String(status || '').toLowerCase()
   if (value === 'approve' || value === 'approved') return { label: 'Approve', variant: 'approve', icon: 'check_circle' }
@@ -105,6 +107,7 @@ export function Purchase({ onExit }) {
   const [data, setData] = useState([])
   const [pagination, setPagination] = useState({ has_more: false, total: 0 })
   const [summaryCounts, setSummaryCounts] = useState({ totalOrders: 0, draftCount: 0, approvedCount: 0 })
+  const [summaryTotalAmount, setSummaryTotalAmount] = useState(0)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -176,6 +179,7 @@ export function Purchase({ onExit }) {
       }
       const total = items.length
       const sliced = items.slice(offset, offset + limit)
+      const grandTotalAll = DUMMY_PURCHASES.reduce((sum, item) => sum + (Number(item.grand_total) || 0), 0)
       const draft = items.filter(item => String(item.status || '').toLowerCase() === 'draft').length
       const approved = items.filter(item => {
         const status = String(item.status || '').toLowerCase()
@@ -184,6 +188,7 @@ export function Purchase({ onExit }) {
       setData(sliced)
       setPagination({ total, has_more: offset + limit < total })
       setSummaryCounts({ totalOrders: total, draftCount: draft, approvedCount: approved })
+      setSummaryTotalAmount(grandTotalAll)
       setIsLoading(false)
       return
     }
@@ -213,10 +218,11 @@ export function Purchase({ onExit }) {
         offset: 0,
       }
 
-      const [totalSummary, draftSummary, approvedSummary] = await Promise.all([
+      const [totalSummary, draftSummary, approvedSummary, allRecordsSummary] = await Promise.all([
         listPurchases(token, baseSummaryParams),
         listPurchases(token, { ...baseSummaryParams, status: 'draft' }),
         listPurchases(token, { ...baseSummaryParams, status: 'approve' }),
+        listPurchases(token, { limit: ALL_RECORDS_SUMMARY_LIMIT, offset: 0 }),
       ])
 
       setSummaryCounts({
@@ -224,11 +230,15 @@ export function Purchase({ onExit }) {
         draftCount: Number(draftSummary?.pagination?.total ?? 0),
         approvedCount: Number(approvedSummary?.pagination?.total ?? 0),
       })
+      setSummaryTotalAmount(
+        (allRecordsSummary?.items || []).reduce((sum, row) => sum + (Number(row.grand_total) || 0), 0),
+      )
     } catch (err) {
       setError(err.message || 'Failed to load purchases')
       setData([])
       setPagination({ total: 0, has_more: false })
       setSummaryCounts({ totalOrders: 0, draftCount: 0, approvedCount: 0 })
+      setSummaryTotalAmount(0)
     } finally {
       setIsLoading(false)
     }
@@ -245,7 +255,7 @@ export function Purchase({ onExit }) {
       fetchData()
     }
     isInitialLoad.current = false
-  }, [offset])
+  }, [offset, limit])
 
   const { sortConfig, sortedData, handleSort } = useMasterTableSort(data, {
     initialKey: 'po_date',
@@ -551,7 +561,7 @@ export function Purchase({ onExit }) {
               <p>Total Purchase Order</p>
               <div className="purchase-total-value">
                 <span className="purchase-total-currency">Rp</span>
-                <strong>{formatNumber(totalAmount)}</strong>
+                <strong>{formatNumber(summaryTotalAmount)}</strong>
               </div>
             </div>
           </div>

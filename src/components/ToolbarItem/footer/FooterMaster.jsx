@@ -124,19 +124,19 @@ export function FooterMaster({
             <span>All Records</span>
           </label>
         )}
-        <span>Total Row: {totalRow}</span>
-        <div className="master-footer-pagination" style={{ visibility: isAllRecords ? 'hidden' : 'visible' }}>
-          <button type="button" className="master-page-btn" title="First Page" onClick={onFirstPage} disabled={!canPrev}>
+   {/*     <span>Total Row: {totalRow}</span>  */}
+        <div className="master-footer-pagination" style={{ opacity: isAllRecords ? 0.5 : 1 }}>
+          <button type="button" className="master-page-btn" title="First Page" onClick={onFirstPage} disabled={isAllRecords || !canPrev}>
             <span className="material-icons-round master-page-icon">first_page</span>
           </button>
-          <button type="button" className="master-page-btn" title="Previous Page" onClick={onPrevPage} disabled={!canPrev}>
+          <button type="button" className="master-page-btn" title="Previous Page" onClick={onPrevPage} disabled={isAllRecords || !canPrev}>
             <span className="material-icons-round master-page-icon">chevron_left</span>
           </button>
           <span className="master-page-info">Page {page} of {totalPages}</span>
-          <button type="button" className="master-page-btn" title="Next Page" onClick={onNextPage} disabled={!canNext}>
+          <button type="button" className="master-page-btn" title="Next Page" onClick={onNextPage} disabled={isAllRecords || !canNext}>
             <span className="material-icons-round master-page-icon">chevron_right</span>
           </button>
-          <button type="button" className="master-page-btn" title="Last Page" onClick={onLastPage} disabled={!canNext}>
+          <button type="button" className="master-page-btn" title="Last Page" onClick={onLastPage} disabled={isAllRecords || !canNext}>
             <span className="material-icons-round master-page-icon">last_page</span>
           </button>
         </div>
