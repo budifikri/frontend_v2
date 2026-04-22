@@ -3746,7 +3746,7 @@ body.has-wallpaper .cash-register {
 }
 
 .purchase-list-table .master-th-header {
-  background: transparent;
+  /* background: transparent; */
   position: static;
   top: auto;
   z-index: auto;
@@ -3920,7 +3920,7 @@ body.has-wallpaper .cash-register {
   justify-content: space-between;
   gap: 16px;
   padding: 16px 18px;
-  background: linear-gradient(180deg, #e9edf2 0%, #dfe5ec 100%);
+  background: linear-gradient(180deg, #e9edf2 0%, silver 100%);
   border-top: 1px solid #c6d0dc;
 }
 
