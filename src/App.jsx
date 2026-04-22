@@ -22,6 +22,7 @@ function AppContent() {
   const [view, setView] = useState('login')
   const [activeMenu, setActiveMenu] = useState(defaultMenu)
   const [activeTool, setActiveTool] = useState(null)
+  const [isToolbarVisible, setIsToolbarVisible] = useState(true)
   const [userId, setUserId] = useState('')
   const [password, setPassword] = useState('')
   const [isLoading, setIsLoading] = useState(false)
@@ -37,6 +38,7 @@ function AppContent() {
     }
 
     setActiveTool(toolKey)
+    setIsToolbarVisible(false)
   }, [])
 
   useEffect(() => {
@@ -46,12 +48,14 @@ function AppContent() {
       } else {
         setView('dashboard')
         setActiveMenu(defaultMenu)
+        setIsToolbarVisible(true)
       }
       return
     }
 
     setView('login')
     setActiveTool(null)
+    setIsToolbarVisible(true)
   }, [auth.token, auth.role])
 
   useEffect(() => {
@@ -119,6 +123,7 @@ function AppContent() {
       } else {
         setView('dashboard')
         setActiveMenu(defaultMenu)
+        setIsToolbarVisible(true)
       }
     } catch (err) {
       setError(err.message || 'Login failed')
@@ -150,8 +155,20 @@ function AppContent() {
   }
 
   const handleMenuChange = (menuKey) => {
+    if (!activeTool) {
+      if (menuKey === activeMenu) return
+      setActiveMenu(menuKey)
+      setIsToolbarVisible(true)
+      return
+    }
+
+    if (menuKey === activeMenu) {
+      setIsToolbarVisible((prev) => !prev)
+      return
+    }
+
     setActiveMenu(menuKey)
-    setActiveTool(null)
+    setIsToolbarVisible(true)
   }
 
   const handleToolClick = (toolKey, label) => {
@@ -164,18 +181,23 @@ function AppContent() {
 
   const handleExit = () => {
     setActiveTool(null)
+    setIsToolbarVisible(true)
   }
 
   if (view === 'dashboard') {
+    const dashboardWindowClassName = !isToolbarVisible
+      ? 'dashboard-window dashboard-window--toolbar-hidden'
+      : 'dashboard-window'
+
     return (
       <main className="dashboard-shell" aria-label="POS Admin Menu Dashboard">
-        <section className="dashboard-window">
+        <section className={dashboardWindowClassName}>
           <DashboardHeader companyName={auth.companyName} />
           <DashboardMenuBar
             activeMenu={activeMenu}
             onMenuChange={handleMenuChange}
           />
-          {!activeTool && (
+          {isToolbarVisible && (
             <DashboardToolbar
               activeMenu={activeMenu}
               onLoginClick={handleLogout}
@@ -183,7 +205,9 @@ function AppContent() {
               shortcutPopupKey={shortcutPopupKey}
             />
           )}
-          <DashboardCanvas activeTool={activeTool} onExit={handleExit} />
+          <div className="dashboard-canvas-panel">
+            <DashboardCanvas activeTool={activeTool} onExit={handleExit} />
+          </div>
         </section>
         <DashboardFooter username={auth.username} role={auth.role} />
       </main>
