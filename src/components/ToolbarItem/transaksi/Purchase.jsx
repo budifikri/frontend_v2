@@ -35,18 +35,18 @@ const DUMMY_PURCHASES = [
 
 function getPoStatusMeta(status) {
   const value = String(status || '').toLowerCase()
-  if (value === 'approve' || value === 'approved') return { label: 'Approve', variant: 'approve' }
-  if (value === 'pending') return { label: 'Pending', variant: 'pending' }
-  if (value === 'reject' || value === 'rejected') return { label: 'Reject', variant: 'reject' }
-  return { label: 'Draft', variant: 'draft' }
+  if (value === 'approve' || value === 'approved') return { label: 'Approve', variant: 'approve', icon: 'check_circle' }
+  if (value === 'pending') return { label: 'Pending', variant: 'pending', icon: 'schedule' }
+  if (value === 'reject' || value === 'rejected') return { label: 'Reject', variant: 'reject', icon: 'cancel' }
+  return { label: 'Draft', variant: 'draft', icon: 'edit_note' }
 }
 
 function getReceiveStatusMeta(status) {
   const value = String(status || '').toLowerCase()
-  if (value === 'receive') return { label: 'Receive', variant: 'receive' }
-  if (value === 'reject' || value === 'rejected') return { label: 'Reject', variant: 'reject' }
-  if (value === 'pending') return { label: 'Pending', variant: 'pending' }
-  return { label: 'Draft', variant: 'draft' }
+  if (value === 'receive') return { label: 'Receive', variant: 'receive', icon: 'check_circle' }
+  if (value === 'reject' || value === 'rejected') return { label: 'Reject', variant: 'reject', icon: 'cancel' }
+  if (value === 'pending') return { label: 'Pending', variant: 'pending', icon: 'schedule' }
+  return { label: 'Draft', variant: 'draft', icon: 'edit_note' }
 }
 
 function formatDate(dateStr) {
@@ -489,6 +489,7 @@ export function Purchase({ onExit }) {
               {sortedData.map((row, index) => {
                 const poStatus = getPoStatusMeta(row.status)
                 const receiveStatus = getReceiveStatusMeta(row.status_receive)
+                const isBothDraft = poStatus.variant === 'draft' && receiveStatus.variant === 'draft'
                 return (
                   <tr
                     key={row.id || index}
@@ -504,12 +505,23 @@ export function Purchase({ onExit }) {
                     <td className="text-right purchase-col-total">{formatCurrency(row.grand_total)}</td>
                     <td className="text-center">
                       <div className="purchase-status-stack">
-                        <span className={`purchase-status-pill is-${poStatus.variant}`}>
-                          PO {poStatus.label}
-                        </span>
-                        <span className={`purchase-status-pill is-${receiveStatus.variant}`}>
-                          REC {receiveStatus.label}
-                        </span>
+                        {isBothDraft ? (
+                          <span className="purchase-status-pill is-draft">
+                            <span className="material-icons-round purchase-status-icon">edit_note</span>
+                            Draft
+                          </span>
+                        ) : (
+                          <>
+                            <span className={`purchase-status-pill is-${poStatus.variant}`}>
+                              <span className="material-icons-round purchase-status-icon">{poStatus.icon}</span>
+                              {poStatus.label}
+                            </span>
+                            <span className={`purchase-status-pill is-${receiveStatus.variant}`}>
+                              <span className="material-icons-round purchase-status-icon">{receiveStatus.icon}</span>
+                              {receiveStatus.label}
+                            </span>
+                          </>
+                        )}
                       </div>
                     </td>
                   </tr>
