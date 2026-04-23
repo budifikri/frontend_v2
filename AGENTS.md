@@ -152,9 +152,16 @@ Prefer existing patterns over new abstractions.
 - Confirm AGENTS guidance is still accurate after your changes.
 
 # DESIGN
-- jika ada permintaan design, selalu buatkan keyframe visual design
+- jika ada permintaan design, selalu buatkan sketsa visual design
+- tambahkan ## Technical Implementation dari visual design
+
+## Risiko & Mitigasi
+- infokan risika dari perubahan dan mitigasinya  
 
 # TODO
 - setiap proses selalu buatkan todo write to code
+
+
 # RESPONSE AI
 - jelaskan dalam bahasa indonesia
+- jangan membuat asumsi jika belum jelas, buat pertanyaan untuk memastikan

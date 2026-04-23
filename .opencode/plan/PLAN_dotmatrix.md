@@ -70,6 +70,179 @@ Selain itu, mode Dot Matrix harus memiliki **preview, layout, dan custom templat
 7. Sesuaikan `openPrintWindow` style untuk output Dot Matrix.
 8. Uji manual skenario utama (lihat checklist).
 
+## Visual Design (Dot Matrix)
+
+### Arah Visual
+- Nuansa Dot Matrix dibuat seperti continuous form: kontras tinggi, monospaced, garis putus halus, tanpa elemen brand dekoratif berlebihan.
+- Thermal tetap modern-clean; Dot Matrix tampil lebih utilitarian agar mudah dibaca saat hasil print impact kurang tajam.
+- Preview panel menampilkan perbedaan jelas antar mode supaya user langsung paham konteks printer aktif.
+
+### Token Visual & Spacing
+- Font Dot Matrix: prioritas `'Courier New', 'Consolas', monospace`.
+- Ukuran teks Dot Matrix: `11px` (58mm) dan `12px` (80mm), line-height `1.35-1.4`.
+- Border Dot Matrix: `1px dotted`/`1px dashed`, hindari rounded card agar terasa seperti kertas struk.
+- Intensitas warna teks fokus hitam/abu tua (`#111827`, `#1f2937`) untuk stabilitas print.
+
+### Keyframe Visual Design (Wajib)
+Tambahkan keyframe ringan khusus area preview agar tidak mengganggu performa:
+
+```css
+@keyframes dotMatrixPreviewEnter {
+  0% {
+    opacity: 0;
+    transform: translateY(6px) scale(0.995);
+    filter: contrast(0.92);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: contrast(1);
+  }
+}
+
+@keyframes tractorFeedSweep {
+  0% {
+    background-position-y: 0;
+  }
+  100% {
+    background-position-y: 14px;
+  }
+}
+```
+
+### Aplikasi Animasi
+- `dotMatrixPreviewEnter` dipakai saat user ganti jenis printer/layout agar transisi preview halus (`180-240ms`, ease-out).
+- `tractorFeedSweep` opsional untuk layer tekstur garis horizontal sangat subtle (`opacity <= 0.08`) pada mode Dot Matrix saja.
+- Animasi dimatikan pada media print dan menghormati `prefers-reduced-motion`.
+
+### Acceptance Visual
+- Perbedaan Thermal vs Dot Matrix terlihat dalam <= 1 detik tanpa membaca teks label.
+- Dot Matrix preview tetap terbaca baik di viewport desktop dan mobile.
+- Tidak ada animasi mengganggu saat membuka popup setting atau saat mengetik custom template.
+
+### Visual Sketsa Design
+
+#### Sketsa Desktop (Popup Setting Nota)
+```text
++--------------------------------------------------------------------------------------+
+| [icon] Setting Nota Jual                                                [x]         |
++-----------------------------------+-----------------------------------------------+
+| Tata Letak                        | Preview Dot Matrix                            |
+| ( ) Default  ( ) Custom           | +-----------------------------------------+   |
+| [Layout DM-A] [Layout DM-B]       | | TOKO MAJU JAYA                          |   |
+|                                   | | Jl. Mawar No 1, Telp: 021-xxxx          |   |
+| Jenis Printer                     | |-----------------------------------------|   |
+| ( ) Thermal                       | | No: INV-001   Tgl: 23/04/2026 10:32     |   |
+| (x) Dot Matrix (hanya Tauri)      | | Kasir: ADMIN                            |   |
+|                                   | |-----------------------------------------|   |
+| Font Cetak                        | | 1x SABUN MANDI                 8.000     |   |
+| [Courier New v]                   | | 2x SHAMPOO                   24.000      |   |
+|                                   | |-----------------------------------------|   |
+| Toggle:                           | | TOTAL                        32.000      |   |
+| [x] Show footer [x] Auto print    | | BAYAR                        50.000      |   |
+| [ ] Calibration mode              | | KEMBALI                      18.000      |   |
+|                                   | |-----------------------------------------|   |
+| Footer text                       | | Terima kasih sudah berbelanja            |   |
+| [..............................]  | +-----------------------------------------+   |
++-----------------------------------+-----------------------------------------------+
+| [Reset Default]                                           [Simpan]                 |
++--------------------------------------------------------------------------------------+
+```
+
+#### Sketsa Mobile (Stacked Layout)
+```text
++--------------------------------------+
+| Setting Nota Jual                [x] |
++--------------------------------------+
+| Jenis Printer                        |
+| ( ) Thermal  (x) Dot Matrix          |
+| Font: [Courier New v]                |
+| Layout: [DM-A] [DM-B]                |
+| Toggle: Footer / Auto Print / Calib  |
++--------------------------------------+
+| Preview                              |
+| +----------------------------------+ |
+| | TOKO MAJU JAYA                   | |
+| | ....(preview dot matrix)....     | |
+| +----------------------------------+ |
++--------------------------------------+
+| [Reset]                     [Simpan] |
++--------------------------------------+
+```
+
+#### Sketsa Custom Template (Dot Matrix)
+```text
++--------------------------------------------------------------------------------------+
+| HTML Template                                | Data Token                            |
+| [Apply] [Code/Hide Code] [Reset]             | {{company_name}}                     |
+|----------------------------------------------| {{sale_number}}                      |
+| <div class="tpl-note">                       | {{items_rows}}                       |
+|   <div>{{company_name}}</div>                | {{total_amount}}                     |
+|   <div>{{sale_number}}</div>                 | {{garis}} {{ganti_baris}}            |
+|   {{items_rows}}                             |                                      |
+|   <div>{{total_amount}}</div>                |                                      |
+| </div>                                       |                                      |
++--------------------------------------------------------------------------------------+
+```
+
+#### Catatan Sketsa
+- Sketsa ini menjadi acuan struktur visual saat implementasi, bukan pixel-perfect final.
+- Style final tetap mengikuti prinsip Dot Matrix: monospaced, kontras tinggi, garis sederhana.
+- Untuk browser non-Tauri, blok opsi Dot Matrix pada sketsa dianggap hidden.
+
+### State Diagram: Switch Thermal <-> Dot Matrix
+
+```mermaid
+stateDiagram-v2
+  [*] --> LoadSettings
+
+  state LoadSettings {
+    [*] --> ReadLocalStorage
+    ReadLocalStorage --> NormalizeSettings
+  }
+
+  LoadSettings --> RuntimeCheck
+
+  RuntimeCheck --> BrowserMode: window.__TAURI__ = false
+  RuntimeCheck --> TauriMode: window.__TAURI__ = true
+
+  state BrowserMode {
+    [*] --> ThermalLocked
+    ThermalLocked: printer_type efektif = thermal
+    ThermalLocked: opsi Dot Matrix disembunyikan
+  }
+
+  state TauriMode {
+    [*] --> ThermalActive
+
+    ThermalActive --> DotMatrixActive: user pilih Dot Matrix
+    DotMatrixActive --> ThermalActive: user pilih Thermal
+
+    state ThermalActive {
+      [*] --> ThermalTemplate
+      ThermalTemplate: layout/template = set Thermal
+    }
+
+    state DotMatrixActive {
+      [*] --> DotMatrixTemplate
+      DotMatrixTemplate: layout/template = set Dot Matrix
+    }
+  }
+
+  ThermalLocked --> SaveSettings: user klik Simpan
+  ThermalActive --> SaveSettings: user klik Simpan
+  DotMatrixActive --> SaveSettings: user klik Simpan
+
+  SaveSettings --> ReRenderPreview
+  ReRenderPreview --> [*]
+```
+
+#### Rules Diagram
+- Jika runtime browser, state selalu terkunci ke `ThermalLocked` walaupun localStorage lama berisi `dot_matrix`.
+- Jika runtime Tauri, user bebas transisi dua arah antara `ThermalActive` dan `DotMatrixActive`.
+- Setiap transisi jenis printer memicu sinkronisasi `layout_type`, `template_mode`, dan default custom template milik printer aktif.
+- Persistensi dilakukan saat `Simpan`; preview selalu re-render dari state aktif setelah save.
+
 ## Checklist Uji Manual
 
 ### Browser (non-Tauri)
