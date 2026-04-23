@@ -165,6 +165,7 @@ export function Product({ onExit }) {
   const [selectedId, setSelectedId] = useState(null)
   const [currentEditIndex, setCurrentEditIndex] = useState(null)
   const [showForm, setShowForm] = useState(false)
+  const [isNewMode, setIsNewMode] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [showExitConfirm, setShowExitConfirm] = useState(false)
   const [showImportConfirm, setShowImportConfirm] = useState(false)
@@ -493,29 +494,25 @@ export function Product({ onExit }) {
 
     try {
       if (token) {
-        if (selectedItem) {
+        if (isNewMode) {
+          await createProduct(token, payload)
+          await fetchData()
+        } else {
           await updateProduct(token, selectedItem.id, payload)
-          // Optimistically update local data with the new values
           setData((prev) => prev.map((row) => {
             if (row.id === selectedItem.id) {
               return { 
                 ...row, 
                 ...payload,
-                // Preserve nested objects
                 category: row.category || { id: payload.category_id || '', name: '' },
                 unit: row.unit || { id: payload.unit_id || '', name: '' },
               }
             }
             return row
           }))
-        } else {
-          await createProduct(token, payload)
-          // For new items, refresh to get the actual ID from server
-          await fetchData()
         }
         
-        // Handle stock adjustment if on adjustStock tab
-        if (activeTab === 'adjustStock' && selectedItem) {
+        if (activeTab === 'adjustStock' && !isNewMode && selectedItem) {
           if (!adjustForm.warehouse_id) {
             setError('Warehouse is required for stock adjustment')
             setIsSaving(false)
@@ -616,6 +613,7 @@ export function Product({ onExit }) {
     setForm(DEFAULT_FORM)
     setActiveTab('general')
     setPriceTierData(DEFAULT_PRICE_TIER)
+    setIsNewMode(true)
     setShowForm(true)
   }
 
@@ -644,6 +642,7 @@ export function Product({ onExit }) {
       loadPriceTierData(target.id)
     }
 
+    setIsNewMode(false)
     setShowForm(true)
   }
 
@@ -805,6 +804,7 @@ export function Product({ onExit }) {
     setActiveTab('general')
     setPriceTierData(DEFAULT_PRICE_TIER)
     setAdjustForm({ warehouse_id: '', reason: '', system_stock: 0, physical_stock: 0 })
+    setIsNewMode(false)
   }
 
   function handlePrint() {
@@ -1102,7 +1102,7 @@ export function Product({ onExit }) {
    
           <div className="master-form-header">
             <span className="material-icons-round master-form-icon">inventory_2</span>
-            <h2 className="master-form-title">{selectedItem ? 'Ubah Data Product' : 'Isi Data Product'}</h2>
+            <h2 className="master-form-title">{isNewMode ? 'Isi Data Product' : 'Ubah Data Product'}</h2>
             <div className="product-form-tabs">
               <button
                 type="button"

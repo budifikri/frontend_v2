@@ -66,6 +66,7 @@ export function Category({ onExit }) {
   const [selectedId, setSelectedId] = useState(null)
   const [currentEditIndex, setCurrentEditIndex] = useState(null)
   const [showForm, setShowForm] = useState(false)
+  const [isNewMode, setIsNewMode] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [showExitConfirm, setShowExitConfirm] = useState(false)
   const [showImportConfirm, setShowImportConfirm] = useState(false)
@@ -206,14 +207,14 @@ export function Category({ onExit }) {
       }
 
       if (token) {
-        if (selectedItem) await updateCategory(token, selectedItem.id, payload)
-        else await createCategory(token, payload)
+        if (isNewMode) await createCategory(token, payload)
+        else await updateCategory(token, selectedItem.id, payload)
         await fetchData()
       } else {
-        if (selectedItem) {
-          setData((prev) => prev.map((row) => (row.id === selectedItem.id ? { ...row, ...payload } : row)))
-        } else {
+        if (isNewMode) {
           setData((prev) => [{ id: form.code, ...payload, is_active: true }, ...prev])
+        } else {
+          setData((prev) => prev.map((row) => (row.id === selectedItem.id ? { ...row, ...payload } : row)))
         }
       }
 
@@ -234,6 +235,7 @@ export function Category({ onExit }) {
     setSelectedId(null)
     setCurrentEditIndex(null)
     setForm(DEFAULT_FORM)
+    setIsNewMode(true)
     setShowForm(true)
   }
 
@@ -249,6 +251,7 @@ export function Category({ onExit }) {
       description: target.description || '',
       parent_id: target.parent_id || '',
     })
+    setIsNewMode(false)
     setShowForm(true)
   }
 
@@ -486,6 +489,7 @@ export function Category({ onExit }) {
     setSelectedId(null)
     setCurrentEditIndex(null)
     setForm(DEFAULT_FORM)
+    setIsNewMode(false)
   }
 
   return (
@@ -566,7 +570,7 @@ export function Category({ onExit }) {
    
           <div className="master-form-header">
             <span className="material-icons-round master-form-icon">category</span>
-            <h2 className="master-form-title">{selectedItem ? 'Ubah Data Kategori' : 'Isi Data Kategori'}</h2>
+            <h2 className="master-form-title">{isNewMode ? 'Isi Data Kategori' : 'Ubah Data Kategori'}</h2>
           </div>
           <div className="master-form-grid">
             <div className="master-form-group">

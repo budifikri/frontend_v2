@@ -65,6 +65,7 @@ export function Satuan({ onExit }) {
   const [selectedId, setSelectedId] = useState(null)
   const [currentEditIndex, setCurrentEditIndex] = useState(null)
   const [showForm, setShowForm] = useState(false)
+  const [isNewMode, setIsNewMode] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [showExitConfirm, setShowExitConfirm] = useState(false)
   const [showImportConfirm, setShowImportConfirm] = useState(false)
@@ -203,18 +204,11 @@ export function Satuan({ onExit }) {
       }
 
       if (token) {
-        if (selectedItem) {
-          await updateUnit(token, selectedItem.id, payload)
-        } else {
-          await createUnit(token, payload)
-        }
+        if (isNewMode) await createUnit(token, payload)
+        else await updateUnit(token, selectedItem.id, payload)
         await fetchData()
       } else {
-        if (selectedItem) {
-          setData((prev) => prev.map((row) => (
-            row.id === selectedItem.id ? { ...row, ...payload } : row
-          )))
-        } else {
+        if (isNewMode) {
           setData((prev) => [
             ...prev,
             {
@@ -223,6 +217,10 @@ export function Satuan({ onExit }) {
               is_active: true,
             },
           ])
+        } else {
+          setData((prev) => prev.map((row) => (
+            row.id === selectedItem.id ? { ...row, ...payload } : row
+          )))
         }
       }
 
@@ -243,6 +241,7 @@ export function Satuan({ onExit }) {
     setSelectedId(null)
     setCurrentEditIndex(null)
     setForm(DEFAULT_FORM)
+    setIsNewMode(true)
     setShowForm(true)
   }
 
@@ -257,6 +256,7 @@ export function Satuan({ onExit }) {
       name: target.name || '',
       description: target.description || '',
     })
+    setIsNewMode(false)
     setShowForm(true)
   }
 
@@ -341,6 +341,7 @@ export function Satuan({ onExit }) {
     setSelectedId(null)
     setCurrentEditIndex(null)
     setForm(DEFAULT_FORM)
+    setIsNewMode(false)
   }
 
   function handlePrint() {
@@ -572,7 +573,7 @@ export function Satuan({ onExit }) {
   
           <div className="master-form-header">
             <span className="material-icons-round master-form-icon">straighten</span>
-            <h2 className="master-form-title">{selectedItem ? 'Ubah Data Satuan' : 'Isi Data Satuan'}</h2>
+            <h2 className="master-form-title">{isNewMode ? 'Isi Data Satuan' : 'Ubah Data Satuan'}</h2>
           </div>
           <div className="master-form-grid">
             <div className="master-form-group">

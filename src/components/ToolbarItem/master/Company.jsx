@@ -101,6 +101,7 @@ export function Company({ onExit }) {
 
   const [selectedId, setSelectedId] = useState(null)
   const [showForm, setShowForm] = useState(false)
+  const [isNewMode, setIsNewMode] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [showExitConfirm, setShowExitConfirm] = useState(false)
   const [showImportConfirm, setShowImportConfirm] = useState(false)
@@ -249,21 +250,21 @@ export function Company({ onExit }) {
 
     try {
       if (token) {
-        if (selectedItem) await updateCompany(token, selectedItem.id, payload)
-        else await createCompany(token, payload)
+        if (isNewMode) await createCompany(token, payload)
+        else await updateCompany(token, selectedItem.id, payload)
         await fetchData()
       } else {
-        if (selectedItem) {
-          setData((prev) => prev.map((row) => (
-            row.id === selectedItem.id ? { ...row, ...payload } : row
-          )))
-        } else {
+        if (isNewMode) {
           const next = {
             id: `CMP${Date.now()}`,
             ...payload,
           }
           setData((prev) => [next, ...prev])
           setPagination((prev) => ({ ...prev, total: prev.total + 1 }))
+        } else {
+          setData((prev) => prev.map((row) => (
+            row.id === selectedItem.id ? { ...row, ...payload } : row
+          )))
         }
       }
 
@@ -284,6 +285,7 @@ export function Company({ onExit }) {
   function handleNew() {
     setSelectedId(null)
     setForm(DEFAULT_FORM)
+    setIsNewMode(true)
     setShowForm(true)
   }
 
@@ -292,6 +294,7 @@ export function Company({ onExit }) {
     if (!target) return
     setSelectedId(target.id)
     setForm(mapFormFromItem(target))
+    setIsNewMode(false)
     setShowForm(true)
   }
 
@@ -457,6 +460,7 @@ export function Company({ onExit }) {
   function handleCancelForm() {
     setShowForm(false)
     setForm(DEFAULT_FORM)
+    setIsNewMode(false)
   }
 
   return (
@@ -537,7 +541,7 @@ export function Company({ onExit }) {
         <div className="master-form-card">
           <div className="master-form-header">
             <span className="material-icons-round master-form-icon">apartment</span>
-            <h2 className="master-form-title">{selectedItem ? 'Ubah Data Company' : 'Isi Data Company'}</h2>
+            <h2 className="master-form-title">{isNewMode ? 'Isi Data Company' : 'Ubah Data Company'}</h2>
           </div>
           <div className="master-form-grid">
             <div className="master-form-group">

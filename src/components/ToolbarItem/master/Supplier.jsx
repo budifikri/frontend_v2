@@ -123,6 +123,7 @@ export function Supplier({ onExit }) {
   const [selectedId, setSelectedId] = useState(null)
   const [currentEditIndex, setCurrentEditIndex] = useState(null)
   const [showForm, setShowForm] = useState(false)
+  const [isNewMode, setIsNewMode] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [showExitConfirm, setShowExitConfirm] = useState(false)
   const [showImportConfirm, setShowImportConfirm] = useState(false)
@@ -293,18 +294,11 @@ export function Supplier({ onExit }) {
 
     try {
       if (token) {
-        if (selectedItem) {
-          await updateSupplier(token, selectedItem.id, payload)
-        } else {
-          await createSupplier(token, payload)
-        }
+        if (isNewMode) await createSupplier(token, payload)
+        else await updateSupplier(token, selectedItem.id, payload)
         await fetchData()
       } else {
-        if (selectedItem) {
-          setData((prev) => prev.map((row) => (
-            row.id === selectedItem.id ? { ...row, ...payload } : row
-          )))
-        } else {
+        if (isNewMode) {
           const newItem = {
             id: `SUP${Date.now()}`,
             code: `SUP${Date.now().toString().slice(-4)}`,
@@ -312,6 +306,10 @@ export function Supplier({ onExit }) {
             is_active: true,
           }
           setData((prev) => [newItem, ...prev])
+        } else {
+          setData((prev) => prev.map((row) => (
+            row.id === selectedItem.id ? { ...row, ...payload } : row
+          )))
         }
       }
 
@@ -332,6 +330,7 @@ export function Supplier({ onExit }) {
     setSelectedId(null)
     setCurrentEditIndex(null)
     setForm(DEFAULT_FORM)
+    setIsNewMode(true)
     setShowForm(true)
   }
 
@@ -353,6 +352,7 @@ export function Supplier({ onExit }) {
       credit_limit: Number(target.credit_limit || 0),
       notes: target.notes || '',
     })
+    setIsNewMode(false)
     setShowForm(true)
   }
 
@@ -451,6 +451,7 @@ export function Supplier({ onExit }) {
     setSelectedId(null)
     setCurrentEditIndex(null)
     setForm(DEFAULT_FORM)
+    setIsNewMode(false)
   }
 
   function handlePrint() {
@@ -696,7 +697,7 @@ export function Supplier({ onExit }) {
    
           <div className="master-form-header">
             <span className="material-icons-round master-form-icon">local_shipping</span>
-            <h2 className="master-form-title">{selectedItem ? 'Ubah Data Supplier' : 'Isi Data Supplier'}</h2>
+            <h2 className="master-form-title">{isNewMode ? 'Isi Data Supplier' : 'Ubah Data Supplier'}</h2>
           </div>
           <div className="master-form-grid">
             <div className="master-form-group">

@@ -127,6 +127,7 @@ export function Customer({ onExit }) {
   const [selectedId, setSelectedId] = useState(null)
   const [currentEditIndex, setCurrentEditIndex] = useState(null)
   const [showForm, setShowForm] = useState(false)
+  const [isNewMode, setIsNewMode] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [showExitConfirm, setShowExitConfirm] = useState(false)
   const [showImportConfirm, setShowImportConfirm] = useState(false)
@@ -298,18 +299,11 @@ export function Customer({ onExit }) {
 
     try {
       if (token) {
-        if (selectedItem) {
-          await updateCustomer(token, selectedItem.id, payload)
-        } else {
-          await createCustomer(token, payload)
-        }
+        if (isNewMode) await createCustomer(token, payload)
+        else await updateCustomer(token, selectedItem.id, payload)
         await fetchData()
       } else {
-        if (selectedItem) {
-          setData((prev) => prev.map((row) => (
-            row.id === selectedItem.id ? { ...row, ...payload } : row
-          )))
-        } else {
+        if (isNewMode) {
           const newItem = {
             id: `CUST${Date.now()}`,
             customer_code: `CUST${Date.now().toString().slice(-4)}`,
@@ -317,6 +311,10 @@ export function Customer({ onExit }) {
             is_active: true,
           }
           setData((prev) => [newItem, ...prev])
+        } else {
+          setData((prev) => prev.map((row) => (
+            row.id === selectedItem.id ? { ...row, ...payload } : row
+          )))
         }
       }
 
@@ -337,6 +335,7 @@ export function Customer({ onExit }) {
     setSelectedId(null)
     setCurrentEditIndex(null)
     setForm(DEFAULT_FORM)
+    setIsNewMode(true)
     setShowForm(true)
   }
 
@@ -359,6 +358,7 @@ export function Customer({ onExit }) {
       bank_account_name: target.bank_account_name || '',
       bank_branch: target.bank_branch || '',
     })
+    setIsNewMode(false)
     setShowForm(true)
   }
 
@@ -459,6 +459,7 @@ export function Customer({ onExit }) {
     setSelectedId(null)
     setCurrentEditIndex(null)
     setForm(DEFAULT_FORM)
+    setIsNewMode(false)
   }
 
   function handlePrint() {
@@ -703,7 +704,7 @@ export function Customer({ onExit }) {
     
           <div className="master-form-header">
             <span className="material-icons-round master-form-icon">groups</span>
-            <h2 className="master-form-title">{selectedItem ? 'Ubah Data Customer' : 'Isi Data Customer'}</h2>
+            <h2 className="master-form-title">{isNewMode ? 'Isi Data Customer' : 'Ubah Data Customer'}</h2>
           </div>
           <div className="master-form-grid">
             <div className="master-form-group">

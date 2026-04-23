@@ -62,6 +62,7 @@ export function Warehouse({ onExit }) {
   const [selectedId, setSelectedId] = useState(null)
   const [currentEditIndex, setCurrentEditIndex] = useState(null)
   const [showForm, setShowForm] = useState(false)
+  const [isNewMode, setIsNewMode] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [showExitConfirm, setShowExitConfirm] = useState(false)
   const [showImportConfirm, setShowImportConfirm] = useState(false)
@@ -234,7 +235,6 @@ export function Warehouse({ onExit }) {
   }, [showForm, showDeleteConfirm, selectedId, data, searchKeyword, handlePrevRecord, handleNextRecord])
 
   const selectedItem = selectedId == null ? null : data.find((item) => item.id === selectedId) || null
-  const isEditing = selectedItem != null
 
   const handleSave = async () => {
     if (!form.code || !form.name || !form.type) return
@@ -242,19 +242,11 @@ export function Warehouse({ onExit }) {
     setIsSaving(true)
     try {
       if (token) {
-        if (selectedItem) {
-          await updateWarehouse(token, selectedItem.id, form)
-        } else {
-          await createWarehouse(token, form)
-        }
+        if (isNewMode) await createWarehouse(token, form)
+        else await updateWarehouse(token, selectedItem.id, form)
         await fetchData()
       } else {
-        if (selectedItem) {
-          const newData = data.map(row => 
-            row.id === selectedItem.id ? { ...row, ...form } : row
-          )
-          setData(newData)
-        } else {
+        if (isNewMode) {
           const newItem = {
             id: form.code,
             code: form.code,
@@ -266,6 +258,11 @@ export function Warehouse({ onExit }) {
             is_active: true,
           }
           setData([...data, newItem])
+        } else {
+          const newData = data.map(row => 
+            row.id === selectedItem.id ? { ...row, ...form } : row
+          )
+          setData(newData)
         }
       }
       setToastMessage('Data tersimpan')
@@ -313,6 +310,7 @@ export function Warehouse({ onExit }) {
     setSelectedId(null)
     setCurrentEditIndex(null)
     setForm(DEFAULT_FORM)
+    setIsNewMode(true)
     setShowForm(true)
   }
 
@@ -330,6 +328,7 @@ export function Warehouse({ onExit }) {
       city: target.city || '',
       phone: target.phone || '',
     })
+    setIsNewMode(false)
     setShowForm(true)
   }
 
@@ -500,6 +499,7 @@ export function Warehouse({ onExit }) {
     setSelectedId(null)
     setCurrentEditIndex(null)
     setForm(DEFAULT_FORM)
+    setIsNewMode(false)
   }
 
   const handleExitClick = () => {
@@ -604,7 +604,7 @@ export function Warehouse({ onExit }) {
      
           <div className="master-form-header">
             <span className="material-icons-round master-form-icon">store</span>
-            <h2 className="master-form-title">{isEditing ? 'Ubah Data Warehouse' : 'Isi Data Warehouse'}</h2>
+            <h2 className="master-form-title">{isNewMode ? 'Isi Data Warehouse' : 'Ubah Data Warehouse'}</h2>
           </div>
           <div className="master-form-grid">
             <div className="master-form-group">
