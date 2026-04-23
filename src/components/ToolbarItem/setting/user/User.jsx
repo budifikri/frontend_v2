@@ -8,6 +8,7 @@ import { MasterTableHeader } from '../../table/MasterTableHeader'
 import { MasterStatusToggle } from '../../table/MasterStatusToggle'
 import { useMasterTableSort } from '../../../../hooks/useMasterTableSort'
 import { useMasterPagination } from '../../../../hooks/useMasterPagination'
+import { Toast } from '../../../../components/Toast'
 
 const DEFAULT_FORM = {
   username: '',
@@ -95,12 +96,15 @@ export function User({ onExit }) {
 
   const [selectedId, setSelectedId] = useState(null)
   const [showForm, setShowForm] = useState(false)
+  const [isNewMode, setIsNewMode] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [showExitConfirm, setShowExitConfirm] = useState(false)
   const [showPasswordMismatchPopup, setShowPasswordMismatchPopup] = useState(false)
   const [showChangePassword, setShowChangePassword] = useState(false)
   const [togglingId, setTogglingId] = useState(null)
   const [formKey, setFormKey] = useState(0)
+  const [showToast, setShowToast] = useState(false)
+  const [toastMessage, setToastMessage] = useState('')
 
   const [searchKeyword, setSearchKeyword] = useState('')
   const [isActiveFilter, setIsActiveFilter] = useState('active')
@@ -175,12 +179,12 @@ export function User({ onExit }) {
     fetchData()
   }, [fetchData])
 
-  useEffect(() => {
-    if (showForm && !selectedItem) {
-      setForm(DEFAULT_FORM)
-      setShowChangePassword(true)
-    }
-  }, [showForm, selectedItem])
+  // useEffect(() => {
+  //   if (showForm && isNewMode) {
+  //     setForm(DEFAULT_FORM)
+  //     setShowChangePassword(true)
+  //   }
+  // }, [showForm, isNewMode])
 
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -235,10 +239,11 @@ export function User({ onExit }) {
   }
 
   function handleNew() {
+    setSelectedId(null)
     setFormKey((k) => k + 1)
     setForm(DEFAULT_FORM)
     setShowChangePassword(true)
-    setSelectedId(null)
+    setIsNewMode(true)
     setShowForm(true)
   }
 
@@ -249,6 +254,7 @@ export function User({ onExit }) {
     setSelectedId(target.id)
     setForm(mapFormFromItem(target))
     setShowChangePassword(false)
+    setIsNewMode(false)
     setShowForm(true)
   }
 
@@ -281,15 +287,24 @@ export function User({ onExit }) {
 
   async function handleSave() {
     if (!form.username || form.username.trim().length < 3) {
-      setError('Username minimal 3 karakter')
+      setToastMessage('Username minimal 3 karakter')
+      setShowToast(true)
       return
     }
     if (!form.full_name || form.full_name.trim().length < 2) {
-      setError('Nama lengkap minimal 2 karakter')
+      setToastMessage('Nama lengkap minimal 2 karakter')
+      setShowToast(true)
       return
     }
     if (!form.email || !form.email.trim()) {
-      setError('Email wajib diisi')
+      setToastMessage('Email wajib diisi')
+      setShowToast(true)
+      return
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(form.email.trim())) {
+      setToastMessage('Format email tidak valid')
+      setShowToast(true)
       return
     }
 
@@ -298,7 +313,8 @@ export function User({ onExit }) {
     const confirmPasswordValue = shouldValidatePassword ? form.confirm_password.trim() : ''
 
     if (!selectedItem && (!passwordValue || passwordValue.length < 6)) {
-      setError('Password minimal 6 karakter')
+      setToastMessage('Password minimal 6 karakter')
+      setShowToast(true)
       return
     }
 
@@ -329,29 +345,31 @@ export function User({ onExit }) {
 
     try {
       if (token) {
-        if (selectedItem) {
-          console.log('[User] updateUser - calling API')
-          await updateUser(token, selectedItem.id, payload)
-        } else {
+        if (isNewMode) {
           console.log('[User] createUser - calling API')
           await createUser(token, payload)
+        } else {
+          console.log('[User] updateUser - calling API')
+          await updateUser(token, selectedItem.id, payload)
         }
         await fetchData()
-      } else if (selectedItem) {
-        setData((prev) => prev.map((row) => (
-          row.id === selectedItem.id
-            ? {
-              ...row,
-              ...payload,
-            }
-            : row
-        )))
       } else {
-        const newItem = {
-          id: `USR${Date.now()}`,
-          ...payload,
+        if (isNewMode) {
+          const newItem = {
+            id: `USR${Date.now()}`,
+            ...payload,
+          }
+          setData((prev) => [newItem, ...prev])
+        } else {
+          setData((prev) => prev.map((row) => (
+            row.id === selectedItem.id
+              ? {
+                  ...row,
+                  ...payload,
+                }
+              : row
+          )))
         }
-        setData((prev) => [newItem, ...prev])
       }
 
       setShowForm(false)
@@ -390,6 +408,7 @@ export function User({ onExit }) {
     setShowForm(false)
     setForm(DEFAULT_FORM)
     setShowChangePassword(false)
+    setIsNewMode(false)
   }
 
   function handlePrint() {
@@ -463,7 +482,7 @@ export function User({ onExit }) {
         <div className="master-form-card" key={selectedItem ? `edit-${selectedItem.id}` : 'new-user'}>
           <div className="master-form-header">
             <span className="material-icons-round master-form-icon">person</span>
-            <h2 className="master-form-title">{selectedItem ? 'Ubah Data User' : 'Isi Data User'}</h2>
+            <h2 className="master-form-title">{isNewMode ? 'Isi Data User' : 'Ubah Data User'}</h2>
           </div>
           <div className="master-form-grid" key={`form-grid-${formKey}`}>
             <div className="master-form-group">
@@ -542,7 +561,7 @@ export function User({ onExit }) {
 
             <FooterFormMaster
               onSave={handleSave}
-              onCancel={handleCancelForm}
+              onClose={handleCancelForm}
               isSaving={isSaving}
               leftButtons={
                 selectedItem && (
@@ -624,6 +643,8 @@ export function User({ onExit }) {
           onCancel={() => setShowPasswordMismatchPopup(false)}
         />
       )}
+
+      {showToast && <Toast message={toastMessage} type="error" onClose={() => setShowToast(false)} />}
     </div>
   )
 }
