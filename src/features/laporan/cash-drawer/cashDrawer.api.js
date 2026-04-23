@@ -5,6 +5,14 @@ function toNumber(value, fallback = 0) {
   return Number.isFinite(parsed) ? parsed : fallback
 }
 
+function addOneDay(dateValue) {
+  if (!dateValue) return ''
+  const date = new Date(dateValue)
+  if (Number.isNaN(date.getTime())) return dateValue
+  date.setDate(date.getDate() + 1)
+  return date.toISOString().slice(0, 10)
+}
+
 function normalizeCashDrawer(raw, index) {
   const isValidId = raw?.id && raw?.id !== '00000000-0000-0000-0000-000000000000'
   return {
@@ -104,10 +112,11 @@ export async function getCashDrawers(token, params = {}) {
   const qs = new URLSearchParams()
   const dateFrom = params.date_from?.trim?.()
   const dateTo = params.date_to?.trim?.()
+  const dateToForApi = addOneDay(dateTo)
   console.log('[LapCashDrawer API] getCashDrawers - date_from:', dateFrom)
   console.log('[LapCashDrawer API] getCashDrawers - date_to:', dateTo)
   if (dateFrom) qs.set('date_from', dateFrom)
-  if (dateTo) qs.set('date_to', dateTo)
+  if (dateToForApi) qs.set('date_to', dateToForApi)
   if (params.status) qs.set('status', String(params.status).toUpperCase())
   if (params.limit !== undefined) qs.set('limit', String(params.limit))
   if (params.offset !== undefined) qs.set('offset', String(params.offset))
