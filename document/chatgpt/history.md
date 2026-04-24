@@ -4,8 +4,8 @@ current  :griyailmu.diksisenja@gmail.com :80%  remaining Resets Apr 30, 2026 11:
 
 
 list email :
-adm.tirtamas.purwokerto@gmail.com : :100%  remaining 
-it.azkamulia@gmail.com : reset on Apr 29, 2026 8:48 AM.
 griyailmu.diksisenja2@gmail.com :100%  remaining 
 mbffikri@gmail.com :100%  remaining
+adm.tirtamas.purwokerto@gmail.com : :100%  remaining 
+it.azkamulia@gmail.com : reset on Apr 29, 2026 8:48 AM.
 fikriawan2007@gmail.com : 2 % remaining Resets Apr 29, 2026 10:11 AM

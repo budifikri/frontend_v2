@@ -3904,6 +3904,11 @@ body.has-wallpaper .cash-register {
   color: #15803d;
 }
 
+.purchase-status-pill.is-void {
+  background-color: #fee2e2;
+  color: #b91c1c;
+}
+
 .purchase-status-pill.is-pending {
   background-color: #fef3c7;
   color: #b45309;

@@ -43,6 +43,7 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
   })
 
   const [items, setItems] = useState([])
+  const isLocked = ['approved', 'approve', 'void', 'voided'].includes(String(header.status || '').toLowerCase())
   const isApproved = ['approved', 'approve'].includes(String(header.status || '').toLowerCase())
   const isCanVoid = isApproved && String(header.status_receive || '').toLowerCase() !== 'receive'
 
@@ -242,8 +243,8 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
   }, [items])
 
   const handleSaveWithStatus = useCallback(async (status) => {
-    if (isApproved) {
-      setToastMessage('Purchase Order approved tidak bisa diubah')
+    if (isLocked) {
+      setToastMessage('Purchase Order sudah terkunci dan tidak bisa diubah')
       setToastType('warning')
       setShowToast(true)
       return
@@ -337,7 +338,7 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
     } finally {
       setIsSaving(false)
     }
-  }, [header, items, token, propSelectedId, onExit, onSaveSuccess, clearPendingPO, normalizeStatusPoForApi, isApproved])
+  }, [header, items, token, propSelectedId, onExit, onSaveSuccess, clearPendingPO, normalizeStatusPoForApi, isLocked])
 
   const handleVoidPurchase = useCallback(async () => {
     if (!isCanVoid) {
@@ -375,7 +376,7 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (showExitConfirm || showSupplierPopup || showProductPopup || showActionPopup || showDeleteConfirm || showVoidConfirm) return
-      if (isApproved) return
+      if (isLocked) return
       if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); handleSaveWithStatus() }
       else if (e.key === 'Delete' && items.length > 0 && selectedIndex >= 0) { 
         e.preventDefault()
@@ -394,15 +395,15 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [showExitConfirm, showSupplierPopup, showProductPopup, showActionPopup, showDeleteConfirm, showVoidConfirm, handleSaveWithStatus, items, selectedIndex, isApproved])
+  }, [showExitConfirm, showSupplierPopup, showProductPopup, showActionPopup, showDeleteConfirm, showVoidConfirm, handleSaveWithStatus, items, selectedIndex, isLocked])
 
   const handleSearchChange = (value) => {
-    if (isApproved) return
+    if (isLocked) return
     setSearch(value)
   }
 
   const handleSearchKeyDown = async (e) => {
-    if (isApproved) {
+    if (isLocked) {
       e.preventDefault()
       return
     }
@@ -560,7 +561,7 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
   }
 
   const handleSelectSupplier = (supplier) => {
-    if (isApproved) return
+    if (isLocked) return
     setHeader(prev => ({ ...prev, supplier_id: supplier.id, supplier_name: supplier.name }))
     setShowSupplierPopup(false)
     setSearch('')
@@ -568,7 +569,7 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
   }
 
   const handleSelectProduct = async (product) => {
-    if (isApproved) return
+    if (isLocked) return
     const existingIndex = items.findIndex(item => item.product_id === product.id)
     if (existingIndex >= 0) {
       setToastMessage(`${product.name} sudah ada di daftar`)
@@ -602,8 +603,8 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
     setShowActionPopup(false)
     setSearch('')
 
-    if (isApproved && [0, 1, 3].includes(index)) {
-      setToastMessage('Purchase Order approved tidak bisa diubah')
+    if (isLocked && [0, 1, 3].includes(index)) {
+      setToastMessage('Purchase Order sudah terkunci dan tidak bisa diubah')
       setToastType('warning')
       setShowToast(true)
       return
@@ -631,7 +632,7 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
   }
 
   const handleDeleteItem = (itemId, itemName = '') => {
-    if (isApproved) return
+    if (isLocked) return
     setItems(prev => prev.filter(item => item.id !== itemId))
     if (selectedIndex >= items.length - 1) {
       setSelectedIndex(Math.max(0, items.length - 2))
@@ -642,7 +643,7 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
   }
 
   const openDeleteConfirm = (item) => {
-    if (isApproved) return
+    if (isLocked) return
     setItemToDelete(item)
     setShowDeleteConfirm(true)
   }
@@ -721,7 +722,7 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
                     <td><span className="po-item-qty">{item.quantity}</span></td>
                     <td>{formatCurrency(item.line_total)}</td>
                     <td>
-                      <button className="po-delete-btn" disabled={isApproved} onClick={(e) => { e.stopPropagation(); if (!isApproved) openDeleteConfirm(item) }}>
+                      <button className="po-delete-btn" disabled={isLocked} onClick={(e) => { e.stopPropagation(); if (!isLocked) openDeleteConfirm(item) }}>
                         <span className="material-icons" style={{ fontSize: 18 }}>delete</span>
                       </button>
                     </td>
@@ -749,7 +750,7 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
                 queueFocusSearchInput(false, 0)
               }}
               autoComplete="off"
-              disabled={isApproved}
+              disabled={isLocked}
               autoFocus
             />
           </div>
@@ -778,6 +779,11 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
               >
                 <span className="material-icons">block</span>
                 VOID
+              </button>
+            ) : String(header.status || '').toLowerCase() === 'void' || String(header.status || '').toLowerCase() === 'voided' ? (
+              <button className="po-btn po-btn-void" disabled title="Purchase order sudah VOID">
+                <span className="material-icons">block</span>
+                VOIDED
               </button>
             ) : (
               <button className="po-btn po-btn-save" onClick={() => handleSaveWithStatus()} disabled={isSaving || isLoading || items.length === 0 || !header.supplier_id}>

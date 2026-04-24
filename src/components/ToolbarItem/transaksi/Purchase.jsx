@@ -38,6 +38,7 @@ const ALL_RECORDS_SUMMARY_LIMIT = 999999
 function getPoStatusMeta(status) {
   const value = String(status || '').toLowerCase()
   if (value === 'approve' || value === 'approved') return { label: 'Approve', variant: 'approve', icon: 'check_circle' }
+  if (value === 'void' || value === 'voided') return { label: 'Void', variant: 'void', icon: 'block' }
   if (value === 'pending') return { label: 'Pending', variant: 'pending', icon: 'schedule' }
   if (value === 'reject' || value === 'rejected') return { label: 'Reject', variant: 'reject', icon: 'cancel' }
   return { label: 'Draft', variant: 'draft', icon: 'edit_note' }
@@ -258,8 +259,7 @@ export function Purchase({ onExit }) {
   }, [offset, limit])
 
   const { sortConfig, sortedData, handleSort } = useMasterTableSort(data, {
-    initialKey: 'po_date',
-    direction: 'desc',
+    initialKey: null,
   })
 
   const totalAmount = sortedData.reduce((sum, row) => sum + (Number(row.grand_total) || 0), 0)
@@ -287,8 +287,8 @@ export function Purchase({ onExit }) {
     if (!selectedItem) return
 
     const poStatus = String(selectedItem?.status || '').toLowerCase()
-    if (poStatus === 'approved' || poStatus === 'approve') {
-      setToast({ isOpen: true, message: 'Tidak bisa dihapus, status sudah Approve', type: 'error' })
+    if (poStatus === 'approved' || poStatus === 'approve' || poStatus === 'void' || poStatus === 'voided') {
+      setToast({ isOpen: true, message: 'Tidak bisa dihapus, status sudah terkunci', type: 'error' })
       return
     }
 
