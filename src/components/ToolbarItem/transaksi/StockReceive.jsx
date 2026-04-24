@@ -18,7 +18,7 @@ const TABLE_COLUMNS = [
   { key: 'po_date', label: 'DATE PO', sortable: true, width: '120px' },
   { key: 'expected_date', label: 'DATE EXPECTED', sortable: true, width: '140px' },
   { key: 'receive_date', label: 'DATE RECEIVE', sortable: true, width: '140px' },
-  { key: 'status_receive', label: 'STATUS RECEIVE', sortable: true },
+  { key: 'status_receive', label: 'STATUS RECEIVE', sortable: true, width: '180px' },
 ]
 
 const DUMMY_RECEIVES = [
@@ -35,24 +35,12 @@ const DUMMY_RECEIVES = [
   },
 ]
 
-function getStatusBadgeClass(status) {
-  const statusLower = status?.toLowerCase()
-
-  if (statusLower === 'draft') return 'status-badge-pending'
-  if (statusLower === 'approve') return 'status-badge-approved'
-  if (statusLower === 'approved') return 'status-badge-approved'
-  if (statusLower === 'pending') return 'status-badge-approved'
-
-  if (statusLower === 'reject') return 'status-badge-rejected'
-  if (statusLower === 'receive') return 'status-badge-posted'
-
-  const legacyClasses = {
-    approved: 'status-badge-posted',
-    rejected: 'status-badge-rejected',
-    cancelled: 'status-badge-rejected',
-    completed: 'status-badge-posted',
-  }
-  return legacyClasses[statusLower] || 'status-badge-pending'
+function getReceiveStatusMeta(status) {
+  const value = String(status || '').toLowerCase()
+  if (value === 'receive') return { label: 'Receive', variant: 'receive', icon: 'check_circle' }
+  if (value === 'reject' || value === 'rejected') return { label: 'Reject', variant: 'reject', icon: 'cancel' }
+  if (value === 'pending') return { label: 'Pending', variant: 'pending', icon: 'schedule' }
+  return { label: 'Draft', variant: 'draft', icon: 'edit_note' }
 }
 
 function formatDate(dateStr) {
@@ -382,27 +370,34 @@ export function StockReceive({ onExit }) {
           <table className="master-table">
             <MasterTableHeader columns={TABLE_COLUMNS} sortConfig={sortConfig} onSort={handleSort} />
             <tbody>
-              {sortedData.map((row, index) => (
-                <tr
-                  key={row.id || index}
-                  className={selectedId === row.id ? 'master-row-selected' : 'master-row'}
-                  onClick={() => handleSelect(row)}
-                  onDoubleClick={() => handleViewDetail()}
-                >
-                  <td className="text-right">{offset + index + 1}</td>
-                  <td>{row.receive_number || row.po_number || '-'}</td>
-                  <td>{row.supplier_name || '-'}</td>
-                  <td>{row.warehouse_name || '-'}</td>
-                  <td>{formatDate(row.po_date)}</td>
-                  <td>{formatDate(row.expected_date)}</td>
-                  <td>{formatDate(row.receive_date)}</td>
-                  <td>
-                    <span className={`status-badge ${getStatusBadgeClass(row.status_receive)}`}>
-                      {row.status_receive || '-'}
-                    </span>
-                  </td>
-                </tr>
-              ))}
+              {sortedData.map((row, index) => {
+                const statusMeta = getReceiveStatusMeta(row.status_receive)
+
+                return (
+                  <tr
+                    key={row.id || index}
+                    className={selectedId === row.id ? 'master-row-selected' : 'master-row'}
+                    onClick={() => handleSelect(row)}
+                    onDoubleClick={() => handleViewDetail()}
+                  >
+                    <td className="text-right">{offset + index + 1}</td>
+                    <td>{row.receive_number || row.po_number || '-'}</td>
+                    <td>{row.supplier_name || '-'}</td>
+                    <td>{row.warehouse_name || '-'}</td>
+                    <td>{formatDate(row.po_date)}</td>
+                    <td>{formatDate(row.expected_date)}</td>
+                    <td>{formatDate(row.receive_date)}</td>
+                    <td className="text-center">
+                      <div className="purchase-status-stack">
+                        <span className={`purchase-status-pill is-${statusMeta.variant}`}>
+                          <span className="material-icons-round purchase-status-icon">{statusMeta.icon}</span>
+                          {statusMeta.label}
+                        </span>
+                      </div>
+                    </td>
+                  </tr>
+                )
+              })}
               {!isLoading && sortedData.length === 0 && (
                 <tr><td colSpan={8} className="text-center">No data</td></tr>
               )}
