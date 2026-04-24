@@ -1,0 +1,75 @@
+.pr-layout-container .po-sidebar {
+  width: 420px;
+}
+
+.pr-form-panel {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.pr-layout-container .po-footer-input {
+  justify-content: flex-start;
+}
+
+.pr-action-buttons {
+  flex-wrap: wrap;
+}
+
+.po-btn-add {
+  background: linear-gradient(135deg, #0f766e 0%, #0d9488 100%);
+  color: #fff;
+}
+
+.po-btn-remove {
+  background: #f8fafc;
+  color: #b45309;
+}
+
+.po-btn-remove:hover {
+  background: #f1f5f9;
+}
+
+.po-btn-remove:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pr-items-table th,
+.pr-items-table td {
+  white-space: nowrap;
+}
+
+.pr-items-table th:nth-child(1),
+.pr-items-table td:nth-child(1) {
+  width: 40px;
+  text-align: center;
+}
+
+.pr-items-table th:nth-child(2),
+.pr-items-table td:nth-child(2) {
+  width: 60px;
+  text-align: center;
+}
+
+.pr-items-table th:nth-child(3),
+.pr-items-table td:nth-child(3) {
+  text-align: left;
+}
+
+.pr-items-table th:nth-child(4),
+.pr-items-table td:nth-child(4),
+.pr-items-table th:nth-child(5),
+.pr-items-table td:nth-child(5),
+.pr-items-table th:nth-child(6),
+.pr-items-table td:nth-child(6) {
+  text-align: center;
+}
+
+.pr-notes-textarea {
+  resize: vertical;
+  min-height: 88px;
+}

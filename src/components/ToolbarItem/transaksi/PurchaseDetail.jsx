@@ -663,6 +663,9 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
   const formatCurrency = (amount) =>
     new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(amount)
 
+  const currentPoStatus = String(header.status || 'draft').toLowerCase()
+  const activePoStatus = currentPoStatus === 'approved' ? 'approve' : currentPoStatus === 'voided' ? 'void' : currentPoStatus
+
   return (
     <div className="po-layout-container">
       <Toast message={toastMessage} type={toastType} isOpen={showToast} onClose={() => setShowToast(false)} duration={5000} />
@@ -798,9 +801,16 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
       <aside className="po-sidebar">
         <div className="po-header-section">
           <h1 className="po-title">PURCHASE ORDER</h1>
-          <div className="po-status-display">
-            <span className="po-status-label">Status :</span>
-            <span className="po-status-value">{String(header.status || 'draft').toUpperCase()}</span>
+          <div className="po-arrow-status-bar" aria-label="Purchase order status">
+            <button type="button" className={`po-arrow-step ${activePoStatus === 'draft' ? 'is-active' : 'is-inactive'}`}>
+              Draft
+            </button>
+            <button type="button" className={`po-arrow-step ${activePoStatus === 'approve' ? 'is-active' : 'is-inactive'}`}>
+              Approved
+            </button>
+            <button type="button" className={`po-arrow-step po-arrow-step-void ${activePoStatus === 'void' ? 'is-active' : 'is-inactive'}`}>
+              Void
+            </button>
           </div>
         </div>
 
