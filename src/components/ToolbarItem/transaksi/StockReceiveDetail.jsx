@@ -1,9 +1,11 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { getPurchase, receivePurchase } from '../../../features/transaksi/purchase/purchase.api'
 import { useAuth } from '../../../shared/auth'
 import { DeleteMaster } from '../footer/DeleteMaster'
 import { Toast } from '../../Toast'
+import './PurchaseDetail.css'
+import './StockReceiveDetail.css'
 
 function toDateInputValue(value) {
   if (!value) return ''
@@ -30,6 +32,9 @@ export function StockReceiveDetail({ selectedId, onExit, onSaveSuccess }) {
   const [isLoading, setIsLoading] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState('')
+  const [search, setSearch] = useState('')
+  const searchInputRef = useRef(null)
+  const [selectedIndex, setSelectedIndex] = useState(0)
 
   const [header, setHeader] = useState({
     id: selectedId,
@@ -48,6 +53,10 @@ export function StockReceiveDetail({ selectedId, onExit, onSaveSuccess }) {
 
   const [showExitConfirm, setShowExitConfirm] = useState(false)
   const [toast, setToast] = useState({ isOpen: false, message: '', type: 'info' })
+  const currentStatusReceive = String(header.status_receive || 'draft').toLowerCase()
+  const isReceiveLocked = currentStatusReceive === 'receive'
+  const isRejectLocked = currentStatusReceive === 'reject'
+  const isQtyEditable = !isReceiveLocked && !isRejectLocked
 
   const load = useCallback(async () => {
     if (!selectedId) return
@@ -84,6 +93,8 @@ export function StockReceiveDetail({ selectedId, onExit, onSaveSuccess }) {
             : qtyPo
         })(),
       })))
+      setSelectedIndex(0)
+      setSearch('')
     } catch (err) {
       setError(err.message || 'Failed to load stock receive')
     } finally {
@@ -111,8 +122,82 @@ export function StockReceiveDetail({ selectedId, onExit, onSaveSuccess }) {
     }))
   }
 
+  useEffect(() => {
+    if (currentStatusReceive === 'reject') {
+      setItems(prev => prev.map(it => (it.qty_receive === 0 ? it : { ...it, qty_receive: 0 })))
+    }
+  }, [currentStatusReceive])
+
+  useEffect(() => {
+    if (selectedIndex >= items.length) {
+      setSelectedIndex(items.length > 0 ? items.length - 1 : 0)
+    }
+  }, [items.length, selectedIndex])
+
+  const focusSearchInput = useCallback(() => {
+    const input = searchInputRef.current
+    if (!input) return
+    input.focus()
+  }, [])
+
+  const handleSearchChange = (value) => {
+    if (!isQtyEditable) return
+    setSearch(value)
+  }
+
+  const handleSearchKeyDown = (e) => {
+    if (!isQtyEditable) {
+      e.preventDefault()
+      return
+    }
+
+    if (e.key === 'Enter') {
+      e.preventDefault()
+
+      const currentSearch = search.trim()
+      const qtyMatch = currentSearch.match(/^\+(\d+)$/)
+      if (qtyMatch && items.length > 0 && selectedIndex >= 0 && selectedIndex < items.length) {
+        const newQty = parseInt(qtyMatch[1], 10)
+        if (newQty >= 0) {
+          const selectedItem = items[selectedIndex]
+          updateItem(selectedItem.id, { qty_receive: newQty })
+          setToast({ isOpen: true, message: `Qty ${selectedItem.product_name || selectedItem.sku || 'item'} menjadi ${newQty}`, type: 'success' })
+        }
+        setSearch('')
+        focusSearchInput()
+      }
+      return
+    }
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      if (items.length > 0) {
+        setSelectedIndex(prev => Math.min(prev + 1, items.length - 1))
+      }
+      return
+    }
+
+    if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      if (items.length > 0) {
+        setSelectedIndex(prev => Math.max(prev - 1, 0))
+      }
+    }
+  }
+
   const handleStatusReceiveChange = (newStatus) => {
-    setHeader(prev => ({ ...prev, status_receive: newStatus }))
+    const next = String(newStatus || '').toLowerCase()
+    const current = String(header.status_receive || 'draft').toLowerCase()
+
+    if (current === 'receive' && next !== 'receive') return
+    if (current === 'reject' && next === 'receive') return
+
+    setHeader(prev => ({ ...prev, status_receive: next }))
+
+    if (next === 'reject') {
+      setItems(prev => prev.map(it => ({ ...it, qty_receive: 0 })))
+      setSearch('')
+    }
   }
 
   const handleSave = useCallback(async () => {
@@ -122,7 +207,10 @@ export function StockReceiveDetail({ selectedId, onExit, onSaveSuccess }) {
       const payload = {
         status_receive: header.status_receive,
         receive_date: header.receive_date,
-        items: items.map(it => ({ id: it.id, qty_receive: it.qty_receive })),
+        items: items.map(it => ({
+          id: it.id,
+          qty_receive: currentStatusReceive === 'reject' ? 0 : it.qty_receive,
+        })),
       }
 
       if (payload.items.length === 0) {
@@ -141,7 +229,7 @@ export function StockReceiveDetail({ selectedId, onExit, onSaveSuccess }) {
     } finally {
       setIsSaving(false)
     }
-  }, [token, header, items, onExit, onSaveSuccess])
+  }, [token, header, items, onExit, onSaveSuccess, currentStatusReceive])
 
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -154,7 +242,7 @@ export function StockReceiveDetail({ selectedId, onExit, onSaveSuccess }) {
   }, [handleSave, showExitConfirm])
 
   return (
-    <div className="stock-opname-container">
+    <div className="po-layout-container stock-receive-layout">
       <Toast
         message={toast.message}
         type={toast.type}
@@ -163,143 +251,144 @@ export function StockReceiveDetail({ selectedId, onExit, onSaveSuccess }) {
         duration={4000}
       />
 
-      <header className="stock-opname-header">
-        <div className="stock-opname-header-top">
-          <div className="stock-opname-title-section">
-            <div className="stock-opname-accent-bar"></div>
-            <h1 className="stock-opname-title">STOCK RECEIVE - {header.receive_number || '-'}</h1>
-          </div>
+      <div className="po-main-content">
+        <div className="po-items-wrapper">
+          {error && <div className="master-error" style={{ marginBottom: 12 }}>{error}</div>}
 
-          <div className="stock-opname-status-group">
-            {selectedId && (
-              <>
-                <button
-                  type="button"
-                  className={`status-button ${header.status_receive === 'draft' ? 'status-button-active' : 'status-button-inactive'}`}
-                  onClick={() => handleStatusReceiveChange('draft')}
-                >
-                  Draft
-                </button>
-                <button
-                  type="button"
-                  className={`status-button ${header.status_receive === 'receive' ? 'status-button-active' : 'status-button-inactive'}`}
-                  onClick={() => handleStatusReceiveChange('receive')}
-                >
-                  Receive
-                </button>
-                <button
-                  type="button"
-                  className={`status-button ${header.status_receive === 'reject' ? 'status-button-active' : 'status-button-inactive'}`}
-                  onClick={() => handleStatusReceiveChange('reject')}
-                >
-                  Reject
-                </button>
-              </>
-            )}
-          </div>
-        </div>
-
-        <div className="stock-opname-header-form">
-          <div className="form-group">
-            <label className="master-form-label">Supplier</label>
-            <input type="text" className="master-form-input" value={header.supplier_name || ''} disabled />
-          </div>
-          <div className="form-group">
-            <label className="master-form-label">Expected Date</label>
-            <input type="date" className="master-form-input" value={header.expected_date || ''} disabled />
-          </div>
-          <div className="form-group">
-            <label className="master-form-label">Warehouse</label>
-            <input type="text" className="master-form-input" value={header.warehouse_name || ''} disabled />
-          </div>
-          <div className="form-group">
-            <label className="master-form-label">Receive Date</label>
-            <input
-              type="date"
-              className="master-form-input"
-              value={header.receive_date || ''}
-              onChange={(e) => setHeader(prev => ({ ...prev, receive_date: e.target.value }))}
-            />
-          </div>
-          <div className="form-group">
-            <label className="master-form-label">Notes</label>
-            <textarea className="master-form-input master-form-textarea" value={header.notes || ''} rows={2} disabled />
-          </div>
-        </div>
-      </header>
-
-      <main className="stock-opname-items">
-        {error && <div className="master-error">{error}</div>}
-
-        <div className="stock-opname-table-container">
-          <div className="table-wrapper custom-scrollbar">
-            <table className="stock-opname-table master-table">
-              <thead className="table-header">
-                <tr>
-                  <th style={{ width: '60px' }}>No</th>
-                  <th>SKU</th>
-                  <th>Product</th>
-                  <th className="table-center" style={{ width: '120px' }}>QTY PO</th>
-                  <th className="table-center" style={{ width: '140px' }}>QTY RECEIVE</th>
-                </tr>
-              </thead>
-              <tbody>
-                {items.map((item, index) => (
-                  <tr key={item.id} className="master-row">
-                    <td className="table-center text-muted">{index + 1}</td>
-                    <td className="font-bold">{item.sku || '-'}</td>
-                    <td className="table-product">
-                      <div className="product-name">{item.product_name || '-'}</div>
-                    </td>
-                    <td className="table-center">{item.qty_po}</td>
-                    <td className="table-center">
-                      <input
-                        type="number"
-                        value={item.qty_receive}
-                        onChange={(e) => updateItem(item.id, { qty_receive: Number(e.target.value) })}
-                        className="physical-input"
-                        min="0"
-                        max={item.qty_po}
-                      />
-                    </td>
-                  </tr>
-                ))}
-                {!isLoading && items.length === 0 && (
+          {items.length === 0 ? (
+            <div className="po-empty-items">
+              <span className="material-icons">receipt_long</span>
+              <p>Tidak ada item untuk diterima.</p>
+            </div>
+          ) : (
+            <div className="table-wrapper custom-scrollbar">
+              <table className="po-items-table stock-receive-items-table">
+                <thead>
                   <tr>
-                    <td colSpan={5} className="text-center py-8 text-muted">No items</td>
+                    <th>No</th>
+                    <th>SKU</th>
+                    <th style={{ textAlign: 'left' }}>Produk</th>
+                    <th style={{ textAlign: 'center' }}>Qty PO</th>
+                    <th style={{ textAlign: 'center' }}>Qty Receive</th>
                   </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {items.map((item, index) => (
+                    <tr key={item.id} className={selectedIndex === index ? 'selected' : ''} onClick={() => setSelectedIndex(index)}>
+                      <td>{index + 1}</td>
+                      <td>
+                        <div className="po-product-name">{item.sku || '-'}</div>
+                      </td>
+                      <td style={{ textAlign: 'left' }}>
+                        <div className="po-product-name">{item.product_name || '-'}</div>
+                      </td>
+                      <td style={{ textAlign: 'center', fontWeight: 700 }}>{item.qty_po}</td>
+                      <td style={{ textAlign: 'center' }}>
+                        <span className="po-item-qty stock-receive-qty-display">{currentStatusReceive === 'reject' ? 0 : item.qty_receive}</span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
 
-        <div className="stock-opname-summary">
-          <span className="summary-title">Summary</span>
-          <div className="summary-items">
-            <span className="summary-item">
-              TOTAL QTY PO: <span className="summary-value">{summary.totalQtyPo}</span>
-            </span>
-            <span className="summary-divider"></span>
-            <span className="summary-item">
-              TOTAL QTY RECEIVE: <span className="summary-value">{summary.totalQtyReceive}</span>
-            </span>
+        <div className="po-footer-input">
+          <div className="po-search-container stock-receive-command-container">
+            <span className="material-icons">search</span>
+              <input
+                ref={searchInputRef}
+                type="text"
+                inputMode="text"
+                className="po-search-input stock-receive-command-input"
+                placeholder="Ketik +qty untuk ubah qty receive..."
+                value={search}
+                onChange={(e) => handleSearchChange(e.target.value)}
+                onKeyDown={handleSearchKeyDown}
+                autoComplete="off"
+                disabled={!isQtyEditable}
+              />
+          </div>
+          <div className="po-action-buttons stock-receive-footer-actions">
+            <button type="button" className="po-btn po-btn-exit" onClick={() => setShowExitConfirm(true)} disabled={isSaving}>
+              <span className="material-icons">exit_to_app</span>
+              KELUAR
+            </button>
+            <button type="button" className="po-btn po-btn-save" onClick={handleSave} disabled={isSaving || isLoading || items.length === 0}>
+              <span className="material-icons">save</span>
+              SIMPAN
+            </button>
           </div>
         </div>
-      </main>
+      </div>
 
-      <footer className="stock-opname-footer">
-        <div className="footer-content">
-          <div className="footer-actions-left">
-            <button type="button" className="master-footer-btn" onClick={handleSave} disabled={isSaving || isLoading} title="Save (Ctrl+S)" aria-label="Save">
-              <span className="material-icons-round master-footer-icon green">save</span>
+      <aside className="po-sidebar">
+          <div className="po-header-section">
+            <h1 className="po-title">STOCK RECEIVE</h1>
+            
+          <div className="stock-receive-status-group">
+            <button
+              type="button"
+              className={`stock-receive-status-button ${currentStatusReceive === 'draft' ? 'is-active' : 'is-inactive'}`}
+              disabled={isReceiveLocked}
+              onClick={() => handleStatusReceiveChange('draft')}
+            >
+              Draft
             </button>
-            <button type="button" className="master-footer-btn" onClick={() => setShowExitConfirm(true)} disabled={isSaving} title="Exit (Esc)" aria-label="Exit">
-              <span className="material-icons-round master-footer-icon red">exit_to_app</span>
+            <button
+              type="button"
+              className={`stock-receive-status-button ${currentStatusReceive === 'receive' ? 'is-active' : 'is-inactive'}`}
+              disabled={isRejectLocked}
+              onClick={() => handleStatusReceiveChange('receive')}
+            >
+              Receive
+            </button>
+            <button
+              type="button"
+              className={`stock-receive-status-button ${currentStatusReceive === 'reject' ? 'is-active' : 'is-inactive'}`}
+              disabled={isReceiveLocked}
+              onClick={() => handleStatusReceiveChange('reject')}
+            >
+              Reject
             </button>
           </div>
+            {/*
+            <div className="po-status-display">
+            <span className="po-status-label">Bar Status :</span>
+            <span className="po-status-value">{currentStatusReceive.toUpperCase()}</span>
+            </div>  */}
+
+
+            
+          </div>
+
+        <div className="po-meta-info">
+          <div className="po-meta-item">
+            <span className="po-meta-label">No. Receive</span>
+            <span className="po-meta-value">{header.receive_number || '-'}</span>
+          </div>
+          <div className="po-meta-item">
+            <span className="po-meta-label">No. PO</span>
+            <span className="po-meta-value">{header.po_number || '-'}</span>
+          </div>
+          <div className="po-meta-item">
+            <span className="po-meta-label">Supplier</span>
+            <span className="po-meta-value">{header.supplier_name || 'Belum dipilih'}</span>
+          </div>
+          <div className="po-meta-item">
+            <span className="po-meta-label">Receive Date</span>
+            <span className="po-meta-value">{header.receive_date || '-'}</span>
+          </div>
+          <div className="po-meta-item">
+            <span className="po-meta-label">Warehouse</span>
+            <span className="po-meta-value">{header.warehouse_name || '-'}</span>
+          </div>
+
         </div>
-      </footer>
+
+      
+      </aside>
 
       {showExitConfirm && (
         <DeleteMaster
