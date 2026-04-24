@@ -75,7 +75,14 @@ export function StockReceiveDetail({ selectedId, onExit, onSaveSuccess }) {
         sku: it.sku,
         product_name: it.product_name,
         qty_po: Number(it.quantity || 0),
-        qty_receive: Number(it.qty_receive || 0),
+        qty_receive: (() => {
+          const qtyPo = Number(it.quantity || 0)
+          const qtyReceive = Number(it.qty_receive)
+
+          return Number.isFinite(qtyReceive) && qtyReceive > 0
+            ? qtyReceive
+            : qtyPo
+        })(),
       })))
     } catch (err) {
       setError(err.message || 'Failed to load stock receive')

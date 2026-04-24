@@ -914,10 +914,9 @@ function DeleteDataTab({ token, onToast }) {
             </label>
           </div>
         </div>
-      </div>
 
-      <div className="backup-right-column">
-        <div className="delete-scope-card master-form-card">
+
+ <div className="delete-scope-card master-form-card">
           <h3>
             <span className="material-icons-round">delete_sweep</span>
             Pilih Scope Data yang Akan Dihapus
@@ -964,6 +963,11 @@ function DeleteDataTab({ token, onToast }) {
             </label>
           </div>
         </div>
+        
+      </div>
+
+      <div className="backup-right-column">
+       
 
         <div className="delete-preview-card master-form-card">
           <h3>

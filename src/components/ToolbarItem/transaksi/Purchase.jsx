@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState, useRef } from 'react'
 import { useAuth } from '../../../shared/auth'
-import { listPurchases, deletePurchase } from '../../../features/transaksi/purchase/purchase.api'
+import { listPurchases, deletePurchase, getPurchase, createPurchase } from '../../../features/transaksi/purchase/purchase.api'
 import { FooterMaster } from '../footer/FooterMaster'
 import { DeleteMaster } from '../footer/DeleteMaster'
 import { MasterTableHeader } from '../table/MasterTableHeader'
@@ -284,10 +284,56 @@ export function Purchase({ onExit }) {
   }, [])
 
   const handleDeleteClick = useCallback(() => {
-    if (selectedItem) {
-      setShowDeleteConfirm(true)
+    if (!selectedItem) return
+
+    const poStatus = String(selectedItem?.status || '').toLowerCase()
+    if (poStatus === 'approved' || poStatus === 'approve') {
+      setToast({ isOpen: true, message: 'Tidak bisa dihapus, status sudah Approve', type: 'error' })
+      return
     }
+
+    setShowDeleteConfirm(true)
   }, [selectedItem])
+
+  const handleDuplicateClick = useCallback(async () => {
+    if (!selectedItem) {
+      setToast({ isOpen: true, message: 'Pilih purchase order terlebih dahulu', type: 'info' })
+      return
+    }
+
+    setIsLoading(true)
+    setError('')
+
+    try {
+      const source = await getPurchase(token, selectedItem.id)
+      const duplicated = await createPurchase(token, {
+        supplier_id: source.supplier_id,
+        warehouse_id: source.warehouse_id,
+        expected_date: source.expected_date || source.po_date || '',
+        notes: source.notes || '',
+        items: (source.items || []).map((item) => ({
+          product_id: item.product_id,
+          quantity: item.quantity,
+          unit_price: item.unit_price,
+          discount: item.discount || 0,
+          tax_rate: item.tax_rate || 0,
+        })),
+      })
+
+      const createdId = duplicated?.data?.id || duplicated?.id
+      if (!createdId) {
+        throw new Error('Failed to duplicate purchase order')
+      }
+
+      setSelectedId(createdId)
+      setShowDetail(true)
+    } catch (err) {
+      setError(err.message || 'Failed to duplicate purchase order')
+      setToast({ isOpen: true, message: err.message || 'Failed to duplicate purchase order', type: 'error' })
+    } finally {
+      setIsLoading(false)
+    }
+  }, [selectedItem, token])
 
   useMasterTableKeyboardNav({
     data: sortedData,
@@ -572,7 +618,8 @@ export function Purchase({ onExit }) {
         onNew={handleNew}
         onEdit={handleViewDetail}
         onDelete={handleDeleteClick}
-        totalRow={pagination.total}
+        onDuplicate={handleDuplicateClick}
+        duplicateDisabled={!selectedItem || isLoading}
         totalAmount={totalAmount}
         totalAmountLabel="Purchase Order"
         onPrint={handlePrint}

@@ -1,4 +1,5 @@
 import { useEffect, useCallback, useRef } from 'react'
+import { createPortal } from 'react-dom'
 
 export function Toast({ message, type = 'info', isOpen, onClose, duration = 3000 }) {
   const onCloseRef = useRef(onClose)
@@ -50,7 +51,7 @@ export function Toast({ message, type = 'info', isOpen, onClose, duration = 3000
     }
   }
 
-  return (
+  const toastNode = (
     <div className={`toast-container ${getTypeClass()}`}>
       <div className="toast-content">
         <span className="material-icons-round toast-icon">{getIcon()}</span>
@@ -66,4 +67,10 @@ export function Toast({ message, type = 'info', isOpen, onClose, duration = 3000
       </div>
     </div>
   )
+
+  if (typeof document === 'undefined') {
+    return toastNode
+  }
+
+  return createPortal(toastNode, document.body)
 }

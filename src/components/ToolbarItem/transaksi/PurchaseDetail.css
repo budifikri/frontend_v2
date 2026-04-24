@@ -146,12 +146,12 @@
 }
 
 .po-items-table th {
-  padding: 12px 16px;
+  padding: 8px 16px;
   text-align: left;
-  font-size: 10px;
+  font-size: 14px;
   font-weight: 700;
   text-transform: uppercase;
-  color: #c1c7d0;
+  color: #003358;
   border-bottom: 1px solid #c1c7d0;
 }
 
@@ -228,6 +228,12 @@
 
 .po-delete-btn:hover {
   background: #fef2f2;
+}
+
+.po-delete-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  background: transparent;
 }
 
 .po-empty-items {
@@ -349,6 +355,17 @@
 
 .po-btn-save:hover {
   background: linear-gradient(135deg, #005c9a 0%, #004A7C 100%);
+}
+
+.po-btn-void {
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+  color: #fff;
+  border: 1px solid rgba(255,255,255,0.2);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+}
+
+.po-btn-void:hover {
+  background: linear-gradient(135deg, #b91c1c 0%, #dc2626 100%);
 }
 
 .po-btn .material-icons {

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useLayoutEffect } from 'react'
 import { useAuth } from '../../../shared/auth'
-import { getPurchase, createPurchase, updatePurchase, updatePurchaseStatus, listSuppliers, generatePONumber } from '../../../features/transaksi/purchase/purchase.api'
+import { getPurchase, createPurchase, updatePurchase, updatePurchaseStatus, voidPurchase, listSuppliers, generatePONumber } from '../../../features/transaksi/purchase/purchase.api'
 import { listProducts } from '../../../features/master/product/product.api'
 import { listWarehouses } from '../../../features/master/warehouse/warehouse.api'
 import { DeleteMaster } from '../footer/DeleteMaster'
@@ -15,6 +15,9 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState('')
   const [showExitConfirm, setShowExitConfirm] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [showVoidConfirm, setShowVoidConfirm] = useState(false)
+  const [itemToDelete, setItemToDelete] = useState(null)
   const [supplierOptions, setSupplierOptions] = useState([])
   const [warehouseOptions, setWarehouseOptions] = useState([])
   const [showToast, setShowToast] = useState(false)
@@ -35,10 +38,13 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
     po_date: new Date().toISOString().split('T')[0],
     expected_date: getDefaultExpectedDate(),
     status: 'draft',
+    status_receive: 'draft',
     notes: '',
   })
 
   const [items, setItems] = useState([])
+  const isApproved = ['approved', 'approve'].includes(String(header.status || '').toLowerCase())
+  const isCanVoid = isApproved && String(header.status_receive || '').toLowerCase() !== 'receive'
 
   // POS-style state for PO input
   const [search, setSearch] = useState('')
@@ -103,7 +109,7 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
         setShowToast(true)
       }
     }
-  }, [token])
+  }, [token, propSelectedId])
 
   useEffect(() => { fetchLookups() }, [fetchLookups])
 
@@ -132,13 +138,13 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
   }, [focusSearchInput])
 
   useEffect(() => {
-    if (showSupplierPopup || showProductPopup || showActionPopup || showExitConfirm) return
+    if (showSupplierPopup || showProductPopup || showActionPopup || showExitConfirm || showDeleteConfirm || showVoidConfirm) return
     queueFocusSearchInput(false)
     const retryTimer = window.setTimeout(() => {
       queueFocusSearchInput(false)
     }, 120)
     return () => window.clearTimeout(retryTimer)
-  }, [propSelectedId, showSupplierPopup, showProductPopup, showActionPopup, showExitConfirm, queueFocusSearchInput])
+  }, [propSelectedId, showSupplierPopup, showProductPopup, showActionPopup, showExitConfirm, showDeleteConfirm, showVoidConfirm, queueFocusSearchInput])
 
   useLayoutEffect(() => {
     queueFocusSearchInput(false)
@@ -182,6 +188,7 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
           po_date: normalizeDate(data.po_date || data.order_date),
           expected_date: normalizeDate(data.expected_date || data.expected_delivery),
           status: normalizedStatus,
+          status_receive: String(data.status_receive || 'draft').toLowerCase(),
           notes: data.notes || '',
         })
         if (data.items && data.items.length > 0) {
@@ -235,6 +242,12 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
   }, [items])
 
   const handleSaveWithStatus = useCallback(async (status) => {
+    if (isApproved) {
+      setToastMessage('Purchase Order approved tidak bisa diubah')
+      setToastType('warning')
+      setShowToast(true)
+      return
+    }
     if (!header.supplier_id) { 
       setToastMessage('Supplier harus dipilih')
       setToastType('warning')
@@ -324,17 +337,52 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
     } finally {
       setIsSaving(false)
     }
-  }, [header, items, token, propSelectedId, onExit, onSaveSuccess, clearPendingPO, normalizeStatusPoForApi])
+  }, [header, items, token, propSelectedId, onExit, onSaveSuccess, clearPendingPO, normalizeStatusPoForApi, isApproved])
+
+  const handleVoidPurchase = useCallback(async () => {
+    if (!isCanVoid) {
+      setToastMessage('Purchase Order hanya bisa di-VOID jika belum receive')
+      setToastType('warning')
+      setShowToast(true)
+      return
+    }
+
+    setIsSaving(true)
+    setError('')
+
+    try {
+      if (token && propSelectedId) {
+        await voidPurchase(token, propSelectedId)
+      } else if (propSelectedId) {
+        setHeader(prev => ({ ...prev, status: 'void' }))
+      }
+
+      clearPendingPO()
+      onExit()
+      if (onSaveSuccess) {
+        setTimeout(() => {
+          onSaveSuccess('Purchase Order berhasil di-VOID', 'success')
+        }, 300)
+      }
+    } catch (err) {
+      setError(err.message || 'Failed to void purchase order')
+    } finally {
+      setIsSaving(false)
+      setShowVoidConfirm(false)
+    }
+  }, [clearPendingPO, isCanVoid, onExit, onSaveSuccess, propSelectedId, token])
 
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (showExitConfirm || showSupplierPopup || showProductPopup || showActionPopup) return
+      if (showExitConfirm || showSupplierPopup || showProductPopup || showActionPopup || showDeleteConfirm || showVoidConfirm) return
+      if (isApproved) return
       if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); handleSaveWithStatus() }
       else if (e.key === 'Delete' && items.length > 0 && selectedIndex >= 0) { 
         e.preventDefault()
         const itemToDelete = items[selectedIndex]
         if (itemToDelete) {
-          handleDeleteItem(itemToDelete.id, itemToDelete.product_name)
+          setItemToDelete(itemToDelete)
+          setShowDeleteConfirm(true)
         }
       }
       else if (e.key === 'Escape') { 
@@ -346,13 +394,18 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [showExitConfirm, showSupplierPopup, showProductPopup, showActionPopup, handleSaveWithStatus, items, selectedIndex])
+  }, [showExitConfirm, showSupplierPopup, showProductPopup, showActionPopup, showDeleteConfirm, showVoidConfirm, handleSaveWithStatus, items, selectedIndex, isApproved])
 
   const handleSearchChange = (value) => {
+    if (isApproved) return
     setSearch(value)
   }
 
   const handleSearchKeyDown = async (e) => {
+    if (isApproved) {
+      e.preventDefault()
+      return
+    }
     // Intercept + key specifically and force insert if not handled by browser
     if (e.key === '+' && searchInputRef.current) {
       e.preventDefault()
@@ -507,6 +560,7 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
   }
 
   const handleSelectSupplier = (supplier) => {
+    if (isApproved) return
     setHeader(prev => ({ ...prev, supplier_id: supplier.id, supplier_name: supplier.name }))
     setShowSupplierPopup(false)
     setSearch('')
@@ -514,6 +568,7 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
   }
 
   const handleSelectProduct = async (product) => {
+    if (isApproved) return
     const existingIndex = items.findIndex(item => item.product_id === product.id)
     if (existingIndex >= 0) {
       setToastMessage(`${product.name} sudah ada di daftar`)
@@ -547,6 +602,13 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
     setShowActionPopup(false)
     setSearch('')
 
+    if (isApproved && [0, 1, 3].includes(index)) {
+      setToastMessage('Purchase Order approved tidak bisa diubah')
+      setToastType('warning')
+      setShowToast(true)
+      return
+    }
+
     if (index === 0) {
       await handleSaveWithStatus('DRAFT')
     } else if (index === 1) {
@@ -569,21 +631,62 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
   }
 
   const handleDeleteItem = (itemId, itemName = '') => {
+    if (isApproved) return
     setItems(prev => prev.filter(item => item.id !== itemId))
     if (selectedIndex >= items.length - 1) {
       setSelectedIndex(Math.max(0, items.length - 2))
     }
-    setToastMessage(itemName ? `${itemName} dihapus` : 'Item dihapus')
-    setToastType('info')
+    setToastMessage(itemName ? `${itemName} berhasil dihapus` : 'Item berhasil dihapus')
+    setToastType('success')
     setShowToast(true)
+  }
+
+  const openDeleteConfirm = (item) => {
+    if (isApproved) return
+    setItemToDelete(item)
+    setShowDeleteConfirm(true)
+  }
+
+  const confirmDeleteItem = () => {
+    if (!itemToDelete) return
+    handleDeleteItem(itemToDelete.id, itemToDelete.product_name)
+    setShowDeleteConfirm(false)
+    setItemToDelete(null)
+  }
+
+  const cancelDeleteItem = () => {
+    setShowDeleteConfirm(false)
+    setItemToDelete(null)
   }
 
   const formatCurrency = (amount) =>
     new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(amount)
 
-return (
+  return (
     <div className="po-layout-container">
       <Toast message={toastMessage} type={toastType} isOpen={showToast} onClose={() => setShowToast(false)} duration={5000} />
+      {showDeleteConfirm && itemToDelete && (
+        <DeleteMaster
+          title="Konfirmasi Hapus"
+          message={`Hapus ${itemToDelete.product_name}?`}
+          confirmText="OK"
+          cancelText="Cancel"
+          onConfirm={confirmDeleteItem}
+          onCancel={cancelDeleteItem}
+        />
+      )}
+
+      {showVoidConfirm && (
+        <DeleteMaster
+          title="Konfirmasi VOID"
+          itemName="purchase order ini"
+          message="Apakah Anda yakin ingin VOID purchase order ini?"
+          confirmText="VOID"
+          cancelText="Batal"
+          onConfirm={handleVoidPurchase}
+          onCancel={() => setShowVoidConfirm(false)}
+        />
+      )}
 
       <div className="po-main-content">
         <div className="po-items-wrapper">
@@ -618,7 +721,7 @@ return (
                     <td><span className="po-item-qty">{item.quantity}</span></td>
                     <td>{formatCurrency(item.line_total)}</td>
                     <td>
-                      <button className="po-delete-btn" onClick={(e) => { e.stopPropagation(); handleDeleteItem(item.id, item.product_name) }}>
+                      <button className="po-delete-btn" disabled={isApproved} onClick={(e) => { e.stopPropagation(); if (!isApproved) openDeleteConfirm(item) }}>
                         <span className="material-icons" style={{ fontSize: 18 }}>delete</span>
                       </button>
                     </td>
@@ -632,20 +735,21 @@ return (
         <div className="po-footer-input">
           <div className="po-search-container">
             <span className="material-icons">search</span>
-            <input
-              ref={searchInputRef}
-              type="text"
-              inputMode="text"
-              className="po-search-input"
-              placeholder="Ketik produk, +huruf=supplier, +qty, ++harga..."
-              value={search}
-              onChange={(e) => handleSearchChange(e.target.value)}
-              onKeyDown={handleSearchKeyDown}
+              <input
+                ref={searchInputRef}
+                type="text"
+                inputMode="text"
+                className="po-search-input"
+                placeholder="Ketik produk, +huruf=supplier, +qty, ++harga..."
+                value={search}
+                onChange={(e) => handleSearchChange(e.target.value)}
+                onKeyDown={handleSearchKeyDown}
               onBlur={() => {
-                if (showSupplierPopup || showProductPopup || showActionPopup || showExitConfirm) return
+                if (showSupplierPopup || showProductPopup || showActionPopup || showExitConfirm || showVoidConfirm) return
                 queueFocusSearchInput(false, 0)
               }}
               autoComplete="off"
+              disabled={isApproved}
               autoFocus
             />
           </div>
@@ -665,12 +769,24 @@ return (
               <span className="material-icons">print</span>
               CETAK
             </button>
-            <button className="po-btn po-btn-save" onClick={() => handleSaveWithStatus()} disabled={isSaving || isLoading || items.length === 0 || !header.supplier_id}>
-              <span className="material-icons">save</span>
-              SIMPAN
-            </button>
+            {isApproved ? (
+              <button
+                className="po-btn po-btn-void"
+                onClick={() => setShowVoidConfirm(true)}
+                disabled={isSaving || isLoading || !isCanVoid}
+                title={isCanVoid ? 'VOID purchase order' : 'Tidak bisa VOID setelah barang received'}
+              >
+                <span className="material-icons">block</span>
+                VOID
+              </button>
+            ) : (
+              <button className="po-btn po-btn-save" onClick={() => handleSaveWithStatus()} disabled={isSaving || isLoading || items.length === 0 || !header.supplier_id}>
+                <span className="material-icons">save</span>
+                SIMPAN
+              </button>
+            )}
+            </div>
           </div>
-        </div>
       </div>
 
       <aside className="po-sidebar">
@@ -678,7 +794,7 @@ return (
           <h1 className="po-title">PURCHASE ORDER</h1>
           <div className="po-status-display">
             <span className="po-status-label">Status :</span>
-            <span className="po-status-value">DRAFT</span>
+            <span className="po-status-value">{String(header.status || 'draft').toUpperCase()}</span>
           </div>
         </div>
 
@@ -803,14 +919,14 @@ return (
             <div className="action-popup-list">
               <div 
                 className={`action-popup-item ${actionPopupIndex === 0 ? 'is-selected' : ''}`}
-                onClick={() => handleActionSelect(0)}
+                onClick={() => !isApproved && handleActionSelect(0)}
               >
                 <span className="material-icons">save</span>
                 <span>Simpan</span>
               </div>
               <div 
                 className={`action-popup-item ${actionPopupIndex === 1 ? 'is-selected' : ''}`}
-                onClick={() => handleActionSelect(1)}
+                onClick={() => !isApproved && handleActionSelect(1)}
               >
                 <span className="material-icons">check_circle</span>
                 <span>Simpan dan Approve</span>
@@ -824,7 +940,7 @@ return (
               </div>
               <div 
                 className={`action-popup-item ${actionPopupIndex === 3 ? 'is-selected' : ''}`}
-                onClick={() => handleActionSelect(3)}
+                onClick={() => !isApproved && handleActionSelect(3)}
               >
                 <span className="material-icons">cancel</span>
                 <span>Batal</span>

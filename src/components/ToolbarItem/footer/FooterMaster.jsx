@@ -4,7 +4,7 @@ export function FooterMaster({
   onNew,
   onEdit,
   onDelete,
-  totalRow,
+  onDuplicate,
   totalAmount: _totalAmount,
   totalAmountLabel: _totalAmountLabel,
   onPrint,
@@ -12,6 +12,7 @@ export function FooterMaster({
   onRefresh,
   showNew = true,
   showDelete = true,
+  duplicateDisabled = false,
   isLoading = false,
   page = 1,
   totalPages = 1,
@@ -55,6 +56,11 @@ export function FooterMaster({
           <button type="button" className="master-footer-btn" onClick={onDelete} title="Delete" aria-label="Delete">
             <span className="material-icons-round master-footer-icon orange">remove_circle</span>
             <span className="master-footer-key">DEL</span>
+          </button>
+        )}
+        {onDuplicate && (
+          <button type="button" className="master-footer-btn" onClick={onDuplicate} disabled={duplicateDisabled} title="Duplicate" aria-label="Duplicate">
+            <span className="material-icons-round master-footer-icon blue">content_copy</span>
           </button>
         )}
         <button type="button" className="master-footer-btn" onClick={onPrint} title="Print" aria-label="Print">
@@ -124,7 +130,6 @@ export function FooterMaster({
             <span>All Records</span>
           </label>
         )}
-   {/*     <span>Total Row: {totalRow}</span>  */}
         <div className="master-footer-pagination" style={{ opacity: isAllRecords ? 0.5 : 1 }}>
           <button type="button" className="master-page-btn" title="First Page" onClick={onFirstPage} disabled={isAllRecords || !canPrev}>
             <span className="material-icons-round master-page-icon">first_page</span>

@@ -477,6 +477,36 @@ export async function cancelPurchase(token, id) {
   return raw
 }
 
+export async function voidPurchase(token, id) {
+  const url = `/api/purchases/${encodeURIComponent(id)}/void`
+  console.log('[PurchaseAPI] voidPurchase REQUEST URL:', url)
+
+  if (!token) {
+    console.log('[PurchaseAPI] No token - simulating void')
+    const index = DUMMY_PURCHASES.findIndex(r => r.id === id || r.po_number === id)
+    if (index === -1) {
+      throw new Error('Purchase order not found')
+    }
+    DUMMY_PURCHASES[index].status = 'void'
+    DUMMY_PURCHASES[index].updated_at = new Date().toISOString()
+    return {
+      success: true,
+      data: normalizePurchase(DUMMY_PURCHASES[index]),
+      message: 'Purchase order voided successfully',
+    }
+  }
+
+  const raw = await apiFetch(url, {
+    method: 'POST',
+    token,
+  })
+  console.log('[PurchaseAPI] voidPurchase RESPONSE:', raw)
+
+  if (!raw.success) throw new Error(raw.error || raw.message || 'Failed to void purchase')
+
+  return raw
+}
+
 export async function deletePurchase(token, id) {
   const url = `/api/purchases/${encodeURIComponent(id)}`
   console.log('[PurchaseAPI] deletePurchase REQUEST URL:', url)
