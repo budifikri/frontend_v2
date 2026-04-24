@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { getPurchase, receivePurchase } from '../../../features/transaksi/purchase/purchase.api'
 import { useAuth } from '../../../shared/auth'
@@ -105,12 +105,6 @@ export function StockReceiveDetail({ selectedId, onExit, onSaveSuccess }) {
   useEffect(() => {
     load()
   }, [load])
-
-  const summary = useMemo(() => {
-    const totalQtyPo = items.reduce((sum, it) => sum + (Number(it.qty_po) || 0), 0)
-    const totalQtyReceive = items.reduce((sum, it) => sum + (Number(it.qty_receive) || 0), 0)
-    return { totalQtyPo, totalQtyReceive }
-  }, [items])
 
   const updateItem = (id, updates) => {
     setItems(prev => prev.map(it => {
@@ -324,13 +318,12 @@ export function StockReceiveDetail({ selectedId, onExit, onSaveSuccess }) {
       </div>
 
       <aside className="po-sidebar">
-          <div className="po-header-section">
-            <h1 className="po-title">STOCK RECEIVE</h1>
-            
-          <div className="stock-receive-status-group">
+        <div className="po-header-section">
+          <h1 className="po-title">STOCK RECEIVE</h1>
+          <div className="stock-receive-arrow-status-bar" aria-label="Status receive">
             <button
               type="button"
-              className={`stock-receive-status-button ${currentStatusReceive === 'draft' ? 'is-active' : 'is-inactive'}`}
+              className={`stock-receive-arrow-step ${currentStatusReceive === 'draft' ? 'is-active' : 'is-inactive'}`}
               disabled={isReceiveLocked}
               onClick={() => handleStatusReceiveChange('draft')}
             >
@@ -338,7 +331,7 @@ export function StockReceiveDetail({ selectedId, onExit, onSaveSuccess }) {
             </button>
             <button
               type="button"
-              className={`stock-receive-status-button ${currentStatusReceive === 'receive' ? 'is-active' : 'is-inactive'}`}
+              className={`stock-receive-arrow-step ${currentStatusReceive === 'receive' ? 'is-active' : 'is-inactive'}`}
               disabled={isRejectLocked}
               onClick={() => handleStatusReceiveChange('receive')}
             >
@@ -346,21 +339,14 @@ export function StockReceiveDetail({ selectedId, onExit, onSaveSuccess }) {
             </button>
             <button
               type="button"
-              className={`stock-receive-status-button ${currentStatusReceive === 'reject' ? 'is-active' : 'is-inactive'}`}
+              className={`stock-receive-arrow-step ${currentStatusReceive === 'reject' ? 'is-active' : 'is-inactive'}`}
               disabled={isReceiveLocked}
               onClick={() => handleStatusReceiveChange('reject')}
             >
               Reject
             </button>
           </div>
-            {/*
-            <div className="po-status-display">
-            <span className="po-status-label">Bar Status :</span>
-            <span className="po-status-value">{currentStatusReceive.toUpperCase()}</span>
-            </div>  */}
 
-
-            
           </div>
 
         <div className="po-meta-info">
