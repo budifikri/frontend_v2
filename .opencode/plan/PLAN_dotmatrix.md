@@ -243,6 +243,111 @@ stateDiagram-v2
 - Setiap transisi jenis printer memicu sinkronisasi `layout_type`, `template_mode`, dan default custom template milik printer aktif.
 - Persistensi dilakukan saat `Simpan`; preview selalu re-render dari state aktif setelah save.
 
+### Sequence Diagram: Event Switch Printer
+
+```mermaid
+sequenceDiagram
+  autonumber
+  actor User as Kasir/Admin
+  participant Popup as UI Setting Nota
+  participant Guard as Runtime Guard
+  participant State as POS State (receiptSettingsDraft)
+  participant Engine as ReceiptLayouts Engine
+  participant Preview as ReceiptPreview
+  participant Storage as localStorage
+
+  User->>Popup: Buka popup Setting Nota
+  Popup->>Storage: Load setting tersimpan
+  Storage-->>Popup: Data setting (thermal/dot_matrix)
+  Popup->>Guard: Cek window.__TAURI__
+
+  alt Browser (non-Tauri)
+    Guard-->>Popup: isTauriRuntime = false
+    Popup->>State: Paksa printer_type = thermal
+    Popup->>Popup: Sembunyikan opsi Dot Matrix
+    State->>Engine: Render model thermal
+    Engine-->>Preview: HTML/CSS thermal
+    Preview-->>User: Preview thermal tampil
+  else Tauri
+    Guard-->>Popup: isTauriRuntime = true
+    Popup-->>User: Tampilkan opsi Thermal + Dot Matrix
+    User->>Popup: Pilih Dot Matrix
+    Popup->>State: Update printer_type = dot_matrix
+    Popup->>State: Sync layout/template default dot matrix
+    State->>Engine: Build model dot matrix
+    Engine-->>Preview: HTML/CSS dot matrix
+    Preview-->>User: Preview dot matrix tampil
+  end
+
+  User->>Popup: Klik Simpan
+  Popup->>Storage: saveReceiptSettings(draft)
+  Storage-->>Popup: Setting tersimpan
+  Popup->>State: Set receiptSettings aktif
+  State->>Engine: Re-render sesuai printer aktif
+  Engine-->>Preview: HTML/CSS terbaru
+  Preview-->>User: Preview final + toast sukses
+```
+
+#### Rules Sequence
+- Pada browser, interaksi memilih Dot Matrix tidak tersedia di UI sehingga tidak ada event switch ke dot matrix.
+- Pada Tauri, event switch harus selalu memicu sinkronisasi `layout_type`, `template_mode`, `custom_template_html`, dan `custom_template_css`.
+- Event `Simpan` adalah satu-satunya titik persistensi; perubahan radio/toggle sebelum save hanya berlaku di draft state.
+
+### Sequence Diagram: Auto-Print Setelah Payment
+
+```mermaid
+sequenceDiagram
+  autonumber
+  actor User as Kasir
+  participant POS as POS Checkout
+  participant API as Sales API
+  participant Guard as Runtime Guard
+  participant Engine as Receipt Render Engine
+  participant Print as Print Window
+  participant Toast as UI Toast
+
+  User->>POS: Klik Bayar (status DONE)
+  POS->>API: createSale(payload)
+  API-->>POS: Sale created (id, sale_number)
+
+  alt auto_print_after_payment = false
+    POS->>Toast: Tampilkan "Pembayaran berhasil"
+  else auto_print_after_payment = true
+    POS->>API: getSaleById(createdId)
+    API-->>POS: Detail nota
+    POS->>Guard: Cek runtime + printer_type aktif
+
+    alt Browser non-Tauri
+      Guard-->>POS: Force thermal mode
+      POS->>Engine: Render receipt thermal
+      Engine-->>Print: HTML/CSS thermal
+      Print-->>User: window.print()
+    else Tauri + thermal
+      Guard-->>POS: Thermal mode
+      POS->>Engine: Render receipt thermal
+      Engine-->>Print: HTML/CSS thermal
+      Print-->>User: window.print()
+    else Tauri + dot matrix
+      Guard-->>POS: Dot matrix mode
+      POS->>Engine: Render receipt dot matrix
+      Engine-->>Print: HTML/CSS dot matrix
+      Print-->>User: window.print()
+    end
+
+    POS->>Toast: Tampilkan "Cetak nota diproses"
+  end
+
+  alt Print error / popup blocked
+    POS->>Toast: "Pembayaran sukses, tapi cetak nota gagal"
+  end
+```
+
+#### Rules Auto-Print
+- Auto-print hanya dieksekusi setelah `createSale` sukses.
+- Prioritas data print: `getSaleById(createdId)`; jika gagal, gunakan fallback model dari state transaksi saat ini.
+- Pada browser non-Tauri, jalur print dipaksa thermal walaupun setting lama menyimpan `dot_matrix`.
+- Pesan toast harus memisahkan status pembayaran vs status cetak agar operator tidak salah interpretasi.
+
 ## Checklist Uji Manual
 
 ### Browser (non-Tauri)
