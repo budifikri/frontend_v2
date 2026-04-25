@@ -6,6 +6,13 @@ export const RECEIPT_FONTS = [
   { value: 'Arial', label: 'Arial (Default)', filename: '', googleFont: '' },
 ]
 
+export const BAUD_RATE_OPTIONS = [
+  { value: 9600, label: '9600' },
+  { value: 19200, label: '19200' },
+  { value: 38400, label: '38400' },
+  { value: 57600, label: '57600' },
+]
+
 export const DEFAULT_RECEIPT_SETTINGS = {
   paper_size: '58mm',
   layout_type: 'layout_a',
@@ -23,6 +30,8 @@ export const DEFAULT_RECEIPT_SETTINGS = {
   auto_print_after_payment: true,
   show_ppn: true,
   ppn_percentage: 11,
+  com_port: '',
+  baud_rate: 9600,
 }
 
 export function normalizeReceiptSettings(value) {
@@ -60,6 +69,10 @@ export function normalizeReceiptSettings(value) {
       : DEFAULT_RECEIPT_SETTINGS.auto_print_after_payment,
     show_ppn: typeof source.show_ppn === 'boolean' ? source.show_ppn : DEFAULT_RECEIPT_SETTINGS.show_ppn,
     ppn_percentage: typeof source.ppn_percentage === 'number' && source.ppn_percentage > 0 ? source.ppn_percentage : DEFAULT_RECEIPT_SETTINGS.ppn_percentage,
+    com_port: typeof source.com_port === 'string' ? source.com_port : DEFAULT_RECEIPT_SETTINGS.com_port,
+    baud_rate: typeof source.baud_rate === 'number' && BAUD_RATE_OPTIONS.some(b => b.value === source.baud_rate)
+      ? source.baud_rate
+      : DEFAULT_RECEIPT_SETTINGS.baud_rate,
   }
 }
 

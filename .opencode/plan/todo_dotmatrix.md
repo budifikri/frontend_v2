@@ -40,6 +40,46 @@
 - [x] `npm run build` berhasil.
 - [ ] Uji manual runtime Tauri native (desktop) masih pending.
 
-## 7) Dokumentasi
-- [x] Sinkronkan perubahan implementasi dengan `PLAN_dotmatrix.md` bila ada deviasi.
-- [ ] Tambahkan catatan risiko aktual dan mitigasi final setelah implementasi selesai.
+## 8) Perbaikan Masalah Cetak Tauri (Iframe Fix)
+- [x] Implementasi Hidden Iframe untuk memperbaiki cetak (Printing) di Tauri
+- [x] Refactor `openPrintWindow` di `POS.jsx` untuk menggunakan Iframe
+- [ ] Uji coba cetak Thermal dan Dot Matrix pada environment Tauri
+- [ ] Verifikasi tampilan cetak (layout & style) di preview printer
+
+## 9) Setup tauri-plugin-serial (Rust Side)
+- [x] Tambahkan `tauri-plugin-serialplugin` ke `src-tauri/Cargo.toml`
+- [x] Register plugin di `src-tauri/src/lib.rs`
+- [x] Konfigurasi capabilities/permissions serial di `capabilities/default.json`
+
+## 10) Rust Serial Commands
+- [x] Tambah command `list_serial_ports()` → Vec<String>
+- [x] Tambah command `open_serial_port(path, baud_rate)` → Result
+- [x] Tambah command `write_serial_bytes(data)` → Result
+- [x] Tambah command `close_serial_port()` → Result
+- [x] Test cargo build --release Rust compilation
+
+## 11) Dot Matrix Print Settings (Frontend)
+- [x] Tambah field `baud_rate` di receipt settings (dropdown: 9600, 19200, 38400, 57600)
+- [x] Tambah field `com_port` di receipt settings (string)
+- [ ] Update UI setting untuk pilihan port serial dan baud rate
+
+## 12) ESC/POS Generator (JavaScript)
+- [x] Modifikasi `ReceiptLayouts.js` untuk generate raw ESC/POS text (dot matrix)
+- [x] Implementasi command ESC/POS: init, font mode, alignment, line feed, encoding
+- [x] Reuse existing `paper_size` untuk karakter per baris (58mm=40, 80mm=42)
+
+## 13) Frontend Serial Module
+- [x] Buat `src/utils/serialApi.js`
+- [x] Implementasi `listPorts()`, `connect()`, `print()`, `disconnect()`
+- [x] Error handling: port busy, timeout, disconnected
+
+## 14) Integration with Print Flow
+- [x] Update `openPrintWindow` di POS.jsx: cek printer_type, Thermal → iframe, Dot Matrix → serial
+- [ ] Test print Dot Matrix via serial port (TM-U300)
+- [ ] Test auto-print Dot Matrix setelah payment
+
+## 15) UI Setting Dot Matrix
+- [ ] Tambahkan section setting port/baud di popup nota settings
+- [ ] Tombol "Scan Port" untuk enumerate COM ports
+- [ ] Tombol "Test Print" untuk kirim karakter test
+- [ ] Status indicator koneksi serial

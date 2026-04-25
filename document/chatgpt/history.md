@@ -1,6 +1,6 @@
 https://chatgpt.com/codex/cloud/settings/analytics#usage
 
-current  :adm.tirtamas.purwokerto@gmail.com : :91% remaining Resets May 2, 2026 8:50 AM
+current  :mbffikri@gmail.com :100%  remaining Resets May 2, 2026 11:54 AM
 
 
 
@@ -13,4 +13,13 @@ griyailmu.diksisenja2@gmail.com :0%  remaining  Resets May 1, 2026 3:32 PM (4864
 it.azkamulia@gmail.com :0% reset on Apr 29, 2026 8:48 AM. 
 fikriawan2007@gmail.com : 2 % remaining Resets Apr 29, 2026 10:11 AM
 griyailmu.diksisenja@gmail.com :0%  remaining Resets Apr 30, 2026 11:40 AM (486456@Ds)
-Marketplace.ba.cantik@gmail.com : (Mammy1953)
+adm.tirtamas.purwokerto@gmail.com : :0% remaining Resets May 2, 2026 8:50 AM
+
+
+Gemini :https://aistudio.google.com/api-keys
+https://aistudio.google.com/rate-limit?timeRange=last-28-days
+
+it.azkamulia@gmail.com :AIzaSyDt7QH_evlau_q5rkJPE65YLM2pmOFSZGk   habis
+
+
+

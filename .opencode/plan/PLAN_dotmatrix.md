@@ -378,3 +378,108 @@ sequenceDiagram
   - `src/components/POS/ReceiptLayouts.jsx`
   - `src/components/POS/ReceiptPreview.jsx`
   - `src/components/POS/POS.css`
+
+---
+
+## 7) Integrasi Printer Dot Matrix TM-U300 via Serial Port
+
+### Arsitektur Sistem
+```
+┌─────────────────────┐         ┌─────────────────────────────────────┐
+│   SERVER MACHINE    │         │         CLIENT MACHINE              │
+│                     │  HTTP   │                                     │
+│   ┌──────────────┐  │◄───────►│  ┌──────────────────────────────┐   │
+│   │  Go Backend  │  │   REST  │  │   Desktop Tauri (Windows)    │   │
+│   └──────────────┘  │         │  │   - Vite + React frontend    │   │
+│                     │         │  │   - TM-U300 (USB-to-Serial)   │   │
+└─────────────────────┘         │  │     ──► COM Port              │   │
+                                 │  └──────────────────────────────┘   │
+                                 └─────────────────────────────────────┘
+```
+
+### Scope Perubahan
+
+#### 7.1) Setup tauri-plugin-serial (Rust Side)
+- Tambahkan `tauri-plugin-serial` ke `src-tauri/Cargo.toml`
+- Register plugin di `src-tauri/src/lib.rs`
+- Konfigurasi capabilities/permissions di `tauri.conf.json`:
+  - `serial:default`
+  - `serial:allow-open`
+  - `serial:allow-write`
+  - `serial:allow-close`
+  - `serial:allow-list`
+
+#### 7.2) Rust Serial Commands
+Tambah Tauri commands di `src-tauri/src/lib.rs`:
+- `list_serial_ports()` → Vec<String> (enumerate COM ports)
+- `open_serial_port(path, baud_rate)` → Result
+- `write_serial_bytes(data: Vec<u8>)` → Result
+- `close_serial_port()` → Result
+
+#### 7.3) Dot Matrix Print Settings (Frontend)
+Tambah field di setting nota:
+- `baud_rate`: dropdown (9600, 19200, 38400, 57600)
+- `com_port`: string (COM port path)
+- `paper_width`: 76mm (42 chars) atau 57.5mm (40 chars) — reuse existing `paper_size`
+
+#### 7.4) ESC/POS Generator (JavaScript)
+Modifikasi `ReceiptLayouts.js` untuk generate raw ESC/POS text saat `printer_type === 'dot_matrix'`:
+- Initialize: `ESC @`
+- Font mode: `ESC ! n` (normal/double height/double width)
+- Alignment: `ESC a n` (0=left, 1=center, 2=right)
+- Line feed: `LF` atau `ESC d n`
+- Character set encoding (ISO-8859-1 / PC437)
+- Cut: `GS V` (partial cut)
+
+#### 7.5) Frontend Serial Module
+Buat `src/lib/serial/serialApi.js`:
+- `listPorts()` → invoke Tauri command
+- `connect(port, baudRate)` → invoke open
+- `print(rawEscposText)` → encode + write
+- `disconnect()` → invoke close
+- Error handling: port busy, timeout, disconnected
+
+#### 7.6) Integration with Print Flow
+Di `POS.jsx`:
+- Cek `printer_type` aktif
+- Thermal → tetap pakai `iframe.print()`
+- Dot Matrix → invoke serial module
+
+### Technical Notes TM-U300
+- Baud rate default: 9600
+- Paper width: 76mm (42 chars) atau 57.5mm (40 chars)
+- Data bits: 8, Parity: None, Stop bits: 1
+- Encoding: PC437 (USA) atau ISO-8859-1 (Latin-1)
+
+### Visual Sketsa Setting Dot Matrix
+
+```text
++-----------------------------------------------------------------------------------+
+| Setting Printer Dot Matrix                                                [x]     |
++--------------------------------+--------------------------------------------------+
+| Port Serial                    |                                                  |
+| [COM3                    v]   |                                                  |
+|                                |                                                  |
+| Baud Rate                      |                                                  |
+| [9600                     v]  |                                                  |
+|                                |                                                  |
+| Paper Width                    |                                                  |
+| ( ) 76mm (42 karakter/baris)  |                                                  |
+| ( ) 57.5mm (40 karakter/baris) |                                                  |
+|                                |                                                  |
+| [Scan Port]                    |                                                  |
+| [Test Print]                   |                                                  |
++--------------------------------+--------------------------------------------------+
+| Status: Connected to COM3 @ 9600 baud                                           |
++-----------------------------------------------------------------------------------+
+```
+
+## Risiko & Mitigasi (TM-U300)
+- **Risiko:** USB-to-Serial driver tidak terinstall
+  - **Mitigasi:** Test `list_ports` saat load, tampilkan pesan jika tidak ada port
+- **Risiko:** Port sedang digunakan aplikasi lain
+  - **Mitigasi:** Handle "port busy" error + retry logic
+- **Risiko:** Encoding karakter tidak cocok
+  - **Mitigasi:** Default ke PC437, opsi override encoding di setting
+- **Risiko:** Paper jam atau printer offline
+  - **Mitigasi:** Check print result, tampilkan toast error spesifik

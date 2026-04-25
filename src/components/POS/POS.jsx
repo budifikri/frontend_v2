@@ -11,6 +11,8 @@ import { DEFAULT_RECEIPT_SETTINGS, RECEIPT_FONTS, loadReceiptSettings, resetRece
 import { getReceiptLayoutOptions, getReceiptPaperClass, renderReceiptContent, getDefaultCustomTemplate, normalizeReceiptDraftForPrinter, RECEIPT_TEMPLATE_TOKENS } from './ReceiptLayouts'
 import { ReceiptPreview } from './ReceiptPreview'
 import { Toast } from '../../components/Toast'
+import { printViaSerial } from '../../utils/serialApi'
+import { generateEscposFromHtml } from '../../utils/escposGenerator'
 import './POS.css'
 
 export function POS() {
@@ -89,6 +91,7 @@ export function POS() {
   const [companyProfile, setCompanyProfile] = useState({ name: '', address: '', phone: '' })
   const wysiwygEditorRef = useRef(null)
   const codeEditorRef = useRef(null)
+  const printFrameRef = useRef(null)
   const [showTemplateCode, setShowTemplateCode] = useState(false)
   const [templateCodeHtml, setTemplateCodeHtml] = useState('')
   const [toast, setToast] = useState({ isOpen: false, message: '', type: 'info' })
@@ -815,15 +818,52 @@ export function POS() {
           ${receiptBody}
           ${showCalibration ? `<div class="calibration-block"><div class="calibration-label">${calibrationLabel}</div><div class="calibration-line"></div><div class="calibration-scale"><span>0</span><span>50mm</span></div></div>` : ''}
         </div>
-        <script>
+        ${isTauriRuntime ? '' : `<script>
           window.onload = () => {
             window.print()
             setTimeout(() => window.close(), 200)
           }
-        </script>
+        </script>`}
       </body>
       </html>
     `
+
+    if (isDotMatrix && isTauriRuntime) {
+      const { com_port, baud_rate } = effectiveReceiptSettings
+      if (!com_port) {
+        throw new Error('COM port belum diset di setting nota')
+      }
+
+      const escposText = generateEscposFromHtml(html, effectiveReceiptSettings)
+      printViaSerial(escposText, com_port, baud_rate || 9600)
+        .catch((err) => {
+          console.error('Serial print error:', err)
+        })
+      return
+    }
+
+    if (isTauriRuntime) {
+      const printFrame = printFrameRef.current
+      if (!printFrame) {
+        throw new Error('Frame cetak Tauri tidak tersedia')
+      }
+
+      printFrame.onload = () => {
+        printFrame.onload = null
+        const frameWindow = printFrame.contentWindow
+        if (!frameWindow) {
+          return
+        }
+
+        // Beri jeda singkat agar layout dan font pada iframe selesai dirender sebelum print dipanggil.
+        window.setTimeout(() => {
+          frameWindow.focus()
+          frameWindow.print()
+        }, 250)
+      }
+      printFrame.srcdoc = html
+      return
+    }
 
     const printWindow = window.open('', '_blank', 'width=800,height=900')
     if (!printWindow) {
@@ -831,7 +871,7 @@ export function POS() {
     }
     printWindow.document.write(html)
     printWindow.document.close()
-  }, [auth.companyName, companyProfile.address, companyProfile.name, companyProfile.phone, ensureRuntimeReceiptSettings, escapeHtml, formatCurrency, formatDateTime, receiptSettings])
+  }, [auth.companyName, companyProfile.address, companyProfile.name, companyProfile.phone, ensureRuntimeReceiptSettings, escapeHtml, formatCurrency, formatDateTime, isTauriRuntime, receiptSettings])
 
   const handleOpenReceiptSettings = useCallback(() => {
     const runtimeSafe = ensureRuntimeReceiptSettings(receiptSettings)
@@ -2910,6 +2950,7 @@ export function POS() {
         duration={2000}
         onClose={() => setToast(prev => ({ ...prev, isOpen: false }))}
       />
+      <iframe ref={printFrameRef} id="pos-print-frame" style={{ display: 'none' }} title="Print Preview"></iframe>
     </div>
   )
 }

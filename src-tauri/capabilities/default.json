@@ -7,7 +7,19 @@
   ],
   "permissions": [
     "core:default",
-    "core:window:allow-close",    
-    "core:window:allow-minimize"
+    "core:window:allow-close",
+    "core:window:allow-minimize",
+    "serialplugin:default",
+    "serialplugin:allow-open",
+    "serialplugin:allow-write",
+    "serialplugin:allow-write-binary",
+    "serialplugin:allow-close",
+    "serialplugin:allow-available-ports",
+    "serialplugin:allow-read",
+    "serialplugin:allow-set-baud-rate",
+    "serialplugin:allow-set-data-bits",
+    "serialplugin:allow-set-timeout",
+    "serialplugin:allow-set-parity",
+    "serialplugin:allow-set-stop-bits"
   ]
 }
