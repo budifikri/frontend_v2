@@ -33,6 +33,13 @@
 - [ ] Uji custom template Dot Matrix (Apply/Code/Reset/Token).
 - [ ] Uji auto-print setelah payment untuk thermal dan dot matrix.
 
+## Progress Update (Latest)
+- [x] Validasi implementasi runtime guard + disable Dot Matrix di browser (code-level).
+- [x] Validasi animasi/visual Dot Matrix via pengecekan source (`dotMatrixPreviewEnter`, `tractorFeedSweep`).
+- [x] `npm run lint` lulus tanpa error baru (tersisa warning lama di modul lain).
+- [x] `npm run build` berhasil.
+- [ ] Uji manual runtime Tauri native (desktop) masih pending.
+
 ## 7) Dokumentasi
 - [x] Sinkronkan perubahan implementasi dengan `PLAN_dotmatrix.md` bila ada deviasi.
 - [ ] Tambahkan catatan risiko aktual dan mitigasi final setelah implementasi selesai.
