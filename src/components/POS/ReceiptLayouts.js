@@ -1,8 +1,16 @@
-export const RECEIPT_LAYOUT_OPTIONS = [
+export const THERMAL_LAYOUT_OPTIONS = [
   { id: 'layout_a', label: 'Layout A - Simple', description: 'Ringkas, fokus ke item dan total' },
   { id: 'layout_b', label: 'Layout B - Detail Pajak', description: 'Menampilkan subtotal, PPN, dan rincian bayar' },
   { id: 'layout_c', label: 'Layout C - Brand + Footer', description: 'Header brand lebih kuat dan footer promosi' },
 ]
+
+export const DOT_MATRIX_LAYOUT_OPTIONS = [
+  { id: 'layout_a', label: 'DM-A - Continuous', description: 'Format kontinyu, header dan item paling ringkas' },
+  { id: 'layout_b', label: 'DM-B - Grid Kasir', description: 'Meta transaksi lebih lengkap untuk audit kasir' },
+  { id: 'layout_c', label: 'DM-C - Compact Detail', description: 'Detail qty x harga lebih rapat untuk kertas panjang' },
+]
+
+export const RECEIPT_LAYOUT_OPTIONS = THERMAL_LAYOUT_OPTIONS
 
 export const RECEIPT_TEMPLATE_MODE_OPTIONS = [
   { id: 'default', label: 'Default Template' },
@@ -31,7 +39,7 @@ export const RECEIPT_TEMPLATE_TOKENS = [
   '{{ganti_baris}}',
 ]
 
-export const DEFAULT_CUSTOM_TEMPLATE_HTML = `<div class="tpl-note">
+export const DEFAULT_CUSTOM_TEMPLATE_HTML_THERMAL = `<div class="tpl-note">
   <div class="tpl-header">
     <h3>{{company_name}}</h3>
     <div class="tpl-sub">{{company_address}}, Telp: {{company_phone}}</div>
@@ -56,7 +64,7 @@ export const DEFAULT_CUSTOM_TEMPLATE_HTML = `<div class="tpl-note">
   <div class="tpl-footer">{{footer_text}}</div>
 </div>`
 
-export const DEFAULT_CUSTOM_TEMPLATE_CSS = `.tpl-note { font-family: 'JetBrains Mono', Arial, sans-serif; }
+export const DEFAULT_CUSTOM_TEMPLATE_CSS_THERMAL = `.tpl-note { font-family: 'JetBrains Mono', Arial, sans-serif; }
 .tpl-header { text-align: center; border-bottom: 1px dashed #94a3b8; padding-bottom: 6px; margin-bottom: 8px; }
 .tpl-header h3 { margin: 0 0 4px; font-size: 15px; }
 .tpl-sub { margin-bottom: 4px; font-size: 11px; }
@@ -70,12 +78,52 @@ export const DEFAULT_CUSTOM_TEMPLATE_CSS = `.tpl-note { font-family: 'JetBrains 
 .tpl-footer { margin-top: 8px; border-top: 1px dashed #94a3b8; padding-top: 6px; text-align: center; white-space: pre-line; }
 .tpl-garis { border-top: 1px dashed #94a3b8; margin: 6px 0; }`
 
-const RECEIPT_TEMPLATE_MAP = {
+export const DEFAULT_CUSTOM_TEMPLATE_HTML_DOT_MATRIX = `<div class="tpl-note tpl-dot">
+  <div class="tpl-dot-header">
+    <div>{{company_name}}</div>
+    <div>{{company_address}}</div>
+    <div>Telp: {{company_phone}}</div>
+    {{garis}}
+    <div>No   : {{sale_number}}</div>
+    <div>Tgl  : {{sale_date}}</div>
+    <div>Kasir: {{cashier_name}}</div>
+  </div>
+
+  <div class="tpl-items tpl-dot-items">
+    {{items_rows}}
+  </div>
+
+  {{garis}}
+  <div class="tpl-summary tpl-dot-summary">
+    <div><span>Subtotal</span><span>{{original_total}}</span></div>
+    <div><span>Diskon</span><span>- {{discount}}</span></div>
+    {{ppn_row}}
+    <div class="is-total"><span>TOTAL</span><span>{{total_amount}}</span></div>
+    <div><span>Bayar</span><span>{{paid_amount}}</span></div>
+    <div><span>Kembali</span><span>{{change_amount}}</span></div>
+  </div>
+
+  {{garis}}
+  <div class="tpl-footer tpl-dot-footer">{{footer_text}}</div>
+</div>`
+
+export const DEFAULT_CUSTOM_TEMPLATE_CSS_DOT_MATRIX = `.tpl-dot { font-family: 'Courier New', Consolas, monospace; letter-spacing: .01em; }
+.tpl-dot-header { text-align: left; line-height: 1.4; }
+.tpl-dot-items { margin-top: 6px; }
+.tpl-dot-summary > div { display: flex; justify-content: space-between; }
+.tpl-dot-summary .is-total { font-weight: 700; }
+.tpl-dot-footer { text-align: left; white-space: pre-line; }
+.tpl-garis { border-top: 1px dotted #6b7280; margin: 6px 0; }`
+
+export const DEFAULT_CUSTOM_TEMPLATE_HTML = DEFAULT_CUSTOM_TEMPLATE_HTML_THERMAL
+export const DEFAULT_CUSTOM_TEMPLATE_CSS = DEFAULT_CUSTOM_TEMPLATE_CSS_THERMAL
+
+const RECEIPT_TEMPLATE_MAP_THERMAL = {
   layout_a: {
     title: 'NOTA PENJUALAN',
     subtitle: '',
     headerVariant: 'default',
-    itemsVariant: 'table_simple',
+    itemsVariant: 'line',
     showMetaWarehouse: false,
     showSummarySubtotal: false,
     showSummaryTax: false,
@@ -86,7 +134,7 @@ const RECEIPT_TEMPLATE_MAP = {
     title: 'NOTA PENJUALAN',
     subtitle: '',
     headerVariant: 'grid',
-    itemsVariant: 'table_detail',
+    itemsVariant: 'line',
     showMetaWarehouse: true,
     showSummarySubtotal: true,
     showSummaryTax: true,
@@ -103,6 +151,42 @@ const RECEIPT_TEMPLATE_MAP = {
     showSummaryTax: false,
     showPayments: true,
     footerText: 'Terima kasih sudah berbelanja. Simpan nota ini untuk klaim retur.',
+  },
+}
+
+const RECEIPT_TEMPLATE_MAP_DOT_MATRIX = {
+  layout_a: {
+    title: 'NOTA PENJUALAN',
+    subtitle: 'DOT MATRIX',
+    headerVariant: 'dot',
+    itemsVariant: 'dot_compact',
+    showMetaWarehouse: false,
+    showSummarySubtotal: true,
+    showSummaryTax: false,
+    showPayments: false,
+    footerText: 'Terima kasih sudah berbelanja.',
+  },
+  layout_b: {
+    title: 'NOTA PENJUALAN',
+    subtitle: 'DOT MATRIX',
+    headerVariant: 'dot',
+    itemsVariant: 'dot_compact',
+    showMetaWarehouse: true,
+    showSummarySubtotal: true,
+    showSummaryTax: true,
+    showPayments: true,
+    footerText: 'Simpan nota untuk arsip transaksi.',
+  },
+  layout_c: {
+    title: 'NOTA PENJUALAN',
+    subtitle: 'DOT MATRIX COMPACT',
+    headerVariant: 'dot',
+    itemsVariant: 'dot_dense',
+    showMetaWarehouse: false,
+    showSummarySubtotal: true,
+    showSummaryTax: true,
+    showPayments: true,
+    footerText: 'Terima kasih.',
   },
 }
 
@@ -145,13 +229,76 @@ function replaceTemplateToken(template, token, value) {
   return template.replace(new RegExp(`{{\\s*${token}\\s*}}`, 'g'), value)
 }
 
+function normalizePrinterType(printerType) {
+  return printerType === 'dot_matrix' ? 'dot_matrix' : 'thermal'
+}
+
+function getTemplateMapByPrinter(printerType) {
+  return normalizePrinterType(printerType) === 'dot_matrix'
+    ? RECEIPT_TEMPLATE_MAP_DOT_MATRIX
+    : RECEIPT_TEMPLATE_MAP_THERMAL
+}
+
+function getDefaultTemplateBundle(printerType) {
+  if (normalizePrinterType(printerType) === 'dot_matrix') {
+    return {
+      html: DEFAULT_CUSTOM_TEMPLATE_HTML_DOT_MATRIX,
+      css: DEFAULT_CUSTOM_TEMPLATE_CSS_DOT_MATRIX,
+      layoutType: DOT_MATRIX_LAYOUT_OPTIONS[0].id,
+    }
+  }
+
+  return {
+    html: DEFAULT_CUSTOM_TEMPLATE_HTML_THERMAL,
+    css: DEFAULT_CUSTOM_TEMPLATE_CSS_THERMAL,
+    layoutType: THERMAL_LAYOUT_OPTIONS[0].id,
+  }
+}
+
+export function getDefaultCustomTemplate(printerType) {
+  return getDefaultTemplateBundle(printerType)
+}
+
+export function getDefaultCustomTemplateHtml(printerType) {
+  return getDefaultTemplateBundle(printerType).html
+}
+
+export function getDefaultCustomTemplateCss(printerType) {
+  return getDefaultTemplateBundle(printerType).css
+}
+
+export function getReceiptLayoutOptions(printerType) {
+  return normalizePrinterType(printerType) === 'dot_matrix'
+    ? DOT_MATRIX_LAYOUT_OPTIONS
+    : THERMAL_LAYOUT_OPTIONS
+}
+
+export function normalizeReceiptDraftForPrinter(draft, printerType) {
+  const normalizedType = normalizePrinterType(printerType)
+  const defaults = getDefaultTemplateBundle(normalizedType)
+  const validLayouts = getReceiptLayoutOptions(normalizedType).map((item) => item.id)
+
+  return {
+    ...draft,
+    printer_type: normalizedType,
+    layout_type: validLayouts.includes(draft?.layout_type) ? draft.layout_type : defaults.layoutType,
+    custom_template_html: typeof draft?.custom_template_html === 'string' && draft.custom_template_html.trim() !== ''
+      ? draft.custom_template_html
+      : defaults.html,
+    custom_template_css: typeof draft?.custom_template_css === 'string' && draft.custom_template_css.trim() !== ''
+      ? draft.custom_template_css
+      : defaults.css,
+  }
+}
+
 export function getReceiptPaperClass(paperSize) {
   return paperSize === '80mm' ? 'paper-80' : 'paper-58'
 }
 
-export function getReceiptLayoutLabel(layoutType) {
-  const found = RECEIPT_LAYOUT_OPTIONS.find((item) => item.id === layoutType)
-  return found?.label || RECEIPT_LAYOUT_OPTIONS[0].label
+export function getReceiptLayoutLabel(layoutType, printerType = 'thermal') {
+  const layoutOptions = getReceiptLayoutOptions(printerType)
+  const found = layoutOptions.find((item) => item.id === layoutType)
+  return found?.label || layoutOptions[0].label
 }
 
 function buildItemRows(sale) {
@@ -161,7 +308,6 @@ function buildItemRows(sale) {
     const originalPrice = item.original_price || unitPrice
     const discount = originalPrice - unitPrice
     const tierLabel = item.notes || ''
-    console.log('[ReceiptItem]', { unitPrice, originalPrice, discount, tierLabel })
     return {
       index: index + 1,
       name: item.product_name || item.name || '-',
@@ -182,8 +328,9 @@ function buildPaymentRows(sale) {
   }))
 }
 
-function getReceiptTemplate(layoutType) {
-  return RECEIPT_TEMPLATE_MAP[layoutType] || RECEIPT_TEMPLATE_MAP.layout_a
+function getReceiptTemplate(layoutType, printerType) {
+  const templateMap = getTemplateMapByPrinter(printerType)
+  return templateMap[layoutType] || templateMap.layout_a
 }
 
 function computeSummaryFromItems(itemRows, fallbackSummary, ppnPercentage = 11) {
@@ -196,10 +343,9 @@ function computeSummaryFromItems(itemRows, fallbackSummary, ppnPercentage = 11) 
   const taxRate = ppnPercentage / 100
   const tax = Math.round(afterDiscount * taxRate)
   const total = subtotal + tax
-  
   const paid = fallbackSummary.paid || total
   const change = Math.max(0, paid - total)
-  
+
   return {
     subtotal,
     originalTotal,
@@ -213,8 +359,10 @@ function computeSummaryFromItems(itemRows, fallbackSummary, ppnPercentage = 11) 
 }
 
 export function buildReceiptTemplateModel(sale, settings, options = {}) {
-  const layoutType = settings.layout_type || 'layout_a'
-  const template = getReceiptTemplate(layoutType)
+  const printerType = normalizePrinterType(settings.printer_type)
+  const normalizedSettings = normalizeReceiptDraftForPrinter(settings, printerType)
+  const layoutType = normalizedSettings.layout_type || 'layout_a'
+  const template = getReceiptTemplate(layoutType, printerType)
   const withSamples = Boolean(options.withSamples)
 
   const rawItemRows = buildItemRows(sale)
@@ -223,8 +371,8 @@ export function buildReceiptTemplateModel(sale, settings, options = {}) {
   const rawPaymentRows = buildPaymentRows(sale)
   const paymentRows = rawPaymentRows.length > 0 || !withSamples ? rawPaymentRows : SAMPLE_PAYMENT_ROWS
 
-  const ppnPercentage = settings.ppn_percentage || 11
-  const showPpn = settings.show_ppn !== false
+  const ppnPercentage = normalizedSettings.ppn_percentage || 11
+  const showPpn = normalizedSettings.show_ppn !== false
 
   const baseSummary = {
     subtotal: sale.subtotal || 0,
@@ -236,21 +384,24 @@ export function buildReceiptTemplateModel(sale, settings, options = {}) {
     change: sale.change_amount || 0,
   }
 
-  const summary = itemRows.length > 0 ? computeSummaryFromItems(itemRows, baseSummary, showPpn ? ppnPercentage : 0) : baseSummary
+  const summary = itemRows.length > 0
+    ? computeSummaryFromItems(itemRows, baseSummary, showPpn ? ppnPercentage : 0)
+    : baseSummary
 
   return {
+    printerType,
     layoutType,
     template,
-    templateMode: settings.template_mode || 'default',
-    showLogo: Boolean(settings.show_logo),
-    showFooter: Boolean(settings.show_footer),
+    templateMode: normalizedSettings.template_mode || 'default',
+    showLogo: Boolean(normalizedSettings.show_logo),
+    showFooter: Boolean(normalizedSettings.show_footer),
     showPpn,
     ppnPercentage,
     taxRate: showPpn ? ppnPercentage / 100 : 0,
     company: {
       name: sale.company_name || '-',
-      address: settings.company_address?.trim() || sale.company_address || '',
-      phone: settings.company_phone?.trim() || sale.company_phone || '',
+      address: normalizedSettings.company_address?.trim() || sale.company_address || '',
+      phone: normalizedSettings.company_phone?.trim() || sale.company_phone || '',
     },
     title: template.title,
     subtitle: template.subtitle,
@@ -269,15 +420,29 @@ export function buildReceiptTemplateModel(sale, settings, options = {}) {
       'items',
       'summary',
       template.showPayments ? 'payments' : null,
-      settings.show_footer ? 'footer' : null,
+      normalizedSettings.show_footer ? 'footer' : null,
     ].filter(Boolean),
-    footerText: settings.footer_text?.trim() || template.footerText,
-    customTemplateHtml: settings.custom_template_html || DEFAULT_CUSTOM_TEMPLATE_HTML,
-    customTemplateCss: settings.custom_template_css || DEFAULT_CUSTOM_TEMPLATE_CSS,
+    footerText: normalizedSettings.footer_text?.trim() || template.footerText,
+    customTemplateHtml: normalizedSettings.custom_template_html,
+    customTemplateCss: normalizedSettings.custom_template_css,
   }
 }
 
 function renderHtmlHeader(model, helpers) {
+  if (model.template.headerVariant === 'dot') {
+    return `
+      <div class="receipt-header-wrap dot">
+        <div class="meta-row">${helpers.escapeHtml(model.company.name)}</div>
+        ${model.company.address ? `<div class="meta-row">${helpers.escapeHtml(model.company.address)}</div>` : ''}
+        ${model.company.phone ? `<div class="meta-row">Telp: ${helpers.escapeHtml(model.company.phone)}</div>` : ''}
+        <div class="meta-row">No: ${helpers.escapeHtml(model.meta.number)}</div>
+        <div class="meta-row">Tgl: ${helpers.escapeHtml(helpers.formatDateTime(model.meta.date))}</div>
+        <div class="meta-row">Kasir: ${helpers.escapeHtml(model.meta.cashier)}</div>
+        ${model.template.showMetaWarehouse ? `<div class="meta-row">Gudang: ${helpers.escapeHtml(model.meta.warehouse)}</div>` : ''}
+      </div>
+    `
+  }
+
   const logoHtml = model.showLogo ? '<div class="receipt-logo">PX</div>' : ''
   const companyAddressHtml = model.company.address ? `<div class="subtitle">${helpers.escapeHtml(model.company.address)}</div>` : ''
   const companyPhoneHtml = model.company.phone ? `<div class="subtitle">Telp: ${helpers.escapeHtml(model.company.phone)}</div>` : ''
@@ -315,7 +480,28 @@ function renderHtmlHeader(model, helpers) {
   `
 }
 
-function renderHtmlItems(model, helpers) {
+function renderDotMatrixItems(model, helpers) {
+  const rows = model.itemRows.map((item) => {
+    const unitText = `${item.quantity} x ${helpers.formatCurrency(item.unitPrice)}`
+    return `
+      <div class="dot-item-row">
+        <div class="dot-item-name">${helpers.escapeHtml(item.name)}</div>
+        <div class="dot-item-detail">
+          <span>${helpers.escapeHtml(unitText)}</span>
+          <strong>${helpers.formatCurrency(item.subtotal)}</strong>
+        </div>
+      </div>
+    `
+  }).join('')
+
+  return `
+    <div class="line-items-wrap dot">
+      ${rows || '<div class="dot-item-row"><div class="dot-item-name">-</div></div>'}
+    </div>
+  `
+}
+
+function renderLineItems(model, helpers) {
   const lineItems = model.itemRows.map((item) => `
     <div class="line-item">
       <div class="line-title">${helpers.escapeHtml(item.name)}</div>
@@ -333,10 +519,18 @@ function renderHtmlItems(model, helpers) {
   `
 }
 
+function renderHtmlItems(model, helpers) {
+  if (model.template.itemsVariant === 'dot_compact' || model.template.itemsVariant === 'dot_dense') {
+    return renderDotMatrixItems(model, helpers)
+  }
+
+  return renderLineItems(model, helpers)
+}
+
 function renderHtmlSummary(model, helpers) {
   const itemCount = model.itemRows.reduce((sum, item) => sum + item.quantity, 0)
   return `
-    <div class="summary">
+    <div class="summary ${model.printerType === 'dot_matrix' ? 'dot' : ''}">
       ${model.template.showSummarySubtotal ? `<div><span>Subtotal (${itemCount} Item)</span><span>${helpers.formatCurrency(model.summary.originalTotal)}</span></div>` : ''}
       ${model.summary.discount > 0 ? `<div class="discount"><span>Total Diskon</span><span>- ${helpers.formatCurrency(model.summary.discount)}</span></div>` : ''}
       ${model.showPpn ? `<div><span>PPN (${model.ppnPercentage}%)</span><span>${helpers.formatCurrency(model.summary.tax)}</span></div>` : ''}
@@ -353,7 +547,7 @@ function renderHtmlPayments(model, helpers) {
   `).join('')
 
   return `
-    <div class="payments-block">
+    <div class="payments-block ${model.printerType === 'dot_matrix' ? 'dot' : ''}">
       <strong>Pembayaran</strong>
       ${rows || '<div class="pay-row"><span>-</span><span>-</span></div>'}
     </div>
@@ -362,7 +556,7 @@ function renderHtmlPayments(model, helpers) {
 
 function renderHtmlFooter(model, helpers) {
   const footerHtml = helpers.escapeHtml(model.footerText).replaceAll('\n', '<br />')
-  return `<div class="footer">${footerHtml}</div>`
+  return `<div class="footer ${model.printerType === 'dot_matrix' ? 'dot' : ''}">${footerHtml}</div>`
 }
 
 function renderDefaultReceiptHtml(model, helpers) {
@@ -386,12 +580,13 @@ function renderCustomItemsRows(model, helpers) {
       </div>
       ${item.discount > 0 && item.quantity > 0 ? `
       <div class="tpl-item-diskon">
-        <span> *Diskon ${item.tierLabel || 'promo'}</span>
+        <span>*Diskon ${item.tierLabel || 'promo'}</span>
         <span>(- ${helpers.formatCurrency(item.discount * item.quantity)})</span>
       </div>
       ` : ''}
     </div>
   `).join('')
+
   return rows || '<div class="tpl-item">-</div>'
 }
 
@@ -402,12 +597,13 @@ function renderCustomPaymentsRows(model, helpers) {
       <span>${helpers.formatCurrency(payment.amount)}</span>
     </div>
   `).join('')
+
   return rows || '<div class="tpl-pay-row"><span>-</span><span>-</span></div>'
 }
 
 function renderCustomReceiptHtml(model, helpers) {
-  const templateHtml = sanitizeHtmlTemplate(model.customTemplateHtml || DEFAULT_CUSTOM_TEMPLATE_HTML)
-  const customCss = sanitizeCssTemplate(model.customTemplateCss || DEFAULT_CUSTOM_TEMPLATE_CSS)
+  const templateHtml = sanitizeHtmlTemplate(model.customTemplateHtml)
+  const customCss = sanitizeCssTemplate(model.customTemplateCss)
   const footerToken = helpers.escapeHtml(model.footerText).replaceAll('\n', '<br />')
 
   const tokenValues = {

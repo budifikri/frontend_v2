@@ -8,7 +8,7 @@ import { listWarehouses } from '../../features/master/warehouse/warehouse.api'
 import { openCashDrawer, getCurrentCashDrawer, getCashDrawerSummary, closeCashDrawer, cashInDrawer, cashOutDrawer } from '../../features/transaksi/cash-drawer/cashDrawer.api'
 import { createSale, listSales, getSaleById } from '../../features/transaksi/sales/sales.api'
 import { DEFAULT_RECEIPT_SETTINGS, RECEIPT_FONTS, loadReceiptSettings, resetReceiptSettings, saveReceiptSettings } from '../../features/setting/receiptSetting.storage'
-import { RECEIPT_LAYOUT_OPTIONS, getReceiptPaperClass, renderReceiptContent, DEFAULT_CUSTOM_TEMPLATE_HTML, DEFAULT_CUSTOM_TEMPLATE_CSS, RECEIPT_TEMPLATE_TOKENS } from './ReceiptLayouts'
+import { getReceiptLayoutOptions, getReceiptPaperClass, renderReceiptContent, getDefaultCustomTemplate, normalizeReceiptDraftForPrinter, RECEIPT_TEMPLATE_TOKENS } from './ReceiptLayouts'
 import { ReceiptPreview } from './ReceiptPreview'
 import { Toast } from '../../components/Toast'
 import './POS.css'
@@ -95,6 +95,31 @@ export function POS() {
   const priceTierCacheRef = useRef({})
   const [activePromos, setActivePromos] = useState([])
   const promoCacheRef = useRef({})
+  const isTauriRuntime = Boolean(window.__TAURI__)
+
+  const ensureRuntimeReceiptSettings = useCallback((value) => {
+    const source = value && typeof value === 'object' ? value : DEFAULT_RECEIPT_SETTINGS
+    const runtimePrinterType = !isTauriRuntime && source.printer_type === 'dot_matrix'
+      ? 'thermal'
+      : source.printer_type
+
+    return normalizeReceiptDraftForPrinter(source, runtimePrinterType)
+  }, [isTauriRuntime])
+
+  const applyPrinterTypeToDraft = useCallback((draft, nextPrinterType) => {
+    const runtimePrinterType = !isTauriRuntime
+      ? 'thermal'
+      : nextPrinterType
+
+    const defaultTemplate = getDefaultCustomTemplate(runtimePrinterType)
+    return normalizeReceiptDraftForPrinter({
+      ...draft,
+      printer_type: runtimePrinterType,
+      layout_type: defaultTemplate.layoutType,
+      custom_template_html: defaultTemplate.html,
+      custom_template_css: defaultTemplate.css,
+    }, runtimePrinterType)
+  }, [isTauriRuntime])
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000)
@@ -114,9 +139,10 @@ export function POS() {
 
   useEffect(() => {
     const loaded = loadReceiptSettings()
-    setReceiptSettings(loaded)
-    setReceiptSettingsDraft(loaded)
-  }, [])
+    const runtimeSafe = ensureRuntimeReceiptSettings(loaded)
+    setReceiptSettings(runtimeSafe)
+    setReceiptSettingsDraft(runtimeSafe)
+  }, [ensureRuntimeReceiptSettings])
 
   useEffect(() => {
     if (
@@ -636,11 +662,12 @@ export function POS() {
   }, [])
 
   const openPrintWindow = useCallback((sale) => {
+    const runtimeReceiptSettings = ensureRuntimeReceiptSettings(receiptSettings)
     const effectiveCompanyName = companyProfile.name || auth.companyName || sale.company_name || '-'
-    const effectiveCompanyAddress = receiptSettings.company_address?.trim() || companyProfile.address || sale.company_address || ''
-    const effectiveCompanyPhone = receiptSettings.company_phone?.trim() || companyProfile.phone || sale.company_phone || ''
+    const effectiveCompanyAddress = runtimeReceiptSettings.company_address?.trim() || companyProfile.address || sale.company_address || ''
+    const effectiveCompanyPhone = runtimeReceiptSettings.company_phone?.trim() || companyProfile.phone || sale.company_phone || ''
     const effectiveReceiptSettings = {
-      ...receiptSettings,
+      ...runtimeReceiptSettings,
       company_address: effectiveCompanyAddress,
       company_phone: effectiveCompanyPhone,
     }
@@ -652,11 +679,12 @@ export function POS() {
       company_phone: effectiveCompanyPhone,
     }
 
-    const paperSizeMm = receiptSettings.paper_size === '80mm' ? 80 : 58
+    const paperSizeMm = effectiveReceiptSettings.paper_size === '80mm' ? 80 : 58
     const contentWidthMm = paperSizeMm === 80 ? 76 : 56
-    const paperClass = getReceiptPaperClass(receiptSettings.paper_size)
-    const isDotMatrix = receiptSettings.printer_type === 'dot_matrix'
-    const selectedFont = RECEIPT_FONTS.find(f => f.value === receiptSettings.receipt_font) || RECEIPT_FONTS[0]
+    const paperClass = getReceiptPaperClass(effectiveReceiptSettings.paper_size)
+    const isDotMatrix = effectiveReceiptSettings.printer_type === 'dot_matrix'
+    const printerClass = isDotMatrix ? 'printer-dot-matrix' : 'printer-thermal'
+    const selectedFont = RECEIPT_FONTS.find(f => f.value === effectiveReceiptSettings.receipt_font) || RECEIPT_FONTS[0]
     const hasLocalFont = selectedFont.filename && selectedFont.filename !== ''
     const googleFontUrl = selectedFont.googleFont 
       ? `https://fonts.googleapis.com/css2?family=${selectedFont.googleFont}&display=swap`
@@ -666,7 +694,7 @@ export function POS() {
     const borderStyle = isDotMatrix ? '1px dotted #94a3b8' : '1px solid #e2e8f0'
     const lineBorder = isDotMatrix ? '1px dotted #cbd5e1' : '1px dashed #cbd5e1'
     const fontSize = paperSizeMm === 80 ? '12px' : '11px'
-    const showCalibration = Boolean(receiptSettings.calibration_mode)
+    const showCalibration = Boolean(effectiveReceiptSettings.calibration_mode)
     const calibrationLabel = `Calibration 50mm (${paperSizeMm}mm mode)`
 
     const receiptResult = renderReceiptContent(saleWithCompany, effectiveReceiptSettings, {
@@ -714,17 +742,31 @@ export function POS() {
             font-size: ${fontSize};
             line-height: 1.35;
           }
-          .receipt-wrap {
-            margin: 0 auto;
-            width: ${contentWidthMm}mm;
-            max-width: ${contentWidthMm}mm;
-            background: white;
-            border: ${borderStyle};
-            padding: 2mm;
-            overflow: hidden;
-          }
-          .receipt-wrap.paper-58 { font-size: 11px; }
-          .receipt-wrap.paper-80 { font-size: 12px; }
+           .receipt-wrap {
+             margin: 0 auto;
+             width: ${contentWidthMm}mm;
+             max-width: ${contentWidthMm}mm;
+             background: white;
+             border: ${borderStyle};
+             padding: 2mm;
+             overflow: hidden;
+           }
+           .receipt-wrap.printer-dot-matrix {
+             border-color: #6b7280;
+             font-family: 'Courier New', 'Consolas', monospace;
+             letter-spacing: .01em;
+           }
+           .receipt-wrap.printer-dot-matrix .receipt-logo { display: none; }
+           .receipt-wrap.printer-dot-matrix .receipt-header-wrap,
+           .receipt-wrap.printer-dot-matrix .line-items-wrap,
+           .receipt-wrap.printer-dot-matrix .payments-block,
+           .receipt-wrap.printer-dot-matrix .footer,
+           .receipt-wrap.printer-dot-matrix .calibration-block {
+             border-color: #6b7280;
+             border-style: dotted;
+           }
+           .receipt-wrap.paper-58 { font-size: 11px; }
+           .receipt-wrap.paper-80 { font-size: 12px; }
           .receipt-logo { width: 24px; height: 24px; border-radius: 50%; background: #0ea5e9; color: white; display: flex; align-items: center; justify-content: center; margin: 0 auto 6px; font-weight: 700; font-size: 10px; }
           h1 { margin: 0 0 8px; text-align: center; font-size: 16px; letter-spacing: 0.08em; }
           .subtitle { text-align: center; margin-bottom: 8px; font-weight: 700; }
@@ -759,17 +801,17 @@ export function POS() {
               background: white;
             }
             .receipt-wrap {
-              border: none;
-              width: ${contentWidthMm}mm;
-              max-width: ${contentWidthMm}mm;
-              margin: 0 auto;
-              padding: 2mm 0;
+               border: none;
+               width: ${contentWidthMm}mm;
+               max-width: ${contentWidthMm}mm;
+               margin: 0 auto;
+               padding: 2mm 0;
+             }
             }
-          }
         </style>
       </head>
       <body>
-        <div class="receipt-wrap ${paperClass}">
+        <div class="receipt-wrap ${paperClass} ${printerClass}">
           ${receiptBody}
           ${showCalibration ? `<div class="calibration-block"><div class="calibration-label">${calibrationLabel}</div><div class="calibration-line"></div><div class="calibration-scale"><span>0</span><span>50mm</span></div></div>` : ''}
         </div>
@@ -789,32 +831,36 @@ export function POS() {
     }
     printWindow.document.write(html)
     printWindow.document.close()
-  }, [auth.companyName, companyProfile.address, companyProfile.name, companyProfile.phone, escapeHtml, formatCurrency, formatDateTime, receiptSettings])
+  }, [auth.companyName, companyProfile.address, companyProfile.name, companyProfile.phone, ensureRuntimeReceiptSettings, escapeHtml, formatCurrency, formatDateTime, receiptSettings])
 
   const handleOpenReceiptSettings = useCallback(() => {
-    setReceiptSettingsDraft(receiptSettings)
+    const runtimeSafe = ensureRuntimeReceiptSettings(receiptSettings)
+    setReceiptSettingsDraft(runtimeSafe)
     setShowTemplateCode(false)
-    setTemplateCodeHtml(receiptSettings.custom_template_html || '')
+    setTemplateCodeHtml(runtimeSafe.custom_template_html || '')
     setShowReceiptSettingsPopup(true)
-  }, [receiptSettings])
+  }, [ensureRuntimeReceiptSettings, receiptSettings])
 
   const handleSaveReceiptSettings = useCallback(() => {
     const currentHtml = wysiwygEditorRef.current?.innerHTML || receiptSettingsDraft.custom_template_html
-    const toSave = { ...receiptSettingsDraft, custom_template_html: currentHtml }
-    const saved = saveReceiptSettings(toSave)
-    setReceiptSettings(saved)
+    const runtimeSafeDraft = ensureRuntimeReceiptSettings({
+      ...receiptSettingsDraft,
+      custom_template_html: currentHtml,
+    })
+    const saved = saveReceiptSettings(runtimeSafeDraft)
+    setReceiptSettings(ensureRuntimeReceiptSettings(saved))
     setShowReceiptSettingsPopup(false)
     setToast({ isOpen: true, message: 'Setting nota jual disimpan', type: 'success' })
-  }, [receiptSettingsDraft])
+  }, [ensureRuntimeReceiptSettings, receiptSettingsDraft])
 
   const handleResetReceiptSettings = useCallback(() => {
     const defaults = resetReceiptSettings()
-    setReceiptSettingsDraft({
-      ...defaults,
-      custom_template_html: DEFAULT_CUSTOM_TEMPLATE_HTML,
-    })
+    const runtimeDefaults = ensureRuntimeReceiptSettings(defaults)
+    const resetDraft = applyPrinterTypeToDraft(runtimeDefaults, runtimeDefaults.printer_type)
+    setReceiptSettingsDraft(resetDraft)
+    setTemplateCodeHtml(resetDraft.custom_template_html || '')
     setToast({ isOpen: true, message: 'Setting dikembalikan ke default', type: 'info' })
-  }, [])
+  }, [applyPrinterTypeToDraft, ensureRuntimeReceiptSettings])
 
   const subtotalOriginal = items.reduce((sum, item) => sum + (Number(item.retail_price || item.price) * item.qty), 0)
   const totalDiscount = items.reduce((sum, item) => sum + ((Number(item.retail_price || item.price) - Number(item.price)) * item.qty), 0)
@@ -847,6 +893,13 @@ export function POS() {
     paid_amount: selectedPrintNote?.paid_amount ?? total,
     change_amount: selectedPrintNote?.change_amount ?? 0,
     payments: selectedPrintNote?.payments || [{ method: 'CASH', amount: total }],
+  }
+  const runtimeReceiptDraft = ensureRuntimeReceiptSettings(receiptSettingsDraft)
+  const activeLayoutOptions = getReceiptLayoutOptions(runtimeReceiptDraft.printer_type)
+  const previewReceiptSettings = {
+    ...runtimeReceiptDraft,
+    company_address: runtimeReceiptDraft.company_address?.trim() || companyProfile.address || '',
+    company_phone: runtimeReceiptDraft.company_phone?.trim() || companyProfile.phone || '',
   }
 
   const handleItemClick = (item, index) => {
@@ -1970,7 +2023,7 @@ export function POS() {
                       <input
                         type="radio"
                         name="template-mode"
-                        checked={receiptSettingsDraft.template_mode === 'default'}
+                        checked={runtimeReceiptDraft.template_mode === 'default'}
                         onChange={() => setReceiptSettingsDraft((prev) => ({ ...prev, template_mode: 'default' }))}
                       />
                       <span>Default Template</span>
@@ -1979,13 +2032,14 @@ export function POS() {
                       <input
                         type="radio"
                         name="template-mode"
-                        checked={receiptSettingsDraft.template_mode === 'custom'}
+                        checked={runtimeReceiptDraft.template_mode === 'custom'}
                         onChange={() => {
+                          const defaultTemplate = getDefaultCustomTemplate(runtimeReceiptDraft.printer_type)
                           setReceiptSettingsDraft((prev) => ({
                             ...prev,
                             template_mode: 'custom',
-                            custom_template_html: prev.custom_template_html || DEFAULT_CUSTOM_TEMPLATE_HTML,
-                            custom_template_css: prev.custom_template_css || DEFAULT_CUSTOM_TEMPLATE_CSS,
+                            custom_template_html: prev.custom_template_html || defaultTemplate.html,
+                            custom_template_css: prev.custom_template_css || defaultTemplate.css,
                           }))
                         }}
                       />
@@ -1993,13 +2047,13 @@ export function POS() {
                     </label>
                   </div>
 
-                  {receiptSettingsDraft.template_mode === 'default' ? (
+                  {runtimeReceiptDraft.template_mode === 'default' ? (
                     <div className="receipt-layout-grid">
-                      {RECEIPT_LAYOUT_OPTIONS.map((layout) => (
+                      {activeLayoutOptions.map((layout) => (
                         <button
                           key={layout.id}
                           type="button"
-                          className={`receipt-layout-card ${receiptSettingsDraft.layout_type === layout.id ? 'is-selected' : ''}`}
+                          className={`receipt-layout-card ${runtimeReceiptDraft.layout_type === layout.id ? 'is-selected' : ''}`}
                           onClick={() => setReceiptSettingsDraft((prev) => ({ ...prev, layout_type: layout.id }))}
                         >
                           <strong>{layout.label}</strong>
@@ -2019,7 +2073,7 @@ export function POS() {
                               onClick={() => {
                                 const currentHtml = showTemplateCode
                                   ? templateCodeHtml
-                                  : (wysiwygEditorRef.current?.innerHTML || receiptSettingsDraft.custom_template_html || '')
+                                  : (wysiwygEditorRef.current?.innerHTML || runtimeReceiptDraft.custom_template_html || '')
                                 setReceiptSettingsDraft((prev) => ({
                                   ...prev,
                                   custom_template_html: currentHtml,
@@ -2035,7 +2089,7 @@ export function POS() {
                               onClick={() => {
                                 const currentHtml = showTemplateCode
                                   ? templateCodeHtml
-                                  : (wysiwygEditorRef.current?.innerHTML || receiptSettingsDraft.custom_template_html || '')
+                                  : (wysiwygEditorRef.current?.innerHTML || runtimeReceiptDraft.custom_template_html || '')
                                 setTemplateCodeHtml(currentHtml)
                                 if (showTemplateCode && wysiwygEditorRef.current) {
                                   wysiwygEditorRef.current.innerHTML = currentHtml
@@ -2049,14 +2103,16 @@ export function POS() {
                               type="button"
                               className="receipt-template-btn"
                               onClick={() => {
+                                const defaultTemplate = getDefaultCustomTemplate(runtimeReceiptDraft.printer_type)
                                 if (wysiwygEditorRef.current) {
-                                  wysiwygEditorRef.current.innerHTML = DEFAULT_CUSTOM_TEMPLATE_HTML
+                                  wysiwygEditorRef.current.innerHTML = defaultTemplate.html
                                 }
                                 setReceiptSettingsDraft((prev) => ({
                                   ...prev,
-                                  custom_template_html: DEFAULT_CUSTOM_TEMPLATE_HTML,
+                                  custom_template_html: defaultTemplate.html,
+                                  custom_template_css: defaultTemplate.css,
                                 }))
-                                setTemplateCodeHtml(DEFAULT_CUSTOM_TEMPLATE_HTML)
+                                setTemplateCodeHtml(defaultTemplate.html)
                                 if (codeEditorRef.current) {
                                   codeEditorRef.current.focus()
                                 }
@@ -2168,7 +2224,7 @@ export function POS() {
                       <input
                         type="radio"
                         name="paper-size"
-                        checked={receiptSettingsDraft.paper_size === '58mm'}
+                        checked={runtimeReceiptDraft.paper_size === '58mm'}
                         onChange={() => setReceiptSettingsDraft((prev) => ({ ...prev, paper_size: '58mm' }))}
                       />
                       <span>58mm</span>
@@ -2177,7 +2233,7 @@ export function POS() {
                       <input
                         type="radio"
                         name="paper-size"
-                        checked={receiptSettingsDraft.paper_size === '80mm'}
+                        checked={runtimeReceiptDraft.paper_size === '80mm'}
                         onChange={() => setReceiptSettingsDraft((prev) => ({ ...prev, paper_size: '80mm' }))}
                       />
                       <span>80mm</span>
@@ -2190,8 +2246,12 @@ export function POS() {
                       <input
                         type="radio"
                         name="printer-type"
-                        checked={receiptSettingsDraft.printer_type === 'thermal'}
-                        onChange={() => setReceiptSettingsDraft((prev) => ({ ...prev, printer_type: 'thermal' }))}
+                        checked={runtimeReceiptDraft.printer_type === 'thermal'}
+                        onChange={() => {
+                          const nextDraft = applyPrinterTypeToDraft(receiptSettingsDraft, 'thermal')
+                          setReceiptSettingsDraft(nextDraft)
+                          setTemplateCodeHtml(nextDraft.custom_template_html || '')
+                        }}
                       />
                       <span>Thermal</span>
                     </label>
@@ -2199,11 +2259,19 @@ export function POS() {
                       <input
                         type="radio"
                         name="printer-type"
-                        checked={receiptSettingsDraft.printer_type === 'dot_matrix'}
-                        onChange={() => setReceiptSettingsDraft((prev) => ({ ...prev, printer_type: 'dot_matrix' }))}
+                        checked={runtimeReceiptDraft.printer_type === 'dot_matrix'}
+                        disabled={!isTauriRuntime}
+                        onChange={() => {
+                          const nextDraft = applyPrinterTypeToDraft(receiptSettingsDraft, 'dot_matrix')
+                          setReceiptSettingsDraft(nextDraft)
+                          setTemplateCodeHtml(nextDraft.custom_template_html || '')
+                        }}
                       />
                       <span>Dot Matrix</span>
                     </label>
+                    {!isTauriRuntime && (
+                      <div className="receipt-printer-hint">Non Browser: opsi Dot Matrix hanya aktif di aplikasi Tauri.</div>
+                    )}
                   </div>
                 </div>
 
@@ -2211,7 +2279,7 @@ export function POS() {
                   <h4>Font Cetak</h4>
                   <select
                     className="receipt-select"
-                    value={receiptSettingsDraft.receipt_font || 'JetBrainsMono-Regular'}
+                    value={runtimeReceiptDraft.receipt_font || 'JetBrainsMono-Regular'}
                     onChange={(e) => setReceiptSettingsDraft((prev) => ({ ...prev, receipt_font: e.target.value }))}
                   >
                     {RECEIPT_FONTS.map((font) => (
@@ -2226,7 +2294,7 @@ export function POS() {
                   <label className="receipt-checkbox-option">
                     <input
                       type="checkbox"
-                      checked={receiptSettingsDraft.show_logo}
+                      checked={runtimeReceiptDraft.show_logo}
                       onChange={(e) => setReceiptSettingsDraft((prev) => ({ ...prev, show_logo: e.target.checked }))}
                     />
                     <span>Tampilkan logo</span>
@@ -2234,7 +2302,7 @@ export function POS() {
                   <label className="receipt-checkbox-option">
                     <input
                       type="checkbox"
-                      checked={receiptSettingsDraft.show_footer}
+                      checked={runtimeReceiptDraft.show_footer}
                       onChange={(e) => setReceiptSettingsDraft((prev) => ({ ...prev, show_footer: e.target.checked }))}
                     />
                     <span>Tampilkan footer</span>
@@ -2242,7 +2310,7 @@ export function POS() {
                   <label className="receipt-checkbox-option">
                     <input
                       type="checkbox"
-                      checked={receiptSettingsDraft.auto_print_after_payment}
+                      checked={runtimeReceiptDraft.auto_print_after_payment}
                       onChange={(e) => setReceiptSettingsDraft((prev) => ({ ...prev, auto_print_after_payment: e.target.checked }))}
                     />
                     <span>Auto print setelah pembayaran</span>
@@ -2250,7 +2318,7 @@ export function POS() {
                   <label className="receipt-checkbox-option">
                     <input
                       type="checkbox"
-                      checked={receiptSettingsDraft.calibration_mode}
+                      checked={runtimeReceiptDraft.calibration_mode}
                       onChange={(e) => setReceiptSettingsDraft((prev) => ({ ...prev, calibration_mode: e.target.checked }))}
                     />
                     <span>Calibration line mode (50mm)</span>
@@ -2258,19 +2326,19 @@ export function POS() {
                   <label className="receipt-checkbox-option">
                     <input
                       type="checkbox"
-                      checked={receiptSettingsDraft.show_ppn ?? true}
+                      checked={runtimeReceiptDraft.show_ppn ?? true}
                       onChange={(e) => setReceiptSettingsDraft((prev) => ({ ...prev, show_ppn: e.target.checked }))}
                     />
                     <span>Tampilkan PPN</span>
                   </label>
-                  {receiptSettingsDraft.show_ppn !== false && (
+                  {runtimeReceiptDraft.show_ppn !== false && (
                     <div className="receipt-setting-field-inline">
                       <label htmlFor="ppn-percentage">Prosentase PPN (%)</label>
                       <input
                         type="number"
                         id="ppn-percentage"
                         className="receipt-number-input"
-                        value={receiptSettingsDraft.ppn_percentage || 11}
+                        value={runtimeReceiptDraft.ppn_percentage || 11}
                         onChange={(e) => setReceiptSettingsDraft((prev) => ({ ...prev, ppn_percentage: parseFloat(e.target.value) || 0 }))}
                         min="0"
                         max="100"
@@ -2283,7 +2351,7 @@ export function POS() {
                     <textarea
                       id="receipt-footer-text"
                       className="receipt-footer-text-input"
-                      value={receiptSettingsDraft.footer_text}
+                      value={runtimeReceiptDraft.footer_text}
                       onChange={(e) => setReceiptSettingsDraft((prev) => ({ ...prev, footer_text: e.target.value }))}
                       rows={3}
                       placeholder="Contoh: Terima kasih sudah berbelanja"
@@ -2296,11 +2364,7 @@ export function POS() {
                 <div className="receipt-setting-preview-panel">
                   <ReceiptPreview
                     sale={previewNote}
-                    settings={{
-                      ...receiptSettingsDraft,
-                      company_address: receiptSettingsDraft.company_address?.trim() || companyProfile.address || '',
-                      company_phone: receiptSettingsDraft.company_phone?.trim() || companyProfile.phone || '',
-                    }}
+                    settings={previewReceiptSettings}
                     formatCurrency={formatCurrency}
                     formatDateTime={formatDateTime}
                   />

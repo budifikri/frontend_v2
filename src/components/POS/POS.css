@@ -2094,6 +2094,20 @@
   font-size: 14px;
 }
 
+.receipt-radio-option input:disabled + span {
+  color: #94a3b8;
+}
+
+.receipt-printer-hint {
+  margin-top: 4px;
+  font-size: 12px;
+  color: #b45309;
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+  border-radius: 6px;
+  padding: 6px 8px;
+}
+
 .receipt-footer-text-wrap {
   margin-top: 8px;
   display: flex;
@@ -2455,6 +2469,28 @@
 }
 
 /* Receipt Preview */
+@keyframes dotMatrixPreviewEnter {
+  0% {
+    opacity: 0;
+    transform: translateY(6px) scale(0.995);
+    filter: contrast(0.92);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: contrast(1);
+  }
+}
+
+@keyframes tractorFeedSweep {
+  0% {
+    background-position-y: 0;
+  }
+  100% {
+    background-position-y: 14px;
+  }
+}
+
 .receipt-preview {
   margin: 0 auto;
   background: white;
@@ -2471,8 +2507,27 @@
 }
 
 .receipt-preview.printer-dot-matrix {
-  font-family: 'JetBrains Mono', monospace;
+  position: relative;
+  font-family: 'Courier New', 'Consolas', monospace;
   border-style: dotted;
+  border-color: #6b7280;
+  color: #111827;
+  animation: dotMatrixPreviewEnter 220ms ease-out;
+}
+
+.receipt-preview.printer-dot-matrix::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: repeating-linear-gradient(to bottom, rgba(17, 24, 39, 0.04) 0 1px, transparent 1px 14px);
+  opacity: 0.08;
+  animation: tractorFeedSweep 1.5s linear infinite;
+}
+
+.receipt-preview.printer-dot-matrix > * {
+  position: relative;
+  z-index: 1;
 }
 
 .receipt-preview.paper-58 {
@@ -2573,6 +2628,29 @@
   margin-top: 4px;
   padding-top: 4px;
   font-weight: 700;
+}
+
+.receipt-preview.printer-dot-matrix .receipt-preview-top,
+.receipt-preview.printer-dot-matrix .receipt-preview-items,
+.receipt-preview.printer-dot-matrix .receipt-preview-payments,
+.receipt-preview.printer-dot-matrix .receipt-preview-footer,
+.receipt-preview.printer-dot-matrix .receipt-preview-calibration {
+  border-color: #6b7280;
+  border-style: dotted;
+}
+
+.receipt-preview.printer-dot-matrix .receipt-preview-logo {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .receipt-preview.printer-dot-matrix {
+    animation: none;
+  }
+
+  .receipt-preview.printer-dot-matrix::before {
+    animation: none;
+  }
 }
 
 .receipt-preview-payments {

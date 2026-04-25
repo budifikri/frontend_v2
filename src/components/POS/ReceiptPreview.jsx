@@ -12,6 +12,7 @@ export function ReceiptPreview({ sale, settings, formatCurrency, formatDateTime 
       .replaceAll("'", '&#39;')
   }
 
+  const isDotMatrix = settings.printer_type === 'dot_matrix'
   const selectedFont = RECEIPT_FONTS.find(f => f.value === settings.receipt_font) || RECEIPT_FONTS[0]
   const hasLocalFont = selectedFont.filename && selectedFont.filename !== ''
   const googleFontUrl = selectedFont.googleFont 
@@ -26,12 +27,16 @@ export function ReceiptPreview({ sale, settings, formatCurrency, formatDateTime 
 
   const result = renderReceiptContent(sale, settings, { escapeHtml, formatCurrency, formatDateTime }, { withSamples: true })
   const model = result.model
+  const previewClassName = `receipt-preview ${getReceiptPaperClass(settings.paper_size)} ${isDotMatrix ? 'printer-dot-matrix' : 'printer-thermal'}`
+  const fontFamily = isDotMatrix
+    ? "'Courier New', 'Consolas', monospace"
+    : `'${selectedFont.label}', Arial, sans-serif`
 
   if (result.isCustom) {
     return (
       <div 
-        className={`receipt-preview ${getReceiptPaperClass(settings.paper_size)} ${settings.printer_type === 'dot_matrix' ? 'printer-dot-matrix' : 'printer-thermal'}`}
-        style={{ fontFamily: `'${selectedFont.label}', Arial, sans-serif` }}
+        className={previewClassName}
+        style={{ fontFamily }}
       >
         {googleFontUrl && <link rel="stylesheet" href={googleFontUrl} />}
         <style>{fontStyle + result.customCss}</style>
@@ -56,8 +61,8 @@ export function ReceiptPreview({ sale, settings, formatCurrency, formatDateTime 
 
   return (
     <div 
-      className={`receipt-preview ${getReceiptPaperClass(settings.paper_size)} ${settings.printer_type === 'dot_matrix' ? 'printer-dot-matrix' : 'printer-thermal'}`}
-      style={{ fontFamily: `'${selectedFont.label}', Arial, sans-serif` }}
+      className={previewClassName}
+      style={{ fontFamily }}
     >
       <div className={`receipt-preview-top ${model.template.headerVariant === 'brand' ? 'brand' : ''}`}>
         {model.showLogo && <div className="receipt-preview-logo">PX</div>}
