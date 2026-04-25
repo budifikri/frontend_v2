@@ -814,22 +814,40 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
           </div>
         </div>
 
-        <div className="po-meta-info">
-          <div className="po-meta-item">
-            <span className="po-meta-label">No. PO</span>
-            <span className="po-meta-value">{header.po_number || '-'}</span>
+        <div className="po-form-panel">
+          <div className="form-group">
+            <label className="form-label">PO Number</label>
+            <input type="text" value={header.po_number || '-'} readOnly className="form-input form-input-readonly" />
           </div>
-          <div className="po-meta-item">
-            <span className="po-meta-label">Supplier:</span>
-            <span className="po-meta-value">{header.supplier_name || header.supplier_id || 'Belum dipilih'}</span>
+          <div className="form-group">
+            <label className="form-label">PO Date *</label>
+            <input type="date" value={header.po_date || ''} onChange={(e) => setHeader({ ...header, po_date: e.target.value })} className="form-input" disabled={isLocked} />
           </div>
-          <div className="po-meta-item">
-            <span className="po-meta-label">Tanggal</span>
-            <span className="po-meta-value">{header.po_date || '-'}</span>
+          <div className="form-group">
+            <label className="form-label">Expected Date *</label>
+            <input type="date" value={header.expected_date || ''} onChange={(e) => setHeader({ ...header, expected_date: e.target.value })} className="form-input" disabled={isLocked} />
           </div>
-          <div className="po-meta-item">
-            <span className="po-meta-label">Gudang</span>
-            <span className="po-meta-value">{warehouseOptions.find(w => w.id === header.warehouse_id)?.name || '-'}</span>
+          <div className="form-group">
+            <label className="form-label">Supplier *</label>
+            <select value={header.supplier_id} onChange={(e) => setHeader({ ...header, supplier_id: e.target.value })} className="form-input" disabled={isLocked}>
+              <option value="">Select supplier...</option>
+              {supplierOptions.map(item => (
+                <option key={item.id} value={item.id}>{item.name}</option>
+              ))}
+            </select>
+          </div>
+          <div className="form-group">
+            <label className="form-label">Warehouse *</label>
+            <select value={header.warehouse_id} onChange={(e) => setHeader({ ...header, warehouse_id: e.target.value })} className="form-input" disabled={isLocked}>
+              <option value="">Select warehouse...</option>
+              {warehouseOptions.map(item => (
+                <option key={item.id} value={item.id}>{item.name}</option>
+              ))}
+            </select>
+          </div>
+          <div className="form-group">
+            <label className="form-label">Notes</label>
+            <textarea value={header.notes || ''} onChange={(e) => setHeader({ ...header, notes: e.target.value })} className="form-input form-textarea po-notes-textarea" rows={3} disabled={isLocked} />
           </div>
         </div>
 

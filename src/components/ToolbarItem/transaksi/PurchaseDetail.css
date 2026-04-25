@@ -644,3 +644,17 @@
   font-weight: 600;
   color: #191c1e;
 }
+
+.po-form-panel {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.po-notes-textarea {
+  resize: vertical;
+  min-height: 88px;
+}
