@@ -1,36 +1,50 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, useLayoutEffect } from 'react'
 import { useAuth } from '../../../shared/auth'
 import {
   getStockOpnameById,
   createStockOpname,
   updateStockOpname,
   getProductStock,
-  getReasonOptions,
-  getStatusOptions,
   generateReference,
 } from '../../../features/master/stock-opname/stockOpname.api'
 import { listProducts } from '../../../features/master/product/product.api'
 import { listWarehouses } from '../../../features/master/warehouse/warehouse.api'
-import { MasterDetailTable, MasterDetailFooter, AddItemModal } from '../../templates'
 import { DeleteMaster } from '../footer/DeleteMaster'
 import { Toast } from '../../Toast'
+import './PurchaseDetail.css'
 
-const REASON_OPTIONS = getReasonOptions()
-const STATUS_OPTIONS = getStatusOptions()
+const DUMMY_PRODUCTS = [
+  { id: 'PRD001', code: 'PRD-001', name: 'Kopi Luwak', unit: 'PCS', cost_price: 150000 },
+  { id: 'PRD002', code: 'PRD-002', name: 'Gula Pasir', unit: 'KG', cost_price: 18000 },
+  { id: 'PRD003', code: 'PRD-003', name: 'Teh Botol', unit: 'BOX', cost_price: 45000 },
+]
+
+const DUMMY_WAREHOUSES = [
+  { id: 'WH001', name: 'Gudang Utama' },
+  { id: 'WH002', name: 'Gudang Cabin' },
+]
 
 export function StockOpnameDetail({ selectedId: propSelectedId, onExit, onSaveSuccess }) {
   const { auth } = useAuth()
   const token = auth?.token
-  
-  console.log('[StockOpnameDetail] Rendering, token:', !!token, 'selectedId:', propSelectedId)
 
   const [isLoading, setIsLoading] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState('')
-  const [showAddModal, setShowAddModal] = useState(false)
   const [showExitConfirm, setShowExitConfirm] = useState(false)
-  const [productOptions, setProductOptions] = useState([])
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [itemToDelete, setItemToDelete] = useState(null)
   const [warehouseOptions, setWarehouseOptions] = useState([])
+  const [showToast, setShowToast] = useState(false)
+  const [toastMessage, setToastMessage] = useState('')
+  const [toastType, setToastType] = useState('info')
+
+  const [search, setSearch] = useState('')
+  const searchInputRef = useRef(null)
+  const [showProductPopup, setShowProductPopup] = useState(false)
+  const [productResults, setProductResults] = useState([])
+  const [popupSelectedIndex, setPopupSelectedIndex] = useState(0)
+  const [isLoadingProducts, setIsLoadingProducts] = useState(false)
 
   const [header, setHeader] = useState({
     opname_number: generateReference(),
@@ -41,117 +55,83 @@ export function StockOpnameDetail({ selectedId: propSelectedId, onExit, onSaveSu
   })
 
   const [items, setItems] = useState([])
-  const [selectedIds, setSelectedIds] = useState([])
+  const [selectedIndex, setSelectedIndex] = useState(0)
 
-  // Toast state
-  const [toast, setToast] = useState({
-    isOpen: false,
-    message: '',
-    type: 'info',
-  })
+  const currentStatus = String(header.status || 'draft').toLowerCase()
+  const isLocked = ['approved', 'approve', 'posted'].includes(currentStatus)
+  const isPosted = currentStatus === 'posted'
+  const activeStatus = isPosted ? 'posted' : currentStatus === 'approved' || currentStatus === 'approve' ? 'approved' : 'draft'
 
-  // Fetch lookups
   const fetchLookups = useCallback(async () => {
-    console.log('[StockOpnameDetail] fetchLookups called, token:', !!token)
-    
     if (!token) {
-      console.log('[StockOpnameDetail] No token - using dummy data')
-      setProductOptions([
-        { id: 'PRD001', code: 'PRD-001', name: 'Kopi Luwak', unit: 'PCS' },
-        { id: 'PRD002', code: 'PRD-002', name: 'Gula Pasir', unit: 'KG' },
-        { id: 'PRD003', code: 'PRD-003', name: 'Teh Botol', unit: 'BOX' },
-      ])
-      setWarehouseOptions([
-        { id: 'WH001', name: 'Gudang Utama' },
-        { id: 'WH002', name: 'Gudang Cabang' },
-      ])
+      setWarehouseOptions(DUMMY_WAREHOUSES)
       return
     }
-
     try {
-      const [productRes, warehouseRes] = await Promise.all([
+      const [, warehouseRes] = await Promise.all([
         listProducts(token, { limit: 200, offset: 0 }),
         listWarehouses(token, { limit: 200, offset: 0 }),
       ])
-      
-      console.log('[StockOpnameDetail] Raw product items:', productRes.items?.slice(0, 3))
-
-      // Normalize product options - CLEAN NAME HERE
-      const normalizedProducts = (productRes.items || []).map((item, idx) => {
-        // Extract clean name (remove SKU prefix if present)
-        let cleanName = item.name || item.product_name || '-'
-        
-        // If name contains " - " split and check if first part looks like SKU
-        if (cleanName.includes(' - ')) {
-          const parts = cleanName.split(' - ')
-          const firstPart = parts[0].trim()
-          // SKU pattern: contains letters and numbers, typically all caps or mixed
-          // Examples: PROD-001, PRD-20260219T10233, ABC123
-          if (/^[A-Z0-9_-]+$/i.test(firstPart) && firstPart.length < 50) {
-            cleanName = parts.slice(1).join(' - ').trim()
-            console.log(`[StockOpnameDetail] Item ${idx}: Cleaned "${item.name || item.product_name}" → "${cleanName}"`)
-          }
-        }
-        
-        return {
-          id: item.id || '',
-          code: item.sku || item.code || item.product_code || '-',
-          name: cleanName,
-          unit: item.unit_name || item.unit || item.product_unit || '-',
-          barcode: item.barcode || '',
-          retail_price: item.retail_price || 0,
-        }
-      })
-      
-      console.log('[StockOpnameDetail] First 5 normalized products:', normalizedProducts.slice(0, 5).map(p => ({ id: p.id, code: p.code, name: p.name })))
-      setProductOptions(normalizedProducts)
       setWarehouseOptions(warehouseRes.items || [])
     } catch (err) {
       console.error('[StockOpnameDetail] Failed to load lookups:', err)
-      setError('Failed to load lookups')
+      setToastMessage('Gagal memuat data')
+      setToastType('error')
+      setShowToast(true)
     }
   }, [token])
 
-  useEffect(() => {
-    fetchLookups()
-  }, [fetchLookups])
+  useEffect(() => { fetchLookups() }, [fetchLookups])
 
-  // Load selected stock opname data
+  const focusSearchInput = useCallback(() => {
+    const input = searchInputRef.current
+    if (!input) return
+    input.focus()
+  }, [])
+
+  const queueFocusSearchInput = useCallback((delay = 0) => {
+    window.setTimeout(() => {
+      requestAnimationFrame(() => focusSearchInput())
+    }, delay)
+  }, [focusSearchInput])
+
   useEffect(() => {
-    // If no propSelectedId, this is a new stock opname - don't load anything
+    if (showProductPopup || showExitConfirm || showDeleteConfirm) return
+    queueFocusSearchInput(0)
+    const timer = window.setTimeout(() => queueFocusSearchInput(0), 120)
+    return () => window.clearTimeout(timer)
+  }, [propSelectedId, showProductPopup, showExitConfirm, showDeleteConfirm, queueFocusSearchInput])
+
+  useLayoutEffect(() => {
+    queueFocusSearchInput(0)
+  }, [propSelectedId, queueFocusSearchInput])
+
+  useEffect(() => {
     if (!propSelectedId) return
-
     const loadStockOpname = async () => {
       setIsLoading(true)
       try {
         const data = await getStockOpnameById(token, propSelectedId)
-        console.log('[StockOpnameDetail] Loaded data:', data)
-        
-        // Set header
+        const normalizedStatus = (data.status || 'draft').toLowerCase()
         setHeader({
           opname_number: data.opname_number || data.reference || generateReference(),
-          warehouse_id: data.warehouse_id || data.warehouse?.id || '',
+          warehouse_id: data.warehouse_id || '',
           opname_date: data.opname_date ? data.opname_date.split('T')[0] : new Date().toISOString().split('T')[0],
-          status: data.status || 'draft',
+          status: normalizedStatus,
           notes: data.notes || '',
         })
-
-        // Set items
         if (data.items && data.items.length > 0) {
-          const formattedItems = data.items.map((item, index) => ({
+          setItems(data.items.map((item, index) => ({
             id: item.id || `item-${index}`,
             product_id: item.product_id,
-            product_sku: item.product_sku || '',
             product_name: item.product_name || '',
-            product_unit_name: item.product_unit_name || '',
+            sku: item.product_sku || item.product_code || '',
             system_quantity: item.system_quantity || 0,
             actual_quantity: item.actual_quantity || 0,
-            difference: item.difference || 0,
-            status: item.status || '',
-            notes: item.notes || '',
+            difference: item.difference || (item.actual_quantity || 0) - (item.system_quantity || 0),
             reason: item.reason || '',
-          }))
-          setItems(formattedItems)
+          })))
+          setSelectedIndex(0)
         }
       } catch (err) {
         console.error('[StockOpnameDetail] Error loading data:', err)
@@ -160,42 +140,21 @@ export function StockOpnameDetail({ selectedId: propSelectedId, onExit, onSaveSu
         setIsLoading(false)
       }
     }
-
     loadStockOpname()
   }, [propSelectedId, token])
 
-  // Add item
-  const addItem = useCallback((newItem) => {
-    const product = productOptions.find(p => p.id === newItem.product_id)
-    const systemQty = newItem.system_quantity || 0
-    const actualQty = newItem.actual_quantity || 0
-    const itemWithId = {
-      id: `item-${Date.now()}`,
-      product_id: newItem.product_id,
-      product_sku: product?.code || '-',
-      product_name: product?.name || '-',
-      product_unit_name: product?.unit || '-',
-      system_quantity: systemQty,
-      actual_quantity: actualQty,
-      difference: actualQty - systemQty,
-      status: 'pending',
-      reason: newItem.reason || null,
-      notes: newItem.notes || null,
-      _isNew: true,
+  useEffect(() => {
+    if (selectedIndex >= items.length) {
+      setSelectedIndex(items.length > 0 ? items.length - 1 : 0)
     }
-    console.log('[StockOpnameDetail] Adding item:', itemWithId)
-    setItems((prev) => [...prev, itemWithId])
-    setShowAddModal(false)
-  }, [productOptions])
+  }, [items.length, selectedIndex])
 
-  // Update item
   const updateItem = useCallback((itemId, updates) => {
     setItems((prev) => prev.map((item) => {
       if (item.id === itemId) {
         const updated = { ...item, ...updates }
-        // Recalculate difference if actual_quantity changed
         if (updates.actual_quantity !== undefined) {
-          updated.difference = updated.actual_quantity - updated.system_quantity
+          updated.difference = updated.actual_quantity - (updated.system_quantity || 0)
         }
         return updated
       }
@@ -203,44 +162,71 @@ export function StockOpnameDetail({ selectedId: propSelectedId, onExit, onSaveSu
     }))
   }, [])
 
-  // Remove item
-  const removeItem = useCallback((ids) => {
-    const idsToRemove = Array.isArray(ids) ? ids : [ids]
-    setItems((prev) => prev.filter((item) => !idsToRemove.includes(item.id)))
-    setSelectedIds((prev) => prev.filter((id) => !idsToRemove.includes(id)))
+  const removeItem = useCallback((itemId) => {
+    setItems((prev) => prev.filter((item) => item.id !== itemId))
+    setSelectedIndex((prev) => Math.max(prev - 1, 0))
   }, [])
 
-  // Validate
-  const validate = useCallback(() => {
-    const errors = []
-    
-    if (!header.warehouse_id) {
-      errors.push('Warehouse harus dipilih')
+  const summary = useMemo(() => {
+    const total = items.length
+    const positive = items.filter(i => i.difference > 0).length
+    const negative = items.filter(i => i.difference < 0).length
+    const zero = items.filter(i => i.difference === 0).length
+    const totalQty = items.reduce((sum, item) => sum + (item.actual_quantity || 0), 0)
+    return { total, positive, negative, zero, totalQty }
+  }, [items])
+
+  const handleSelectProduct = useCallback(async (product) => {
+    if (isLocked) return
+    const existingIndex = items.findIndex(item => item.product_id === product.id)
+    if (existingIndex >= 0) {
+      setToastMessage(`${product.name} sudah ada di daftar`)
+      setToastType('warning')
+      setShowToast(true)
+      setShowProductPopup(false)
+      setSearch('')
+      setSelectedIndex(existingIndex)
+      setTimeout(() => focusSearchInput(), 50)
+      return
     }
-    if (!header.opname_date) {
-      errors.push('Tanggal harus diisi')
+    let systemQty = 0
+    if (token && header.warehouse_id) {
+      try {
+        const result = await getProductStock(token, { product_id: product.id, warehouse_id: header.warehouse_id })
+        systemQty = result.current_stock || 0
+      } catch {
+        systemQty = 0
+      }
+    }
+    const newItem = {
+      id: `item-${Date.now()}`,
+      product_id: product.id,
+      product_name: product.name,
+      sku: product.sku || product.code || '',
+      system_quantity: systemQty,
+      actual_quantity: 0,
+      difference: -systemQty,
+      reason: '',
+    }
+    setItems(prev => [...prev, newItem])
+    setShowProductPopup(false)
+    setSearch('')
+    setSelectedIndex(items.length)
+    setTimeout(() => focusSearchInput(), 50)
+  }, [isLocked, items, token, header.warehouse_id, focusSearchInput])
+
+  const handleSave = useCallback(async () => {
+    if (isLocked) return
+    if (!header.warehouse_id) {
+      setToastMessage('Warehouse harus dipilih')
+      setToastType('warning')
+      setShowToast(true)
+      return
     }
     if (items.length === 0) {
-      errors.push('Minimal 1 product harus ditambahkan')
-    }
-
-    items.forEach((item, index) => {
-      if (!item.product_id) {
-        errors.push(`Product baris ${index + 1} harus dipilih`)
-      }
-      if (item.physical_qty < 0) {
-        errors.push(`Stok fisik baris ${index + 1} tidak boleh negatif`)
-      }
-    })
-
-    return { isValid: errors.length === 0, errors }
-  }, [header, items])
-
-  // Handle save
-  const handleSave = useCallback(async () => {
-    const { isValid, errors } = validate()
-    if (!isValid) {
-      setError(errors.join(', '))
+      setToastMessage('Minimal 1 item harus ditambahkan')
+      setToastType('warning')
+      setShowToast(true)
       return
     }
 
@@ -248,7 +234,6 @@ export function StockOpnameDetail({ selectedId: propSelectedId, onExit, onSaveSu
     setError('')
 
     const payload = {
-      opname_number: header.opname_number || generateReference(),
       warehouse_id: header.warehouse_id,
       opname_date: header.opname_date,
       status: header.status,
@@ -258,16 +243,11 @@ export function StockOpnameDetail({ selectedId: propSelectedId, onExit, onSaveSu
           product_id: item.product_id,
           system_quantity: item.system_quantity,
           actual_quantity: item.actual_quantity,
-          status: item.status || 'pending',
-          notes: item.notes || item.reason || '',
+          reason: item.reason || '',
         }
-
-        // Only include id if it's a valid UUID (existing item)
-        // For new items (id starts with "item-"), don't include id field
         if (item.id && !item.id.startsWith('item-')) {
           itemPayload.id = item.id
         }
-
         return itemPayload
       }),
     }
@@ -275,408 +255,409 @@ export function StockOpnameDetail({ selectedId: propSelectedId, onExit, onSaveSu
     try {
       if (token) {
         if (propSelectedId) {
-          // UPDATE existing stock opname
-          console.log('[StockOpnameDetail] Updating existing:', propSelectedId)
           await updateStockOpname(token, propSelectedId, payload)
-          // Close first, then show toast in parent
-          onExit()
-          if (onSaveSuccess) onSaveSuccess('Stock Opname berhasil disimpan', 'success')
         } else {
-          // CREATE new stock opname
-          console.log('[StockOpnameDetail] Creating new')
           await createStockOpname(token, payload)
-          // Close first, then show toast in parent
-          onExit()
-          if (onSaveSuccess) onSaveSuccess('Stock Opname berhasil dibuat', 'success')
+        }
+        onExit()
+        if (onSaveSuccess) {
+          setTimeout(() => onSaveSuccess('Stock Opname berhasil disimpan', 'success'), 300)
         }
       } else {
-        // Offline mode - just simulate
-        console.log('[StockOpnameDetail] Offline mode save')
         onExit()
-        if (onSaveSuccess) onSaveSuccess('Stock Opname berhasil disimpan (offline mode)', 'success')
+        if (onSaveSuccess) {
+          setTimeout(() => onSaveSuccess('Stock Opname berhasil disimpan (offline)', 'success'), 300)
+        }
       }
     } catch (err) {
-      console.error('[StockOpnameDetail] Save error:', err)
-      setError(err.message || 'Failed to save stock opname')
+      setToastMessage(err.message || 'Failed to save')
+      setToastType('error')
+      setShowToast(true)
     } finally {
       setIsSaving(false)
     }
-  }, [header, items, validate, token, propSelectedId, onExit, onSaveSuccess])
+  }, [header, items, token, propSelectedId, onExit, onSaveSuccess, isLocked])
 
-  // Handle keyboard shortcuts
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (showAddModal || showExitConfirm) return
+  const handleStatusChange = (newStatus) => {
+    if (isLocked) return
+    setHeader(prev => ({ ...prev, status: newStatus }))
+  }
 
-      if (e.key === '+') {
-        e.preventDefault()
-        setShowAddModal(true)
-      } else if (e.key === 'Delete' && selectedIds.length > 0) {
-        e.preventDefault()
-        removeItem(selectedIds)
-      } else if (e.key === 'Escape') {
-        e.preventDefault()
-        setShowExitConfirm(true)
-      } else if ((e.ctrlKey || e.metaKey) && e.key === 's') {
-        e.preventDefault()
-        handleSave()
-      }
+  const handleSearchChange = (value) => {
+    if (isLocked) return
+    setSearch(value)
+  }
+
+  const handleSearchKeyDown = async (e) => {
+    if (isLocked) {
+      e.preventDefault()
+      return
     }
 
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [showAddModal, showExitConfirm, selectedIds, handleSave, removeItem])
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      if (showProductPopup && productResults.length > 0) {
+        await handleSelectProduct(productResults[popupSelectedIndex])
+        return
+      }
 
-  // Calculate summary
-  const summary = useMemo(() => ({
-    total_items: items.length,
-    variance_positive: items.filter(i => i.difference > 0).length,
-    variance_negative: items.filter(i => i.difference < 0).length,
-    variance_zero: items.filter(i => i.difference === 0).length,
-  }), [items])
+      const currentSearch = search.trim()
+      if (!currentSearch) return
 
-  const productOptionsForSelect = useMemo(() => {
-    return productOptions.map((item) => ({
-      id: item.id,
-      name: item.name || '-',
-      code: item.code || '-',
-      name_only: item.name || '-',
-      unit: item.unit || '-',
-    }))
-  }, [productOptions])
+      const selectedItem = items[selectedIndex]
+      const qtyMatch = currentSearch.match(/^\+(\d+)$/)
+      if (qtyMatch) {
+        if (!selectedItem) {
+          setToastMessage('Pilih item terlebih dahulu untuk mengubah qty')
+          setToastType('error')
+          setShowToast(true)
+          return
+        }
+        const quantity = Number(qtyMatch[1])
+        updateItem(selectedItem.id, { actual_quantity: quantity })
+        setToastMessage(`Qty ${selectedItem.product_name} diubah menjadi ${quantity}`)
+        setToastType('success')
+        setShowToast(true)
+        setSearch('')
+        return
+      }
 
-  const warehouseOptionsForSelect = useMemo(() => {
-    return warehouseOptions.map((item) => ({
-      id: item.id,
-      name: item.name || '-',
-    }))
-  }, [warehouseOptions])
+      if (!header.warehouse_id) {
+        setToastMessage('Pilih warehouse terlebih dahulu sebelum input item product')
+        setToastType('warning')
+        setShowToast(true)
+        return
+      }
+
+      setIsLoadingProducts(true)
+      try {
+        let result
+        if (token) {
+          result = await listProducts(token, { search: currentSearch, limit: 50 })
+        } else {
+          const filtered = DUMMY_PRODUCTS.filter(p =>
+            p.name.toLowerCase().includes(currentSearch.toLowerCase()) ||
+            p.code.toLowerCase().includes(currentSearch.toLowerCase())
+          )
+          result = { items: filtered }
+        }
+        const products = result.items.map(p => ({
+          id: p.id,
+          name: p.name,
+          sku: p.sku || p.code || '',
+          unit: p.unit_name || p.unit || '-',
+          cost_price: Number(p.cost_price || p.purchase_price || 0),
+          price: Number(p.cost_price || p.purchase_price || 0),
+        }))
+        if (products.length === 1) {
+          await handleSelectProduct(products[0])
+        } else if (products.length > 1) {
+          setProductResults(products)
+          setPopupSelectedIndex(0)
+          setShowProductPopup(true)
+        } else {
+          setToastMessage('Produk tidak ditemukan')
+          setToastType('warning')
+          setShowToast(true)
+        }
+      } catch (err) {
+        console.error('Failed to load products:', err)
+        setProductResults([])
+      } finally {
+        setIsLoadingProducts(false)
+      }
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      if (showProductPopup && popupSelectedIndex < productResults.length - 1) {
+        setPopupSelectedIndex(popupSelectedIndex + 1)
+      } else if (items.length > 0) {
+        setSelectedIndex(prev => prev < items.length - 1 ? prev + 1 : items.length - 1)
+      }
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      if (showProductPopup && popupSelectedIndex > 0) {
+        setPopupSelectedIndex(popupSelectedIndex - 1)
+      } else if (items.length > 0) {
+        setSelectedIndex(prev => prev > 0 ? prev - 1 : 0)
+      }
+    } else if (e.key === 'Escape') {
+      e.preventDefault()
+      e.stopPropagation()
+      if (showProductPopup) {
+        setShowProductPopup(false)
+        setTimeout(() => focusSearchInput(), 50)
+        return
+      }
+      setShowExitConfirm(true)
+    }
+  }
+
+  const openDeleteConfirm = (item) => {
+    if (isLocked) return
+    setItemToDelete(item)
+    setShowDeleteConfirm(true)
+  }
+
+  const confirmDeleteItem = () => {
+    if (itemToDelete) {
+      removeItem(itemToDelete.id)
+    }
+    setItemToDelete(null)
+    setShowDeleteConfirm(false)
+  }
+
+  const cancelDeleteItem = () => {
+    setItemToDelete(null)
+    setShowDeleteConfirm(false)
+  }
+
+  const formatNumber = (amount) =>
+    new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(Number(amount) || 0)
+
+  if (isLoading) {
+    return (
+      <div className="master-container">
+        <div className="master-loading">
+          <span className="material-icons-round animate-spin">sync</span>
+          <span>Loading...</span>
+        </div>
+      </div>
+    )
+  }
 
   return (
-    <div className="stock-opname-container">
-      {/* Header Section - Sticky Top */}
-      <header className="stock-opname-header">
-        <div className="stock-opname-header-top">
-          <div className="stock-opname-title-section">
-            <div className="stock-opname-accent-bar"></div>
-            <h1 className="stock-opname-title">
-              STOCK OPNAME - {header.opname_number}
-            </h1>
+    <div className="po-layout-container">
+      <Toast
+        message={toastMessage}
+        type={toastType}
+        isOpen={showToast}
+        onClose={() => setShowToast(false)}
+        duration={3000}
+      />
+
+      {showDeleteConfirm && itemToDelete && (
+        <DeleteMaster
+          title="Konfirmasi Hapus"
+          message={`Hapus ${itemToDelete.product_name}?`}
+          confirmText="OK"
+          cancelText="Cancel"
+          onConfirm={confirmDeleteItem}
+          onCancel={cancelDeleteItem}
+        />
+      )}
+
+      <div className="po-main-content">
+        <div className="po-items-wrapper">
+          {error && <div className="master-error" style={{ marginBottom: 12 }}>{error}</div>}
+
+          {items.length === 0 ? (
+            <div className="po-empty-items">
+              <span className="material-icons">receipt_long</span>
+              <p>Belum ada item. Ketik nama produk di bawah untuk menambah.</p>
+            </div>
+          ) : (
+            <table className="po-items-table">
+              <thead>
+                <tr>
+                  <th>No</th>
+                  <th>Product</th>
+                  <th>System Qty</th>
+                  <th>Actual Qty</th>
+                  <th>Selisih</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {items.map((item, index) => (
+                  <tr
+                    key={item.id}
+                    className={selectedIndex === index ? 'selected' : ''}
+                    onClick={() => setSelectedIndex(index)}
+                  >
+                    <td>{index + 1}</td>
+                    <td>
+                      <div className="po-product-name">{item.product_name || '-'}</div>
+                      <div className="po-product-sku">{item.sku || '-'}</div>
+                    </td>
+                    <td style={{ textAlign: 'right' }}>{item.system_quantity}</td>
+                    <td>
+                      <span className="po-item-qty">{item.actual_quantity}</span>
+                    </td>
+                    <td style={{ textAlign: 'right', fontWeight: 600, color: item.difference > 0 ? 'var(--color-success)' : item.difference < 0 ? 'var(--color-error)' : 'inherit' }}>
+                      {item.difference > 0 ? `+${item.difference}` : item.difference}
+                    </td>
+                    <td>
+                      <button className="po-delete-btn" disabled={isLocked} onClick={(e) => { e.stopPropagation(); if (!isLocked) openDeleteConfirm(item) }}>
+                        <span className="material-icons" style={{ fontSize: 18 }}>delete</span>
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+
+        <div className="po-footer-input">
+          <div className="po-search-container">
+            <span className="material-icons">search</span>
+            <input
+              ref={searchInputRef}
+              type="text"
+              inputMode="text"
+              className="po-search-input"
+              placeholder="Ketik produk, +qty untuk ubah actual..."
+              value={search}
+              onChange={(e) => handleSearchChange(e.target.value)}
+              onKeyDown={handleSearchKeyDown}
+              onBlur={(e) => {
+                if (showProductPopup || showExitConfirm) return
+                const nextFocusedElement = e.relatedTarget
+                if (nextFocusedElement instanceof HTMLElement) {
+                  const interactiveTagNames = ['INPUT', 'SELECT', 'TEXTAREA', 'BUTTON']
+                  if (interactiveTagNames.includes(nextFocusedElement.tagName)) return
+                }
+                queueFocusSearchInput(0)
+              }}
+              autoComplete="off"
+              disabled={isLocked}
+              autoFocus
+            />
           </div>
-          <div className="stock-opname-status-group">
-            {propSelectedId && (
-              <>
-                <button
-                  type="button"
-                  className={`status-button ${header.status === 'draft' ? 'status-button-active' : 'status-button-inactive'}`}
-                  onClick={() => setHeader({ ...header, status: 'draft' })}
-                >
-                  Draft
-                </button>
-                <button
-                  type="button"
-                  className={`status-button ${header.status === 'approved' ? 'status-button-active' : 'status-button-inactive'}`}
-                  onClick={() => setHeader({ ...header, status: 'approved' })}
-                >
-                  Approve
-                </button>
-                <button
-                  type="button"
-                  className={`status-button ${header.status === 'rejected' ? 'status-button-active' : 'status-button-inactive'}`}
-                  onClick={() => setHeader({ ...header, status: 'rejected' })}
-                >
-                  Rejected
-                </button>
-              </>
-            )}
+          <div className="po-action-buttons">
+            <button type="button" className="po-btn po-btn-exit" onClick={() => setShowExitConfirm(true)} disabled={isSaving} title="Exit (Esc)">
+              <span className="material-icons">exit_to_app</span>
+              KELUAR
+            </button>
+            <button type="button" className="po-btn po-btn-print" disabled={items.length === 0} title="Print">
+              <span className="material-icons">print</span>
+              CETAK
+            </button>
+            <button type="button" className="po-btn po-btn-save" onClick={handleSave} disabled={isLocked || isSaving || isLoading || items.length === 0} title="Save (Ctrl+S)">
+              <span className="material-icons">save</span>
+              SIMPAN
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <aside className="po-sidebar">
+        <div className="po-header-section">
+          <h1 className="po-title">STOCK OPNAME</h1>
+          <div className="po-arrow-status-bar" aria-label="Stock opname status">
+            <button
+              type="button"
+              className={`po-arrow-step ${activeStatus === 'draft' ? 'is-active' : 'is-inactive'}`}
+              onClick={() => handleStatusChange('draft')}
+              disabled={isLocked}
+            >
+              Draft
+            </button>
+            <button
+              type="button"
+              className={`po-arrow-step ${activeStatus === 'approved' ? 'is-active' : 'is-inactive'}`}
+              onClick={() => handleStatusChange('approved')}
+              disabled={isLocked}
+            >
+              Approved
+            </button>
+            <button
+              type="button"
+              className={`po-arrow-step po-arrow-step-void ${activeStatus === 'posted' ? 'is-active' : 'is-inactive'}`}
+              onClick={() => handleStatusChange('posted')}
+              disabled={isLocked}
+            >
+              Posted
+            </button>
           </div>
         </div>
 
-        <div className="stock-opname-header-form">
+        <div className="po-form-panel">
           <div className="form-group">
             <label className="form-label">Reference</label>
-            <input
-              type="text"
-              value={header.opname_number}
-              readOnly
-              className="form-input form-input-readonly"
-            />
+            <input type="text" value={header.opname_number || '-'} readOnly className="form-input form-input-readonly" />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Tanggal Opname *</label>
+            <input type="date" value={header.opname_date || ''} onChange={(e) => setHeader({ ...header, opname_date: e.target.value })} className="form-input" disabled={isLocked} />
           </div>
           <div className="form-group">
             <label className="form-label">Warehouse *</label>
-            <select
-              value={header.warehouse_id}
-              onChange={(e) => setHeader({ ...header, warehouse_id: e.target.value })}
-              className="form-input"
-            >
+            <select value={header.warehouse_id} onChange={(e) => setHeader({ ...header, warehouse_id: e.target.value })} className="form-input" disabled={isLocked}>
               <option value="">Select warehouse...</option>
-              {warehouseOptionsForSelect.map((item) => (
+              {warehouseOptions.map(item => (
                 <option key={item.id} value={item.id}>{item.name}</option>
               ))}
             </select>
           </div>
           <div className="form-group">
-            <label className="form-label">Tanggal Opname *</label>
-            <input
-              type="date"
-              value={header.opname_date}
-              onChange={(e) => setHeader({ ...header, opname_date: e.target.value })}
-              className="form-input"
-            />
-          </div>
-          <div className="form-group">
             <label className="form-label">Notes</label>
-            <textarea
-              value={header.notes}
-              onChange={(e) => setHeader({ ...header, notes: e.target.value })}
-              className="form-input form-textarea"
-              rows={1}
-              placeholder="Add remarks..."
-            />
-          </div>
-        </div>
-      </header>
-
-      {/* Error Display */}
-      {error && <div className="master-error">{error}</div>}
-
-      {/* Items Section - Scrollable */}
-      <main className="stock-opname-items">
-        <div className="stock-opname-table-container">
-          <div className="table-wrapper custom-scrollbar">
-            <table className="stock-opname-table master-table">
-              <thead className="table-header">
-                <tr>
-                  <th className="table-checkbox">
-                    <input 
-                      type="checkbox" 
-                      className="table-checkbox-input"
-                      checked={selectedIds.length === items.length && items.length > 0}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setSelectedIds(items.map(i => i.id))
-                        } else {
-                          setSelectedIds([])
-                        }
-                      }}
-                    />
-                  </th>
-                  <th className="table-center" style={{ width: '60px' }}>No</th>
-                  <th>SKU</th>
-                  <th>Product</th>
-                  <th className="table-center">Unit</th>
-                  <th className="table-center">System</th>
-                  <th className="table-center">Physical</th>
-                  <th className="table-center">Variance</th>
-                  <th>Reason</th>
-                </tr>
-              </thead>
-              <tbody>
-                {items.map((item, index) => (
-                  <tr key={item.id} className="table-row">
-                    <td className="table-checkbox">
-                      <input
-                        type="checkbox"
-                        className="table-checkbox-input"
-                        checked={selectedIds.includes(item.id)}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setSelectedIds([...selectedIds, item.id])
-                          } else {
-                            setSelectedIds(selectedIds.filter(id => id !== item.id))
-                          }
-                        }}
-                      />
-                    </td>
-                    <td className="table-center text-muted">{index + 1}</td>
-                    <td className="font-bold">{item.product_sku || item.product?.sku || '-'}</td>
-                    <td className="table-product">
-                      <div className="product-name">{item.product_name || item.product?.name || '-'}</div>
-                    </td>
-                    <td className="table-center text-muted">{item.product_unit_name || item.product?.unit || '-'}</td>
-                    <td className="table-center font-bold">{Number(item.system_quantity || item.system_qty || 0)}</td>
-                    <td className="table-center">
-                      <input
-                        type="number"
-                        value={item.actual_quantity !== undefined ? item.actual_quantity : (item.physical_qty || 0)}
-                        onChange={(e) => updateItem(item.id, { actual_quantity: Number(e.target.value) })}
-                        className="physical-input"
-                      />
-                    </td>
-                    <td className={`table-center font-black ${item.difference !== undefined ? (item.difference > 0 ? 'variance-positive' : item.difference < 0 ? 'variance-negative' : '') : (item.variance > 0 ? 'variance-positive' : item.variance < 0 ? 'variance-negative' : '')}`}>
-                      {Number(item.difference !== undefined ? item.difference : (item.variance || 0))}
-                    </td>
-                    <td>
-                      <input
-                        type="text"
-                        value={item.reason || ''}
-                        onChange={(e) => updateItem(item.id, { reason: e.target.value })}
-                        className="reason-input"
-                        placeholder="Add reason..."
-                      />
-                    </td>
-                  </tr>
-                ))}
-                {items.length === 0 && (
-                  <tr>
-                    <td colSpan={9} className="text-center py-8 text-muted">
-                      No items added yet. Click "Add" (F1) to start.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+            <textarea value={header.notes || ''} onChange={(e) => setHeader({ ...header, notes: e.target.value })} className="form-input form-textarea" rows={3} disabled={isLocked} />
           </div>
         </div>
 
-        <div className="stock-opname-summary">
-          <span className="summary-title">Summary</span>
-          <div className="summary-items">
-            <span className="summary-item">
-              TOTAL ITEMS: <span className="summary-value">{summary.total_items}</span>
-            </span>
-            <span className="summary-divider"></span>
-            <span className="summary-item summary-positive">
-              VARIANCE POSITIVE: <span className="summary-value">{summary.variance_positive}</span>
-            </span>
-            <span className="summary-divider"></span>
-            <span className="summary-item summary-negative">
-              VARIANCE NEGATIVE: <span className="summary-value">{summary.variance_negative}</span>
-            </span>
-            <span className="summary-divider"></span>
-            <span className="summary-item">
-              VARIANCE ZERO: <span className="summary-value">{summary.variance_zero}</span>
-            </span>
+        <div className="po-summary-section">
+          <div className="po-summary-row">
+            <span>Total Items</span>
+            <span>{summary.total}</span>
+          </div>
+          <div className="po-summary-row">
+            <span>Total Qty</span>
+            <span>{formatNumber(summary.totalQty)}</span>
+          </div>
+          <div className="po-summary-row" style={{ color: 'var(--color-success)' }}>
+            <span>Selisih +</span>
+            <span>{summary.positive}</span>
+          </div>
+          <div className="po-summary-row" style={{ color: 'var(--color-error)' }}>
+            <span>Selisih -</span>
+            <span>{summary.negative}</span>
+          </div>
+          <div className="po-summary-row">
+            <span>Sama</span>
+            <span>{summary.zero}</span>
           </div>
         </div>
-      </main>
+      </aside>
 
-      {/* Action Footer - Sticky Bottom */}
-      <footer className="stock-opname-footer">
-        <div className="footer-content">
-          <div className="footer-actions-left">
-
-              <button type="button" className="master-footer-btn"    onClick={() => setShowAddModal(true)}
-              title="Add Product (F1)" aria-label="New">
-          <span className="material-icons-round master-footer-icon orange">add_box</span>
-          <span className="master-footer-key">+</span>
-        </button>
-
-   <button type="button" className="master-footer-btn" onClick={() => removeItem(selectedIds)}     disabled={selectedIds.length === 0}  title="Remove Selected (DEL)" aria-label="Delete">
-          <span className="material-icons-round master-footer-icon orange">remove_circle</span>
-          <span className="master-footer-key">DEL</span>
-        </button>
-
-
-             <button type="button" className="master-footer-btn"         onClick={handleSave}
-              disabled={isSaving || isLoading} title="Save (Ctrl+S)" aria-label="Exit">
-          <span className="material-icons-round master-footer-icon green">save</span>
-        
-        </button>
-
-
-             <button type="button" className="master-footer-btn"       onClick={() => setShowExitConfirm(true)}
-              disabled={isSaving} title="Exit" aria-label="Exit">
-          <span className="material-icons-round master-footer-icon red">exit_to_app</span>
-        </button>
-          
-           {/*  +     <button
-              type="button"
-              className="footer-btn footer-btn-add"
-              onClick={() => setShowAddModal(true)}
-              title="Add Product (F1)"
-            >
-              <span className="material-icons-round">add</span>
-              <span className="footer-btn-shortcut">F1</span>
-            </button>
-
-            
-          <button
-              type="button"
-              className="footer-btn footer-btn-remove"
-              onClick={() => removeItem(selectedIds)}
-              disabled={selectedIds.length === 0}
-              title="Remove Selected (DEL)"
-            >
-              <span className="material-icons-round">remove</span>
-              <span className="footer-btn-shortcut">DEL</span>
-            </button>      */}
+      {showProductPopup && (
+        <div className="popup-overlay" onClick={() => setShowProductPopup(false)}>
+          <div className="popup" onClick={(e) => e.stopPropagation()}>
+            <div className="popup-header">
+              <h3>DAFTAR PRODUK</h3>
+              <button className="popup-close" onClick={() => setShowProductPopup(false)}>
+                <span className="material-icons">close</span>
+              </button>
+            </div>
+            <div className="popup-table-wrapper">
+              <table className="popup-table">
+                <thead><tr><th>No</th><th>Nama Produk</th><th>Satuan</th><th>Harga</th></tr></thead>
+                <tbody>
+                  {isLoadingProducts ? (
+                    <tr><td colSpan={4} style={{ textAlign: 'center', color: '#94a3b8' }}>Memuat...</td></tr>
+                  ) : productResults.length === 0 ? (
+                    <tr><td colSpan={4} style={{ textAlign: 'center', color: '#94a3b8' }}>Produk tidak ditemukan</td></tr>
+                  ) : (
+                    productResults.map((product, idx) => (
+                      <tr key={product.id} className={popupSelectedIndex === idx ? 'selected' : ''} onClick={() => handleSelectProduct(product)}>
+                        <td>{idx + 1}</td>
+                        <td>{product.name}</td>
+                        <td>{product.unit}</td>
+                        <td style={{ textAlign: 'right' }}>{formatNumber(product.cost_price || product.price)}</td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+            <div className="popup-footer">
+              <span>↑↓ Navigasi</span>
+              <span>Enter: Pilih | Esc: Tutup</span>
+            </div>
           </div>
-          {/* <div className="footer-actions-right">
-            <button
-              type="button"
-              className="footer-btn footer-btn-save"
-              onClick={handleSave}
-              disabled={isSaving || isLoading}
-            >
-              <span className="material-icons-round">save</span>
-              {isSaving ? 'Saving...' : 'Save (Ctrl+S)'}
-            </button>
-            <button
-              type="button"
-              className="footer-btn footer-btn-exit"
-              onClick={() => setShowExitConfirm(true)}
-              disabled={isSaving}
-            >
-              <span className="material-icons-round">logout</span>
-              Exit (Esc)
-            </button>
-          </div>   */}
         </div>
-      </footer>
+      )}
 
-      {/* Add Item Modal */}
-      <AddItemModal
-        isOpen={showAddModal}
-        onClose={() => setShowAddModal(false)}
-        onAdd={addItem}
-        title="Add Product to Opname"
-        itemConfig={{
-          selectFields: [
-            {
-              name: 'product_id',
-              label: 'Product',
-              required: true,
-              options: productOptionsForSelect,
-            },
-          ],
-        }}
-        onProductSelect={(productId, callback) => {
-          // Validasi warehouse harus dipilih dulu
-          if (!header.warehouse_id) {
-            setToast({
-              message: 'Silakan pilih Warehouse terlebih dahulu',
-              type: 'warning',
-              isOpen: true,
-            })
-            callback(0)
-            return
-          }
-          // Fetch system stock for selected product
-          if (token && header.warehouse_id) {
-            getProductStock(token, {
-              product_id: productId,
-              warehouse_id: header.warehouse_id,
-            }).then((result) => {
-              console.log('[StockOpnameDetail] getProductStock result:', result)
-              callback(result.current_stock || 0)
-            }).catch((err) => {
-              console.error('[StockOpnameDetail] getProductStock error:', err)
-              callback(0)
-            })
-          } else {
-            // Offline mode - use dummy data
-            const dummyStocks = {
-              'PRD001': 150,
-              'PRD002': 80,
-              'PRD003': 200,
-            }
-            callback(dummyStocks[productId] || 0)
-          }
-        }}
-      />
-
-      {/* Exit Confirm */}
       {showExitConfirm && (
         <DeleteMaster
           itemName="keluar dari halaman ini"
@@ -684,22 +665,10 @@ export function StockOpnameDetail({ selectedId: propSelectedId, onExit, onSaveSu
           confirmText="Ya"
           cancelText="Tidak"
           isExit={true}
-          onConfirm={() => {
-            setShowExitConfirm(false)
-            onExit()
-          }}
+          onConfirm={() => { setShowExitConfirm(false); onExit() }}
           onCancel={() => setShowExitConfirm(false)}
         />
       )}
-
-      {/* Toast Notification */}
-      <Toast
-        message={toast.message}
-        type={toast.type}
-        isOpen={toast.isOpen}
-        onClose={() => setToast({ ...toast, isOpen: false })}
-        duration={3000}
-      />
     </div>
   )
 }

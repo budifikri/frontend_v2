@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, useLayoutEffect } from 'react'
 import { useAuth } from '../../../shared/auth'
 import { getPurchaseReturn, createPurchaseReturn, updatePurchaseReturn, listSuppliers, generateReturnNumber } from '../../../features/transaksi/purchase-return/purchaseReturn.api'
+import { listProducts } from '../../../features/master/product/product.api'
 import { listWarehouses } from '../../../features/master/warehouse/warehouse.api'
-import { AddPurchaseItemModal } from './AddPurchaseItemModal'
 import { DeleteMaster } from '../footer/DeleteMaster'
 import { Toast } from '../../../components/Toast'
 import './PurchaseDetail.css'
@@ -15,11 +15,15 @@ export function PurchaseReturnDetail({ selectedId: propSelectedId, onExit, onSav
   const [isLoading, setIsLoading] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState('')
-  const [showAddModal, setShowAddModal] = useState(false)
   const [showExitConfirm, setShowExitConfirm] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [itemToDelete, setItemToDelete] = useState(null)
   const [search, setSearch] = useState('')
+  const searchInputRef = useRef(null)
+  const [showProductPopup, setShowProductPopup] = useState(false)
+  const [productResults, setProductResults] = useState([])
+  const [popupSelectedIndex, setPopupSelectedIndex] = useState(0)
+  const [isLoadingProducts, setIsLoadingProducts] = useState(false)
   const [supplierOptions, setSupplierOptions] = useState([])
   const [warehouseOptions, setWarehouseOptions] = useState([])
   const [showToast, setShowToast] = useState(false)
@@ -68,6 +72,34 @@ export function PurchaseReturnDetail({ selectedId: propSelectedId, onExit, onSav
   }, [token])
 
   useEffect(() => { fetchLookups() }, [fetchLookups])
+
+  const focusSearchInput = useCallback((selectText = false) => {
+    const input = searchInputRef.current
+    if (!input) return
+    input.focus()
+    if (selectText) input.select()
+  }, [])
+
+  const queueFocusSearchInput = useCallback((selectText = false, delay = 0) => {
+    window.setTimeout(() => {
+      requestAnimationFrame(() => {
+        focusSearchInput(selectText)
+      })
+    }, delay)
+  }, [focusSearchInput])
+
+  useEffect(() => {
+    if (showProductPopup || showExitConfirm || showDeleteConfirm) return
+    queueFocusSearchInput(false)
+    const retryTimer = window.setTimeout(() => {
+      queueFocusSearchInput(false)
+    }, 120)
+    return () => window.clearTimeout(retryTimer)
+  }, [propSelectedId, showProductPopup, showExitConfirm, showDeleteConfirm, queueFocusSearchInput])
+
+  useLayoutEffect(() => {
+    queueFocusSearchInput(false)
+  }, [propSelectedId, queueFocusSearchInput])
 
   useEffect(() => {
     if (!propSelectedId) return
@@ -124,23 +156,36 @@ export function PurchaseReturnDetail({ selectedId: propSelectedId, onExit, onSav
     loadPurchaseReturn()
   }, [propSelectedId, token])
 
-  const handleAddItemFromModal = useCallback((item) => {
-    const lineTotal = (item.quantity || 0) * (item.unit_price || 0)
-    const itemWithId = {
-      id: `item-${Date.now()}`,
-      product_id: item.product_id,
-      product_name: item.product_name,
-      sku: item.sku,
-      quantity: item.quantity,
-      unit_price: item.unit_price,
-      discount: item.discount || 0,
-      tax_rate: item.tax_rate || 0,
-      line_total: lineTotal,
+  const handleSelectProduct = useCallback(async (product) => {
+    if (isLocked) return
+    const existingIndex = items.findIndex(item => item.product_id === product.id)
+    if (existingIndex >= 0) {
+      setToastMessage(`${product.name} sudah ada di daftar`)
+      setToastType('warning')
+      setShowToast(true)
+      setShowProductPopup(false)
+      setSearch('')
+      setSelectedIndex(existingIndex)
+      setTimeout(() => focusSearchInput(), 50)
+      return
     }
-    setItems((prev) => [...prev, itemWithId])
+    const newItem = {
+      id: `item-${Date.now()}`,
+      product_id: product.id,
+      product_name: product.name,
+      sku: product.sku,
+      quantity: 1,
+      unit_price: product.cost_price || product.price || 0,
+      discount: 0,
+      tax_rate: 0,
+      line_total: product.cost_price || product.price || 0,
+    }
+    setItems(prev => [...prev, newItem])
+    setShowProductPopup(false)
+    setSearch('')
     setSelectedIndex(items.length)
-    setShowAddModal(false)
-  }, [items.length])
+    setTimeout(() => focusSearchInput(), 50)
+  }, [isLocked, items.length, focusSearchInput])
 
   const updateItem = useCallback((itemId, updates) => {
     setItems((prev) => prev.map((item) => {
@@ -280,66 +325,114 @@ export function PurchaseReturnDetail({ selectedId: propSelectedId, onExit, onSav
     setSearch(value)
   }
 
-  const handleSearchKeyDown = (e) => {
+  const handleSearchKeyDown = async (e) => {
     if (isLocked) {
       e.preventDefault()
       return
     }
 
-    if (e.key !== 'Enter') return
-    e.preventDefault()
-    const value = search.trim()
-    if (!value) return
+    if (e.key === 'Enter') {
+      e.preventDefault()
 
-    const selectedItem = items[selectedIndex]
-    const priceMatch = value.match(/^\+\+(\d+)$/)
-    if (priceMatch) {
-      if (!selectedItem) {
-        setToastMessage('Pilih item terlebih dahulu untuk mengubah harga')
-        setToastType('error')
-        setShowToast(true)
+      if (showProductPopup && productResults.length > 0) {
+        await handleSelectProduct(productResults[popupSelectedIndex])
         return
       }
 
-      const unitPrice = Number(priceMatch[1])
-      updateItem(selectedItem.id, { unit_price: unitPrice })
-      setToastMessage(`Harga ${selectedItem.product_name} diubah menjadi ${formatCurrency(unitPrice)}`)
-      setToastType('success')
-      setShowToast(true)
-      setSearch('')
-      return
-    }
+      const currentSearch = search.trim()
+      if (!currentSearch) return
 
-    const qtyMatch = value.match(/^\+(\d+)$/)
-    if (qtyMatch) {
-      if (!selectedItem) {
-        setToastMessage('Pilih item terlebih dahulu untuk mengubah qty')
-        setToastType('error')
+      const selectedItem = items[selectedIndex]
+      const priceMatch = currentSearch.match(/^\+\+(\d+)$/)
+      if (priceMatch) {
+        if (!selectedItem) {
+          setToastMessage('Pilih item terlebih dahulu untuk mengubah harga')
+          setToastType('error')
+          setShowToast(true)
+          return
+        }
+
+        const unitPrice = Number(priceMatch[1])
+        updateItem(selectedItem.id, { unit_price: unitPrice })
+        setToastMessage(`Harga ${selectedItem.product_name} diubah menjadi ${formatCurrency(unitPrice)}`)
+        setToastType('success')
         setShowToast(true)
+        setSearch('')
         return
       }
 
-      const quantity = Number(qtyMatch[1])
-      updateItem(selectedItem.id, { quantity })
-      setToastMessage(`Qty ${selectedItem.product_name} diubah menjadi ${quantity}`)
-      setToastType('success')
-      setShowToast(true)
-      setSearch('')
-      return
+      const qtyMatch = currentSearch.match(/^\+(\d+)$/)
+      if (qtyMatch) {
+        if (!selectedItem) {
+          setToastMessage('Pilih item terlebih dahulu untuk mengubah qty')
+          setToastType('error')
+          setShowToast(true)
+          return
+        }
+
+        const quantity = Number(qtyMatch[1])
+        updateItem(selectedItem.id, { quantity })
+        setToastMessage(`Qty ${selectedItem.product_name} diubah menjadi ${quantity}`)
+        setToastType('success')
+        setShowToast(true)
+        setSearch('')
+        return
+      }
+
+      setIsLoadingProducts(true)
+      try {
+        const result = await listProducts(token, { search: currentSearch, limit: 50 })
+        const products = result.items.map(p => ({
+          id: p.id,
+          name: p.name,
+          sku: p.sku,
+          unit: p.unit_name || p.unit || 'Pcs',
+          cost_price: Number(p.cost_price || p.purchase_price || 0),
+          price: Number(p.cost_price || p.purchase_price || 0),
+        }))
+        if (products.length === 1) {
+          await handleSelectProduct(products[0])
+        } else if (products.length > 1) {
+          setProductResults(products)
+          setPopupSelectedIndex(0)
+          setShowProductPopup(true)
+        } else {
+          setToastMessage('Produk tidak ditemukan')
+          setToastType('warning')
+          setShowToast(true)
+        }
+      } catch (err) {
+        console.error('Failed to load products:', err)
+        setProductResults([])
+      } finally {
+        setIsLoadingProducts(false)
+      }
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      if (showProductPopup && popupSelectedIndex < productResults.length - 1) {
+        setPopupSelectedIndex(popupSelectedIndex + 1)
+      } else if (items.length > 0) {
+        const nextIndex = selectedIndex < items.length - 1 ? selectedIndex + 1 : items.length - 1
+        setSelectedIndex(nextIndex)
+      }
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      if (showProductPopup && popupSelectedIndex > 0) {
+        setPopupSelectedIndex(popupSelectedIndex - 1)
+      } else if (items.length > 0) {
+        const prevIndex = selectedIndex > 0 ? selectedIndex - 1 : 0
+        setSelectedIndex(prevIndex)
+      }
+    } else if (e.key === 'Escape') {
+      e.preventDefault()
+      e.stopPropagation()
+      if (showProductPopup) {
+        setShowProductPopup(false)
+        setTimeout(() => focusSearchInput(), 50)
+        return
+      }
+      setShowExitConfirm(true)
     }
-
-    setShowAddModal(true)
-  }
-
-  const handleCloseAddModal = () => {
-    setShowAddModal(false)
-    setSearch('')
-  }
-
-  const handleAddItem = (item) => {
-    if (isLocked) return
-    handleAddItemFromModal(item)
-    setSearch('')
   }
 
   const openDeleteConfirm = (item) => {
@@ -445,6 +538,7 @@ export function PurchaseReturnDetail({ selectedId: propSelectedId, onExit, onSav
           <div className="po-search-container pr-search-container">
             <span className="material-icons">search</span>
             <input
+              ref={searchInputRef}
               type="text"
               inputMode="text"
               className="po-search-input pr-search-input"
@@ -452,6 +546,15 @@ export function PurchaseReturnDetail({ selectedId: propSelectedId, onExit, onSav
               value={search}
               onChange={(e) => handleSearchChange(e.target.value)}
               onKeyDown={handleSearchKeyDown}
+              onBlur={(e) => {
+                if (showProductPopup || showExitConfirm) return
+                const nextFocusedElement = e.relatedTarget
+                if (nextFocusedElement instanceof HTMLElement) {
+                  const interactiveTagNames = ['INPUT', 'SELECT', 'TEXTAREA', 'BUTTON']
+                  if (interactiveTagNames.includes(nextFocusedElement.tagName)) return
+                }
+                queueFocusSearchInput(false, 0)
+              }}
               autoComplete="off"
               disabled={isLocked}
               autoFocus
@@ -556,14 +659,43 @@ export function PurchaseReturnDetail({ selectedId: propSelectedId, onExit, onSav
         </div>
       </aside>
 
-      <AddPurchaseItemModal
-        key={`pr-add-${showAddModal ? 'open' : 'closed'}-${search}`}
-        isOpen={showAddModal}
-        onClose={handleCloseAddModal}
-        onAdd={handleAddItem}
-        token={token}
-        initialSearchQuery={search}
-      />
+      {showProductPopup && (
+        <div className="popup-overlay" onClick={() => setShowProductPopup(false)}>
+          <div className="popup" onClick={(e) => e.stopPropagation()}>
+            <div className="popup-header">
+              <h3>DAFTAR PRODUK</h3>
+              <button className="popup-close" onClick={() => setShowProductPopup(false)}>
+                <span className="material-icons">close</span>
+              </button>
+            </div>
+            <div className="popup-table-wrapper">
+              <table className="popup-table">
+                <thead><tr><th>No</th><th>Nama Produk</th><th>Satuan</th><th>Harga</th></tr></thead>
+                <tbody>
+                  {isLoadingProducts ? (
+                    <tr><td colSpan={4} style={{ textAlign: 'center', color: '#94a3b8' }}>Memuat...</td></tr>
+                  ) : productResults.length === 0 ? (
+                    <tr><td colSpan={4} style={{ textAlign: 'center', color: '#94a3b8' }}>Produk tidak ditemukan</td></tr>
+                  ) : (
+                    productResults.map((product, idx) => (
+                      <tr key={product.id} className={popupSelectedIndex === idx ? 'selected' : ''} onClick={() => handleSelectProduct(product)}>
+                        <td>{idx + 1}</td>
+                        <td>{product.name}</td>
+                        <td>{product.unit}</td>
+                        <td style={{ textAlign: 'right' }}>{formatCurrency(product.cost_price || product.price)}</td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+            <div className="popup-footer">
+              <span>↑↓ Navigasi</span>
+              <span>Enter: Pilih | Esc: Tutup</span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showExitConfirm && (
         <DeleteMaster

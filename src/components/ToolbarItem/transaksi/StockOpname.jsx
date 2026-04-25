@@ -20,6 +20,7 @@ import { StockOpnameDetail } from './StockOpnameDetail'
 import { Toast } from '../../Toast'
 
 const REASON_OPTIONS = getReasonOptions()
+const ALL_RECORDS_SUMMARY_LIMIT = 999999
 
 const DEFAULT_FORM = {
   warehouse_id: '',
@@ -46,6 +47,7 @@ const DUMMY_OPNAME_RECORDS = [
     status: 'posted',
     notes: 'Stock opname bulanan',
     created_at: '2026-03-05T10:30:00Z',
+    grand_total: 0,
   },
   {
     id: 'OPN002',
@@ -58,6 +60,7 @@ const DUMMY_OPNAME_RECORDS = [
     status: 'draft',
     notes: 'Stock opname mingguan',
     created_at: '2026-03-05T14:00:00Z',
+    grand_total: 0,
   },
   {
     id: 'OPN003',
@@ -70,6 +73,7 @@ const DUMMY_OPNAME_RECORDS = [
     status: 'draft',
     notes: 'Stock opname cabang',
     created_at: '2026-03-05T15:00:00Z',
+    grand_total: 0,
   },
 ]
 
@@ -80,32 +84,31 @@ const TABLE_COLUMNS = [
   { key: 'warehouse_name', label: 'WAREHOUSE', sortable: true },
   { key: 'notes', label: 'NOTES', sortable: true },
   { key: 'username', label: 'USERNAME', sortable: true },
-  { key: 'status', label: 'STATUS', sortable: true },
+  { key: 'grand_total', label: 'TOTAL', sortable: true },
+  { key: 'status', label: 'STATUS', sortable: true, width: '220px' },
 ]
 
-function getStatusBadgeClass(status) {
-  switch (status?.toLowerCase()) {
-    case 'draft':
-      return 'status-badge-pending'
-    case 'approved':
-      return 'status-badge-approved'
-    case 'posted':
-      return 'status-badge-posted'
-    case 'rejected':
-      return 'status-badge-rejected'
-    default:
-      return 'status-badge-pending'
-  }
+function getOpnameStatusMeta(status) {
+  const value = String(status || '').toLowerCase()
+  if (value === 'approved' || value === 'approve') return { label: 'Approved', variant: 'approve', icon: 'check_circle' }
+  if (value === 'posted') return { label: 'Posted', variant: 'receive', icon: 'check_circle' }
+  if (value === 'rejected') return { label: 'Rejected', variant: 'reject', icon: 'cancel' }
+  return { label: 'Draft', variant: 'draft', icon: 'edit_note' }
 }
 
 function formatDate(dateStr) {
   if (!dateStr) return '-'
   const d = new Date(dateStr)
   if (isNaN(d.getTime())) return dateStr
-  const day = String(d.getDate()).padStart(2, '0')
-  const month = String(d.getMonth() + 1).padStart(2, '0')
-  const year = d.getFullYear()
-  return `${day}/${month}/${year}`
+  return d.toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' })
+}
+
+function formatCurrency(amount) {
+  return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(amount)
+}
+
+function formatNumber(amount) {
+  return new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(Number(amount) || 0)
 }
 
 export function StockOpname({ onExit }) {
@@ -114,8 +117,9 @@ export function StockOpname({ onExit }) {
 
   const [data, setData] = useState([])
   const [pagination, setPagination] = useState({ has_more: false, total: 0 })
+  const [summaryCounts, setSummaryCounts] = useState({ totalOpname: 0, draftCount: 0, approvedCount: 0 })
+  const [summaryTotalAmount, setSummaryTotalAmount] = useState(0)
   const [isLoading, setIsLoading] = useState(false)
-  const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState('')
 
   const [searchKeyword, setSearchKeyword] = useState('')
@@ -131,23 +135,16 @@ export function StockOpname({ onExit }) {
   const [showDetail, setShowDetail] = useState(false)
   const tableRef = useRef(null)
 
-  // Toast state
-  const [toast, setToast] = useState({
-    isOpen: false,
-    message: '',
-    type: 'info',
-  })
-
+  const [toast, setToast] = useState({ isOpen: false, message: '', type: 'info' })
   const [warehouseOptions, setWarehouseOptions] = useState([])
-
   const [form, setForm] = useState(DEFAULT_FORM)
+  const [isSaving, setIsSaving] = useState(false)
 
   const fetchWarehouses = useCallback(async () => {
     if (!token) {
       setWarehouseOptions(DUMMY_WAREHOUSES)
       return
     }
-
     try {
       const res = await listWarehouses(token, { limit: 200, offset: 0 })
       setWarehouseOptions(res.items || [])
@@ -158,19 +155,16 @@ export function StockOpname({ onExit }) {
 
   const fetchData = useCallback(async () => {
     console.log('[StockOpname.jsx] fetchData() called')
-    console.log('[StockOpname.jsx] fetchData params:', { searchKeyword, warehouseFilter, statusFilter, limit, offset })
-    
     setError('')
     setIsLoading(true)
 
     if (!token) {
       let items = [...DUMMY_OPNAME_RECORDS]
-
       if (searchKeyword.trim()) {
         const keyword = searchKeyword.trim().toLowerCase()
         items = items.filter(item =>
           item.opname_number.toLowerCase().includes(keyword) ||
-          item.warehouse.name.toLowerCase().includes(keyword) ||
+          item.warehouse?.name.toLowerCase().includes(keyword) ||
           item.notes.toLowerCase().includes(keyword)
         )
       }
@@ -180,11 +174,18 @@ export function StockOpname({ onExit }) {
       if (statusFilter !== 'all') {
         items = items.filter(item => item.status === statusFilter)
       }
-
       const total = items.length
       const sliced = items.slice(offset, offset + limit)
+      const grandTotalAll = items.reduce((sum, item) => sum + (Number(item.grand_total) || 0), 0)
+      const draft = items.filter(item => String(item.status || '').toLowerCase() === 'draft').length
+      const approved = items.filter(item => {
+        const status = String(item.status || '').toLowerCase()
+        return status === 'approve' || status === 'approved' || status === 'posted'
+      }).length
       setData(sliced)
       setPagination({ total, has_more: offset + limit < total })
+      setSummaryCounts({ totalOpname: total, draftCount: draft, approvedCount: approved })
+      setSummaryTotalAmount(grandTotalAll)
       setIsLoading(false)
       return
     }
@@ -204,10 +205,35 @@ export function StockOpname({ onExit }) {
         total: Number(nextPagination.total ?? 0),
         has_more: Boolean(nextPagination.has_more),
       })
+
+      const baseSummaryParams = {
+        search: searchKeyword.trim() || undefined,
+        warehouse_id: warehouseFilter || undefined,
+        limit: 1,
+        offset: 0,
+      }
+
+      const [totalSummary, draftSummary, approvedSummary, allRecordsSummary] = await Promise.all([
+        listStockOpname(token, baseSummaryParams),
+        listStockOpname(token, { ...baseSummaryParams, status: 'draft' }),
+        listStockOpname(token, { ...baseSummaryParams, status: 'approved' }),
+        listStockOpname(token, { ...baseSummaryParams, limit: ALL_RECORDS_SUMMARY_LIMIT, offset: 0 }),
+      ])
+
+      setSummaryCounts({
+        totalOpname: Number(totalSummary?.pagination?.total ?? 0),
+        draftCount: Number(draftSummary?.pagination?.total ?? 0),
+        approvedCount: Number(approvedSummary?.pagination?.total ?? 0),
+      })
+      setSummaryTotalAmount(
+        (allRecordsSummary?.items || []).reduce((sum, row) => sum + (Number(row.grand_total) || 0), 0),
+      )
     } catch (err) {
       setError(err.message || 'Failed to load stock opname')
       setData([])
       setPagination({ total: 0, has_more: false })
+      setSummaryCounts({ totalOpname: 0, draftCount: 0, approvedCount: 0 })
+      setSummaryTotalAmount(0)
     } finally {
       setIsLoading(false)
     }
@@ -241,7 +267,6 @@ export function StockOpname({ onExit }) {
     setShowDetail(true)
   }
 
-  // Handle save success from detail component
   const handleSaveSuccess = (message, type = 'success') => {
     console.log('[StockOpname.jsx] handleSaveSuccess() called:', { message, type })
     setToast({ isOpen: true, message, type })
@@ -252,11 +277,15 @@ export function StockOpname({ onExit }) {
     setShowDetail(true)
   }
 
-  const handleDeleteClick = () => {
-    if (selectedItem) {
-      setShowDeleteConfirm(true)
+  const handleDeleteClick = useCallback(() => {
+    if (!selectedItem) return
+    const status = String(selectedItem?.status || '').toLowerCase()
+    if (status === 'approved' || status === 'approve' || status === 'posted') {
+      setToast({ isOpen: true, message: 'Tidak bisa dihapus, status sudah terkunci', type: 'error' })
+      return
     }
-  }
+    setShowDeleteConfirm(true)
+  }, [selectedItem])
 
   useMasterTableKeyboardNav({
     data: sortedData,
@@ -272,7 +301,6 @@ export function StockOpname({ onExit }) {
       setShowDeleteConfirm(false)
       return
     }
-
     try {
       if (token) {
         await deleteStockOpname(token, selectedItem.id)
@@ -297,10 +325,6 @@ export function StockOpname({ onExit }) {
     }
     if (!form.opname_date) {
       setError('Tanggal harus diisi')
-      return
-    }
-    if (!form.status) {
-      setError('Status harus dipilih')
       return
     }
 
@@ -340,7 +364,6 @@ export function StockOpname({ onExit }) {
           setData([newItem, ...data])
         }
       }
-
       setForm(DEFAULT_FORM)
       setSelectedId(null)
       setShowForm(false)
@@ -356,14 +379,8 @@ export function StockOpname({ onExit }) {
     setForm(DEFAULT_FORM)
   }
 
-  const handlePrint = () => {
-    window.print()
-  }
-
-  const handleExitClick = () => {
-    setShowExitConfirm(true)
-  }
-
+  const handlePrint = () => window.print()
+  const handleExitClick = () => setShowExitConfirm(true)
   const handleConfirmExit = () => {
     setShowExitConfirm(false)
     onExit()
@@ -377,31 +394,34 @@ export function StockOpname({ onExit }) {
     }))
   }, [warehouseOptions])
 
-  const statusOptionsForSelect = useMemo(() => {
-    return [
-      { id: 'draft', name: 'Draft' },
-      { id: 'approved', name: 'Approved' },
-      { id: 'posted', name: 'Posted' },
-      { id: 'rejected', name: 'Rejected' },
-    ]
-  }, [])
+  const statusOptionsForSelect = useMemo(() => [
+    { id: 'draft', name: 'Draft' },
+    { id: 'approved', name: 'Approved' },
+    { id: 'posted', name: 'Posted' },
+    { id: 'rejected', name: 'Rejected' },
+  ], [])
+
+  const totalOpname = summaryCounts.totalOpname
+  const draftCount = summaryCounts.draftCount
+  const approvedCount = summaryCounts.approvedCount
+
+  if (showDetail) {
+    return (
+      <StockOpnameDetail
+        selectedId={selectedId}
+        onExit={() => {
+          console.log('[StockOpname.jsx] onExit called - closing detail view')
+          setShowDetail(false)
+          setSelectedId(null)
+          fetchData()
+        }}
+        onSaveSuccess={handleSaveSuccess}
+      />
+    )
+  }
 
   return (
-    <>
-      {showDetail ? (
-        <StockOpnameDetail
-          selectedId={selectedId}
-          onExit={() => {
-            console.log('[StockOpname.jsx] onExit called - closing detail view')
-            setShowDetail(false)
-            setSelectedId(null)
-            console.log('[StockOpname.jsx] Calling fetchData() to refresh list...')
-            fetchData()
-          }}
-          onSaveSuccess={handleSaveSuccess}
-        />
-      ) : (
-        <div className="master-content">
+    <div className="master-content">
       <div className="master-header">
         <div className="master-header-accent"></div>
         <h1 className="master-title">Stock Opname</h1>
@@ -414,7 +434,7 @@ export function StockOpname({ onExit }) {
               value={searchKeyword}
               onChange={(e) => { pager.reset(); setSearchKeyword(e.target.value) }}
             />
-            <button type="button" className="master-search-btn">
+            <button type="button" className="master-search-btn" onClick={() => fetchData()}>
               <span className="material-icons-round material-icon">search</span>
             </button>
           </div>
@@ -447,8 +467,6 @@ export function StockOpname({ onExit }) {
               <option value="rejected">Rejected</option>
             </select>
           </div>
-
-         
         </div>
       </div>
 
@@ -459,34 +477,61 @@ export function StockOpname({ onExit }) {
           <table className="master-table">
             <MasterTableHeader columns={TABLE_COLUMNS} sortConfig={sortConfig} onSort={handleSort} />
             <tbody>
-              {sortedData.map((row, index) => (
-                <tr
-                  key={row.id || index}
-                  className={selectedId === row.id ? 'master-row-selected' : 'master-row'}
-                  onClick={() => handleSelect(row)}
-                  onDoubleClick={() => handleViewDetail(row)}
-                  title="Double-click to view/edit detail"
-                >
-                  <td>{offset + index + 1}</td>
-                  <td>{formatDate(row.opname_date)}</td>
-                  <td>{row.opname_number || row.reference || '-'}</td>
-                  <td>{row.warehouse?.name || row.warehouse_name || '-'}</td>
-                  <td>{row.notes || '-'}</td>
-                  <td>{row.username || row.user_id || '-'}</td>
-                  <td>
-                    <span className={`status-badge ${getStatusBadgeClass(row.status)}`}>
-                      {row.status || '-'}
-                    </span>
-                  </td>
-                </tr>
-              ))}
+              {sortedData.map((row, index) => {
+                const statusMeta = getOpnameStatusMeta(row.status)
+                return (
+                  <tr
+                    key={row.id || index}
+                    className={selectedId === row.id ? 'master-row-selected' : 'master-row'}
+                    onClick={() => handleSelect(row)}
+                    onDoubleClick={() => handleViewDetail(row)}
+                  >
+                    <td className="text-right">{offset + index + 1}</td>
+                    <td>{formatDate(row.opname_date)}</td>
+                    <td>{row.opname_number || row.reference || '-'}</td>
+                    <td>{row.warehouse?.name || row.warehouse_name || '-'}</td>
+                    <td>{row.notes || '-'}</td>
+                    <td>{row.username || row.user_id || '-'}</td>
+                    <td className="text-right">{formatCurrency(row.grand_total || 0)}</td>
+                    <td className="text-center">
+                      <div className="purchase-status-stack">
+                        <span className={`purchase-status-pill is-${statusMeta.variant}`}>
+                          <span className="material-icons-round purchase-status-icon">{statusMeta.icon}</span>
+                          {statusMeta.label}
+                        </span>
+                      </div>
+                    </td>
+                  </tr>
+                )
+              })}
               {!isLoading && sortedData.length === 0 && (
-                <tr>
-                  <td colSpan={7} className="text-center">No data</td>
-                </tr>
+                <tr><td colSpan={8} className="text-center">No data</td></tr>
               )}
             </tbody>
           </table>
+          <div className="master-table-sticky-footer purchase-table-summary">
+            <div className="purchase-table-summary-left">
+              <div className="purchase-summary-item">
+                <p>Total Opname</p>
+                <strong>{totalOpname}</strong>
+              </div>
+              <div className="purchase-summary-item is-draft">
+                <p>Draft</p>
+                <strong>{draftCount}</strong>
+              </div>
+              <div className="purchase-summary-item is-approved">
+                <p>Approved</p>
+                <strong>{approvedCount}</strong>
+              </div>
+            </div>
+            <div className="purchase-table-summary-right">
+              <p>Total Stock Opname</p>
+              <div className="purchase-total-value">
+                <span className="purchase-total-currency">Rp</span>
+                <strong>{formatNumber(summaryTotalAmount)}</strong>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -605,10 +650,7 @@ export function StockOpname({ onExit }) {
           onCancel={() => setShowExitConfirm(false)}
         />
       )}
-        </div>
-      )}
 
-      {/* Toast Notification */}
       <Toast
         message={toast.message}
         type={toast.type}
@@ -616,6 +658,6 @@ export function StockOpname({ onExit }) {
         onClose={() => setToast({ ...toast, isOpen: false })}
         duration={3000}
       />
-    </>
+    </div>
   )
 }

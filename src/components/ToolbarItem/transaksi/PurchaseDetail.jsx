@@ -748,8 +748,13 @@ export function PurchaseDetail({ selectedId: propSelectedId, onExit, onSaveSucce
                 value={search}
                 onChange={(e) => handleSearchChange(e.target.value)}
                 onKeyDown={handleSearchKeyDown}
-              onBlur={() => {
+              onBlur={(e) => {
                 if (showSupplierPopup || showProductPopup || showActionPopup || showExitConfirm || showVoidConfirm) return
+                const nextFocusedElement = e.relatedTarget
+                if (nextFocusedElement instanceof HTMLElement) {
+                  const interactiveTagNames = ['INPUT', 'SELECT', 'TEXTAREA', 'BUTTON']
+                  if (interactiveTagNames.includes(nextFocusedElement.tagName)) return
+                }
                 queueFocusSearchInput(false, 0)
               }}
               autoComplete="off"
