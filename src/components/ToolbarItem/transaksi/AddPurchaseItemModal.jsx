@@ -1,9 +1,9 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { listProducts } from '../../../features/master/product/product.api'
 
-export function AddPurchaseItemModal({ isOpen, onClose, onAdd, token }) {
+export function AddPurchaseItemModal({ isOpen, onClose, onAdd, token, initialSearchQuery = '' }) {
   const [selectedId, setSelectedId] = useState('')
-  const [searchQuery, setSearchQuery] = useState('')
+  const [searchQuery, setSearchQuery] = useState(initialSearchQuery)
   const [quantity, setQuantity] = useState(1)
   const [unitPrice, setUnitPrice] = useState(0)
   const [discount, setDiscount] = useState(0)

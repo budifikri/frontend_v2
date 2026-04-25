@@ -16,8 +16,8 @@ const TABLE_COLUMNS = [
   { key: 'supplier_name', label: 'SUPPLIER', sortable: true },
   { key: 'warehouse_name', label: 'WAREHOUSE', sortable: true },
   { key: 'pr_date', label: 'DATE', sortable: true, width: '120px' },
-  { key: 'status', label: 'STATUS', sortable: true },
   { key: 'grand_total', label: 'TOTAL', sortable: true },
+  { key: 'status', label: 'STATUS', sortable: true, width: '220px' },
 ]
 
 const DUMMY_PURCHASE_RETURNS = [
@@ -33,15 +33,18 @@ const DUMMY_PURCHASE_RETURNS = [
   },
 ]
 
-function getStatusBadgeClass(status) {
-  const statusLower = status?.toLowerCase()
-  
-  if (statusLower === 'draft') return 'status-badge-pending'
-  if (statusLower === 'approved') return 'status-badge-approved'
-  if (statusLower === 'done' || statusLower === 'completed') return 'status-badge-posted'
-  if (statusLower === 'rejected') return 'status-badge-rejected'
-  
-  return 'status-badge-pending'
+const ALL_RECORDS_SUMMARY_LIMIT = 999999
+
+function getReturnStatusMeta(status) {
+  const value = String(status || '').toLowerCase()
+  if (value === 'approved' || value === 'approve') return { label: 'Approve', variant: 'approve', icon: 'check_circle' }
+  if (value === 'pending') return { label: 'Pending', variant: 'pending', icon: 'schedule' }
+  if (value === 'reject' || value === 'rejected') return { label: 'Reject', variant: 'reject', icon: 'cancel' }
+  return { label: 'Draft', variant: 'draft', icon: 'edit_note' }
+}
+
+function formatNumber(amount) {
+  return new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(Number(amount) || 0)
 }
 
 function formatDate(dateStr) {
@@ -94,6 +97,8 @@ export function PurchaseReturn({ onExit }) {
 
   const [data, setData] = useState([])
   const [pagination, setPagination] = useState({ has_more: false, total: 0 })
+  const [summaryCounts, setSummaryCounts] = useState({ totalReturns: 0, draftCount: 0, approvedCount: 0 })
+  const [summaryTotalAmount, setSummaryTotalAmount] = useState(0)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -154,8 +159,16 @@ export function PurchaseReturn({ onExit }) {
       }
       const total = items.length
       const sliced = items.slice(pager.offset, pager.offset + pager.limit)
+      const grandTotalAll = items.reduce((sum, item) => sum + (Number(item.grand_total) || 0), 0)
+      const draft = items.filter(item => String(item.status || '').toLowerCase() === 'draft').length
+      const approved = items.filter(item => {
+        const status = String(item.status || '').toLowerCase()
+        return status === 'approve' || status === 'approved'
+      }).length
       setData(sliced)
       setPagination({ total, has_more: pager.offset + pager.limit < total })
+      setSummaryCounts({ totalReturns: total, draftCount: draft, approvedCount: approved })
+      setSummaryTotalAmount(grandTotalAll)
       setIsLoading(false)
       return
     }
@@ -175,10 +188,42 @@ export function PurchaseReturn({ onExit }) {
         total: Number(nextPagination.total ?? 0),
         has_more: Boolean(nextPagination.has_more),
       })
+
+      const baseSummaryParams = {
+        search: searchKeyword.trim() || undefined,
+        date_from: date_from || undefined,
+        date_to: date_to || undefined,
+        limit: 1,
+        offset: 0,
+      }
+
+      const [totalSummary, draftSummary, approvedSummary, allRecordsSummary] = await Promise.all([
+        listPurchaseReturns(token, baseSummaryParams),
+        listPurchaseReturns(token, { ...baseSummaryParams, status: 'draft' }),
+        listPurchaseReturns(token, { ...baseSummaryParams, status: 'approved' }),
+        listPurchaseReturns(token, {
+          search: searchKeyword.trim() || undefined,
+          date_from: date_from || undefined,
+          date_to: date_to || undefined,
+          limit: ALL_RECORDS_SUMMARY_LIMIT,
+          offset: 0,
+        }),
+      ])
+
+      setSummaryCounts({
+        totalReturns: Number(totalSummary?.pagination?.total ?? 0),
+        draftCount: Number(draftSummary?.pagination?.total ?? 0),
+        approvedCount: Number(approvedSummary?.pagination?.total ?? 0),
+      })
+      setSummaryTotalAmount(
+        (allRecordsSummary?.items || []).reduce((sum, row) => sum + (Number(row.grand_total) || 0), 0),
+      )
     } catch (err) {
       setError(err.message || 'Failed to load purchase returns')
       setData([])
       setPagination({ total: 0, has_more: false })
+      setSummaryCounts({ totalReturns: 0, draftCount: 0, approvedCount: 0 })
+      setSummaryTotalAmount(0)
     } finally {
       setIsLoading(false)
     }
@@ -203,6 +248,9 @@ export function PurchaseReturn({ onExit }) {
   })
 
   const totalAmount = sortedData.reduce((sum, row) => sum + (Number(row.grand_total) || 0), 0)
+  const totalReturns = summaryCounts.totalReturns
+  const draftCount = summaryCounts.draftCount
+  const approvedCount = summaryCounts.approvedCount
 
   const selectedItem = selectedId == null ? null : data.find((row) => row.id === selectedId) || null
 
@@ -221,9 +269,15 @@ export function PurchaseReturn({ onExit }) {
   }, [])
 
   const handleDeleteClick = useCallback(() => {
-    if (selectedItem) {
-      setShowDeleteConfirm(true)
+    if (!selectedItem) return
+
+    const returnStatus = String(selectedItem?.status || '').toLowerCase()
+    if (returnStatus === 'approved' || returnStatus === 'approve' || returnStatus === 'void' || returnStatus === 'voided') {
+      setToast({ isOpen: true, message: 'Tidak bisa dihapus, status sudah terkunci', type: 'error' })
+      return
     }
+
+    setShowDeleteConfirm(true)
   }, [selectedItem])
 
   useMasterTableKeyboardNav({
@@ -404,38 +458,63 @@ export function PurchaseReturn({ onExit }) {
       {error && <div className="master-error">{error}</div>}
 
       <div className="master-table-wrapper" ref={tableRef} tabIndex={0}>
-        <div className="master-table-container">
-          <table className="master-table">
+        <div className="master-table-container purchase-list-table-container">
+          <table className="master-table purchase-list-table">
             <MasterTableHeader columns={TABLE_COLUMNS} sortConfig={sortConfig} onSort={handleSort} />
             <tbody>
-              {sortedData.map((row, index) => (
-                <tr
-                  key={row.id || index}
-                  className={selectedId === row.id ? 'master-row-selected' : 'master-row'}
-                  onClick={() => handleSelect(row)}
-                  onDoubleClick={() => handleViewDetail()}
-                >
-                  <td>{pager.offset + index + 1}</td>
-                  <td>{row.pr_number || '-'}</td>
-                  <td>{row.supplier_name || '-'}</td>
-                  <td>{row.warehouse_name || '-'}</td>
-                  <td>{formatDate(row.pr_date)}</td>
-                  <td>
-                    <span className={`status-badge ${getStatusBadgeClass(row.status)}`}>
-                      {row.status || '-'}
-                    </span>
-                  </td>
-                  <td className="text-right">{formatCurrency(row.grand_total)}</td>
-                </tr>
-              ))}
+              {sortedData.map((row, index) => {
+                const returnStatus = getReturnStatusMeta(row.status)
+                return (
+                  <tr
+                    key={row.id || index}
+                    className={selectedId === row.id ? 'master-row-selected' : 'master-row'}
+                    onClick={() => handleSelect(row)}
+                    onDoubleClick={() => handleViewDetail()}
+                  >
+                    <td className="text-right purchase-col-no">{pager.offset + index + 1}</td>
+                    <td className="purchase-col-po">{row.pr_number || '-'}</td>
+                    <td className="purchase-col-supplier">{row.supplier_name || '-'}</td>
+                    <td className="purchase-col-warehouse">{row.warehouse_name || '-'}</td>
+                    <td className="purchase-col-date">{formatDate(row.pr_date)}</td>
+                    <td className="text-right purchase-col-total">{formatCurrency(row.grand_total)}</td>
+                    <td className="text-center">
+                      <div className="purchase-status-stack">
+                        <span className={`purchase-status-pill is-${returnStatus.variant}`}>
+                          <span className="material-icons-round purchase-status-icon">{returnStatus.icon}</span>
+                          {returnStatus.label}
+                        </span>
+                      </div>
+                    </td>
+                  </tr>
+                )
+              })}
               {!isLoading && sortedData.length === 0 && (
-                <tr><td colSpan={8} className="text-center">No data</td></tr>
+                <tr><td colSpan={7} className="text-center">No data</td></tr>
               )}
             </tbody>
           </table>
-          <div className="master-table-sticky-footer">
-           {/* <span>Total Row: {pagination.total}</span>  */}
-            <span>Total: {formatCurrency(totalAmount)}</span>
+          <div className="master-table-sticky-footer purchase-table-summary">
+            <div className="purchase-table-summary-left">
+              <div className="purchase-summary-item">
+                <p>Total Returns</p>
+                <strong>{totalReturns}</strong>
+              </div>
+              <div className="purchase-summary-item is-draft">
+                <p>Draft</p>
+                <strong>{draftCount}</strong>
+              </div>
+              <div className="purchase-summary-item is-approved">
+                <p>Approved</p>
+                <strong>{approvedCount}</strong>
+              </div>
+            </div>
+            <div className="purchase-table-summary-right">
+              <p>Total Purchase Return</p>
+              <div className="purchase-total-value">
+                <span className="purchase-total-currency">Rp</span>
+                <strong>{formatNumber(summaryTotalAmount)}</strong>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -444,9 +523,8 @@ export function PurchaseReturn({ onExit }) {
         onNew={handleNew}
         onEdit={handleViewDetail}
         onDelete={handleDeleteClick}
-        totalRow={pagination.total}
         totalAmount={totalAmount}
-        totalAmountLabel="Retur Pembelian"
+        totalAmountLabel="Purchase Return"
         onPrint={handlePrint}
         onExit={handleExitClick}
         onRefresh={fetchData}

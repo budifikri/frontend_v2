@@ -17,6 +17,9 @@ export function PurchaseReturnDetail({ selectedId: propSelectedId, onExit, onSav
   const [error, setError] = useState('')
   const [showAddModal, setShowAddModal] = useState(false)
   const [showExitConfirm, setShowExitConfirm] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [itemToDelete, setItemToDelete] = useState(null)
+  const [search, setSearch] = useState('')
   const [supplierOptions, setSupplierOptions] = useState([])
   const [warehouseOptions, setWarehouseOptions] = useState([])
   const [showToast, setShowToast] = useState(false)
@@ -35,7 +38,7 @@ export function PurchaseReturnDetail({ selectedId: propSelectedId, onExit, onSav
   })
 
   const [items, setItems] = useState([])
-  const [selectedIds, setSelectedIds] = useState([])
+  const [selectedIndex, setSelectedIndex] = useState(0)
 
   const fetchLookups = useCallback(async () => {
     if (!token) {
@@ -109,6 +112,7 @@ export function PurchaseReturnDetail({ selectedId: propSelectedId, onExit, onSav
             line_total: item.line_total || item.amount || 0,
             amount: item.amount || item.line_total || 0,
           })))
+          setSelectedIndex(0)
         }
       } catch (err) {
         console.error('[PurchaseReturnDetail] Error loading data:', err)
@@ -134,8 +138,9 @@ export function PurchaseReturnDetail({ selectedId: propSelectedId, onExit, onSav
       line_total: lineTotal,
     }
     setItems((prev) => [...prev, itemWithId])
+    setSelectedIndex(items.length)
     setShowAddModal(false)
-  }, [])
+  }, [items.length])
 
   const updateItem = useCallback((itemId, updates) => {
     setItems((prev) => prev.map((item) => {
@@ -148,11 +153,16 @@ export function PurchaseReturnDetail({ selectedId: propSelectedId, onExit, onSav
     }))
   }, [])
 
-  const removeItem = useCallback((ids) => {
-    const idsToRemove = Array.isArray(ids) ? ids : [ids]
-    setItems((prev) => prev.filter((item) => !idsToRemove.includes(item.id)))
-    setSelectedIds([])
+  const removeItem = useCallback((itemId) => {
+    setItems((prev) => prev.filter((item) => item.id !== itemId))
+    setSelectedIndex((prev) => Math.max(prev - 1, 0))
   }, [])
+
+  useEffect(() => {
+    if (selectedIndex >= items.length) {
+      setSelectedIndex(items.length > 0 ? items.length - 1 : 0)
+    }
+  }, [items.length, selectedIndex])
 
   const summary = useMemo(() => {
     const subtotal = items.reduce((sum, item) => sum + (item.line_total || item.amount || 0), 0)
@@ -170,7 +180,14 @@ export function PurchaseReturnDetail({ selectedId: propSelectedId, onExit, onSav
     return { subtotal, discountTotal, taxTotal, grandTotal, itemCount: items.length }
   }, [items])
 
+  const currentReturnStatus = String(header.status || 'draft').toLowerCase()
+  const isLocked = ['approved', 'approve', 'void', 'voided'].includes(currentReturnStatus)
+  const isApprovedReturn = ['approved', 'approve'].includes(currentReturnStatus)
+  const activeReturnStatus = isApprovedReturn ? 'approved' : 'draft'
+
   const handleSave = useCallback(async () => {
+    if (isLocked) return
+
     if (!header.supplier_id) { 
       setError('Supplier harus dipilih'); 
       return 
@@ -247,22 +264,102 @@ export function PurchaseReturnDetail({ selectedId: propSelectedId, onExit, onSav
     } finally {
       setIsSaving(false)
     }
-  }, [token, header, items, propSelectedId, onExit, onSaveSuccess])
+  }, [token, header, items, propSelectedId, onExit, onSaveSuccess, isLocked])
 
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(amount)
   }
 
   const handleStatusChange = (newStatus) => {
+    if (isLocked) return
     setHeader(prev => ({ ...prev, status: newStatus }))
   }
 
-  const currentReturnStatus = String(header.status || 'draft').toLowerCase()
-  const activeReturnStatus = ['approved', 'approve'].includes(currentReturnStatus)
-    ? 'approved'
-    : currentReturnStatus === 'done'
-      ? 'done'
-      : 'draft'
+  const handleSearchChange = (value) => {
+    if (isLocked) return
+    setSearch(value)
+  }
+
+  const handleSearchKeyDown = (e) => {
+    if (isLocked) {
+      e.preventDefault()
+      return
+    }
+
+    if (e.key !== 'Enter') return
+    e.preventDefault()
+    const value = search.trim()
+    if (!value) return
+
+    const selectedItem = items[selectedIndex]
+    const priceMatch = value.match(/^\+\+(\d+)$/)
+    if (priceMatch) {
+      if (!selectedItem) {
+        setToastMessage('Pilih item terlebih dahulu untuk mengubah harga')
+        setToastType('error')
+        setShowToast(true)
+        return
+      }
+
+      const unitPrice = Number(priceMatch[1])
+      updateItem(selectedItem.id, { unit_price: unitPrice })
+      setToastMessage(`Harga ${selectedItem.product_name} diubah menjadi ${formatCurrency(unitPrice)}`)
+      setToastType('success')
+      setShowToast(true)
+      setSearch('')
+      return
+    }
+
+    const qtyMatch = value.match(/^\+(\d+)$/)
+    if (qtyMatch) {
+      if (!selectedItem) {
+        setToastMessage('Pilih item terlebih dahulu untuk mengubah qty')
+        setToastType('error')
+        setShowToast(true)
+        return
+      }
+
+      const quantity = Number(qtyMatch[1])
+      updateItem(selectedItem.id, { quantity })
+      setToastMessage(`Qty ${selectedItem.product_name} diubah menjadi ${quantity}`)
+      setToastType('success')
+      setShowToast(true)
+      setSearch('')
+      return
+    }
+
+    setShowAddModal(true)
+  }
+
+  const handleCloseAddModal = () => {
+    setShowAddModal(false)
+    setSearch('')
+  }
+
+  const handleAddItem = (item) => {
+    if (isLocked) return
+    handleAddItemFromModal(item)
+    setSearch('')
+  }
+
+  const openDeleteConfirm = (item) => {
+    if (isLocked) return
+    setItemToDelete(item)
+    setShowDeleteConfirm(true)
+  }
+
+  const confirmDeleteItem = () => {
+    if (itemToDelete) {
+      removeItem(itemToDelete.id)
+    }
+    setItemToDelete(null)
+    setShowDeleteConfirm(false)
+  }
+
+  const cancelDeleteItem = () => {
+    setItemToDelete(null)
+    setShowDeleteConfirm(false)
+  }
 
   if (isLoading) {
     return (
@@ -285,6 +382,17 @@ export function PurchaseReturnDetail({ selectedId: propSelectedId, onExit, onSav
         duration={3000}
       />
 
+      {showDeleteConfirm && itemToDelete && (
+        <DeleteMaster
+          title="Konfirmasi Hapus"
+          message={`Hapus ${itemToDelete.product_name}?`}
+          confirmText="OK"
+          cancelText="Cancel"
+          onConfirm={confirmDeleteItem}
+          onCancel={cancelDeleteItem}
+        />
+      )}
+
       <div className="po-main-content">
         <div className="po-items-wrapper">
           {error && <div className="master-error" style={{ marginBottom: 12 }}>{error}</div>}
@@ -298,65 +406,34 @@ export function PurchaseReturnDetail({ selectedId: propSelectedId, onExit, onSav
             <table className="po-items-table pr-items-table">
               <thead>
                 <tr>
-                  <th style={{ width: '40px' }}>
-                    <input
-                      type="checkbox"
-                      className="table-checkbox-input"
-                      checked={selectedIds.length === items.length && items.length > 0}
-                      onChange={(e) => setSelectedIds(e.target.checked ? items.map(i => i.id) : [])}
-                    />
-                  </th>
-                  <th style={{ width: '60px' }}>No</th>
+                  <th>No</th>
                   <th>Product</th>
-                  <th style={{ width: '120px', textAlign: 'center' }}>Harga</th>
-                  <th style={{ width: '100px', textAlign: 'center' }}>QTY</th>
-                  <th style={{ width: '120px', textAlign: 'center' }}>Total</th>
+                  <th>Harga</th>
+                  <th>QTY</th>
+                  <th>Total</th>
+                  <th></th>
                 </tr>
               </thead>
               <tbody>
                 {items.map((item, index) => (
                   <tr
                     key={item.id}
-                    className={selectedIds.includes(item.id) ? 'selected' : ''}
-                    onClick={() => setSelectedIds([item.id])}
+                    className={selectedIndex === index ? 'selected' : ''}
+                    onClick={() => setSelectedIndex(index)}
                   >
-                    <td className="table-checkbox">
-                      <input
-                        type="checkbox"
-                        className="table-checkbox-input"
-                        checked={selectedIds.includes(item.id)}
-                        onChange={(e) => setSelectedIds(e.target.checked ? [item.id] : [])}
-                      />
+                    <td>{index + 1}</td>
+                    <td>
+                      <div className="po-product-name">{item.product_name || '-'}</div>
+                      <div className="po-product-sku">{item.sku || '-'}</div>
                     </td>
-                    <td className="table-center text-muted">{index + 1}</td>
-                    <td className="table-product">
-                      <div className="product-name">{item.product_name || '-'}</div>
+                    <td>{formatCurrency(item.unit_price)}</td>
+                    <td><span className="po-item-qty">{item.quantity}</span></td>
+                    <td>{formatCurrency(item.line_total)}</td>
+                    <td>
+                      <button className="po-delete-btn" disabled={isLocked} onClick={(e) => { e.stopPropagation(); if (!isLocked) openDeleteConfirm(item) }}>
+                        <span className="material-icons" style={{ fontSize: 18 }}>delete</span>
+                      </button>
                     </td>
-                    <td className="table-center">
-                      <input
-                        type="number"
-                        value={item.unit_price}
-                        onChange={(e) => {
-                          const price = Number(e.target.value)
-                          const lineTotal = item.quantity * price * (1 - (item.discount || 0) / 100) * (1 + (item.tax_rate || 0) / 100)
-                          updateItem(item.id, { unit_price: price, line_total: lineTotal })
-                        }}
-                        className="physical-input"
-                      />
-                    </td>
-                    <td className="table-center">
-                      <input
-                        type="number"
-                        value={item.quantity}
-                        onChange={(e) => {
-                          const qty = Number(e.target.value)
-                          const lineTotal = qty * item.unit_price * (1 - (item.discount || 0) / 100) * (1 + (item.tax_rate || 0) / 100)
-                          updateItem(item.id, { quantity: qty, line_total: lineTotal })
-                        }}
-                        className="physical-input"
-                      />
-                    </td>
-                    <td className="table-center font-bold">{formatCurrency(item.line_total)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -365,22 +442,33 @@ export function PurchaseReturnDetail({ selectedId: propSelectedId, onExit, onSav
         </div>
 
         <div className="po-footer-input pr-footer-input">
+          <div className="po-search-container pr-search-container">
+            <span className="material-icons">search</span>
+            <input
+              type="text"
+              inputMode="text"
+              className="po-search-input pr-search-input"
+              placeholder="Ketik produk, +qty, ++harga..."
+              value={search}
+              onChange={(e) => handleSearchChange(e.target.value)}
+              onKeyDown={handleSearchKeyDown}
+              autoComplete="off"
+              disabled={isLocked}
+              autoFocus
+            />
+          </div>
           <div className="po-action-buttons pr-action-buttons">
-            <button type="button" className="po-btn po-btn-add" onClick={() => setShowAddModal(true)} title="Add Item (F1)">
-              <span className="material-icons">add_box</span>
-              ADD
-            </button>
-            <button type="button" className="po-btn po-btn-remove" onClick={() => removeItem(selectedIds)} disabled={selectedIds.length === 0} title="Remove Selected (DEL)">
-              <span className="material-icons">remove_circle</span>
-              DEL
-            </button>
-            <button type="button" className="po-btn po-btn-save" onClick={handleSave} disabled={isSaving || isLoading} title="Save (Ctrl+S)">
-              <span className="material-icons">save</span>
-              SIMPAN
-            </button>
             <button type="button" className="po-btn po-btn-exit" onClick={() => setShowExitConfirm(true)} disabled={isSaving} title="Exit (Esc)">
               <span className="material-icons">exit_to_app</span>
               KELUAR
+            </button>
+            <button type="button" className="po-btn po-btn-print" disabled={items.length === 0} title="Print">
+              <span className="material-icons">print</span>
+              CETAK
+            </button>
+            <button type="button" className="po-btn po-btn-save" onClick={handleSave} disabled={isLocked || isSaving || isLoading || items.length === 0} title="Save (Ctrl+S)">
+              <span className="material-icons">save</span>
+              SIMPAN
             </button>
           </div>
         </div>
@@ -390,14 +478,21 @@ export function PurchaseReturnDetail({ selectedId: propSelectedId, onExit, onSav
         <div className="po-header-section">
           <h1 className="po-title">PURCHASE RETURN</h1>
           <div className="po-arrow-status-bar" aria-label="Purchase return status">
-            <button type="button" className={`po-arrow-step ${activeReturnStatus === 'draft' ? 'is-active' : 'is-inactive'}`} onClick={() => handleStatusChange('draft')}>
+            <button
+              type="button"
+              className={`po-arrow-step ${activeReturnStatus === 'draft' ? 'is-active' : 'is-inactive'}`}
+              onClick={() => handleStatusChange('draft')}
+              disabled={isLocked}
+            >
               Draft
             </button>
-            <button type="button" className={`po-arrow-step ${activeReturnStatus === 'approved' ? 'is-active' : 'is-inactive'}`} onClick={() => handleStatusChange('approved')}>
+            <button
+              type="button"
+              className={`po-arrow-step ${activeReturnStatus === 'approved' ? 'is-active' : 'is-inactive'}`}
+              onClick={() => handleStatusChange('approved')}
+              disabled={isLocked}
+            >
               Approved
-            </button>
-            <button type="button" className={`po-arrow-step po-arrow-step-void ${activeReturnStatus === 'done' ? 'is-active' : 'is-inactive'}`} onClick={() => handleStatusChange('done')}>
-              Done
             </button>
           </div>
         </div>
@@ -409,11 +504,11 @@ export function PurchaseReturnDetail({ selectedId: propSelectedId, onExit, onSav
           </div>
           <div className="form-group">
             <label className="form-label">Return Date *</label>
-            <input type="date" value={header.pr_date} onChange={(e) => setHeader({ ...header, pr_date: e.target.value })} className="form-input" />
+            <input type="date" value={header.pr_date} onChange={(e) => setHeader({ ...header, pr_date: e.target.value })} className="form-input" disabled={isLocked} />
           </div>
           <div className="form-group">
             <label className="form-label">Supplier *</label>
-            <select value={header.supplier_id} onChange={(e) => setHeader({ ...header, supplier_id: e.target.value })} className="form-input">
+            <select value={header.supplier_id} onChange={(e) => setHeader({ ...header, supplier_id: e.target.value })} className="form-input" disabled={isLocked}>
               <option value="">Select supplier...</option>
               {supplierOptions.map(item => (
                 <option key={item.id} value={item.id}>{item.name}</option>
@@ -422,7 +517,7 @@ export function PurchaseReturnDetail({ selectedId: propSelectedId, onExit, onSav
           </div>
           <div className="form-group">
             <label className="form-label">Warehouse *</label>
-            <select value={header.warehouse_id} onChange={(e) => setHeader({ ...header, warehouse_id: e.target.value })} className="form-input">
+            <select value={header.warehouse_id} onChange={(e) => setHeader({ ...header, warehouse_id: e.target.value })} className="form-input" disabled={isLocked}>
               <option value="">Select warehouse...</option>
               {warehouseOptions.map(item => (
                 <option key={item.id} value={item.id}>{item.name}</option>
@@ -435,37 +530,39 @@ export function PurchaseReturnDetail({ selectedId: propSelectedId, onExit, onSav
           </div>
           <div className="form-group">
             <label className="form-label">Notes</label>
-            <textarea value={header.notes || ''} onChange={(e) => setHeader({ ...header, notes: e.target.value })} className="form-input form-textarea pr-notes-textarea" rows={3} />
+            <textarea value={header.notes || ''} onChange={(e) => setHeader({ ...header, notes: e.target.value })} className="form-input form-textarea pr-notes-textarea" rows={3} disabled={isLocked} />
           </div>
         </div>
 
         <div className="po-summary-section">
           <div className="po-summary-row">
-            <span>Total Items</span>
-            <span>{summary.itemCount}</span>
-          </div>
-          <div className="po-summary-row">
-            <span>Subtotal</span>
+            <span>Subtotal (Items: {summary.itemCount} , Total Qty: {items.reduce((sum, item) => sum + (item.quantity || 0), 0)})</span>
             <span>{formatCurrency(summary.subtotal)}</span>
           </div>
-          <div className="po-summary-row">
-            <span>Discount</span>
-            <span>{formatCurrency(summary.discountTotal)}</span>
-          </div>
-          <div className="po-summary-row">
-            <span>Tax</span>
-            <span>{formatCurrency(summary.taxTotal)}</span>
-          </div>
+          {summary.discountTotal > 0 && (
+            <div className="po-summary-row">
+              <span>Diskon</span>
+              <span>-{formatCurrency(summary.discountTotal)}</span>
+            </div>
+          )}
+          {summary.taxTotal > 0 && (
+            <div className="po-summary-row">
+              <span>PPN ({((summary.taxTotal / (summary.subtotal - summary.discountTotal)) * 100).toFixed(1)}%)</span>
+              <span>{formatCurrency(summary.taxTotal)}</span>
+            </div>
+          )}
           <div className="po-summary-total-label">GRAND TOTAL</div>
           <div className="po-summary-total-value">{formatCurrency(summary.grandTotal)}</div>
         </div>
       </aside>
 
       <AddPurchaseItemModal
+        key={`pr-add-${showAddModal ? 'open' : 'closed'}-${search}`}
         isOpen={showAddModal}
-        onClose={() => setShowAddModal(false)}
-        onAdd={handleAddItemFromModal}
+        onClose={handleCloseAddModal}
+        onAdd={handleAddItem}
         token={token}
+        initialSearchQuery={search}
       />
 
       {showExitConfirm && (
