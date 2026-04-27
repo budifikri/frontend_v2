@@ -13,6 +13,7 @@ import { ReceiptPreview } from './ReceiptPreview'
 import { Toast } from '../../components/Toast'
 import { printViaSerial, printViaWindowsPrinter, listSerialPorts, listWindowsPrinters, testPrintBytes } from '../../utils/serialApi'
 import { DOT_MATRIX_TOKEN_LIST, renderDotMatrixReceipt, renderDotMatrixPlainText, getDefaultDotMatrixCustomTemplateText, buildDotMatrixPrintModel } from './DotMatrixFormatter'
+import { createTemplatePayload, validateTemplatePayload, extractTemplateFromPayload, downloadTemplateJson, readTemplateFile } from '../../features/setting/receiptTemplateFile'
 import './POS.css'
 
 export function POS() {
@@ -95,6 +96,7 @@ export function POS() {
   const [showTemplateCode, setShowTemplateCode] = useState(false)
   const [templateCodeHtml, setTemplateCodeHtml] = useState('')
   const [charsPerLineInput, setCharsPerLineInput] = useState('38')
+  const templateFileInputRef = useRef(null)
   const [toast, setToast] = useState({ isOpen: false, message: '', type: 'info' })
   const priceTierCacheRef = useRef({})
   const [activePromos, setActivePromos] = useState([])
@@ -941,6 +943,77 @@ export function POS() {
       : (resetDraft.custom_template_html || ''))
     setToast({ isOpen: true, message: 'Setting dikembalikan ke default', type: 'info' })
   }, [applyPrinterTypeToDraft, ensureRuntimeReceiptSettings])
+
+  const handleExportTemplate = useCallback(() => {
+    try {
+      const customTemplate = {
+        custom_template_text_dot_matrix: receiptSettingsDraft.custom_template_text_dot_matrix,
+        custom_template_html: receiptSettingsDraft.custom_template_html,
+        custom_template_css: receiptSettingsDraft.custom_template_css,
+      }
+      const payload = createTemplatePayload(receiptSettingsDraft.printer_type, customTemplate)
+      const extension = receiptSettingsDraft.printer_type === 'dot_matrix' ? 'receipt-dot.json' : 'receipt-thermal.json'
+      const fileName = `template-${receiptSettingsDraft.printer_type}.${extension}`
+      downloadTemplateJson(payload, fileName)
+      setToast({ isOpen: true, message: 'Template berhasil diekspor', type: 'success' })
+    } catch (err) {
+      console.error('Export template error:', err)
+      setToast({ isOpen: true, message: 'Gagal mengekspor template', type: 'error' })
+    }
+  }, [receiptSettingsDraft])
+
+  const handleImportTemplate = useCallback(async (event) => {
+    const file = event.target?.files?.[0]
+    if (!file) return
+
+    try {
+      const data = await readTemplateFile(file)
+      const validation = validateTemplatePayload(data)
+
+      if (!validation.valid) {
+        setToast({ isOpen: true, message: validation.error, type: 'error' })
+        event.target.value = ''
+        return
+      }
+
+      if (data.printer_type !== receiptSettingsDraft.printer_type) {
+        const currentType = receiptSettingsDraft.printer_type === 'dot_matrix' ? 'Dot Matrix' : 'Thermal'
+        const fileType = data.printer_type === 'dot_matrix' ? 'Dot Matrix' : 'Thermal'
+        setToast({ isOpen: true, message: `File template ${fileType}, aktikan mode ${currentType} terlebih dahulu`, type: 'error' })
+        event.target.value = ''
+        return
+      }
+
+      const template = extractTemplateFromPayload(data)
+
+      if (receiptSettingsDraft.printer_type === 'dot_matrix') {
+        const nextText = template.custom_template_text_dot_matrix || ''
+        setTemplateCodeHtml(nextText)
+        setReceiptSettingsDraft((prev) => ({
+          ...prev,
+          custom_template_text_dot_matrix: nextText,
+        }))
+      } else {
+        const nextHtml = template.custom_template_html || ''
+        setTemplateCodeHtml(nextHtml)
+        setReceiptSettingsDraft((prev) => ({
+          ...prev,
+          custom_template_html: nextHtml,
+          custom_template_css: template.custom_template_css || '',
+        }))
+        if (wysiwygEditorRef.current) {
+          wysiwygEditorRef.current.innerHTML = nextHtml
+        }
+      }
+
+      setToast({ isOpen: true, message: 'Template berhasil diimpor. Klik Simpan untuk menyimpan secara permanen.', type: 'success' })
+    } catch (err) {
+      console.error('Import template error:', err)
+      setToast({ isOpen: true, message: 'Gagal mengimpor template', type: 'error' })
+    }
+
+    event.target.value = ''
+  }, [receiptSettingsDraft.printer_type, wysiwygEditorRef])
 
   const handleScanPorts = useCallback(async () => {
     setSerialStatus('Scanning ports...')
@@ -2221,144 +2294,70 @@ export function POS() {
                         <div className="receipt-template-section">
                           <div className="receipt-template-section-header">
                             <span>{runtimeReceiptDraft.printer_type === 'dot_matrix' ? 'Template Text Dot Matrix' : 'HTML Template'}</span>
-                            <div className="receipt-template-actions">
-                              <button
-                                type="button"
-                                className="receipt-template-btn"
-                                onClick={() => {
-                                  if (runtimeReceiptDraft.printer_type === 'dot_matrix') {
-                                    setReceiptSettingsDraft((prev) => ({
-                                      ...prev,
-                                      custom_template_text_dot_matrix: templateCodeHtml,
-                                    }))
-                                    return
-                                  }
-                                  const currentHtml = showTemplateCode
-                                    ? templateCodeHtml
-                                    : (wysiwygEditorRef.current?.innerHTML || runtimeReceiptDraft.custom_template_html || '')
-                                setReceiptSettingsDraft((prev) => ({
-                                  ...prev,
-                                  custom_template_html: currentHtml,
-                                }))
-                                setTemplateCodeHtml(currentHtml)
-                              }}
-                            >
-                              Apply
-                            </button>
-                            <button
-                              type="button"
-                              className="receipt-template-btn"
-                              onClick={() => {
-                                const currentHtml = showTemplateCode
-                                  ? templateCodeHtml
-                                  : (wysiwygEditorRef.current?.innerHTML || runtimeReceiptDraft.custom_template_html || '')
-                                setTemplateCodeHtml(currentHtml)
-                                if (showTemplateCode && wysiwygEditorRef.current) {
-                                  wysiwygEditorRef.current.innerHTML = currentHtml
-                                }
-                                setShowTemplateCode((prev) => !prev)
-                              }}
-                            >
-                              {showTemplateCode ? 'Hide Code' : 'Code'}
-                            </button>
-                              <button
-                                type="button"
-                                className="receipt-template-btn"
-                                onClick={() => {
-                                  if (runtimeReceiptDraft.printer_type === 'dot_matrix') {
-                                    const defaultTemplate = getDefaultCustomTemplate(runtimeReceiptDraft.printer_type)
-                                    const nextText = defaultTemplate.text || getDefaultDotMatrixCustomTemplateText()
-                                    setReceiptSettingsDraft((prev) => ({
-                                      ...prev,
-                                      custom_template_text_dot_matrix: nextText,
-                                    }))
-                                    setTemplateCodeHtml(nextText)
-                                    if (codeEditorRef.current) {
-                                      codeEditorRef.current.focus()
-                                    }
-                                    return
-                                  }
-                                  const defaultTemplate = getDefaultCustomTemplate(runtimeReceiptDraft.printer_type)
-                                  if (wysiwygEditorRef.current) {
-                                    wysiwygEditorRef.current.innerHTML = defaultTemplate.html
-                                }
-                                setReceiptSettingsDraft((prev) => ({
-                                  ...prev,
-                                  custom_template_html: defaultTemplate.html,
-                                  custom_template_css: defaultTemplate.css,
-                                }))
-                                setTemplateCodeHtml(defaultTemplate.html)
-                                if (codeEditorRef.current) {
-                                  codeEditorRef.current.focus()
-                                }
-                              }}
-                            >
-                              Reset
-                            </button>
+                            <span className="receipt-template-file-hint">
+                              {runtimeReceiptDraft.printer_type === 'dot_matrix' ? '(.receipt-dot.json)' : '(.receipt-thermal.json)'}
+                            </span>
+                          </div>
+                          <div className="receipt-template-actions">
+                            <button type="button" className="receipt-template-btn" onClick={handleExportTemplate}>Export</button>
+                            <input ref={templateFileInputRef} type="file" accept={runtimeReceiptDraft.printer_type === 'dot_matrix' ? '.receipt-dot.json' : '.receipt-thermal.json'} style={{ display: 'none' }} onChange={handleImportTemplate} />
+                            <button type="button" className="receipt-template-btn" onClick={() => templateFileInputRef.current?.click()}>Import</button>
+                            <button type="button" className="receipt-template-btn" onClick={() => {
+                              if (runtimeReceiptDraft.printer_type === 'dot_matrix') {
+                                setReceiptSettingsDraft((prev) => ({ ...prev, custom_template_text_dot_matrix: templateCodeHtml }))
+                                return
+                              }
+                              const currentHtml = showTemplateCode ? templateCodeHtml : (wysiwygEditorRef.current?.innerHTML || runtimeReceiptDraft.custom_template_html || '')
+                              setReceiptSettingsDraft((prev) => ({ ...prev, custom_template_html: currentHtml }))
+                              setTemplateCodeHtml(currentHtml)
+                            }}>Apply</button>
+                            <button type="button" className="receipt-template-btn" onClick={() => {
+                              if (runtimeReceiptDraft.printer_type === 'dot_matrix') {
+                                const defaultTemplate = getDefaultCustomTemplate(runtimeReceiptDraft.printer_type)
+                                const nextText = defaultTemplate.text || getDefaultDotMatrixCustomTemplateText()
+                                setReceiptSettingsDraft((prev) => ({ ...prev, custom_template_text_dot_matrix: nextText }))
+                                setTemplateCodeHtml(nextText)
+                                if (codeEditorRef.current) { codeEditorRef.current.focus() }
+                                return
+                              }
+                              const defaultTemplate = getDefaultCustomTemplate(runtimeReceiptDraft.printer_type)
+                              if (wysiwygEditorRef.current) { wysiwygEditorRef.current.innerHTML = defaultTemplate.html }
+                              setReceiptSettingsDraft((prev) => ({ ...prev, custom_template_html: defaultTemplate.html, custom_template_css: defaultTemplate.css }))
+                              setTemplateCodeHtml(defaultTemplate.html)
+                              if (codeEditorRef.current) { codeEditorRef.current.focus() }
+}}>Reset</button>
                           </div>
                         </div>
+
                         {runtimeReceiptDraft.printer_type === 'dot_matrix' ? (
                           <div className="receipt-setting-code-panel">
-                            <textarea
-                              ref={codeEditorRef}
-                              className="receipt-setting-code-editor receipt-setting-code-editor-dotmatrix"
-                              value={templateCodeHtml}
-                              onChange={(e) => setTemplateCodeHtml(e.target.value)}
-                              spellCheck={false}
-                              rows={18}
-                            />
+                            <textarea ref={codeEditorRef} className="receipt-setting-code-editor receipt-setting-code-editor-dotmatrix" value={templateCodeHtml} onChange={(e) => setTemplateCodeHtml(e.target.value)} spellCheck={false} rows={18} />
                           </div>
                         ) : !showTemplateCode ? (
                           <>
                             <div className="receipt-wysiwyg-toolbar">
-                              <button type="button" className="receipt-wysiwyg-btn" title="Bold" onMouseDown={(e) => { e.preventDefault(); if (wysiwygEditorRef.current) wysiwygEditorRef.current.focus(); document.execCommand('bold', false, null) }}>
-                                <strong>B</strong>
-                              </button>
-                              <button type="button" className="receipt-wysiwyg-btn" title="Italic" onMouseDown={(e) => { e.preventDefault(); if (wysiwygEditorRef.current) wysiwygEditorRef.current.focus(); document.execCommand('italic', false, null) }}>
-                                <em>I</em>
-                              </button>
-                              <button type="button" className="receipt-wysiwyg-btn" title="Underline" onMouseDown={(e) => { e.preventDefault(); if (wysiwygEditorRef.current) wysiwygEditorRef.current.focus(); document.execCommand('underline', false, null) }}>
-                                <u>U</u>
-                              </button>
+                              <button type="button" className="receipt-wysiwyg-btn" title="Bold" onMouseDown={(e) => { e.preventDefault(); if (wysiwygEditorRef.current) wysiwygEditorRef.current.focus(); document.execCommand('bold', false, null) }}><strong>B</strong></button>
+                              <button type="button" className="receipt-wysiwyg-btn" title="Italic" onMouseDown={(e) => { e.preventDefault(); if (wysiwygEditorRef.current) wysiwygEditorRef.current.focus(); document.execCommand('italic', false, null) }}><em>I</em></button>
+                              <button type="button" className="receipt-wysiwyg-btn" title="Underline" onMouseDown={(e) => { e.preventDefault(); if (wysiwygEditorRef.current) wysiwygEditorRef.current.focus(); document.execCommand('underline', false, null) }}><u>U</u></button>
                               <span className="receipt-wysiwyg-sep" />
                               <button type="button" className="receipt-wysiwyg-btn" title="Font Size Small" onMouseDown={(e) => { e.preventDefault(); if (wysiwygEditorRef.current) wysiwygEditorRef.current.focus(); document.execCommand('fontSize', false, '2') }} style={{ fontSize: '10px' }}>A</button>
                               <button type="button" className="receipt-wysiwyg-btn" title="Font Size Normal" onMouseDown={(e) => { e.preventDefault(); if (wysiwygEditorRef.current) wysiwygEditorRef.current.focus(); document.execCommand('fontSize', false, '3') }} style={{ fontSize: '13px' }}>A</button>
                               <span className="receipt-wysiwyg-sep" />
-                              <button type="button" className="receipt-wysiwyg-btn" title="Align Left" onMouseDown={(e) => { e.preventDefault(); if (wysiwygEditorRef.current) wysiwygEditorRef.current.focus(); document.execCommand('justifyLeft', false, null) }}>
-                                <span style={{ fontFamily: 'sans-serif' }}>&#8676;</span>
-                              </button>
-                              <button type="button" className="receipt-wysiwyg-btn" title="Align Center" onMouseDown={(e) => { e.preventDefault(); if (wysiwygEditorRef.current) wysiwygEditorRef.current.focus(); document.execCommand('justifyCenter', false, null) }}>
-                                <span style={{ fontFamily: 'sans-serif' }}>&#8596;</span>
-                              </button>
+                              <button type="button" className="receipt-wysiwyg-btn" title="Align Left" onMouseDown={(e) => { e.preventDefault(); if (wysiwygEditorRef.current) wysiwygEditorRef.current.focus(); document.execCommand('justifyLeft', false, null) }}><span style={{ fontFamily: 'sans-serif' }}>&#8676;</span></button>
+                              <button type="button" className="receipt-wysiwyg-btn" title="Align Center" onMouseDown={(e) => { e.preventDefault(); if (wysiwygEditorRef.current) wysiwygEditorRef.current.focus(); document.execCommand('justifyCenter', false, null) }}><span style={{ fontFamily: 'sans-serif' }}>&#8596;</span></button>
                               <span className="receipt-wysiwyg-sep" />
-                              <button type="button" className="receipt-wysiwyg-btn" title="Insert Line Break" onMouseDown={(e) => { e.preventDefault(); if (wysiwygEditorRef.current) { wysiwygEditorRef.current.focus(); document.execCommand('insertHTML', false, '<br>') } }}>
-                                <span style={{ fontFamily: 'sans-serif', fontSize: '12px' }}>&#8629;</span>
-                              </button>
-                              <button type="button" className="receipt-wysiwyg-btn" title="Insert Line" onMouseDown={(e) => { e.preventDefault(); if (wysiwygEditorRef.current) { wysiwygEditorRef.current.focus(); document.execCommand('insertHTML', false, '<div class=&quot;tpl-garis&quot;></div>') } }}>
-                                <span style={{ fontFamily: 'sans-serif', fontSize: '12px' }}>&#9135;</span>
-                              </button>
+                              <button type="button" className="receipt-wysiwyg-btn" title="Insert Line Break" onMouseDown={(e) => { e.preventDefault(); if (wysiwygEditorRef.current) { wysiwygEditorRef.current.focus(); document.execCommand('insertHTML', false, '<br>') } }}><span style={{ fontFamily: 'sans-serif', fontSize: '12px' }}>&#8629;</span></button>
+                              <button type="button" className="receipt-wysiwyg-btn" title="Insert Line" onMouseDown={(e) => { e.preventDefault(); if (wysiwygEditorRef.current) { wysiwygEditorRef.current.focus(); document.execCommand('insertHTML', false, '<div class=&quot;tpl-garis&quot;></div>') } }}><span style={{ fontFamily: 'sans-serif', fontSize: '12px' }}>&#9135;</span></button>
                             </div>
-                            <div
-                              ref={wysiwygEditorRef}
-                              className="receipt-wysiwyg-editor"
-                              contentEditable
-                              suppressContentEditableWarning
-                            />
+                            <div ref={wysiwygEditorRef} className="receipt-wysiwyg-editor" contentEditable suppressContentEditableWarning />
                           </>
                         ) : (
                           <div className="receipt-setting-code-panel">
-                            <textarea
-                              ref={codeEditorRef}
-                              className="receipt-setting-code-editor"
-                              value={templateCodeHtml}
-                              onChange={(e) => setTemplateCodeHtml(e.target.value)}
-                              spellCheck={false}
-                            />
+                            <textarea ref={codeEditorRef} className="receipt-setting-code-editor" value={templateCodeHtml} onChange={(e) => setTemplateCodeHtml(e.target.value)} spellCheck={false} />
                           </div>
                         )}
-                      </div>
 
-                      <div className="receipt-template-tokens">
+                        <div className="receipt-template-tokens">
                         <div className="receipt-template-tokens-title">Data - klik untuk menyisipkan:</div>
                         <div className="receipt-template-tokens-list">
                           {(runtimeReceiptDraft.printer_type === 'dot_matrix' ? DOT_MATRIX_TOKEN_LIST : RECEIPT_TEMPLATE_TOKENS).map((token) => (

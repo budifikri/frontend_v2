@@ -89,8 +89,9 @@ const DOT_MATRIX_TOKEN_LIST = [
   '{{footer_text}}',
   '{{garis}}',
   '{{ganti_baris}}',
-  '[R3]', '[R5]', '[R]',
-  '[L3]', '[L5]', '[L]',
+  '[SP10]', '[SP12]', '[SP14]',
+  '[R3]', '[R5]', '[R10]', '[R12]', '[R14]', '[R]',
+  '[L3]', '[L5]', '[L10]', '[L12]', '[L14]', '[L]',
   '[C2]', '[C3]', '[C4]', '[C]',
 ]
 
@@ -128,28 +129,6 @@ function padRight(text, length) {
   return str + ' '.repeat(length - str.length)
 }
 
-function processAlignmentTags(text, charsPerLine) {
-  const lines = text.split('\n')
-  return lines.map(line => {
-    const widthPattern = /\[([RLC])(\d+)\]/i
-    const widthMatch = line.match(widthPattern)
-    if (widthMatch) {
-      const align = widthMatch[1].toUpperCase()
-      const width = parseInt(widthMatch[2], 10)
-      const content = line.replace(widthMatch[0], '')
-      return applyAlignment(content, align, width)
-    }
-    const simplePattern = /\[([RLC])\]/i
-    const simpleMatch = line.match(simplePattern)
-    if (simpleMatch) {
-      const align = simpleMatch[1].toUpperCase()
-      const content = line.replace(simpleMatch[0], '')
-      return applyAlignment(content, align, charsPerLine)
-    }
-    return line
-  }).join('\n')
-}
-
 function applyAlignment(text, alignment, width) {
   const str = String(text)
   if (width <= 0) return str
@@ -165,6 +144,22 @@ function applyAlignment(text, alignment, width) {
   }
 }
 
+function renderInlineTokens(segment, tokenDefs) {
+  return segment.replace(/\{\{\s*(\w+)\s*\}\}/g, (_, tokenName) => {
+    return tokenDefs[tokenName] ? String(tokenDefs[tokenName]()) : ''
+  })
+}
+
+function findNextControlIndex(text) {
+  const markerIndex = text.search(/\[([RLC])(\d+)?\]/i)
+  const spacerIndex = text.search(/\[SP\d+\]/i)
+
+  if (markerIndex !== -1 && spacerIndex !== -1) return Math.min(markerIndex, spacerIndex)
+  if (markerIndex !== -1) return markerIndex
+  if (spacerIndex !== -1) return spacerIndex
+  return -1
+}
+
 function estimateRenderedLength(line, tokenDefs) {
   let length = 0
   let remaining = line
@@ -174,21 +169,38 @@ function estimateRenderedLength(line, tokenDefs) {
   while (remaining.length > 0 && iterations < maxIterations) {
     iterations++
 
+    const spacerMatch = remaining.match(/^\[SP(\d+)\]/i)
+
+    if (spacerMatch) {
+      const spacerCount = parseInt(spacerMatch[1], 10)
+      remaining = remaining.substring(spacerMatch[0].length)
+      length += spacerCount
+      continue
+    }
+
     const markerMatch = remaining.match(/^\[([RLC])(\d+)\]/i)
     const simpleMatch = !markerMatch ? remaining.match(/^\[([RLC])\]/i) : null
     if (markerMatch || simpleMatch) {
       const match = markerMatch || simpleMatch
-      const fixedWidth = markerMatch ? parseInt(markerMatch[2], 10) : null
+      const fixedWidth = markerMatch ? parseInt(match[2], 10) : null
       remaining = remaining.substring(match[0].length)
 
       const tokenMatch = remaining.match(/^\{\{\s*(\w+)\s*\}\}/)
+      let renderedSegment = ''
+
       if (tokenMatch) {
         const tokenName = tokenMatch[1]
+        renderedSegment = tokenDefs[tokenName] ? String(tokenDefs[tokenName]()) : ''
         remaining = remaining.substring(tokenMatch[0].length)
-        const value = tokenDefs[tokenName] ? String(tokenDefs[tokenName]()) : ''
-        length += fixedWidth ?? value.length
-        continue
+      } else {
+        const nextControlIndex = findNextControlIndex(remaining)
+        const segment = nextControlIndex === -1 ? remaining : remaining.substring(0, nextControlIndex)
+        remaining = nextControlIndex === -1 ? '' : remaining.substring(nextControlIndex)
+        renderedSegment = renderInlineTokens(segment, tokenDefs)
       }
+
+      length += fixedWidth ?? renderedSegment.length
+      continue
     }
 
     const tokenMatch = remaining.match(/^\{\{\s*(\w+)\s*\}\}/)
@@ -200,20 +212,20 @@ function estimateRenderedLength(line, tokenDefs) {
       continue
     }
 
-    const nextMarker = remaining.search(/\[([RLC])(\d+)?\]/i)
+    const nextControlIndex = findNextControlIndex(remaining)
     const nextToken = remaining.search(/\{\{/)
 
     let nextPos = -1
-    if (nextMarker !== -1 && nextToken !== -1) nextPos = Math.min(nextMarker, nextToken)
-    else if (nextMarker !== -1) nextPos = nextMarker
+    if (nextControlIndex !== -1 && nextToken !== -1) nextPos = Math.min(nextControlIndex, nextToken)
+    else if (nextControlIndex !== -1) nextPos = nextControlIndex
     else if (nextToken !== -1) nextPos = nextToken
 
     if (nextPos === -1) {
-      length += remaining.length
+      length += renderInlineTokens(remaining, tokenDefs).length
       break
     }
 
-    length += nextPos
+    length += renderInlineTokens(remaining.substring(0, nextPos), tokenDefs).length
     remaining = remaining.substring(nextPos)
   }
 
@@ -229,6 +241,12 @@ function resolveAutoAlignmentWidth(value, currentResult, remaining, charsPerLine
   return Math.max(naturalWidth, availableWidth)
 }
 
+function normalizeEachBlockContent(blockContent) {
+  return blockContent
+    .replace(/^\r?\n+/, '')
+    .replace(/\r?\n+$/, '')
+}
+
 function replaceItemTokens(blockContent, item, charsPerLine) {
   const tokenDefs = {
     index: () => String(item.index),
@@ -239,7 +257,7 @@ function replaceItemTokens(blockContent, item, charsPerLine) {
     discount: () => formatCurrency(item.discount),
   }
 
-  const lines = blockContent.split('\n')
+  const lines = blockContent.split(/\r?\n/)
   return lines.map(line => {
     if (!line.trim()) return ''
     return processLineWithTokens(line, tokenDefs, charsPerLine)
@@ -255,25 +273,40 @@ function processLineWithTokens(line, tokenDefs, charsPerLine) {
   while (remaining.length > 0 && iterations < maxIterations) {
     iterations++
 
+    const spacerMatch = remaining.match(/^\[SP(\d+)\]/i)
+
+    if (spacerMatch) {
+      const spacerCount = parseInt(spacerMatch[1], 10)
+      remaining = remaining.substring(spacerMatch[0].length)
+      result += ' '.repeat(spacerCount)
+      continue
+    }
+
     const markerMatch = remaining.match(/^\[([RLC])(\d+)\]/i)
     const simpleMatch = !markerMatch ? remaining.match(/^\[([RLC])\]/i) : null
 
     if (markerMatch || simpleMatch) {
       const match = markerMatch || simpleMatch
       const align = match[1].toUpperCase()
-      const fixedWidth = markerMatch ? parseInt(markerMatch[2], 10) : null
+      const fixedWidth = markerMatch ? parseInt(match[2], 10) : null
       remaining = remaining.substring(match[0].length)
 
       const tokenMatch = remaining.match(/^\{\{\s*(\w+)\s*\}\}/)
+      let renderedSegment = ''
+
       if (tokenMatch) {
         const tokenName = tokenMatch[1]
+        renderedSegment = tokenDefs[tokenName] ? String(tokenDefs[tokenName]()) : ''
         remaining = remaining.substring(tokenMatch[0].length)
-        const value = tokenDefs[tokenName] ? tokenDefs[tokenName]() : ''
-        const width = fixedWidth ?? resolveAutoAlignmentWidth(value, result, remaining, charsPerLine, tokenDefs)
-        result += applyAlignment(value, align, width)
       } else {
-        result += match[0]
+        const nextControlIndex = findNextControlIndex(remaining)
+        const segment = nextControlIndex === -1 ? remaining : remaining.substring(0, nextControlIndex)
+        remaining = nextControlIndex === -1 ? '' : remaining.substring(nextControlIndex)
+        renderedSegment = renderInlineTokens(segment, tokenDefs)
       }
+
+      const width = fixedWidth ?? resolveAutoAlignmentWidth(renderedSegment, result, remaining, charsPerLine, tokenDefs)
+      result += applyAlignment(renderedSegment, align, width)
     } else if (remaining.startsWith('{{')) {
       const tokenMatch = remaining.match(/^\{\{\s*(\w+)\s*\}\}/)
       if (tokenMatch) {
@@ -292,24 +325,21 @@ function processLineWithTokens(line, tokenDefs, charsPerLine) {
         }
       }
     } else {
-      const nextMarker = remaining.search(/\[([RLC])(\d+)\]/i)
-      const nextSimple = remaining.search(/\[([RLC])\]/i)
+      const nextControlIndex = findNextControlIndex(remaining)
       const nextToken = remaining.search(/\{\{/)
 
       let nextPos = -1
-      if (nextMarker !== -1 && nextToken !== -1) nextPos = Math.min(nextMarker, nextToken)
-      else if (nextMarker !== -1) nextPos = nextMarker
-      else if (nextSimple !== -1 && nextToken !== -1) nextPos = Math.min(nextSimple, nextToken)
-      else if (nextSimple !== -1) nextPos = nextSimple
+      if (nextControlIndex !== -1 && nextToken !== -1) nextPos = Math.min(nextControlIndex, nextToken)
+      else if (nextControlIndex !== -1) nextPos = nextControlIndex
       else if (nextToken !== -1) nextPos = nextToken
 
       if (nextPos === -1) {
-        result += remaining
+        result += renderInlineTokens(remaining, tokenDefs)
         break
       }
 
       const segment = remaining.substring(0, nextPos)
-      result += segment
+      result += renderInlineTokens(segment, tokenDefs)
       remaining = remaining.substring(nextPos)
     }
   }
@@ -322,7 +352,8 @@ function parseEachItemsBlock(template, itemRows, charsPerLine) {
   try {
     return template.replace(eachPattern, (match, blockContent) => {
       if (!itemRows || itemRows.length === 0) return '-'
-      return itemRows.map(item => replaceItemTokens(blockContent, item, charsPerLine)).join('\n')
+      const normalizedBlock = normalizeEachBlockContent(blockContent)
+      return itemRows.map(item => replaceItemTokens(normalizedBlock, item, charsPerLine)).join('\n')
     })
   } catch (err) {
     console.error('parseEachItemsBlock error:', err)
@@ -366,7 +397,7 @@ function getSeparator(charsPerLine) {
 }
 
 function replaceDotMatrixToken(template, model) {
-  const charsPerLine = model.charsPerLine
+  const charsPerLine = Number.isFinite(model?.charsPerLine) ? model.charsPerLine : 38
   
   const itemLines = renderDotMatrixItemsRows(model.itemRows, charsPerLine)
   const paymentLines = renderDotMatrixPaymentsRows(model.paymentRows)
@@ -411,9 +442,11 @@ function replaceDotMatrixToken(template, model) {
   result = result.replace(/{{[^}]+}}/g, '')
   
   try {
-    result = processAlignmentTags(result, charsPerLine)
+    const lines = result.split('\n')
+    const processedLines = lines.map(line => processLineWithTokens(line, {}, charsPerLine))
+    result = processedLines.join('\n')
   } catch (err) {
-    console.error('processAlignmentTags in replaceDotMatrixToken:', err)
+    console.error('processLineWithTokens in replaceDotMatrixToken:', err)
   }
   
   return result
@@ -537,7 +570,11 @@ function renderDotMatrixPlainText(model, settings) {
   }
 
   try {
-    return replaceDotMatrixToken(template, model)
+    const safeModel = {
+      ...model,
+      charsPerLine: Number.isFinite(model?.charsPerLine) ? model.charsPerLine : resolveCharsPerLine(settings),
+    }
+    return replaceDotMatrixToken(template, safeModel)
   } catch (err) {
     console.error('renderDotMatrixPlainText error:', err)
     return template

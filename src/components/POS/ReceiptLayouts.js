@@ -367,6 +367,12 @@ function computeSummaryFromItems(itemRows, fallbackSummary, ppnPercentage = 11) 
   }
 }
 
+function resolvePreviewCharsPerLine(settings) {
+  const value = Number(settings?.chars_per_line)
+  if (!Number.isFinite(value)) return 38
+  return Math.max(20, Math.min(80, Math.round(value)))
+}
+
 export function buildReceiptTemplateModel(sale, settings, options = {}) {
   const printerType = normalizePrinterType(settings.printer_type)
   const normalizedSettings = normalizeReceiptDraftForPrinter(settings, printerType)
@@ -406,6 +412,7 @@ export function buildReceiptTemplateModel(sale, settings, options = {}) {
     showFooter: Boolean(normalizedSettings.show_footer),
     showPpn,
     ppnPercentage,
+    charsPerLine: resolvePreviewCharsPerLine(normalizedSettings),
     taxRate: showPpn ? ppnPercentage / 100 : 0,
     company: {
       name: sale.company_name || '-',
