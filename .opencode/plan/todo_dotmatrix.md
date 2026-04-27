@@ -124,3 +124,20 @@
 - [x] Refactor `replaceItemTokens` untuk multiple markers per line (token-level alignment)
 - [x] Tambah fungsi `processLineWithTokens` untuk parse markers + tokens dalam 1 baris
 - [x] Build berhasil
+
+## 20) Error Handling untuk ReceiptPreview dan Settings
+- [x] Tambah try-catch di `renderReceiptContent` call di ReceiptPreview.jsx
+- [x] Tambah fallback untuk model null
+- [x] Tambah try-catch untuk `renderDotMatrixPlainText` call
+- [x] Tambah error handling di `handleOpenReceiptSettings`
+- [x] Build berhasil
+
+## 21) Crash Fixes untuk Tauri Runtime
+- [x] Tambah maxIterations safeguard di `processLineWithTokens` (prevent infinite loop)
+- [x] Tambah try-catch di `parseEachItemsBlock`
+- [x] Tambah try-catch di `replaceDotMatrixToken` untuk `parseEachItemsBlock` dan `processAlignmentTags`
+- [x] Tambah try-catch di `renderDotMatrixPlainText`
+- [x] Tambah try-catch di `buildDotMatrixPrintModel` + fallback model
+- [x] Fix nullable access: `sale?.items`, `sale?.payments`
+- [x] Tambah try-catch untuk `dotMatrixDebugText` calculation di POS.jsx
+- [x] Build berhasil

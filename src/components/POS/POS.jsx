@@ -894,14 +894,19 @@ export function POS() {
   }, [auth.companyName, companyProfile.address, companyProfile.name, companyProfile.phone, ensureRuntimeReceiptSettings, escapeHtml, formatCurrency, formatDateTime, isTauriRuntime, receiptSettings])
 
   const handleOpenReceiptSettings = useCallback(() => {
-    const runtimeSafe = ensureRuntimeReceiptSettings(receiptSettings)
-    setReceiptSettingsDraft(runtimeSafe)
-    setCharsPerLineInput(String(runtimeSafe.chars_per_line ?? 38))
-    setShowTemplateCode(false)
-    setTemplateCodeHtml(runtimeSafe.printer_type === 'dot_matrix'
-      ? (runtimeSafe.custom_template_text_dot_matrix || getDefaultDotMatrixCustomTemplateText())
-      : (runtimeSafe.custom_template_html || ''))
-    setShowReceiptSettingsPopup(true)
+    try {
+      const runtimeSafe = ensureRuntimeReceiptSettings(receiptSettings)
+      setReceiptSettingsDraft(runtimeSafe)
+      setCharsPerLineInput(String(runtimeSafe.chars_per_line ?? 38))
+      setShowTemplateCode(false)
+      setTemplateCodeHtml(runtimeSafe.printer_type === 'dot_matrix'
+        ? (runtimeSafe.custom_template_text_dot_matrix || getDefaultDotMatrixCustomTemplateText())
+        : (runtimeSafe.custom_template_html || ''))
+      setShowReceiptSettingsPopup(true)
+    } catch (err) {
+      console.error('Error opening receipt settings:', err)
+      setToast({ isOpen: true, message: 'Gagal membuka setting nota', type: 'error' })
+    }
   }, [ensureRuntimeReceiptSettings, receiptSettings])
 
   const handleSaveReceiptSettings = useCallback(() => {
@@ -1035,9 +1040,18 @@ export function POS() {
     company_address: runtimeReceiptDraft.company_address?.trim() || companyProfile.address || '',
     company_phone: runtimeReceiptDraft.company_phone?.trim() || companyProfile.phone || '',
   }
-  const dotMatrixDebugText = runtimeReceiptDraft.printer_type === 'dot_matrix'
-    ? renderDotMatrixPlainText(buildDotMatrixPrintModel(previewNote, previewReceiptSettings, { formatDateTime }), previewReceiptSettings)
-    : ''
+  let dotMatrixDebugText = ''
+  try {
+    if (runtimeReceiptDraft.printer_type === 'dot_matrix') {
+      dotMatrixDebugText = renderDotMatrixPlainText(
+        buildDotMatrixPrintModel(previewNote, previewReceiptSettings, { formatDateTime }),
+        previewReceiptSettings
+      )
+    }
+  } catch (err) {
+    console.error('DotMatrixDebugText error:', err)
+    dotMatrixDebugText = ''
+  }
 
   const handleItemClick = (item, index) => {
     setSelectedIndex(index)

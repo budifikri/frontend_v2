@@ -26,15 +26,35 @@ export function ReceiptPreview({ sale, settings, formatCurrency, formatDateTime 
     }
   ` : ''
 
-  const result = renderReceiptContent(sale, settings, { escapeHtml, formatCurrency, formatDateTime }, { withSamples: true })
+  let result = { model: null, bodyHtml: '', customCss: '', isCustom: false }
+  try {
+    result = renderReceiptContent(sale, settings, { escapeHtml, formatCurrency, formatDateTime }, { withSamples: true })
+  } catch (err) {
+    console.error('ReceiptPreview render error:', err)
+  }
+
   const model = result.model
+  if (!model) {
+    return (
+      <div className="receipt-preview">
+        <div className="receipt-preview-error">Preview tidak tersedia</div>
+      </div>
+    )
+  }
+
   const previewClassName = `receipt-preview ${getReceiptPaperClass(settings.paper_size)} ${isDotMatrix ? 'printer-dot-matrix' : 'printer-thermal'}`
   const fontFamily = isDotMatrix
     ? "'Courier New', 'Consolas', monospace"
     : `'${selectedFont.label}', Arial, sans-serif`
 
   if (isDotMatrix) {
-    const dotMatrixText = renderDotMatrixPlainText(result.model, settings)
+    let dotMatrixText = ''
+    try {
+      dotMatrixText = renderDotMatrixPlainText(model, settings)
+    } catch (err) {
+      console.error('DotMatrixPlainText render error:', err)
+      dotMatrixText = 'Error rendering preview'
+    }
     return (
       <div
         className={previewClassName}

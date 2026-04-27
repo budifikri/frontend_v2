@@ -128,19 +128,6 @@ function padRight(text, length) {
   return str + ' '.repeat(length - str.length)
 }
 
-function padLeft(text, length) {
-  const str = String(text)
-  if (str.length >= length) return str.substring(0, length)
-  return ' '.repeat(length - str.length) + str
-}
-
-function centerText(text, length) {
-  const str = String(text)
-  if (str.length >= length) return str.substring(0, length)
-  const left = Math.floor((length - str.length) / 2)
-  return ' '.repeat(left) + str + ' '.repeat(length - left - str.length)
-}
-
 function processAlignmentTags(text, charsPerLine) {
   const lines = text.split('\n')
   return lines.map(line => {
@@ -152,11 +139,12 @@ function processAlignmentTags(text, charsPerLine) {
       const content = line.replace(widthMatch[0], '')
       return applyAlignment(content, align, width)
     }
-    if (line.startsWith('[C]') || line.startsWith('[c]')) {
-      return centerText(line.substring(3), charsPerLine)
-    }
-    if (line.startsWith('[R]') || line.startsWith('[r]')) {
-      return padLeft(line.substring(3), charsPerLine)
+    const simplePattern = /\[([RLC])\]/i
+    const simpleMatch = line.match(simplePattern)
+    if (simpleMatch) {
+      const align = simpleMatch[1].toUpperCase()
+      const content = line.replace(simpleMatch[0], '')
+      return applyAlignment(content, align, charsPerLine)
     }
     return line
   }).join('\n')
@@ -164,37 +152,81 @@ function processAlignmentTags(text, charsPerLine) {
 
 function applyAlignment(text, alignment, width) {
   const str = String(text)
+  if (width <= 0) return str
   if (str.length >= width) return str.substring(0, width)
   switch (alignment) {
     case 'R': return str.padStart(width, ' ')
     case 'L': return str.padEnd(width, ' ')
-    case 'C':
+    case 'C': {
       const left = Math.floor((width - str.length) / 2)
       return str.padStart(left + str.length, ' ').padEnd(width, ' ')
+    }
     default: return str
   }
 }
 
-function parseAlignmentMarker(line) {
-  const widthPattern = /\[([RLC])(\d+)\]/i
-  const widthMatch = line.match(widthPattern)
-  if (widthMatch) {
-    return {
-      alignment: widthMatch[1].toUpperCase(),
-      width: parseInt(widthMatch[2], 10),
-      cleanedLine: line.replace(widthMatch[0], ''),
+function estimateRenderedLength(line, tokenDefs) {
+  let length = 0
+  let remaining = line
+  const maxIterations = 100
+  let iterations = 0
+
+  while (remaining.length > 0 && iterations < maxIterations) {
+    iterations++
+
+    const markerMatch = remaining.match(/^\[([RLC])(\d+)\]/i)
+    const simpleMatch = !markerMatch ? remaining.match(/^\[([RLC])\]/i) : null
+    if (markerMatch || simpleMatch) {
+      const match = markerMatch || simpleMatch
+      const fixedWidth = markerMatch ? parseInt(markerMatch[2], 10) : null
+      remaining = remaining.substring(match[0].length)
+
+      const tokenMatch = remaining.match(/^\{\{\s*(\w+)\s*\}\}/)
+      if (tokenMatch) {
+        const tokenName = tokenMatch[1]
+        remaining = remaining.substring(tokenMatch[0].length)
+        const value = tokenDefs[tokenName] ? String(tokenDefs[tokenName]()) : ''
+        length += fixedWidth ?? value.length
+        continue
+      }
     }
-  }
-  const simplePattern = /\[([RLC])\]/i
-  const simpleMatch = line.match(simplePattern)
-  if (simpleMatch) {
-    return {
-      alignment: simpleMatch[1].toUpperCase(),
-      width: 0,
-      cleanedLine: line.replace(simpleMatch[0], ''),
+
+    const tokenMatch = remaining.match(/^\{\{\s*(\w+)\s*\}\}/)
+    if (tokenMatch) {
+      const tokenName = tokenMatch[1]
+      remaining = remaining.substring(tokenMatch[0].length)
+      const value = tokenDefs[tokenName] ? String(tokenDefs[tokenName]()) : ''
+      length += value.length
+      continue
     }
+
+    const nextMarker = remaining.search(/\[([RLC])(\d+)?\]/i)
+    const nextToken = remaining.search(/\{\{/)
+
+    let nextPos = -1
+    if (nextMarker !== -1 && nextToken !== -1) nextPos = Math.min(nextMarker, nextToken)
+    else if (nextMarker !== -1) nextPos = nextMarker
+    else if (nextToken !== -1) nextPos = nextToken
+
+    if (nextPos === -1) {
+      length += remaining.length
+      break
+    }
+
+    length += nextPos
+    remaining = remaining.substring(nextPos)
   }
-  return { alignment: 'L', width: 0, cleanedLine: line }
+
+  return length
+}
+
+function resolveAutoAlignmentWidth(value, currentResult, remaining, charsPerLine, tokenDefs) {
+  const naturalWidth = String(value).length
+  if (!Number.isFinite(charsPerLine) || charsPerLine <= 0) return naturalWidth
+
+  const suffixLength = estimateRenderedLength(remaining, tokenDefs)
+  const availableWidth = charsPerLine - currentResult.length - suffixLength
+  return Math.max(naturalWidth, availableWidth)
 }
 
 function replaceItemTokens(blockContent, item, charsPerLine) {
@@ -210,57 +242,75 @@ function replaceItemTokens(blockContent, item, charsPerLine) {
   const lines = blockContent.split('\n')
   return lines.map(line => {
     if (!line.trim()) return ''
-    return processLineWithTokens(line, tokenDefs)
+    return processLineWithTokens(line, tokenDefs, charsPerLine)
   }).join('\n')
 }
 
-function processLineWithTokens(line, tokenDefs) {
+function processLineWithTokens(line, tokenDefs, charsPerLine) {
   let result = ''
-  let remaining = line.trim()
+  let remaining = line
+  const maxIterations = 100
+  let iterations = 0
 
-  while (remaining.length > 0) {
-    const markerMatch = remaining.match(/^\[([RLC])(\d*)\]/i)
+  while (remaining.length > 0 && iterations < maxIterations) {
+    iterations++
 
-    if (markerMatch) {
-      const align = markerMatch[1].toUpperCase()
-      const width = markerMatch[2] ? parseInt(markerMatch[2], 10) : 0
-      remaining = remaining.substring(markerMatch[0].length)
+    const markerMatch = remaining.match(/^\[([RLC])(\d+)\]/i)
+    const simpleMatch = !markerMatch ? remaining.match(/^\[([RLC])\]/i) : null
+
+    if (markerMatch || simpleMatch) {
+      const match = markerMatch || simpleMatch
+      const align = match[1].toUpperCase()
+      const fixedWidth = markerMatch ? parseInt(markerMatch[2], 10) : null
+      remaining = remaining.substring(match[0].length)
 
       const tokenMatch = remaining.match(/^\{\{\s*(\w+)\s*\}\}/)
       if (tokenMatch) {
         const tokenName = tokenMatch[1]
         remaining = remaining.substring(tokenMatch[0].length)
         const value = tokenDefs[tokenName] ? tokenDefs[tokenName]() : ''
-        if (width > 0) {
-          result += applyAlignment(value, align, width)
-        } else if (align === 'R') {
-          result += value
-        } else if (align === 'L') {
-          result += value
+        const width = fixedWidth ?? resolveAutoAlignmentWidth(value, result, remaining, charsPerLine, tokenDefs)
+        result += applyAlignment(value, align, width)
+      } else {
+        result += match[0]
+      }
+    } else if (remaining.startsWith('{{')) {
+      const tokenMatch = remaining.match(/^\{\{\s*(\w+)\s*\}\}/)
+      if (tokenMatch) {
+        const tokenName = tokenMatch[1]
+        remaining = remaining.substring(tokenMatch[0].length)
+        const value = tokenDefs[tokenName] ? tokenDefs[tokenName]() : ''
+        result += value
+      } else {
+        const nextClose = remaining.indexOf('}}')
+        if (nextClose !== -1) {
+          result += remaining.substring(0, nextClose + 2)
+          remaining = remaining.substring(nextClose + 2)
         } else {
-          result += value
+          result += remaining
+          break
         }
       }
     } else {
-      const nextMarker = remaining.search(/\[([RLC])(\d*)\]/i)
-      const nextToken = remaining.search(/\{\{\s*\w+\s*\}\}/)
+      const nextMarker = remaining.search(/\[([RLC])(\d+)\]/i)
+      const nextSimple = remaining.search(/\[([RLC])\]/i)
+      const nextToken = remaining.search(/\{\{/)
 
-      if (nextMarker === -1 && nextToken === -1) {
+      let nextPos = -1
+      if (nextMarker !== -1 && nextToken !== -1) nextPos = Math.min(nextMarker, nextToken)
+      else if (nextMarker !== -1) nextPos = nextMarker
+      else if (nextSimple !== -1 && nextToken !== -1) nextPos = Math.min(nextSimple, nextToken)
+      else if (nextSimple !== -1) nextPos = nextSimple
+      else if (nextToken !== -1) nextPos = nextToken
+
+      if (nextPos === -1) {
         result += remaining
         break
       }
 
-      let segmentEnd = remaining.length
-      if (nextMarker !== -1 && nextToken !== -1) {
-        segmentEnd = Math.min(nextMarker, nextToken)
-      } else if (nextMarker !== -1) {
-        segmentEnd = nextMarker
-      } else {
-        segmentEnd = nextToken
-      }
-
-      result += remaining.substring(0, segmentEnd)
-      remaining = remaining.substring(segmentEnd)
+      const segment = remaining.substring(0, nextPos)
+      result += segment
+      remaining = remaining.substring(nextPos)
     }
   }
 
@@ -269,10 +319,15 @@ function processLineWithTokens(line, tokenDefs) {
 
 function parseEachItemsBlock(template, itemRows, charsPerLine) {
   const eachPattern = /\{\{#each\s+items\}\}([\s\S]*?)\{\{\/each\s+items\}\}/gi
-  return template.replace(eachPattern, (match, blockContent) => {
-    if (!itemRows || itemRows.length === 0) return '-'
-    return itemRows.map(item => replaceItemTokens(blockContent, item, charsPerLine)).join('\n')
-  })
+  try {
+    return template.replace(eachPattern, (match, blockContent) => {
+      if (!itemRows || itemRows.length === 0) return '-'
+      return itemRows.map(item => replaceItemTokens(blockContent, item, charsPerLine)).join('\n')
+    })
+  } catch (err) {
+    console.error('parseEachItemsBlock error:', err)
+    return template
+  }
 }
 
 function resolveCharsPerLine(settings) {
@@ -343,7 +398,11 @@ function replaceDotMatrixToken(template, model) {
 
   let result = template
   
-  result = parseEachItemsBlock(result, model.itemRows, charsPerLine)
+  try {
+    result = parseEachItemsBlock(result, model.itemRows, charsPerLine)
+  } catch (err) {
+    console.error('parseEachItemsBlock in replaceDotMatrixToken:', err)
+  }
   
   Object.entries(tokenValues).forEach(([token, value]) => {
     result = result.replace(new RegExp(`{{\\s*${token}\\s*}}`, 'g'), value)
@@ -351,17 +410,22 @@ function replaceDotMatrixToken(template, model) {
   
   result = result.replace(/{{[^}]+}}/g, '')
   
-  result = processAlignmentTags(result, charsPerLine)
+  try {
+    result = processAlignmentTags(result, charsPerLine)
+  } catch (err) {
+    console.error('processAlignmentTags in replaceDotMatrixToken:', err)
+  }
   
   return result
 }
 
 function buildDotMatrixPrintModel(sale, settings, helpers) {
-  const charsPerLine = resolveCharsPerLine(settings)
-  const ppnPercentage = settings.ppn_percentage || 11
-  const showPpn = settings.show_ppn !== false
+  try {
+    const charsPerLine = resolveCharsPerLine(settings)
+    const ppnPercentage = settings.ppn_percentage || 11
+    const showPpn = settings.show_ppn !== false
   
-  const itemRows = (sale.items || []).map((item, idx) => {
+  const itemRows = (sale?.items || []).map((item, idx) => {
     const quantity = item.quantity || item.qty || 0
     const unitPrice = item.unit_price || item.price || 0
     const originalPrice = item.original_price || unitPrice
@@ -379,7 +443,7 @@ function buildDotMatrixPrintModel(sale, settings, helpers) {
     }
   })
   
-  const paymentRows = (sale.payments || []).map(p => ({
+  const paymentRows = (sale?.payments || []).map(p => ({
     method: p.payment_method || p.method || '-',
     amount: p.amount || 0,
   }))
@@ -422,6 +486,20 @@ function buildDotMatrixPrintModel(sale, settings, helpers) {
     ppnPercentage,
     footerText: settings.footer_text || 'Terima kasih.',
   }
+  } catch (err) {
+    console.error('buildDotMatrixPrintModel error:', err)
+    return {
+      charsPerLine: 38,
+      company: { name: '-', address: '', phone: '' },
+      meta: { number: '-', dateFormatted: '-', cashier: '-', warehouse: '-' },
+      itemRows: [],
+      paymentRows: [],
+      summary: { subtotal: 0, originalTotal: 0, discount: 0, tax: 0, total: 0, paid: 0, change: 0 },
+      showPpn: false,
+      ppnPercentage: 11,
+      footerText: 'Terima kasih.',
+    }
+  }
 }
 
 function getDotMatrixTemplate(layoutType) {
@@ -458,7 +536,12 @@ function renderDotMatrixPlainText(model, settings) {
     template = getDotMatrixTemplate(settings.layout_type || 'layout_a')
   }
 
-  return replaceDotMatrixToken(template, model)
+  try {
+    return replaceDotMatrixToken(template, model)
+  } catch (err) {
+    console.error('renderDotMatrixPlainText error:', err)
+    return template
+  }
 }
 
 function getDefaultDotMatrixCustomTemplateText() {
