@@ -1,13 +1,13 @@
 https://chatgpt.com/codex/cloud/settings/analytics#usage
 
-current  :mbffikri@gmail.com :100%  remaining Resets May 2, 2026 11:54 AM
+current  :operator.prod.azkamulia@gmail.com: 100% (oppro@azka) Resets May 3, 2026 12:24 PM
 
 
 
 
 list email :
-mbffikri@gmail.com :100%  remaining
-operator.prod.azkamulia@gmail.com: 100% (oppro@azka)
+mbffikri@gmail.com :0%  remaining Resets May 2, 2026 11:54 AM
+
 engineer.azkamulia@gmail.com: 100%  (3nginer@azka)
 griyailmu.diksisenja2@gmail.com :0%  remaining  Resets May 1, 2026 3:32 PM (486456@Ds)
 it.azkamulia@gmail.com :0% reset on Apr 29, 2026 8:48 AM. 

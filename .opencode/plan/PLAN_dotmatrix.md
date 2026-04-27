@@ -483,3 +483,117 @@ Di `POS.jsx`:
   - **Mitigasi:** Default ke PC437, opsi override encoding di setting
 - **Risiko:** Paper jam atau printer offline
   - **Mitigasi:** Check print result, tampilkan toast error spesifik
+
+---
+
+## 8) Integrasi TM-U220 USB Driver (Windows Printer Mode)
+
+### Latar Belakang
+- Pada deployment user, printer Epson TM-U220 terdeteksi sebagai **Windows Printer Queue** dengan port seperti `ESDPR...`, bukan sebagai `COMx`.
+- Karena itu, alur serial yang sekarang (`list_serial_ports` + `write_serial_bytes`) tidak akan pernah menemukan printer tersebut.
+- Mode serial **tetap dipertahankan** untuk deployment lain yang benar-benar memakai USB-to-Serial / COM port.
+
+### Arsitektur Koneksi yang Didukung
+- `thermal`
+  - Tetap: `Tauri -> iframe/window.print`
+- `dot_matrix + serial`
+  - Tetap: `Tauri -> serial plugin -> COM port -> printer`
+- `dot_matrix + windows_printer`
+  - Baru: `Tauri -> Rust command -> Windows Print Spooler -> printer queue`
+
+### Scope Perubahan
+
+#### 8.1) Tambah Setting Koneksi Dot Matrix
+Tambahkan field baru di `src/features/setting/receiptSetting.storage.js`:
+- `dot_matrix_connection_type`: `'serial' | 'windows_printer'`
+- `windows_printer_name`: `string`
+
+Field existing tetap dipertahankan:
+- `com_port`
+- `baud_rate`
+
+#### 8.2) Update UI Setting Dot Matrix
+Di popup setting nota (`src/components/POS/POS.jsx`):
+- Tambahkan pilihan:
+  - `Serial Port`
+  - `Windows Printer`
+- Jika `Serial Port` aktif:
+  - tampilkan dropdown COM port
+  - tampilkan baud rate
+  - tombol `Scan Port`
+  - tombol `Test Print`
+- Jika `Windows Printer` aktif:
+  - tampilkan dropdown printer Windows
+  - tombol `Scan Printer`
+  - tombol `Test Print`
+  - tampilkan status printer terpilih
+
+#### 8.3) Rust Command: Enumerate Printer Windows
+Tambah command di `src-tauri/src/lib.rs`:
+- `list_windows_printers()` -> `Vec<String>`
+
+Implementasi target:
+- Enumerasi printer queue dari Windows Print Spooler API
+- Minimal dapat membaca nama printer seperti `EPSON TM-U220 Receipt`
+
+#### 8.4) Rust Command: RAW Print ke Printer Windows
+Tambah command di `src-tauri/src/lib.rs`:
+- `write_windows_printer_raw(printer_name, data)` -> `Result`
+
+Alur Win32 yang dibutuhkan:
+1. `OpenPrinter`
+2. `StartDocPrinter` dengan datatype `RAW`
+3. `StartPagePrinter`
+4. `WritePrinter`
+5. `EndPagePrinter`
+6. `EndDocPrinter`
+7. `ClosePrinter`
+
+#### 8.5) Frontend Printer API
+Perluas module printer frontend (`src/utils/serialApi.js` atau pecah ke module baru):
+- `listWindowsPrinters()`
+- `printViaWindowsPrinter(printerName, data)`
+- `testPrintWindowsPrinter(printerName)`
+
+#### 8.6) Integrasi Flow Print Dot Matrix
+Di `POS.jsx`, jalur dot matrix harus bercabang berdasarkan `dot_matrix_connection_type`:
+- `serial`
+  - gunakan flow existing `printViaSerial(...)`
+- `windows_printer`
+  - generate raw ESC/POS text yang sama
+  - kirim via `printViaWindowsPrinter(...)`
+
+#### 8.7) Generator Output
+- Untuk TM-U220 USB driver, output tetap **raw ESC/POS text**, bukan HTML print.
+- `generateEscposFromHtml(...)` tetap reusable untuk dua mode:
+  - serial
+  - windows printer raw
+
+### Visual Sketsa Setting TM-U220 USB
+
+```text
++-----------------------------------------------------------------------------------+
+| Setting Printer Dot Matrix                                                [x]     |
++--------------------------------+--------------------------------------------------+
+| Jenis Koneksi                  |                                                  |
+| ( ) Serial Port                |                                                  |
+| (x) Windows Printer            |                                                  |
+|                                |                                                  |
+| Printer Windows                |                                                  |
+| [EPSON TM-U220 Receipt    v]   | [Scan Printer]                                   |
+|                                |                                                  |
+| [Test Print]                   |                                                  |
++--------------------------------+--------------------------------------------------+
+| Status: Printer Windows terdeteksi dan siap digunakan                            |
++-----------------------------------------------------------------------------------+
+```
+
+## Risiko & Mitigasi (TM-U220 USB)
+- **Risiko:** Driver Epson tidak meneruskan `RAW` ESC/POS seperti yang diharapkan
+  - **Mitigasi:** Uji `StartDocPrinter(..., "RAW")` terlebih dahulu; jika tidak stabil, siapkan fallback queue `Generic / Text Only`
+- **Risiko:** Nama printer berubah antar mesin / user rename printer
+  - **Mitigasi:** Scan printer dinamis, simpan nama yang dipilih user, tampilkan warning jika printer tersimpan tidak ditemukan
+- **Risiko:** User salah memilih jalur koneksi
+  - **Mitigasi:** Tambahkan hint di UI: `Serial Port untuk COM`, `Windows Printer untuk USB driver`
+- **Risiko:** Encoding karakter tidak konsisten di spooler Windows
+  - **Mitigasi:** Awali dengan ASCII/CP437, tambahkan opsi encoding jika dibutuhkan setelah uji lapangan

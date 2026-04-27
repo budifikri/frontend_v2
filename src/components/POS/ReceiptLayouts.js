@@ -1,3 +1,5 @@
+import { getDefaultDotMatrixCustomTemplateText } from './DotMatrixFormatter'
+
 export const THERMAL_LAYOUT_OPTIONS = [
   { id: 'layout_a', label: 'Layout A - Simple', description: 'Ringkas, fokus ke item dan total' },
   { id: 'layout_b', label: 'Layout B - Detail Pajak', description: 'Menampilkan subtotal, PPN, dan rincian bayar' },
@@ -244,6 +246,7 @@ function getDefaultTemplateBundle(printerType) {
     return {
       html: DEFAULT_CUSTOM_TEMPLATE_HTML_DOT_MATRIX,
       css: DEFAULT_CUSTOM_TEMPLATE_CSS_DOT_MATRIX,
+      text: getDefaultDotMatrixCustomTemplateText(),
       layoutType: DOT_MATRIX_LAYOUT_OPTIONS[0].id,
     }
   }
@@ -251,6 +254,7 @@ function getDefaultTemplateBundle(printerType) {
   return {
     html: DEFAULT_CUSTOM_TEMPLATE_HTML_THERMAL,
     css: DEFAULT_CUSTOM_TEMPLATE_CSS_THERMAL,
+    text: '',
     layoutType: THERMAL_LAYOUT_OPTIONS[0].id,
   }
 }
@@ -288,6 +292,11 @@ export function normalizeReceiptDraftForPrinter(draft, printerType) {
     custom_template_css: typeof draft?.custom_template_css === 'string' && draft.custom_template_css.trim() !== ''
       ? draft.custom_template_css
       : defaults.css,
+    custom_template_text_dot_matrix: normalizedType === 'dot_matrix'
+      ? (typeof draft?.custom_template_text_dot_matrix === 'string' && draft.custom_template_text_dot_matrix.trim() !== ''
+        ? draft.custom_template_text_dot_matrix
+        : defaults.text)
+      : (typeof draft?.custom_template_text_dot_matrix === 'string' ? draft.custom_template_text_dot_matrix : ''),
   }
 }
 

@@ -7,12 +7,12 @@ import { getCurrentCompany, listCompanies } from '../../features/master/company/
 import { listWarehouses } from '../../features/master/warehouse/warehouse.api'
 import { openCashDrawer, getCurrentCashDrawer, getCashDrawerSummary, closeCashDrawer, cashInDrawer, cashOutDrawer } from '../../features/transaksi/cash-drawer/cashDrawer.api'
 import { createSale, listSales, getSaleById } from '../../features/transaksi/sales/sales.api'
-import { DEFAULT_RECEIPT_SETTINGS, RECEIPT_FONTS, loadReceiptSettings, resetReceiptSettings, saveReceiptSettings } from '../../features/setting/receiptSetting.storage'
+import { DEFAULT_RECEIPT_SETTINGS, RECEIPT_FONTS, BAUD_RATE_OPTIONS, DOT_MATRIX_CONNECTION_OPTIONS, loadReceiptSettings, resetReceiptSettings, saveReceiptSettings } from '../../features/setting/receiptSetting.storage'
 import { getReceiptLayoutOptions, getReceiptPaperClass, renderReceiptContent, getDefaultCustomTemplate, normalizeReceiptDraftForPrinter, RECEIPT_TEMPLATE_TOKENS } from './ReceiptLayouts'
 import { ReceiptPreview } from './ReceiptPreview'
 import { Toast } from '../../components/Toast'
-import { printViaSerial } from '../../utils/serialApi'
-import { generateEscposFromHtml } from '../../utils/escposGenerator'
+import { printViaSerial, printViaWindowsPrinter, listSerialPorts, listWindowsPrinters, testPrintBytes } from '../../utils/serialApi'
+import { DOT_MATRIX_TOKEN_LIST, renderDotMatrixReceipt, renderDotMatrixPlainText, getDefaultDotMatrixCustomTemplateText, buildDotMatrixPrintModel } from './DotMatrixFormatter'
 import './POS.css'
 
 export function POS() {
@@ -94,11 +94,15 @@ export function POS() {
   const printFrameRef = useRef(null)
   const [showTemplateCode, setShowTemplateCode] = useState(false)
   const [templateCodeHtml, setTemplateCodeHtml] = useState('')
+  const [charsPerLineInput, setCharsPerLineInput] = useState('38')
   const [toast, setToast] = useState({ isOpen: false, message: '', type: 'info' })
   const priceTierCacheRef = useRef({})
   const [activePromos, setActivePromos] = useState([])
   const promoCacheRef = useRef({})
   const isTauriRuntime = Boolean(window.__TAURI__)
+  const [availablePorts, setAvailablePorts] = useState([])
+  const [availableWindowsPrinters, setAvailableWindowsPrinters] = useState([])
+  const [serialStatus, setSerialStatus] = useState('')
 
   const ensureRuntimeReceiptSettings = useCallback((value) => {
     const source = value && typeof value === 'object' ? value : DEFAULT_RECEIPT_SETTINGS
@@ -829,16 +833,32 @@ export function POS() {
     `
 
     if (isDotMatrix && isTauriRuntime) {
+      const escposText = renderDotMatrixReceipt(saleWithCompany, effectiveReceiptSettings, {
+        formatCurrency,
+        formatDateTime,
+      })
+      const connectionType = effectiveReceiptSettings.dot_matrix_connection_type || 'serial'
+
+      if (connectionType === 'windows_printer') {
+        const printerName = effectiveReceiptSettings.windows_printer_name
+        if (!printerName) {
+          throw new Error('Printer Windows belum dipilih di setting nota')
+        }
+
+        printViaWindowsPrinter(escposText, printerName).catch((err) => {
+          console.error('Windows printer print error:', err)
+        })
+        return
+      }
+
       const { com_port, baud_rate } = effectiveReceiptSettings
       if (!com_port) {
         throw new Error('COM port belum diset di setting nota')
       }
 
-      const escposText = generateEscposFromHtml(html, effectiveReceiptSettings)
-      printViaSerial(escposText, com_port, baud_rate || 9600)
-        .catch((err) => {
-          console.error('Serial print error:', err)
-        })
+      printViaSerial(escposText, com_port, baud_rate || 9600).catch((err) => {
+        console.error('Serial print error:', err)
+      })
       return
     }
 
@@ -876,31 +896,105 @@ export function POS() {
   const handleOpenReceiptSettings = useCallback(() => {
     const runtimeSafe = ensureRuntimeReceiptSettings(receiptSettings)
     setReceiptSettingsDraft(runtimeSafe)
+    setCharsPerLineInput(String(runtimeSafe.chars_per_line ?? 38))
     setShowTemplateCode(false)
-    setTemplateCodeHtml(runtimeSafe.custom_template_html || '')
+    setTemplateCodeHtml(runtimeSafe.printer_type === 'dot_matrix'
+      ? (runtimeSafe.custom_template_text_dot_matrix || getDefaultDotMatrixCustomTemplateText())
+      : (runtimeSafe.custom_template_html || ''))
     setShowReceiptSettingsPopup(true)
   }, [ensureRuntimeReceiptSettings, receiptSettings])
 
   const handleSaveReceiptSettings = useCallback(() => {
+    const isDotMatrixDraft = receiptSettingsDraft.printer_type === 'dot_matrix'
     const currentHtml = wysiwygEditorRef.current?.innerHTML || receiptSettingsDraft.custom_template_html
-    const runtimeSafeDraft = ensureRuntimeReceiptSettings({
-      ...receiptSettingsDraft,
-      custom_template_html: currentHtml,
-    })
+    const normalizedCharsPerLine = Math.max(20, Math.min(80, parseInt(charsPerLineInput || '38', 10) || 38))
+    const runtimeSafeDraft = ensureRuntimeReceiptSettings(isDotMatrixDraft
+      ? {
+          ...receiptSettingsDraft,
+          chars_per_line: normalizedCharsPerLine,
+          custom_template_text_dot_matrix: templateCodeHtml || receiptSettingsDraft.custom_template_text_dot_matrix,
+        }
+      : {
+          ...receiptSettingsDraft,
+          chars_per_line: normalizedCharsPerLine,
+          custom_template_html: currentHtml,
+        })
     const saved = saveReceiptSettings(runtimeSafeDraft)
     setReceiptSettings(ensureRuntimeReceiptSettings(saved))
     setShowReceiptSettingsPopup(false)
     setToast({ isOpen: true, message: 'Setting nota jual disimpan', type: 'success' })
-  }, [ensureRuntimeReceiptSettings, receiptSettingsDraft])
+  }, [charsPerLineInput, ensureRuntimeReceiptSettings, receiptSettingsDraft, templateCodeHtml])
 
   const handleResetReceiptSettings = useCallback(() => {
     const defaults = resetReceiptSettings()
     const runtimeDefaults = ensureRuntimeReceiptSettings(defaults)
     const resetDraft = applyPrinterTypeToDraft(runtimeDefaults, runtimeDefaults.printer_type)
     setReceiptSettingsDraft(resetDraft)
-    setTemplateCodeHtml(resetDraft.custom_template_html || '')
+    setCharsPerLineInput(String(resetDraft.chars_per_line ?? 38))
+    setTemplateCodeHtml(resetDraft.printer_type === 'dot_matrix'
+      ? (resetDraft.custom_template_text_dot_matrix || getDefaultDotMatrixCustomTemplateText())
+      : (resetDraft.custom_template_html || ''))
     setToast({ isOpen: true, message: 'Setting dikembalikan ke default', type: 'info' })
   }, [applyPrinterTypeToDraft, ensureRuntimeReceiptSettings])
+
+  const handleScanPorts = useCallback(async () => {
+    setSerialStatus('Scanning ports...')
+    const result = await listSerialPorts()
+    if (result.success) {
+      setAvailablePorts(result.data || [])
+      if (result.data.length === 0) {
+        setSerialStatus('Tidak ada port serial yang terdeteksi.')
+      } else {
+        setSerialStatus(`${result.data.length} port(s) ditemukan.`)
+      }
+    } else {
+      setAvailablePorts([])
+      setSerialStatus(`Gagal scan: ${result.error}`)
+    }
+  }, [])
+
+  const handleScanWindowsPrinters = useCallback(async () => {
+    setSerialStatus('Scanning Windows printers...')
+    const result = await listWindowsPrinters()
+    if (result.success) {
+      setAvailableWindowsPrinters(result.data || [])
+      if ((result.data || []).length === 0) {
+        setSerialStatus('Tidak ada printer Windows yang terdeteksi.')
+      } else {
+        setSerialStatus(`${result.data.length} printer Windows ditemukan.`)
+      }
+    } else {
+      setAvailableWindowsPrinters([])
+      setSerialStatus(`Gagal scan printer Windows: ${result.error}`)
+    }
+  }, [])
+
+  const handleTestPrint = useCallback(async () => {
+    const { com_port, baud_rate, dot_matrix_connection_type, windows_printer_name } = receiptSettingsDraft
+    setSerialStatus('Mengirim test print...')
+    const testText = testPrintBytes()
+    let result
+
+    if (dot_matrix_connection_type === 'windows_printer') {
+      if (!windows_printer_name) {
+        setSerialStatus('Printer Windows belum dipilih.')
+        return
+      }
+      result = await printViaWindowsPrinter(testText, windows_printer_name)
+    } else {
+      if (!com_port) {
+        setSerialStatus('COM port belum diset.')
+        return
+      }
+      result = await printViaSerial(testText, com_port, baud_rate || 9600)
+    }
+
+    if (result.success) {
+      setSerialStatus('Test print berhasil dikirim.')
+    } else {
+      setSerialStatus(`Gagal: ${result.error}`)
+    }
+  }, [receiptSettingsDraft])
 
   const subtotalOriginal = items.reduce((sum, item) => sum + (Number(item.retail_price || item.price) * item.qty), 0)
   const totalDiscount = items.reduce((sum, item) => sum + ((Number(item.retail_price || item.price) - Number(item.price)) * item.qty), 0)
@@ -941,6 +1035,9 @@ export function POS() {
     company_address: runtimeReceiptDraft.company_address?.trim() || companyProfile.address || '',
     company_phone: runtimeReceiptDraft.company_phone?.trim() || companyProfile.phone || '',
   }
+  const dotMatrixDebugText = runtimeReceiptDraft.printer_type === 'dot_matrix'
+    ? renderDotMatrixPlainText(buildDotMatrixPrintModel(previewNote, previewReceiptSettings, { formatDateTime }), previewReceiptSettings)
+    : ''
 
   const handleItemClick = (item, index) => {
     setSelectedIndex(index)
@@ -2080,7 +2177,11 @@ export function POS() {
                             template_mode: 'custom',
                             custom_template_html: prev.custom_template_html || defaultTemplate.html,
                             custom_template_css: prev.custom_template_css || defaultTemplate.css,
+                            custom_template_text_dot_matrix: prev.custom_template_text_dot_matrix || defaultTemplate.text || getDefaultDotMatrixCustomTemplateText(),
                           }))
+                          setTemplateCodeHtml(runtimeReceiptDraft.printer_type === 'dot_matrix'
+                            ? (receiptSettingsDraft.custom_template_text_dot_matrix || defaultTemplate.text || getDefaultDotMatrixCustomTemplateText())
+                            : (receiptSettingsDraft.custom_template_html || defaultTemplate.html || ''))
                         }}
                       />
                       <span>Custom Template</span>
@@ -2102,18 +2203,25 @@ export function POS() {
                       ))}
                     </div>
                   ) : (
-                    <div className="receipt-setting-template-panel in-form">
-                      <div className="receipt-template-section">
-                        <div className="receipt-template-section-header">
-                          <span>HTML Template</span>
-                          <div className="receipt-template-actions">
-                            <button
-                              type="button"
-                              className="receipt-template-btn"
-                              onClick={() => {
-                                const currentHtml = showTemplateCode
-                                  ? templateCodeHtml
-                                  : (wysiwygEditorRef.current?.innerHTML || runtimeReceiptDraft.custom_template_html || '')
+                      <div className="receipt-setting-template-panel in-form">
+                        <div className="receipt-template-section">
+                          <div className="receipt-template-section-header">
+                            <span>{runtimeReceiptDraft.printer_type === 'dot_matrix' ? 'Template Text Dot Matrix' : 'HTML Template'}</span>
+                            <div className="receipt-template-actions">
+                              <button
+                                type="button"
+                                className="receipt-template-btn"
+                                onClick={() => {
+                                  if (runtimeReceiptDraft.printer_type === 'dot_matrix') {
+                                    setReceiptSettingsDraft((prev) => ({
+                                      ...prev,
+                                      custom_template_text_dot_matrix: templateCodeHtml,
+                                    }))
+                                    return
+                                  }
+                                  const currentHtml = showTemplateCode
+                                    ? templateCodeHtml
+                                    : (wysiwygEditorRef.current?.innerHTML || runtimeReceiptDraft.custom_template_html || '')
                                 setReceiptSettingsDraft((prev) => ({
                                   ...prev,
                                   custom_template_html: currentHtml,
@@ -2139,13 +2247,26 @@ export function POS() {
                             >
                               {showTemplateCode ? 'Hide Code' : 'Code'}
                             </button>
-                            <button
-                              type="button"
-                              className="receipt-template-btn"
-                              onClick={() => {
-                                const defaultTemplate = getDefaultCustomTemplate(runtimeReceiptDraft.printer_type)
-                                if (wysiwygEditorRef.current) {
-                                  wysiwygEditorRef.current.innerHTML = defaultTemplate.html
+                              <button
+                                type="button"
+                                className="receipt-template-btn"
+                                onClick={() => {
+                                  if (runtimeReceiptDraft.printer_type === 'dot_matrix') {
+                                    const defaultTemplate = getDefaultCustomTemplate(runtimeReceiptDraft.printer_type)
+                                    const nextText = defaultTemplate.text || getDefaultDotMatrixCustomTemplateText()
+                                    setReceiptSettingsDraft((prev) => ({
+                                      ...prev,
+                                      custom_template_text_dot_matrix: nextText,
+                                    }))
+                                    setTemplateCodeHtml(nextText)
+                                    if (codeEditorRef.current) {
+                                      codeEditorRef.current.focus()
+                                    }
+                                    return
+                                  }
+                                  const defaultTemplate = getDefaultCustomTemplate(runtimeReceiptDraft.printer_type)
+                                  if (wysiwygEditorRef.current) {
+                                    wysiwygEditorRef.current.innerHTML = defaultTemplate.html
                                 }
                                 setReceiptSettingsDraft((prev) => ({
                                   ...prev,
@@ -2162,7 +2283,18 @@ export function POS() {
                             </button>
                           </div>
                         </div>
-                        {!showTemplateCode ? (
+                        {runtimeReceiptDraft.printer_type === 'dot_matrix' ? (
+                          <div className="receipt-setting-code-panel">
+                            <textarea
+                              ref={codeEditorRef}
+                              className="receipt-setting-code-editor receipt-setting-code-editor-dotmatrix"
+                              value={templateCodeHtml}
+                              onChange={(e) => setTemplateCodeHtml(e.target.value)}
+                              spellCheck={false}
+                              rows={18}
+                            />
+                          </div>
+                        ) : !showTemplateCode ? (
                           <>
                             <div className="receipt-wysiwyg-toolbar">
                               <button type="button" className="receipt-wysiwyg-btn" title="Bold" onMouseDown={(e) => { e.preventDefault(); if (wysiwygEditorRef.current) wysiwygEditorRef.current.focus(); document.execCommand('bold', false, null) }}>
@@ -2215,12 +2347,25 @@ export function POS() {
                       <div className="receipt-template-tokens">
                         <div className="receipt-template-tokens-title">Data - klik untuk menyisipkan:</div>
                         <div className="receipt-template-tokens-list">
-                          {RECEIPT_TEMPLATE_TOKENS.map((token) => (
+                          {(runtimeReceiptDraft.printer_type === 'dot_matrix' ? DOT_MATRIX_TOKEN_LIST : RECEIPT_TEMPLATE_TOKENS).map((token) => (
                             <button
                               key={token}
                               type="button"
                               className="receipt-template-token"
                               onClick={() => {
+                                if (runtimeReceiptDraft.printer_type === 'dot_matrix' && codeEditorRef.current) {
+                                  const textarea = codeEditorRef.current
+                                  const start = textarea.selectionStart ?? templateCodeHtml.length
+                                  const end = textarea.selectionEnd ?? templateCodeHtml.length
+                                  const next = `${templateCodeHtml.slice(0, start)}${token}${templateCodeHtml.slice(end)}`
+                                  setTemplateCodeHtml(next)
+                                  setTimeout(() => {
+                                    textarea.focus()
+                                    const cursorPos = start + token.length
+                                    textarea.setSelectionRange(cursorPos, cursorPos)
+                                  }, 0)
+                                  return
+                                }
                                 if (showTemplateCode && codeEditorRef.current) {
                                   const textarea = codeEditorRef.current
                                   const start = textarea.selectionStart ?? templateCodeHtml.length
@@ -2290,6 +2435,7 @@ export function POS() {
                         onChange={() => {
                           const nextDraft = applyPrinterTypeToDraft(receiptSettingsDraft, 'thermal')
                           setReceiptSettingsDraft(nextDraft)
+                          setCharsPerLineInput(String(nextDraft.chars_per_line ?? 38))
                           setTemplateCodeHtml(nextDraft.custom_template_html || '')
                         }}
                       />
@@ -2304,57 +2450,217 @@ export function POS() {
                         onChange={() => {
                           const nextDraft = applyPrinterTypeToDraft(receiptSettingsDraft, 'dot_matrix')
                           setReceiptSettingsDraft(nextDraft)
-                          setTemplateCodeHtml(nextDraft.custom_template_html || '')
+                          setCharsPerLineInput(String(nextDraft.chars_per_line ?? 38))
+                          setTemplateCodeHtml(nextDraft.custom_template_text_dot_matrix || getDefaultDotMatrixCustomTemplateText())
                         }}
                       />
                       <span>Dot Matrix</span>
                     </label>
-                    {!isTauriRuntime && (
+{!isTauriRuntime && (
                       <div className="receipt-printer-hint">Non Browser: opsi Dot Matrix hanya aktif di aplikasi Tauri.</div>
                     )}
                   </div>
-                </div>
 
-                <div className="receipt-setting-section">
-                  <h4>Font Cetak</h4>
-                  <select
-                    className="receipt-select"
-                    value={runtimeReceiptDraft.receipt_font || 'JetBrainsMono-Regular'}
-                    onChange={(e) => setReceiptSettingsDraft((prev) => ({ ...prev, receipt_font: e.target.value }))}
-                  >
-                    {RECEIPT_FONTS.map((font) => (
-                      <option key={font.value} value={font.value}>{font.label}</option>
-                    ))}
-                  </select>
-                </div>
+                  {runtimeReceiptDraft.printer_type === 'dot_matrix' && isTauriRuntime && (
+                    <div className="receipt-setting-section receipt-serial-section">
+                      <h4>Jenis Koneksi Dot Matrix</h4>
+                      <div className="receipt-radio-group-vertical">
+                        {DOT_MATRIX_CONNECTION_OPTIONS.map((option) => (
+                          <label key={option.value} className="receipt-radio-option">
+                            <input
+                              type="radio"
+                              name="dot-matrix-connection"
+                              checked={(runtimeReceiptDraft.dot_matrix_connection_type || 'serial') === option.value}
+                              onChange={() => setReceiptSettingsDraft((prev) => ({ ...prev, dot_matrix_connection_type: option.value }))}
+                            />
+                            <span>{option.label}</span>
+                          </label>
+                        ))}
+                      </div>
 
-               
-                <div className="receipt-setting-section">
-                  <h4>Tampilan</h4>
-                  <label className="receipt-checkbox-option">
-                    <input
-                      type="checkbox"
-                      checked={runtimeReceiptDraft.show_logo}
-                      onChange={(e) => setReceiptSettingsDraft((prev) => ({ ...prev, show_logo: e.target.checked }))}
-                    />
-                    <span>Tampilkan logo</span>
-                  </label>
-                  <label className="receipt-checkbox-option">
-                    <input
-                      type="checkbox"
-                      checked={runtimeReceiptDraft.show_footer}
-                      onChange={(e) => setReceiptSettingsDraft((prev) => ({ ...prev, show_footer: e.target.checked }))}
-                    />
-                    <span>Tampilkan footer</span>
-                  </label>
-                  <label className="receipt-checkbox-option">
-                    <input
-                      type="checkbox"
-                      checked={runtimeReceiptDraft.auto_print_after_payment}
-                      onChange={(e) => setReceiptSettingsDraft((prev) => ({ ...prev, auto_print_after_payment: e.target.checked }))}
-                    />
-                    <span>Auto print setelah pembayaran</span>
-                  </label>
+                      {(runtimeReceiptDraft.dot_matrix_connection_type || 'serial') === 'windows_printer' ? (
+                        <>
+                          <h4>Printer Windows</h4>
+                          <div className="receipt-serial-row">
+                            <select
+                              className="receipt-select"
+                              value={runtimeReceiptDraft.windows_printer_name || ''}
+                              onChange={(e) => setReceiptSettingsDraft((prev) => ({ ...prev, windows_printer_name: e.target.value }))}
+                            >
+                              <option value="">-- Pilih Printer Windows --</option>
+                              {availableWindowsPrinters.map((printerName) => (
+                                <option key={printerName} value={printerName}>
+                                  {printerName}
+                                </option>
+                              ))}
+                            </select>
+                            <button className="receipt-btn-small" onClick={handleScanWindowsPrinters} type="button">Scan Printer</button>
+                          </div>
+                          <div className="receipt-serial-hint">Gunakan mode ini untuk TM-U220/TM-U300 yang terpasang sebagai printer Windows USB, misalnya port `ESDPR...`.</div>
+                        </>
+                      ) : (
+                        <>
+                          <h4>Port Serial Dot Matrix</h4>
+                          <div className="receipt-serial-row">
+                            <select
+                              className="receipt-select"
+                              value={runtimeReceiptDraft.com_port || ''}
+                              onChange={(e) => setReceiptSettingsDraft((prev) => ({ ...prev, com_port: e.target.value }))}
+                            >
+                              <option value="">-- Pilih Port --</option>
+                              {availablePorts.map((port) => (
+                                <option key={port.port_name} value={port.port_name}>
+                                  {port.port_name}
+                                </option>
+                              ))}
+                            </select>
+                            <button className="receipt-btn-small" onClick={handleScanPorts} type="button">Scan Port</button>
+                          </div>
+
+                          <h4>Baud Rate</h4>
+                          <select
+                            className="receipt-select"
+                            value={runtimeReceiptDraft.baud_rate || 9600}
+                            onChange={(e) => setReceiptSettingsDraft((prev) => ({ ...prev, baud_rate: Number(e.target.value) }))}
+                          >
+                            {BAUD_RATE_OPTIONS.map((opt) => (
+                              <option key={opt.value} value={opt.value}>{opt.label}</option>
+                            ))}
+                          </select>
+                          <div className="receipt-serial-hint">Gunakan mode ini jika printer benar-benar muncul sebagai `COMx` di Windows.</div>
+                        </>
+                      )}
+
+                      <h4>Karakter per baris</h4>
+                      <div className="receipt-setting-field-inline receipt-chars-per-line-field">
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          className="receipt-number-input"
+                          value={charsPerLineInput}
+                          onChange={(e) => {
+                            const nextValue = e.target.value.replace(/\D/g, '')
+                            setCharsPerLineInput(nextValue)
+                            if (nextValue !== '') {
+                              setReceiptSettingsDraft((prev) => ({
+                                ...prev,
+                                chars_per_line: parseInt(nextValue, 10),
+                              }))
+                            }
+                          }}
+                          onBlur={() => {
+                            if (charsPerLineInput === '') {
+                              setCharsPerLineInput(String(runtimeReceiptDraft.chars_per_line ?? 38))
+                            }
+                          }}
+                        />
+                      </div>
+                      <div className="receipt-serial-hint">TM-U220 driver Windows pada mesin ini teruji 38 karakter per baris.</div>
+
+                      <div className="receipt-serial-actions">
+                        <button className="receipt-btn-small" onClick={handleTestPrint} type="button">Test Print</button>
+                        <span className="receipt-serial-status">{serialStatus}</span>
+                      </div>
+                    </div>
+                  )}
+
+<div className="receipt-setting-section">
+                    <h4>Font Cetak</h4>
+                    <select
+                      className="receipt-select"
+                      value={runtimeReceiptDraft.receipt_font || 'JetBrainsMono-Regular'}
+                      onChange={(e) => setReceiptSettingsDraft((prev) => ({ ...prev, receipt_font: e.target.value }))}
+                    >
+                      {RECEIPT_FONTS.map((font) => (
+                        <option key={font.value} value={font.value}>{font.label}</option>
+                      ))}
+                    </select>
+                  </div>
+
+<div className="receipt-setting-section">
+                    <h4>Calibration &amp; Lainnya</h4>
+                    <label className="receipt-checkbox-option">
+                      <input
+                        type="checkbox"
+                        checked={runtimeReceiptDraft.calibration_mode}
+                        onChange={(e) => setReceiptSettingsDraft((prev) => ({ ...prev, calibration_mode: e.target.checked }))}
+                      />
+                      <span>Calibration line mode (50mm)</span>
+                    </label>
+                    <label className="receipt-checkbox-option">
+                      <input
+                        type="checkbox"
+                        checked={runtimeReceiptDraft.show_ppn ?? true}
+                        onChange={(e) => setReceiptSettingsDraft((prev) => ({ ...prev, show_ppn: e.target.checked }))}
+                      />
+                      <span>Tampilkan PPN</span>
+                    </label>
+                    {runtimeReceiptDraft.show_ppn !== false && (
+                      <div className="receipt-setting-field-inline">
+                        <label htmlFor="ppn-percentage">Prosentase PPN (%)</label>
+                        <input
+                          type="number"
+                          id="ppn-percentage"
+                          className="receipt-number-input"
+                          value={runtimeReceiptDraft.ppn_percentage || 11}
+                          onChange={(e) => setReceiptSettingsDraft((prev) => ({ ...prev, ppn_percentage: parseFloat(e.target.value) || 0 }))}
+                          min="0"
+                          max="100"
+                          step="0.5"
+                        />
+                      </div>
+                    )}
+                    <div className="receipt-footer-text-wrap">
+                      <label htmlFor="receipt-footer-text">Text footer</label>
+                      <textarea
+                        id="receipt-footer-text"
+                        className="receipt-footer-text-input"
+                        value={runtimeReceiptDraft.footer_text}
+                        onChange={(e) => setReceiptSettingsDraft((prev) => ({ ...prev, footer_text: e.target.value }))}
+                        rows={3}
+                        placeholder="Contoh: Terima kasih sudah berbelanja"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="receipt-setting-section">
+                    <h4>Tampilan</h4>
+                    <label className="receipt-checkbox-option">
+                      <input
+                        type="checkbox"
+                        checked={runtimeReceiptDraft.show_logo}
+                        onChange={(e) => setReceiptSettingsDraft((prev) => ({ ...prev, show_logo: e.target.checked }))}
+                      />
+                      <span>Tampilkan logo</span>
+                    </label>
+                    <label className="receipt-checkbox-option">
+                      <input
+                        type="checkbox"
+                        checked={runtimeReceiptDraft.show_footer}
+                        onChange={(e) => setReceiptSettingsDraft((prev) => ({ ...prev, show_footer: e.target.checked }))}
+                      />
+                      <span>Tampilkan footer</span>
+                    </label>
+                    <label className="receipt-checkbox-option">
+                      <input
+                        type="checkbox"
+                        checked={runtimeReceiptDraft.auto_print_after_payment}
+                        onChange={(e) => setReceiptSettingsDraft((prev) => ({ ...prev, auto_print_after_payment: e.target.checked }))}
+                      />
+                      <span>Auto print setelah pembayaran</span>
+                    </label>
+                    {runtimeReceiptDraft.printer_type === 'dot_matrix' && (
+                      <label className="receipt-checkbox-option">
+                        <input
+                          type="checkbox"
+                          checked={runtimeReceiptDraft.debug_raw_text_printer ?? false}
+                          onChange={(e) => setReceiptSettingsDraft((prev) => ({ ...prev, debug_raw_text_printer: e.target.checked }))}
+                        />
+                        <span>Debug raw text printer</span>
+                      </label>
+                    )}
+                  </div>
                   <label className="receipt-checkbox-option">
                     <input
                       type="checkbox"
@@ -2409,6 +2715,12 @@ export function POS() {
                     formatDateTime={formatDateTime}
                   />
                 </div>
+                {runtimeReceiptDraft.printer_type === 'dot_matrix' && runtimeReceiptDraft.debug_raw_text_printer && (
+                  <div className="receipt-debug-panel">
+                    <div className="receipt-debug-title">Debug Raw Text Printer</div>
+                    <pre className="receipt-debug-content">{dotMatrixDebugText}</pre>
+                  </div>
+                )}
               </div>
             </div>
             <div className="receipt-setting-footer">

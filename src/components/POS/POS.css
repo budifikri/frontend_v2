@@ -2108,6 +2108,78 @@
   padding: 6px 8px;
 }
 
+.receipt-serial-section {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  padding: 12px;
+  margin-top: 8px;
+}
+
+.receipt-serial-section h4 {
+  margin: 0 0 6px 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #1e40af;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.receipt-radio-group-vertical {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 10px;
+}
+
+.receipt-serial-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.receipt-serial-row .receipt-select {
+  flex: 1;
+}
+
+.receipt-btn-small {
+  background: #1e40af;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 14px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  white-space: nowrap;
+}
+
+.receipt-btn-small:hover {
+  background: #1d4ed8;
+}
+
+.receipt-serial-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+.receipt-serial-status {
+  font-size: 12px;
+  color: #1e40af;
+  font-style: italic;
+}
+
+.receipt-serial-hint {
+  margin-top: -2px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: #334155;
+}
+
 .receipt-footer-text-wrap {
   margin-top: 8px;
   display: flex;
@@ -2643,6 +2715,14 @@
   display: none;
 }
 
+.receipt-preview-dotmatrix-text {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: 'Courier New', 'Consolas', monospace;
+  line-height: 1.45;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .receipt-preview.printer-dot-matrix {
     animation: none;
@@ -2702,6 +2782,35 @@
   justify-content: space-between;
   font-size: 9px;
   color: #475569;
+}
+
+.receipt-debug-panel {
+  margin-top: 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #0f172a;
+  color: #e2e8f0;
+  overflow: hidden;
+}
+
+.receipt-debug-title {
+  padding: 8px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  background: #1e293b;
+  border-bottom: 1px solid #334155;
+}
+
+.receipt-debug-content {
+  margin: 0;
+  padding: 10px;
+  max-height: 280px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: 'Courier New', 'Consolas', monospace;
+  font-size: 12px;
+  line-height: 1.45;
 }
 
 @media (max-width: 960px) {

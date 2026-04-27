@@ -1,4 +1,5 @@
 import { renderReceiptContent, getReceiptPaperClass } from './ReceiptLayouts'
+import { renderDotMatrixPlainText } from './DotMatrixFormatter'
 import { RECEIPT_FONTS } from '../../features/setting/receiptSetting.storage'
 
 export function ReceiptPreview({ sale, settings, formatCurrency, formatDateTime }) {
@@ -31,6 +32,29 @@ export function ReceiptPreview({ sale, settings, formatCurrency, formatDateTime 
   const fontFamily = isDotMatrix
     ? "'Courier New', 'Consolas', monospace"
     : `'${selectedFont.label}', Arial, sans-serif`
+
+  if (isDotMatrix) {
+    const dotMatrixText = renderDotMatrixPlainText(result.model, settings)
+    return (
+      <div
+        className={previewClassName}
+        style={{ fontFamily }}
+      >
+        <pre className="receipt-preview-dotmatrix-text">{dotMatrixText}</pre>
+
+        {settings.calibration_mode && (
+          <div className="receipt-preview-calibration">
+            <div className="receipt-preview-calibration-label">Calibration 50mm</div>
+            <div className="receipt-preview-calibration-line" />
+            <div className="receipt-preview-calibration-scale">
+              <span>0</span>
+              <span>50mm</span>
+            </div>
+          </div>
+        )}
+      </div>
+    )
+  }
 
   if (result.isCustom) {
     return (

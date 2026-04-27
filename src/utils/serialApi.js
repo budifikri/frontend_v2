@@ -48,6 +48,27 @@ export async function isSerialPortOpen() {
   }
 }
 
+export async function listWindowsPrinters() {
+  try {
+    const printers = await invoke('list_windows_printers')
+    return { success: true, data: printers }
+  } catch (err) {
+    return { success: false, error: err.message || String(err) }
+  }
+}
+
+export async function writeWindowsPrinterRaw(printerName, data) {
+  try {
+    await invoke('write_windows_printer_raw', {
+      printerName,
+      data,
+    })
+    return { success: true }
+  } catch (err) {
+    return { success: false, error: err.message || String(err) }
+  }
+}
+
 export async function printViaSerial(text, portName, baudRate) {
   const bytes = stringToBytes(text)
   const openResult = await openSerialPort(portName, baudRate)
@@ -63,6 +84,11 @@ export async function printViaSerial(text, portName, baudRate) {
 
   await closeSerialPort()
   return { success: true }
+}
+
+export async function printViaWindowsPrinter(text, printerName) {
+  const bytes = stringToBytes(text)
+  return writeWindowsPrinterRaw(printerName, bytes)
 }
 
 function stringToBytes(text) {

@@ -61,7 +61,7 @@
 ## 11) Dot Matrix Print Settings (Frontend)
 - [x] Tambah field `baud_rate` di receipt settings (dropdown: 9600, 19200, 38400, 57600)
 - [x] Tambah field `com_port` di receipt settings (string)
-- [ ] Update UI setting untuk pilihan port serial dan baud rate
+- [x] Update UI setting untuk pilihan port serial dan baud rate
 
 ## 12) ESC/POS Generator (JavaScript)
 - [x] Modifikasi `ReceiptLayouts.js` untuk generate raw ESC/POS text (dot matrix)
@@ -79,7 +79,48 @@
 - [ ] Test auto-print Dot Matrix setelah payment
 
 ## 15) UI Setting Dot Matrix
-- [ ] Tambahkan section setting port/baud di popup nota settings
-- [ ] Tombol "Scan Port" untuk enumerate COM ports
-- [ ] Tombol "Test Print" untuk kirim karakter test
-- [ ] Status indicator koneksi serial
+- [x] Tambahkan section setting port/baud di popup nota settings
+- [x] Tombol "Scan Port" untuk enumerate COM ports
+- [x] Tombol "Test Print" untuk kirim karakter test
+- [x] Status indicator koneksi serial
+
+## 16) TM-U220 USB Driver Support (Windows Printer)
+- [x] Tambah field `dot_matrix_connection_type` di receipt settings
+- [x] Tambah field `windows_printer_name` di receipt settings
+- [x] Tambah Rust command `list_windows_printers()`
+- [x] Tambah Rust command `write_windows_printer_raw(printer_name, data)`
+- [x] Tambah frontend API untuk scan printer Windows
+- [x] Tambah UI pilihan `Serial Port` vs `Windows Printer`
+- [x] Tambah dropdown printer Windows + tombol `Scan Printer`
+- [x] Tambah `Test Print` untuk jalur Windows printer
+- [x] Update flow Dot Matrix print berdasarkan `dot_matrix_connection_type`
+- [ ] Uji print ke `EPSON TM-U220 Receipt`
+- [ ] Uji auto-print setelah payment di mode Windows printer
+
+## 17) Tag Alignment untuk Custom Template Dot Matrix
+- [x] Tambah token `[C]` untuk center alignment di DOT_MATRIX_TOKEN_LIST
+- [x] Tambah token `[R]` untuk right alignment di DOT_MATRIX_TOKEN_LIST
+- [x] Implementasi fungsi `padLeft` dan `centerText` di DotMatrixFormatter.js
+- [x] Implementasi `processAlignmentTags` untuk proses alignment tag
+- [x] Integrasi proses alignment di `replaceDotMatrixToken`
+- [x] Preview Dot Matrix sekarang selalu menggunakan `renderDotMatrixPlainText` (termasuk alignment)
+- [x] Debug panel sekarang menggunakan `buildDotMatrixPrintModel` untuk alignment tags
+- [x] Lint & build berhasil
+
+## 18) Loop Items untuk Custom Template Dot Matrix
+- [x] Tambah token list items: `{{#each items}}`, `{{/each items}}`, `{{index}}`, `{{name}}`, `{{quantity}}`, `{{unit_price}}`, `{{subtotal}}`, `{{discount}}`
+- [x] Implementasi fungsi `replaceItemTokens` untuk replace token per item
+- [x] Implementasi fungsi `parseEachItemsBlock` untuk parser loop Handlebars-style
+- [x] Update `buildDotMatrixPrintModel` untuk include `discount` per item
+- [x] Integrasi `parseEachItemsBlock` di `replaceDotMatrixToken`
+- [x] Build berhasil
+
+## 19) Width-Specific Alignment Markers [R{n}], [L{n}], [C{n}]
+- [x] Tambah fungsi `applyAlignment` dengan padStart/padEnd
+- [x] Tambah fungsi `parseAlignmentMarker` untuk parse [R3], [L5], [C2] dll
+- [x] Update `replaceItemTokens` untuk proses per-line dengan alignment
+- [x] Update `processAlignmentTags` untuk handle width markers di luar loop
+- [x] Update `DOT_MATRIX_TOKEN_LIST` dengan `[R3]`, `[R5]`, `[L3]`, `[L5]`, `[C2]`, `[C3]`, `[C4]`
+- [x] Refactor `replaceItemTokens` untuk multiple markers per line (token-level alignment)
+- [x] Tambah fungsi `processLineWithTokens` untuk parse markers + tokens dalam 1 baris
+- [x] Build berhasil
