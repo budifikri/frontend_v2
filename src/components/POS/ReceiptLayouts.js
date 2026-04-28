@@ -27,6 +27,15 @@ export const RECEIPT_TEMPLATE_TOKENS = [
   '{{sale_date}}',
   '{{cashier_name}}',
   '{{warehouse_name}}',
+  '{{#each items}}',
+  '{{/each items}}',
+  '{{index}}',
+  '{{name}}',
+  '{{quantity}}',
+  '{{unit_price}}',
+  '{{subtotal}}',
+  '{{discount}}',
+  '{{discount_row}}',
   '{{items_rows}}',
   '{{payments_rows}}',
   '{{subtotal}}',
@@ -38,8 +47,8 @@ export const RECEIPT_TEMPLATE_TOKENS = [
   '{{change_amount}}',
   '{{footer_text}}',
   '{{garis}}',
-  '{{ganti_baris}}',
-]
+    '{{ganti_baris}}',
+  ]
 
 export const DEFAULT_CUSTOM_TEMPLATE_HTML_THERMAL = `<div class="tpl-note">
   <div class="tpl-header">
@@ -51,7 +60,16 @@ export const DEFAULT_CUSTOM_TEMPLATE_HTML_THERMAL = `<div class="tpl-note">
   </div>
 
   <div class="tpl-items">
-    {{items_rows}}
+    {{#each items}}
+    <div class="tpl-item">
+      <div class="tpl-item-name">{{name}}</div>
+      <div class="tpl-item-detail">
+        <span>{{quantity}} x {{unit_price}}</span>
+        <strong>{{subtotal}}</strong>
+      </div>
+      {{discount_row}}
+    </div>
+    {{/each items}}
   </div>
 
   <div class="tpl-summary">
@@ -229,6 +247,12 @@ function sanitizeCssTemplate(css) {
 
 function replaceTemplateToken(template, token, value) {
   return template.replace(new RegExp(`{{\\s*${token}\\s*}}`, 'g'), value)
+}
+
+function normalizeEachBlockContent(blockContent) {
+  return safeString(blockContent)
+    .replace(/^\r?\n+/, '')
+    .replace(/\r?\n+$/, '')
 }
 
 function normalizePrinterType(printerType) {
@@ -606,6 +630,51 @@ function renderCustomItemsRows(model, helpers) {
   return rows || '<div class="tpl-item">-</div>'
 }
 
+function buildThermalItemLoopTokenValues(item, helpers) {
+  const baseUnitPrice = item.originalPrice || item.unitPrice
+  const baseSubtotal = baseUnitPrice * item.quantity
+  const discountTotal = item.discount * item.quantity
+
+  return {
+    index: helpers.escapeHtml(item.index),
+    name: helpers.escapeHtml(item.name),
+    quantity: helpers.escapeHtml(item.quantity),
+    unit_price: helpers.escapeHtml(helpers.formatCurrency(baseUnitPrice)),
+    subtotal: helpers.escapeHtml(helpers.formatCurrency(baseSubtotal)),
+    discount: helpers.escapeHtml(helpers.formatCurrency(discountTotal)),
+    discount_row: item.discount > 0 && item.quantity > 0
+      ? `
+      <div class="tpl-item-diskon">
+        <span>*Diskon ${helpers.escapeHtml(item.tierLabel || 'promo')}</span>
+        <span>(- ${helpers.escapeHtml(helpers.formatCurrency(discountTotal))})</span>
+      </div>
+      `
+      : '',
+  }
+}
+
+function renderThermalEachItemsBlock(blockContent, model, helpers) {
+  if (model.itemRows.length === 0) return '<div class="tpl-item">-</div>'
+
+  const normalizedBlock = normalizeEachBlockContent(blockContent)
+  return model.itemRows.map((item) => {
+    let renderedBlock = normalizedBlock
+    const tokenValues = buildThermalItemLoopTokenValues(item, helpers)
+
+    Object.entries(tokenValues).forEach(([token, value]) => {
+      renderedBlock = replaceTemplateToken(renderedBlock, token, value)
+    })
+
+    return renderedBlock
+  }).join('')
+}
+
+function replaceThermalEachItemsBlocks(template, model, helpers) {
+  return safeString(template).replace(/\{\{#each\s+items\}\}([\s\S]*?)\{\{\/each\s+items\}\}/gi, (_, blockContent) => {
+    return renderThermalEachItemsBlock(blockContent, model, helpers)
+  })
+}
+
 function renderCustomPaymentsRows(model, helpers) {
   const rows = model.paymentRows.map((payment) => `
     <div class="tpl-pay-row">
@@ -647,7 +716,7 @@ function renderCustomReceiptHtml(model, helpers) {
     ganti_baris: '<br />',
   }
 
-  let html = templateHtml
+  let html = replaceThermalEachItemsBlocks(templateHtml, model, helpers)
   Object.entries(tokenValues).forEach(([token, value]) => {
     html = replaceTemplateToken(html, token, value)
   })

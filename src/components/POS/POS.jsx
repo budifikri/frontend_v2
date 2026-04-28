@@ -157,7 +157,8 @@ export function POS() {
     if (
       wysiwygEditorRef.current &&
       receiptSettingsDraft.template_mode === 'custom' &&
-      showReceiptSettingsPopup
+      showReceiptSettingsPopup &&
+      !showTemplateCode
     ) {
       const currentHtml = wysiwygEditorRef.current.innerHTML
       const targetHtml = receiptSettingsDraft.custom_template_html || ''
@@ -165,7 +166,7 @@ export function POS() {
         wysiwygEditorRef.current.innerHTML = targetHtml
       }
     }
-  }, [receiptSettingsDraft.custom_template_html, receiptSettingsDraft.template_mode, showReceiptSettingsPopup])
+  }, [receiptSettingsDraft.custom_template_html, receiptSettingsDraft.template_mode, showReceiptSettingsPopup, showTemplateCode])
 
   useEffect(() => {
     const loadCompanyProfile = async () => {
@@ -2302,6 +2303,26 @@ const handleExportTemplate = useCallback(async () => {
                             </span>
                           </div>
                           <div className="receipt-template-actions">
+                            {runtimeReceiptDraft.printer_type === 'thermal' && runtimeReceiptDraft.template_mode === 'custom' && (
+                              <button
+                                type="button"
+                                className={`receipt-template-btn${showTemplateCode ? ' is-active' : ''}`}
+                                onClick={() => {
+                                  if (!showTemplateCode) {
+                                    if (wysiwygEditorRef.current) {
+                                      setTemplateCodeHtml(wysiwygEditorRef.current.innerHTML)
+                                    }
+                                  } else {
+                                    if (wysiwygEditorRef.current) {
+                                      wysiwygEditorRef.current.innerHTML = templateCodeHtml
+                                    }
+                                  }
+                                  setShowTemplateCode(v => !v)
+                                }}
+                              >
+                                {showTemplateCode ? 'Editor' : 'Code'}
+                              </button>
+                            )}
                             <button type="button" className="receipt-template-btn" onClick={handleExportTemplate}>Save As</button>
                             <input ref={templateFileInputRef} type="file" accept={runtimeReceiptDraft.printer_type === 'dot_matrix' ? '.receipt-dot.json' : '.receipt-thermal.json'} style={{ display: 'none' }} onChange={handleImportTemplate} />
                             <button type="button" className="receipt-template-btn" onClick={() => templateFileInputRef.current?.click()}>Load</button>
@@ -2336,7 +2357,11 @@ const handleExportTemplate = useCallback(async () => {
                           <div className="receipt-setting-code-panel">
                             <textarea ref={codeEditorRef} className="receipt-setting-code-editor receipt-setting-code-editor-dotmatrix" value={templateCodeHtml} onChange={(e) => setTemplateCodeHtml(e.target.value)} spellCheck={false} rows={18} />
                           </div>
-                        ) : !showTemplateCode ? (
+                        ) : showTemplateCode ? (
+                          <div className="receipt-setting-code-panel">
+                            <textarea ref={codeEditorRef} className="receipt-setting-code-editor" value={templateCodeHtml} onChange={(e) => setTemplateCodeHtml(e.target.value)} spellCheck={false} />
+                          </div>
+                        ) : (
                           <>
                             <div className="receipt-wysiwyg-toolbar">
                               <button type="button" className="receipt-wysiwyg-btn" title="Bold" onMouseDown={(e) => { e.preventDefault(); if (wysiwygEditorRef.current) wysiwygEditorRef.current.focus(); document.execCommand('bold', false, null) }}><strong>B</strong></button>
@@ -2350,16 +2375,10 @@ const handleExportTemplate = useCallback(async () => {
                               <button type="button" className="receipt-wysiwyg-btn" title="Align Center" onMouseDown={(e) => { e.preventDefault(); if (wysiwygEditorRef.current) wysiwygEditorRef.current.focus(); document.execCommand('justifyCenter', false, null) }}><span style={{ fontFamily: 'sans-serif' }}>&#8596;</span></button>
                               <span className="receipt-wysiwyg-sep" />
                               <button type="button" className="receipt-wysiwyg-btn" title="Insert Line Break" onMouseDown={(e) => { e.preventDefault(); if (wysiwygEditorRef.current) { wysiwygEditorRef.current.focus(); document.execCommand('insertHTML', false, '<br>') } }}><span style={{ fontFamily: 'sans-serif', fontSize: '12px' }}>&#8629;</span></button>
-                              <button type="button" className="receipt-wysiwyg-btn" title="Insert Line" onMouseDown={(e) => { e.preventDefault(); if (wysiwygEditorRef.current) { wysiwygEditorRef.current.focus(); document.execCommand('insertHTML', false, '<div class=&quot;tpl-garis&quot;></div>') } }}><span style={{ fontFamily: 'sans-serif', fontSize: '12px' }}>&#9135;</span></button>
                             </div>
                             <div ref={wysiwygEditorRef} className="receipt-wysiwyg-editor" contentEditable suppressContentEditableWarning />
                           </>
-                        ) : (
-                          <div className="receipt-setting-code-panel">
-                            <textarea ref={codeEditorRef} className="receipt-setting-code-editor" value={templateCodeHtml} onChange={(e) => setTemplateCodeHtml(e.target.value)} spellCheck={false} />
-                          </div>
                         )}
-
                         <div className="receipt-template-tokens">
                         <div className="receipt-template-tokens-title">Data - klik untuk menyisipkan:</div>
                         <div className="receipt-template-tokens-list">
