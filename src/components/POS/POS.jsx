@@ -13,7 +13,7 @@ import { ReceiptPreview } from './ReceiptPreview'
 import { Toast } from '../../components/Toast'
 import { printViaSerial, printViaWindowsPrinter, listSerialPorts, listWindowsPrinters, testPrintBytes } from '../../utils/serialApi'
 import { DOT_MATRIX_TOKEN_LIST, renderDotMatrixReceipt, renderDotMatrixPlainText, getDefaultDotMatrixCustomTemplateText, buildDotMatrixPrintModel } from './DotMatrixFormatter'
-import { createTemplatePayload, validateTemplatePayload, extractTemplateFromPayload, downloadTemplateJson, readTemplateFile } from '../../features/setting/receiptTemplateFile'
+import { createTemplatePayload, validateTemplatePayload, extractTemplateFromPayload, readTemplateFile, saveTemplateNative } from '../../features/setting/receiptTemplateFile'
 import './POS.css'
 
 export function POS() {
@@ -944,7 +944,7 @@ export function POS() {
     setToast({ isOpen: true, message: 'Setting dikembalikan ke default', type: 'info' })
   }, [applyPrinterTypeToDraft, ensureRuntimeReceiptSettings])
 
-  const handleExportTemplate = useCallback(() => {
+const handleExportTemplate = useCallback(async () => {
     try {
       const customTemplate = {
         custom_template_text_dot_matrix: receiptSettingsDraft.custom_template_text_dot_matrix,
@@ -953,12 +953,15 @@ export function POS() {
       }
       const payload = createTemplatePayload(receiptSettingsDraft.printer_type, customTemplate)
       const extension = receiptSettingsDraft.printer_type === 'dot_matrix' ? 'receipt-dot.json' : 'receipt-thermal.json'
-      const fileName = `template-${receiptSettingsDraft.printer_type}.${extension}`
-      downloadTemplateJson(payload, fileName)
-      setToast({ isOpen: true, message: 'Template berhasil diekspor', type: 'success' })
+      const result = await saveTemplateNative(payload, extension)
+      if (result.success) {
+        setToast({ isOpen: true, message: `Template disimpan sebagai ${result.fileName}`, type: 'success' })
+      } else if (result.error !== 'Dibatalkan pengguna') {
+        setToast({ isOpen: true, message: result.error || 'Gagal menyimpan template', type: 'error' })
+      }
     } catch (err) {
-      console.error('Export template error:', err)
-      setToast({ isOpen: true, message: 'Gagal mengekspor template', type: 'error' })
+      console.error('Save As template error:', err)
+      setToast({ isOpen: true, message: 'Gagal menyimpan template', type: 'error' })
     }
   }, [receiptSettingsDraft])
 
@@ -1006,10 +1009,10 @@ export function POS() {
         }
       }
 
-      setToast({ isOpen: true, message: 'Template berhasil diimpor. Klik Simpan untuk menyimpan secara permanen.', type: 'success' })
+      setToast({ isOpen: true, message: 'Template berhasil dimuat. Klik Simpan untuk menyimpan secara permanen.', type: 'success' })
     } catch (err) {
-      console.error('Import template error:', err)
-      setToast({ isOpen: true, message: 'Gagal mengimpor template', type: 'error' })
+      console.error('Load template error:', err)
+      setToast({ isOpen: true, message: 'Gagal memuat template', type: 'error' })
     }
 
     event.target.value = ''
@@ -2299,9 +2302,9 @@ export function POS() {
                             </span>
                           </div>
                           <div className="receipt-template-actions">
-                            <button type="button" className="receipt-template-btn" onClick={handleExportTemplate}>Export</button>
+                            <button type="button" className="receipt-template-btn" onClick={handleExportTemplate}>Save As</button>
                             <input ref={templateFileInputRef} type="file" accept={runtimeReceiptDraft.printer_type === 'dot_matrix' ? '.receipt-dot.json' : '.receipt-thermal.json'} style={{ display: 'none' }} onChange={handleImportTemplate} />
-                            <button type="button" className="receipt-template-btn" onClick={() => templateFileInputRef.current?.click()}>Import</button>
+                            <button type="button" className="receipt-template-btn" onClick={() => templateFileInputRef.current?.click()}>Load</button>
                             <button type="button" className="receipt-template-btn" onClick={() => {
                               if (runtimeReceiptDraft.printer_type === 'dot_matrix') {
                                 setReceiptSettingsDraft((prev) => ({ ...prev, custom_template_text_dot_matrix: templateCodeHtml }))

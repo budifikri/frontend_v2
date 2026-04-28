@@ -68,6 +68,37 @@ export function downloadTemplateJson(data, suggestedFileName) {
   URL.revokeObjectURL(url)
 }
 
+export async function saveTemplateNative(data, suggestedFileName) {
+  const jsonString = JSON.stringify(data, null, 2)
+  
+  // Cek support File System Access API
+  if ('showSaveFilePicker' in window) {
+    try {
+      const fileHandle = await window.showSaveFilePicker({
+        suggestedName: suggestedFileName,
+        types: [{
+          description: 'Receipt Template',
+          accept: { 'application/json': ['.json'] }
+        }]
+      })
+      const writable = await fileHandle.createWritable()
+      await writable.write(jsonString)
+      await writable.close()
+      return { success: true, fileName: fileHandle.name }
+    } catch (err) {
+      if (err.name === 'AbortError') {
+        return { success: false, error: 'Dibatalkan pengguna' }
+      }
+      console.error('Save As error:', err)
+      return { success: false, error: err.message }
+    }
+  }
+  
+  // Fallback ke blob download
+  downloadTemplateJson(data, suggestedFileName)
+  return { success: true, fileName: suggestedFileName }
+}
+
 export function readTemplateFile(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()

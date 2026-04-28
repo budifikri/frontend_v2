@@ -12,6 +12,7 @@
 - setting printer thermal dan dot matrix
 - Help POS
 - update logo pos
+- merapikan setting POS
 
 
 ## ON PROGRESS
