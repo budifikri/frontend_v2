@@ -13,6 +13,9 @@
 - Help POS
 - update logo pos
 - merapikan setting POS
+- menghitung harga rata rata
+- menghitung profit
+- penambahan cost di stock opname
 
 
 ## ON PROGRESS

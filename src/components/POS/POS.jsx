@@ -1213,6 +1213,7 @@ const handleExportTemplate = useCallback(async () => {
                 name: p.name,
                 unit: p.unit_name || p.unit || 'Pcs',
                 retail_price: Number(p.retail_price || 0),
+                cost_price: Number(p.cost_price || 0),
                 price: Number(p.retail_price || 0),
               }))
               setProductResults(products)
@@ -1234,6 +1235,7 @@ const handleExportTemplate = useCallback(async () => {
                 name: p.name,
                 unit: p.unit_name || p.unit || 'Pcs',
                 retail_price: Number(p.retail_price || 0),
+                cost_price: Number(p.cost_price || 0),
                 price: Number(p.retail_price || 0),
               }))
               if (products.length === 1) {
@@ -1311,6 +1313,7 @@ const handleExportTemplate = useCallback(async () => {
             ...item,
             qty: nextQty,
             retail_price: Number(item.retail_price ?? retailPrice),
+            cost_price: Number(item.cost_price ?? product.cost_price ?? 0),
             price_tiers: tiers,
             price: resolveItemUnitPrice(Number(item.retail_price ?? retailPrice), tiers, nextQty, item.product_id),
           }
@@ -1326,6 +1329,7 @@ const handleExportTemplate = useCallback(async () => {
         name: product.name,
         qty: 1,
         retail_price: retailPrice,
+        cost_price: Number(product.cost_price || 0),
         price_tiers: loadedTiers,
         price: unitPrice,
       }
