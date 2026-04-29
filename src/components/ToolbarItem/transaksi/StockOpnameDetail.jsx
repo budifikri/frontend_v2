@@ -54,11 +54,11 @@ export function StockOpnameDetail({ selectedId: propSelectedId, onExit, onSaveSu
     notes: '',
   })
 
+  const [isLocked, setIsLocked] = useState(false)
   const [items, setItems] = useState([])
   const [selectedIndex, setSelectedIndex] = useState(0)
 
   const currentStatus = String(header.status || 'draft').toLowerCase()
-  const isLocked = ['approved', 'approve', 'posted'].includes(currentStatus)
   const isPosted = currentStatus === 'posted'
   const activeStatus = isPosted ? 'posted' : currentStatus === 'approved' || currentStatus === 'approve' ? 'approved' : 'draft'
 
@@ -120,6 +120,7 @@ export function StockOpnameDetail({ selectedId: propSelectedId, onExit, onSaveSu
           status: normalizedStatus,
           notes: data.notes || '',
         })
+        setIsLocked(['approved', 'approve', 'posted'].includes(normalizedStatus))
         if (data.items && data.items.length > 0) {
           setItems(data.items.map((item, index) => ({
             id: item.id || `item-${index}`,
@@ -274,34 +275,36 @@ export function StockOpnameDetail({ selectedId: propSelectedId, onExit, onSaveSu
     try {
       if (token) {
         if (propSelectedId) {
-          const result = await updateStockOpname(token, propSelectedId, payload)
-          if (result?.data?.status) {
-            setHeader(prev => ({ ...prev, status: result.data.status }))
-          }
+          await updateStockOpname(token, propSelectedId, payload)
         } else {
-          const result = await createStockOpname(token, payload)
-          if (result?.data?.status) {
-            setHeader(prev => ({ ...prev, status: result.data.status }))
-          }
-        }
-        onExit()
-        if (onSaveSuccess) {
-          setTimeout(() => onSaveSuccess('Stock Opname berhasil disimpan', 'success'), 300)
+          await createStockOpname(token, payload)
         }
       } else {
-        onExit()
         if (onSaveSuccess) {
           setTimeout(() => onSaveSuccess('Stock Opname berhasil disimpan (offline)', 'success'), 300)
         }
       }
+
+      setHeader(prev => ({ ...prev, status: payload.status || prev.status }))
+      
+      const finalStatus = (payload.status || header.status).toLowerCase()
+      if (['approved', 'approve', 'posted'].includes(finalStatus)) {
+        setIsLocked(true)
+      }
+
+      onExit()
+
+      if (onSaveSuccess && token) {
+        setTimeout(() => onSaveSuccess('Stock Opname berhasil disimpan', 'success'), 300)
+      }
     } catch (err) {
-      setToastMessage(err.message || 'Failed to save')
-      setToastType('error')
-      setShowToast(true)
-    } finally {
-      setIsSaving(false)
-    }
-  }, [header, items, token, propSelectedId, onExit, onSaveSuccess, isLocked])
+    setToastMessage(err.message || 'Failed to save')
+    setToastType('error')
+    setShowToast(true)
+  } finally {
+    setIsSaving(false)
+  }
+}, [header, items, token, propSelectedId, onExit, onSaveSuccess, isLocked])
 
   const handleStatusChange = (newStatus) => {
     if (isLocked) return
