@@ -1502,6 +1502,7 @@ const handleExportTemplate = useCallback(async () => {
         return {
           product_id: productId,
           quantity: item.qty,
+          cost_price: Number(item.cost_price || 0),
           ...(promo && { promotion_code: promo.code }),
         }
       })

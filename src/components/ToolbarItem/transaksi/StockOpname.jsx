@@ -47,7 +47,7 @@ const DUMMY_OPNAME_RECORDS = [
     status: 'posted',
     notes: 'Stock opname bulanan',
     created_at: '2026-03-05T10:30:00Z',
-    grand_total: 0,
+    total_selisih: 0,
   },
   {
     id: 'OPN002',
@@ -60,7 +60,7 @@ const DUMMY_OPNAME_RECORDS = [
     status: 'draft',
     notes: 'Stock opname mingguan',
     created_at: '2026-03-05T14:00:00Z',
-    grand_total: 0,
+    total_selisih: 0,
   },
   {
     id: 'OPN003',
@@ -73,7 +73,7 @@ const DUMMY_OPNAME_RECORDS = [
     status: 'draft',
     notes: 'Stock opname cabang',
     created_at: '2026-03-05T15:00:00Z',
-    grand_total: 0,
+    total_selisih: 0,
   },
 ]
 
@@ -176,7 +176,7 @@ export function StockOpname({ onExit }) {
       }
       const total = items.length
       const sliced = items.slice(offset, offset + limit)
-      const grandTotalAll = items.reduce((sum, item) => sum + (Number(item.grand_total) || 0), 0)
+      const grandTotalAll = items.reduce((sum, item) => sum + (Number(item.total_selisih) || 0), 0)
       const draft = items.filter(item => String(item.status || '').toLowerCase() === 'draft').length
       const approved = items.filter(item => {
         const status = String(item.status || '').toLowerCase()
@@ -226,7 +226,7 @@ export function StockOpname({ onExit }) {
         approvedCount: Number(approvedSummary?.pagination?.total ?? 0),
       })
       setSummaryTotalAmount(
-        (allRecordsSummary?.items || []).reduce((sum, row) => sum + (Number(row.grand_total) || 0), 0),
+        (allRecordsSummary?.items || []).reduce((sum, row) => sum + (Number(row.total_selisih) || 0), 0),
       )
     } catch (err) {
       setError(err.message || 'Failed to load stock opname')
@@ -492,7 +492,7 @@ export function StockOpname({ onExit }) {
                     <td>{row.warehouse?.name || row.warehouse_name || '-'}</td>
                     <td>{row.notes || '-'}</td>
                     <td>{row.username || row.user_id || '-'}</td>
-                    <td className="text-right">{formatCurrency(row.grand_total || 0)}</td>
+                    <td className="text-right">{formatCurrency(row.total_selisih || 0)}</td>
                     <td className="text-center">
                       <div className="purchase-status-stack">
                         <span className={`purchase-status-pill is-${statusMeta.variant}`}>

@@ -6,7 +6,9 @@ const ITEM_COLUMNS = [
   { key: 'quantity', label: 'QTY', width: '80px' },
   { key: 'unit', label: 'SATUAN', width: '90px' },
   { key: 'price', label: 'HARGA', width: '140px' },
+  { key: 'cost_price', label: 'MODAL', width: '140px' },
   { key: 'discount', label: 'DISKON', width: '130px' },
+  { key: 'profit', label: 'PROFIT', width: '140px' },
   { key: 'subtotal', label: 'SUBTOTAL', width: '140px' },
 ]
 
@@ -55,6 +57,10 @@ export function PenjualanDetailModal({
       const subtotal = Number(item.subtotal ?? item.line_total ?? (Number(item.unit_price ?? item.price ?? 0) * Number(item.quantity ?? 0)))
       return sum + subtotal
     }, 0),
+  )
+  const totalProfit = Number(
+    sale?.total_profit
+    ?? items.reduce((sum, item) => sum + Number(item.profit ?? ((((item.unit_price ?? item.price ?? 0) - (item.cost_price ?? 0)) * (item.quantity ?? 0)) - (item.discount_amount ?? 0))), 0),
   )
 
   useEffect(() => {
@@ -135,7 +141,9 @@ export function PenjualanDetailModal({
                         <td className="text-right">{item.quantity || 0}</td>
                         <td>{item.unit_name || item.unit || '-'}</td>
                         <td className="text-right">{formatCurrency(item.original_price ?? item.price ?? item.unit_price)}</td>
+                        <td className="text-right">{formatCurrency(item.cost_price)}</td>
                         <td className="text-right">{formatCurrency(item.discount_amount)}</td>
+                        <td className="text-right">{formatCurrency(item.profit ?? ((((item.unit_price ?? item.price ?? 0) - (item.cost_price ?? 0)) * (item.quantity ?? 0)) - (item.discount_amount ?? 0)))}</td>
                         <td className="text-right">{formatCurrency(item.subtotal ?? item.line_total ?? ((item.unit_price ?? item.price ?? 0) * (item.quantity ?? 0)))}</td>
                       </tr>
                     ))
@@ -161,6 +169,7 @@ export function PenjualanDetailModal({
           </div>
           <div className="stock-card-footer-right">
             <span className="stock-card-total-row">Total Item: {items.length}</span>
+            <span className="stock-card-total-row">Profit: {formatCurrency(totalProfit)}</span>
             <span className="stock-card-total-row sale-detail-footer-total">Total: {formatCurrency(totalAmount)}</span>
           </div>
         </div>

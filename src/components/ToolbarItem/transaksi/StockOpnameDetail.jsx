@@ -128,6 +128,7 @@ export function StockOpnameDetail({ selectedId: propSelectedId, onExit, onSaveSu
             sku: item.product_sku || item.product_code || '',
             system_quantity: item.system_quantity || 0,
             actual_quantity: item.actual_quantity || 0,
+            cost_price: Number(item.cost_price || 0),
             difference: item.difference || (item.actual_quantity || 0) - (item.system_quantity || 0),
             reason: item.reason || '',
           })))
@@ -167,13 +168,15 @@ export function StockOpnameDetail({ selectedId: propSelectedId, onExit, onSaveSu
     setSelectedIndex((prev) => Math.max(prev - 1, 0))
   }, [])
 
-  const summary = useMemo(() => {
+    const summary = useMemo(() => {
     const total = items.length
     const positive = items.filter(i => i.difference > 0).length
     const negative = items.filter(i => i.difference < 0).length
     const zero = items.filter(i => i.difference === 0).length
     const totalQty = items.reduce((sum, item) => sum + (item.actual_quantity || 0), 0)
-    return { total, positive, negative, zero, totalQty }
+    const totalQtySelisih = items.reduce((sum, item) => sum + (Number(item.difference) || 0), 0)
+    const totalVarianceValue = items.reduce((sum, item) => sum + ((Number(item.difference) || 0) * (Number(item.cost_price) || 0)), 0)
+    return { total, positive, negative, zero, totalQty, totalQtySelisih, totalVarianceValue }
   }, [items])
 
   const handleSelectProduct = useCallback(async (product) => {
@@ -205,6 +208,7 @@ export function StockOpnameDetail({ selectedId: propSelectedId, onExit, onSaveSu
       sku: product.sku || product.code || '',
       system_quantity: systemQty,
       actual_quantity: 0,
+      cost_price: Number(product.cost_price || 0),
       difference: -systemQty,
       reason: '',
     }
@@ -230,6 +234,20 @@ export function StockOpnameDetail({ selectedId: propSelectedId, onExit, onSaveSu
       return
     }
 
+    const invalidCostItems = items.filter((item) => Number(item.cost_price) <= 0)
+    if (invalidCostItems.length > 0) {
+      const invalidNames = invalidCostItems
+        .slice(0, 3)
+        .map((item) => item.product_name || item.sku || item.product_id || '-')
+        .join(', ')
+      const extraCount = invalidCostItems.length - Math.min(invalidCostItems.length, 3)
+      const extraLabel = extraCount > 0 ? ` dan ${extraCount} produk lainnya` : ''
+      setToastMessage(`Cost price produk ${invalidNames}${extraLabel} masih 0, stock opname tidak bisa disimpan`)
+      setToastType('error')
+      setShowToast(true)
+      return
+    }
+
     setIsSaving(true)
     setError('')
 
@@ -243,6 +261,7 @@ export function StockOpnameDetail({ selectedId: propSelectedId, onExit, onSaveSu
           product_id: item.product_id,
           system_quantity: item.system_quantity,
           actual_quantity: item.actual_quantity,
+          cost_price: item.cost_price,
           reason: item.reason || '',
         }
         if (item.id && !item.id.startsWith('item-')) {
@@ -255,9 +274,15 @@ export function StockOpnameDetail({ selectedId: propSelectedId, onExit, onSaveSu
     try {
       if (token) {
         if (propSelectedId) {
-          await updateStockOpname(token, propSelectedId, payload)
+          const result = await updateStockOpname(token, propSelectedId, payload)
+          if (result?.data?.status) {
+            setHeader(prev => ({ ...prev, status: result.data.status }))
+          }
         } else {
-          await createStockOpname(token, payload)
+          const result = await createStockOpname(token, payload)
+          if (result?.data?.status) {
+            setHeader(prev => ({ ...prev, status: result.data.status }))
+          }
         }
         onExit()
         if (onSaveSuccess) {
@@ -294,6 +319,20 @@ export function StockOpnameDetail({ selectedId: propSelectedId, onExit, onSaveSu
       return
     }
 
+    if (e.key === '+' && searchInputRef.current) {
+      e.preventDefault()
+      const input = searchInputRef.current
+      const start = input.selectionStart ?? input.value.length
+      const end = input.selectionEnd ?? input.value.length
+      const newValue = input.value.substring(0, start) + '+' + input.value.substring(end)
+      setSearch(newValue)
+      setTimeout(() => {
+        const newPos = start + 1
+        input.setSelectionRange(newPos, newPos)
+      }, 0)
+      return
+    }
+
     if (e.key === 'Enter') {
       e.preventDefault()
       if (showProductPopup && productResults.length > 0) {
@@ -316,6 +355,23 @@ export function StockOpnameDetail({ selectedId: propSelectedId, onExit, onSaveSu
         const quantity = Number(qtyMatch[1])
         updateItem(selectedItem.id, { actual_quantity: quantity })
         setToastMessage(`Qty ${selectedItem.product_name} diubah menjadi ${quantity}`)
+        setToastType('success')
+        setShowToast(true)
+        setSearch('')
+        return
+      }
+
+      const costMatch = currentSearch.match(/^\+\+(\d+)$/)
+      if (costMatch) {
+        if (!selectedItem) {
+          setToastMessage('Pilih item terlebih dahulu untuk mengubah cost')
+          setToastType('error')
+          setShowToast(true)
+          return
+        }
+        const cost = Number(costMatch[1])
+        updateItem(selectedItem.id, { cost_price: cost })
+        setToastMessage(`Cost ${selectedItem.product_name} diubah menjadi ${cost}`)
         setToastType('success')
         setShowToast(true)
         setSearch('')
@@ -414,6 +470,14 @@ export function StockOpnameDetail({ selectedId: propSelectedId, onExit, onSaveSu
   const formatNumber = (amount) =>
     new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(Number(amount) || 0)
 
+  const formatCurrency = (amount) =>
+    new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(Number(amount) || 0)
+
   if (isLoading) {
     return (
       <div className="master-container">
@@ -463,7 +527,9 @@ export function StockOpnameDetail({ selectedId: propSelectedId, onExit, onSaveSu
                   <th>Product</th>
                   <th>System Qty</th>
                   <th>Actual Qty</th>
-                  <th>Selisih</th>
+                  <th>Cost</th>
+                  <th>Qty Selisih</th>
+                  <th>Nilai Selisih</th>
                   <th></th>
                 </tr>
               </thead>
@@ -483,18 +549,22 @@ export function StockOpnameDetail({ selectedId: propSelectedId, onExit, onSaveSu
                     <td>
                       <span className="po-item-qty">{item.actual_quantity}</span>
                     </td>
+                     <td style={{ textAlign: 'right' }}>{formatCurrency(item.cost_price)}</td>
                     <td style={{ textAlign: 'right', fontWeight: 600, color: item.difference > 0 ? 'var(--color-success)' : item.difference < 0 ? 'var(--color-error)' : 'inherit' }}>
                       {item.difference > 0 ? `+${item.difference}` : item.difference}
+                    </td>
+                    <td style={{ textAlign: 'right', fontWeight: 600, color: item.difference > 0 ? 'var(--color-success)' : item.difference < 0 ? 'var(--color-error)' : 'inherit' }}>
+                      {formatNumber((Number(item.difference) || 0) * (Number(item.cost_price) || 0))}
                     </td>
                     <td>
                       <button className="po-delete-btn" disabled={isLocked} onClick={(e) => { e.stopPropagation(); if (!isLocked) openDeleteConfirm(item) }}>
                         <span className="material-icons" style={{ fontSize: 18 }}>delete</span>
                       </button>
                     </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                     </tr>
+                 ))}
+               </tbody>
+             </table>
           )}
         </div>
 
@@ -506,7 +576,7 @@ export function StockOpnameDetail({ selectedId: propSelectedId, onExit, onSaveSu
               type="text"
               inputMode="text"
               className="po-search-input"
-              placeholder="Ketik produk, +qty untuk ubah actual..."
+              placeholder="Ketik produk, +qty ubah actual, ++cost ubah cost..."
               value={search}
               onChange={(e) => handleSearchChange(e.target.value)}
               onKeyDown={handleSearchKeyDown}
@@ -601,21 +671,9 @@ export function StockOpnameDetail({ selectedId: propSelectedId, onExit, onSaveSu
             <span>Total Items</span>
             <span>{summary.total}</span>
           </div>
-          <div className="po-summary-row">
-            <span>Total Qty</span>
-            <span>{formatNumber(summary.totalQty)}</span>
-          </div>
-          <div className="po-summary-row" style={{ color: 'var(--color-success)' }}>
-            <span>Selisih +</span>
-            <span>{summary.positive}</span>
-          </div>
-          <div className="po-summary-row" style={{ color: 'var(--color-error)' }}>
-            <span>Selisih -</span>
-            <span>{summary.negative}</span>
-          </div>
-          <div className="po-summary-row">
-            <span>Sama</span>
-            <span>{summary.zero}</span>
+          <div className="po-summary-total-label">NILAI SELISIH</div>
+          <div className="po-summary-total-value" style={{ color: summary.totalVarianceValue > 0 ? 'var(--color-success)' : summary.totalVarianceValue < 0 ? 'var(--color-error)' : 'inherit' }}>
+            {formatCurrency(summary.totalVarianceValue)}
           </div>
         </div>
       </aside>

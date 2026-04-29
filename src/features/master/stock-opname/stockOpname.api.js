@@ -86,6 +86,7 @@ function normalizeOpnameItem(raw, index) {
     product_unit_name: raw?.product_unit_name || raw?.product?.unit || '-',
     system_quantity: Number(raw?.system_quantity ?? raw?.system_qty ?? 0),
     actual_quantity: Number(raw?.actual_quantity ?? raw?.physical_qty ?? 0),
+    cost_price: Number(raw?.cost_price ?? raw?.product?.cost_price ?? 0),
     difference: Number(raw?.difference ?? ((raw?.actual_quantity ?? raw?.physical_qty ?? 0) - (raw?.system_quantity ?? raw?.system_qty ?? 0))),
     status: raw?.status || '',
     reason: raw?.reason || '',
@@ -110,14 +111,15 @@ function normalizeOpnameHeader(raw) {
     opname_date: raw?.opname_date ? raw.opname_date.split('T')[0] : '',
     status: raw?.status || 'draft',
     notes: raw?.notes || '',
+    total_selisih: Number(raw?.total_selisih ?? raw?.grand_total ?? 0),
     created_at: raw?.created_at || '',
     updated_at: raw?.updated_at || '',
     items,
     summary: raw?.summary || {
       total_items: items.length,
-      variance_positive: items.filter(i => i.variance > 0).length,
-      variance_negative: items.filter(i => i.variance < 0).length,
-      variance_zero: items.filter(i => i.variance === 0).length,
+      variance_positive: items.filter(i => i.difference > 0).length,
+      variance_negative: items.filter(i => i.difference < 0).length,
+      variance_zero: items.filter(i => i.difference === 0).length,
     },
   }
 }
