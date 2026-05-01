@@ -26,6 +26,7 @@ const DEFAULT_FORM = {
   warehouse_id: '',
   opname_date: '',
   status: 'draft',
+  is_opening: false,
   notes: '',
   reference: '',
 }
@@ -45,6 +46,7 @@ const DUMMY_OPNAME_RECORDS = [
     username: 'Admin Utama',
     opname_date: '2026-03-05T10:30:00Z',
     status: 'posted',
+    is_opening: true,
     notes: 'Stock opname bulanan',
     created_at: '2026-03-05T10:30:00Z',
     total_selisih: 0,
@@ -58,6 +60,7 @@ const DUMMY_OPNAME_RECORDS = [
     username: 'Admin Utama',
     opname_date: '2026-03-05T14:00:00Z',
     status: 'draft',
+    is_opening: false,
     notes: 'Stock opname mingguan',
     created_at: '2026-03-05T14:00:00Z',
     total_selisih: 0,
@@ -71,6 +74,7 @@ const DUMMY_OPNAME_RECORDS = [
     username: 'Admin Cabang',
     opname_date: '2026-03-05T15:00:00Z',
     status: 'draft',
+    is_opening: false,
     notes: 'Stock opname cabang',
     created_at: '2026-03-05T15:00:00Z',
     total_selisih: 0,
@@ -81,6 +85,7 @@ const TABLE_COLUMNS = [
   { key: 'no', label: 'NO', sortable: false, width: '50px' },
   { key: 'opname_date', label: 'TANGGAL', sortable: true, width: '120px' },
   { key: 'opname_number', label: 'REFERENSI', sortable: true },
+  { key: 'opname_type', label: 'TIPE', sortable: false, width: '120px' },
   { key: 'warehouse_name', label: 'WAREHOUSE', sortable: true },
   { key: 'notes', label: 'NOTES', sortable: true },
   { key: 'username', label: 'USERNAME', sortable: true },
@@ -111,6 +116,24 @@ function formatNumber(amount) {
   return new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(Number(amount) || 0)
 }
 
+function getOpnameTypeMeta(isOpening) {
+  if (isOpening) {
+    return {
+      label: 'Opening',
+      background: 'rgba(249, 115, 22, 0.14)',
+      color: '#f97316',
+      border: '1px solid rgba(249, 115, 22, 0.28)',
+    }
+  }
+
+  return {
+    label: 'Regular',
+    background: 'rgba(59, 130, 246, 0.12)',
+    color: '#60a5fa',
+    border: '1px solid rgba(96, 165, 250, 0.24)',
+  }
+}
+
 export function StockOpname({ onExit }) {
   const { auth } = useAuth()
   const token = auth?.token
@@ -125,6 +148,7 @@ export function StockOpname({ onExit }) {
   const [searchKeyword, setSearchKeyword] = useState('')
   const [warehouseFilter, setWarehouseFilter] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
+  const [typeFilter, setTypeFilter] = useState('all')
   const pager = useMasterPagination({ initialLimit: 10, total: pagination.total, hasMore: pagination.has_more })
   const { limit, offset } = pager
 
@@ -174,6 +198,9 @@ export function StockOpname({ onExit }) {
       if (statusFilter !== 'all') {
         items = items.filter(item => item.status === statusFilter)
       }
+      if (typeFilter !== 'all') {
+        items = items.filter(item => typeFilter === 'opening' ? Boolean(item.is_opening) : !item.is_opening)
+      }
       const total = items.length
       const sliced = items.slice(offset, offset + limit)
       const grandTotalAll = items.reduce((sum, item) => sum + (Number(item.total_selisih) || 0), 0)
@@ -194,9 +221,10 @@ export function StockOpname({ onExit }) {
       const result = await listStockOpname(token, {
         search: searchKeyword.trim() || undefined,
         warehouse_id: warehouseFilter || undefined,
-        status: statusFilter !== 'all' ? statusFilter : undefined,
-        limit,
-        offset,
+          status: statusFilter !== 'all' ? statusFilter : undefined,
+          opname_type: typeFilter !== 'all' ? typeFilter : undefined,
+          limit,
+          offset,
       })
 
       setData(result.items || [])
@@ -206,12 +234,13 @@ export function StockOpname({ onExit }) {
         has_more: Boolean(nextPagination.has_more),
       })
 
-      const baseSummaryParams = {
-        search: searchKeyword.trim() || undefined,
-        warehouse_id: warehouseFilter || undefined,
-        limit: 1,
-        offset: 0,
-      }
+        const baseSummaryParams = {
+          search: searchKeyword.trim() || undefined,
+          warehouse_id: warehouseFilter || undefined,
+          opname_type: typeFilter !== 'all' ? typeFilter : undefined,
+          limit: 1,
+          offset: 0,
+        }
 
       const [totalSummary, draftSummary, approvedSummary, allRecordsSummary] = await Promise.all([
         listStockOpname(token, baseSummaryParams),
@@ -237,7 +266,7 @@ export function StockOpname({ onExit }) {
     } finally {
       setIsLoading(false)
     }
-  }, [token, searchKeyword, warehouseFilter, statusFilter, limit, offset])
+  }, [token, searchKeyword, warehouseFilter, statusFilter, typeFilter, limit, offset])
 
   useEffect(() => {
     fetchWarehouses()
@@ -467,6 +496,19 @@ export function StockOpname({ onExit }) {
               <option value="rejected">Rejected</option>
             </select>
           </div>
+          <div className="master-filter-wrap">
+            <label htmlFor="opname-type-filter" className="master-filter-label">Tipe</label>
+            <select
+              id="opname-type-filter"
+              className="master-filter-select"
+              value={typeFilter}
+              onChange={(e) => { pager.reset(); setTypeFilter(e.target.value) }}
+            >
+              <option value="all">All Type</option>
+              <option value="opening">Opening</option>
+              <option value="regular">Regular</option>
+            </select>
+          </div>
         </div>
       </div>
 
@@ -479,6 +521,7 @@ export function StockOpname({ onExit }) {
             <tbody>
               {sortedData.map((row, index) => {
                 const statusMeta = getOpnameStatusMeta(row.status)
+                const typeMeta = getOpnameTypeMeta(row.is_opening)
                 return (
                   <tr
                     key={row.id || index}
@@ -488,7 +531,31 @@ export function StockOpname({ onExit }) {
                   >
                     <td className="text-right">{offset + index + 1}</td>
                     <td>{formatDate(row.opname_date)}</td>
-                    <td>{row.opname_number || row.reference || '-'}</td>
+                    <td>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        <span>{row.opname_number || row.reference || '-'}</span>
+                      </div>
+                    </td>
+                    <td>
+                      <span
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          width: 'fit-content',
+                          padding: '2px 8px',
+                          borderRadius: 999,
+                          fontSize: 11,
+                          fontWeight: 700,
+                          letterSpacing: '0.04em',
+                          textTransform: 'uppercase',
+                          background: typeMeta.background,
+                          color: typeMeta.color,
+                          border: typeMeta.border,
+                        }}
+                      >
+                        {typeMeta.label}
+                      </span>
+                    </td>
                     <td>{row.warehouse?.name || row.warehouse_name || '-'}</td>
                     <td>{row.notes || '-'}</td>
                     <td>{row.username || row.user_id || '-'}</td>
@@ -505,7 +572,7 @@ export function StockOpname({ onExit }) {
                 )
               })}
               {!isLoading && sortedData.length === 0 && (
-                <tr><td colSpan={8} className="text-center">No data</td></tr>
+                <tr><td colSpan={9} className="text-center">No data</td></tr>
               )}
             </tbody>
           </table>

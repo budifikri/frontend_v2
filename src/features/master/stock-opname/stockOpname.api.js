@@ -94,6 +94,13 @@ function normalizeOpnameItem(raw, index) {
   }
 }
 
+function normalizeOpnameStatus(status) {
+  const value = String(status || 'draft').toLowerCase().trim()
+  if (value === 'approve') return 'approved'
+  if (value === 'complete' || value === 'completed') return 'posted'
+  return value || 'draft'
+}
+
 function normalizeOpnameHeader(raw) {
   const items = (raw?.items ?? []).map((item, index) => normalizeOpnameItem(item, index))
   
@@ -109,7 +116,7 @@ function normalizeOpnameHeader(raw) {
     user_id: raw?.user_id || raw?.created_by || '',
     username: raw?.user?.username || raw?.created_by_name || raw?.username || '',
     opname_date: raw?.opname_date ? raw.opname_date.split('T')[0] : '',
-    status: raw?.status || 'draft',
+    status: normalizeOpnameStatus(raw?.status),
     is_opening: Boolean(raw?.is_opening),
     notes: raw?.notes || '',
     total_selisih: Number(raw?.total_selisih ?? raw?.grand_total ?? 0),
@@ -130,6 +137,7 @@ export async function listStockOpname(token, params = {}) {
   if (params.search) qs.set('search', params.search)
   if (params.warehouse_id) qs.set('warehouse_id', params.warehouse_id)
   if (params.status) qs.set('status', params.status)
+  if (params.opname_type) qs.set('opname_type', params.opname_type)
   if (params.from_date) qs.set('from_date', params.from_date)
   if (params.to_date) qs.set('to_date', params.to_date)
   if (params.limit !== undefined) qs.set('limit', String(params.limit))
@@ -156,7 +164,10 @@ export async function listStockOpname(token, params = {}) {
       items = items.filter(item => item.warehouse_id === params.warehouse_id)
     }
     if (params.status) {
-      items = items.filter(item => item.status === params.status)
+      items = items.filter(item => normalizeOpnameStatus(item.status) === normalizeOpnameStatus(params.status))
+    }
+    if (params.opname_type) {
+      items = items.filter(item => params.opname_type === 'opening' ? Boolean(item.is_opening) : !item.is_opening)
     }
 
     const total = items.length

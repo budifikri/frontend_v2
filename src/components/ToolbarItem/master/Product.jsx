@@ -3,7 +3,7 @@ import { useAuth } from '../../../shared/auth'
 import { listCategories } from '../../../features/master/category/category.api'
 import { listUnits } from '../../../features/master/unit/unit.api'
 import { listWarehouses } from '../../../features/master/warehouse/warehouse.api'
-import { createProduct, deleteProduct, listProducts, updateProduct } from '../../../features/master/product/product.api'
+import { createProduct, deleteProduct, getProductHppTrace, listProducts, updateProduct } from '../../../features/master/product/product.api'
 import { adjustStock } from '../../../features/laporan/stock/stock.api'
 import { getProductStock } from '../../../features/master/stock-opname/stockOpname.api'
 import { createPriceTier, getPriceTier, updatePriceTier } from '../../../features/master/price-tier/priceTier.api'
@@ -169,6 +169,9 @@ export function Product({ onExit }) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [showExitConfirm, setShowExitConfirm] = useState(false)
   const [showImportConfirm, setShowImportConfirm] = useState(false)
+  const [showHppHistoryModal, setShowHppHistoryModal] = useState(false)
+  const [hppHistoryData, setHppHistoryData] = useState(null)
+  const [isLoadingHppHistory, setIsLoadingHppHistory] = useState(false)
   const [pendingImportData, setPendingImportData] = useState(null)
   const [showToast, setShowToast] = useState(false)
   const [toastMessage, setToastMessage] = useState('')
@@ -346,6 +349,34 @@ export function Product({ onExit }) {
     return adjustForm.physical_stock - adjustForm.system_stock
   }, [adjustForm.physical_stock, adjustForm.system_stock])
 
+  const selectedProductForHistory = useMemo(() => {
+    if (selectedItem) return selectedItem
+    if (!isNewMode && selectedId) return data.find((row) => row.id === selectedId) || null
+    return null
+  }, [data, isNewMode, selectedId, selectedItem])
+
+  const formatCurrency = useCallback((value) => {
+    return new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
+    }).format(Number(value) || 0)
+  }, [])
+
+  const formatDateTime = useCallback((value) => {
+    if (!value) return '-'
+    const parsed = new Date(value)
+    if (Number.isNaN(parsed.getTime())) return value
+    return parsed.toLocaleString('id-ID', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    })
+  }, [])
+
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (showDeleteConfirm) {
@@ -486,7 +517,6 @@ export function Product({ onExit }) {
       description: form.description || undefined,
       category_id: form.category_id || undefined,
       unit_id: form.unit_id || undefined,
-      cost_price: Number(form.cost_price || 0),
       retail_price: Number(form.retail_price || 0),
       tax_rate: Number(form.tax_rate || 0),
       reorder_point: Number(form.reorder_point || 0),
@@ -600,6 +630,46 @@ export function Product({ onExit }) {
       setError(err.message || 'Failed to save product')
     } finally {
       setIsSaving(false)
+    }
+  }
+
+  async function handleOpenHppHistory() {
+    const target = selectedProductForHistory
+    if (!target?.id || isNewMode) return
+
+    setIsLoadingHppHistory(true)
+    setShowHppHistoryModal(true)
+
+    try {
+      if (!token) {
+        setHppHistoryData({
+          product_id: target.id,
+          sku: target.sku || '',
+          name: target.name || '',
+          current_cost_price: Number(target.cost_price || 0),
+          events: Number(target.cost_price || 0) > 0 ? [{
+            seq: 1,
+            event_date: new Date().toISOString(),
+            event_type: 'OPENING_STOCK',
+            reference_id: target.id,
+            reference_number: 'DUMMY-OPENING',
+            warehouse_id: '',
+            warehouse_name: '-',
+            qty: 0,
+            unit_cost: Number(target.cost_price || 0),
+            hpp: Number(target.cost_price || 0),
+            notes: 'Dummy history HPP',
+          }] : [],
+        })
+      } else {
+        const result = await getProductHppTrace(token, target.id)
+        setHppHistoryData(result)
+      }
+    } catch (err) {
+      setError(err.message || 'Failed to load History Hpp')
+      setShowHppHistoryModal(false)
+    } finally {
+      setIsLoadingHppHistory(false)
     }
   }
 
@@ -1170,7 +1240,19 @@ export function Product({ onExit }) {
               </div>
               <div className="master-form-group">
                 <label className="master-form-label">Cost :</label>
-                <input type="number" value={form.cost_price} onChange={(e) => setForm({ ...form, cost_price: Number(e.target.value) })} className="master-form-input" />
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <input type="number" value={form.cost_price} readOnly className="master-form-input master-form-input-readonly" />
+                  <button
+                    type="button"
+                    className="master-search-btn"
+                    title="History Hpp"
+                    onClick={handleOpenHppHistory}
+                    disabled={isNewMode || !selectedProductForHistory?.id}
+                    style={{ minWidth: 40, opacity: isNewMode || !selectedProductForHistory?.id ? 0.55 : 1 }}
+                  >
+                    <span className="material-icons-round material-icon">history</span>
+                  </button>
+                </div>
               </div>
               <div className="master-form-group">
                 <label className="master-form-label">Harga Jual :</label>
@@ -1436,6 +1518,101 @@ export function Product({ onExit }) {
           onConfirm={handleConfirmImport}
           onCancel={handleCancelImport}
         />
+      )}
+
+      {showHppHistoryModal && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(15, 23, 42, 0.55)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1100,
+            padding: 24,
+          }}
+        >
+          <div
+            style={{
+              width: 'min(1100px, 100%)',
+              maxHeight: '85vh',
+              overflow: 'hidden',
+              background: '#0f172a',
+              border: '1px solid rgba(148, 163, 184, 0.18)',
+              borderRadius: 20,
+              boxShadow: '0 24px 80px rgba(15, 23, 42, 0.45)',
+              color: '#e2e8f0',
+              display: 'flex',
+              flexDirection: 'column',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, padding: '20px 24px 16px', borderBottom: '1px solid rgba(148, 163, 184, 0.14)' }}>
+              <div>
+                <div style={{ fontSize: 20, fontWeight: 700 }}>History Hpp</div>
+                <div style={{ fontSize: 13, color: '#94a3b8', marginTop: 6 }}>
+                  {hppHistoryData?.name || selectedProductForHistory?.name || '-'}
+                  {' · '}
+                  {hppHistoryData?.sku || selectedProductForHistory?.sku || '-'}
+                </div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontSize: 12, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Current HPP</div>
+                  <div style={{ fontSize: 18, fontWeight: 700, color: '#f8fafc' }}>{formatCurrency(hppHistoryData?.current_cost_price ?? form.cost_price)}</div>
+                </div>
+                <button
+                  type="button"
+                  className="master-search-btn"
+                  onClick={() => setShowHppHistoryModal(false)}
+                  title="Tutup"
+                >
+                  <span className="material-icons-round material-icon">close</span>
+                </button>
+              </div>
+            </div>
+
+            <div style={{ padding: 24, overflow: 'auto' }}>
+              {isLoadingHppHistory ? (
+                <div style={{ color: '#94a3b8' }}>Memuat History Hpp...</div>
+              ) : (
+                <table className="master-table">
+                  <thead>
+                    <tr>
+                      <th>Tanggal</th>
+                      <th>Event</th>
+                      <th>Referensi</th>
+                      <th className="text-right">Qty</th>
+                      <th className="text-right">Unit Cost</th>
+                      <th className="text-right">HPP</th>
+                      <th>Warehouse</th>
+                      <th>Notes</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(hppHistoryData?.events || []).map((event) => (
+                      <tr key={`${event.reference_id}-${event.seq}`}>
+                        <td>{formatDateTime(event.event_date)}</td>
+                        <td>{event.event_type === 'OPENING_STOCK' ? 'Opening Stock' : 'Purchase Receive'}</td>
+                        <td>{event.reference_number || '-'}</td>
+                        <td className="text-right">{Number(event.qty || 0).toLocaleString('id-ID')}</td>
+                        <td className="text-right">{formatCurrency(event.unit_cost)}</td>
+                        <td className="text-right">{formatCurrency(event.hpp)}</td>
+                        <td>{event.warehouse_name || '-'}</td>
+                        <td>{event.notes || '-'}</td>
+                      </tr>
+                    ))}
+                    {!isLoadingHppHistory && (hppHistoryData?.events || []).length === 0 && (
+                      <tr>
+                        <td colSpan={8} className="text-center">Belum ada histori HPP untuk product ini</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </div>
+        </div>
       )}
 
       {showToast && (

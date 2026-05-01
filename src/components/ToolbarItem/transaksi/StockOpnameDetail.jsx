@@ -33,6 +33,7 @@ export function StockOpnameDetail({ selectedId: propSelectedId, onExit, onSaveSu
   const [error, setError] = useState('')
   const [showExitConfirm, setShowExitConfirm] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [showPostingConfirm, setShowPostingConfirm] = useState(false)
   const [itemToDelete, setItemToDelete] = useState(null)
   const [warehouseOptions, setWarehouseOptions] = useState([])
   const [showToast, setShowToast] = useState(false)
@@ -45,6 +46,7 @@ export function StockOpnameDetail({ selectedId: propSelectedId, onExit, onSaveSu
   const [productResults, setProductResults] = useState([])
   const [popupSelectedIndex, setPopupSelectedIndex] = useState(0)
   const [isLoadingProducts, setIsLoadingProducts] = useState(false)
+  const postingConfirmBypassRef = useRef(false)
 
   const [header, setHeader] = useState({
     opname_number: generateReference(),
@@ -62,6 +64,7 @@ export function StockOpnameDetail({ selectedId: propSelectedId, onExit, onSaveSu
   const currentStatus = String(header.status || 'draft').toLowerCase()
   const isPosted = currentStatus === 'posted'
   const activeStatus = isPosted ? 'posted' : currentStatus === 'approved' || currentStatus === 'approve' ? 'approved' : 'draft'
+  const openingMode = Boolean(header.is_opening)
 
   const fetchLookups = useCallback(async () => {
     if (!token) {
@@ -247,7 +250,7 @@ export function StockOpnameDetail({ selectedId: propSelectedId, onExit, onSaveSu
     }
 
     const invalidCostItems = items.filter((item) => Number(item.cost_price) <= 0)
-    if (header.is_opening && invalidCostItems.length > 0) {
+    if (openingMode && invalidCostItems.length > 0) {
       const invalidNames = invalidCostItems
         .slice(0, 3)
         .map((item) => item.product_name || item.sku || item.product_id || '-')
@@ -259,6 +262,13 @@ export function StockOpnameDetail({ selectedId: propSelectedId, onExit, onSaveSu
       setShowToast(true)
       return
     }
+
+    const finalStatus = String(header.status || 'draft').toLowerCase()
+    if (openingMode && (finalStatus === 'approved' || finalStatus === 'posted') && !postingConfirmBypassRef.current) {
+      setShowPostingConfirm(true)
+      return
+    }
+    postingConfirmBypassRef.current = false
 
     setIsSaving(true)
     setError('')
@@ -289,7 +299,11 @@ export function StockOpnameDetail({ selectedId: propSelectedId, onExit, onSaveSu
         if (propSelectedId) {
           await updateStockOpname(token, propSelectedId, payload)
         } else {
-          await createStockOpname(token, payload)
+          const created = await createStockOpname(token, payload)
+          const createdId = created?.data?.id
+          if (createdId && finalStatus !== 'draft') {
+            await updateStockOpname(token, createdId, payload)
+          }
         }
       } else {
         if (onSaveSuccess) {
@@ -299,7 +313,6 @@ export function StockOpnameDetail({ selectedId: propSelectedId, onExit, onSaveSu
 
       setHeader(prev => ({ ...prev, status: payload.status || prev.status }))
       
-      const finalStatus = (payload.status || header.status).toLowerCase()
       if (['approved', 'approve', 'posted'].includes(finalStatus)) {
         setIsLocked(true)
       }
@@ -316,7 +329,9 @@ export function StockOpnameDetail({ selectedId: propSelectedId, onExit, onSaveSu
   } finally {
     setIsSaving(false)
   }
-}, [header, items, token, propSelectedId, onExit, onSaveSuccess, isLocked])
+      setShowPostingConfirm(false)
+      postingConfirmBypassRef.current = false
+}, [header, items, token, propSelectedId, onExit, onSaveSuccess, isLocked, openingMode])
 
   const handleStatusChange = (newStatus) => {
     if (isLocked) return
@@ -526,6 +541,26 @@ export function StockOpnameDetail({ selectedId: propSelectedId, onExit, onSaveSu
         />
       )}
 
+      {showPostingConfirm && (
+        <DeleteMaster
+          title={openingMode ? 'Konfirmasi Finalisasi Opening Stock' : 'Konfirmasi Finalisasi Stock Opname'}
+          message={openingMode
+            ? 'Opening stock yang di-approve atau di-post akan mengunci stok awal dan HPP awal produk. Pastikan quantity dan cost price sudah benar.'
+            : 'Dokumen yang di-post akan mengubah stok aktual. Pastikan data opname sudah benar.'}
+          confirmText="Lanjutkan"
+          cancelText="Periksa Lagi"
+          onConfirm={() => {
+            postingConfirmBypassRef.current = true
+            setShowPostingConfirm(false)
+            setTimeout(() => handleSave(), 0)
+          }}
+          onCancel={() => {
+            postingConfirmBypassRef.current = false
+            setShowPostingConfirm(false)
+          }}
+        />
+      )}
+
       <div className="po-main-content">
         <div className="po-items-wrapper">
           {error && <div className="master-error" style={{ marginBottom: 12 }}>{error}</div>}
@@ -629,7 +664,26 @@ export function StockOpnameDetail({ selectedId: propSelectedId, onExit, onSaveSu
 
       <aside className="po-sidebar">
         <div className="po-header-section">
-          <h1 className="po-title">STOCK OPNAME</h1>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            <h1 className="po-title" style={{ margin: 0 }}>STOCK OPNAME</h1>
+            <span
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                padding: '4px 10px',
+                borderRadius: 999,
+                fontSize: 11,
+                fontWeight: 700,
+                letterSpacing: '0.04em',
+                textTransform: 'uppercase',
+                background: openingMode ? 'rgba(249, 115, 22, 0.14)' : 'rgba(59, 130, 246, 0.12)',
+                color: openingMode ? '#f97316' : '#60a5fa',
+                border: openingMode ? '1px solid rgba(249, 115, 22, 0.28)' : '1px solid rgba(96, 165, 250, 0.24)',
+              }}
+            >
+              {openingMode ? 'Opening Stock' : 'Regular Opname'}
+            </span>
+          </div>
           <div className="po-arrow-status-bar" aria-label="Stock opname status">
             <button
               type="button"
@@ -687,7 +741,9 @@ export function StockOpnameDetail({ selectedId: propSelectedId, onExit, onSaveSu
               Opening Stock
             </label>
             <div style={{ fontSize: 12, color: 'var(--color-text-secondary, #94a3b8)', marginTop: 6 }}>
-              Mode opening hanya untuk stok awal dan HPP awal produk.
+              {openingMode
+                ? 'Mode opening aktif. Dokumen ini akan set stok awal dan HPP awal saat disimpan.'
+                : 'Mode regular aktif. Dokumen ini hanya menyesuaikan stok tanpa mengubah HPP produk.'}
             </div>
           </div>
           <div className="form-group">
@@ -726,14 +782,32 @@ export function StockOpnameDetail({ selectedId: propSelectedId, onExit, onSaveSu
                   ) : productResults.length === 0 ? (
                     <tr><td colSpan={4} style={{ textAlign: 'center', color: '#94a3b8' }}>Produk tidak ditemukan</td></tr>
                   ) : (
-                    productResults.map((product, idx) => (
-                      <tr key={product.id} className={popupSelectedIndex === idx ? 'selected' : ''} onClick={() => handleSelectProduct(product)}>
+                      productResults.map((product, idx) => {
+                        const isBlockedOpeningProduct = openingMode && product.has_opening_stock
+                        return (
+                      <tr
+                        key={product.id}
+                        className={popupSelectedIndex === idx ? 'selected' : ''}
+                        onClick={() => {
+                          if (!isBlockedOpeningProduct) handleSelectProduct(product)
+                        }}
+                        style={isBlockedOpeningProduct ? { opacity: 0.45, cursor: 'not-allowed' } : undefined}
+                      >
                         <td>{idx + 1}</td>
-                        <td>{product.name}</td>
+                        <td>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                            <span>{product.name}</span>
+                            {isBlockedOpeningProduct && (
+                              <span style={{ fontSize: 11, color: '#f97316', fontWeight: 700 }}>
+                                Sudah pernah opening
+                              </span>
+                            )}
+                          </div>
+                        </td>
                         <td>{product.unit}</td>
                         <td style={{ textAlign: 'right' }}>{formatNumber(product.cost_price || product.price)}</td>
                       </tr>
-                    ))
+                    )})
                   )}
                 </tbody>
               </table>

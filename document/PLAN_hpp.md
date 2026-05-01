@@ -20,15 +20,20 @@
   - `internal/handlers/inventory_handler.go`
   - `internal/services/inventory_service.go`
   - `internal/services/purchase_service.go`
+  - `internal/handlers/product_handler.go`
+  - `internal/services/product_service.go`
 - Frontend `frontend_v2`
   - `src/features/master/stock-opname/stockOpname.api.js`
   - `src/components/ToolbarItem/transaksi/StockOpnameDetail.jsx`
+  - `src/features/master/product/product.api.js`
+  - `src/components/ToolbarItem/master/Product.jsx`
 
 ## Problem Yang Diselesaikan
 1. `products.cost_price` saat ini belum dihitung otomatis sebagai moving average saat receive PO.
 2. Opening stock via stock opname belum punya mekanisme resmi untuk menetapkan HPP awal product.
 3. Backend stock opname belum menerima `cost_price` item dari payload walaupun frontend sudah mengirimkannya.
 4. Belum ada pembatasan agar opening stock hanya terjadi sekali per produk secara global.
+5. Belum ada tracing histori HPP per product yang bisa dilihat user dari detail product.
 
 ## Root Cause
 - Alur `ReceivePurchaseOrder` hanya menambah kuantitas inventory tanpa menghitung ulang `products.cost_price`.
@@ -65,6 +70,9 @@ Stock Opname Detail
 5. Tambahkan validasi backend agar produk yang sudah punya opening approved tidak bisa di-opening lagi.
 6. Update UI stock opname untuk mendukung toggle `Opening Stock` dan blocking produk yang sudah pernah opening.
 7. Update `ReceivePurchaseOrder` untuk menghitung moving average dan menyimpan hasilnya ke `products.cost_price`.
+8. Tambahkan endpoint query-only `History Hpp` per product dari opening stock dan purchase receive.
+9. Tambahkan icon `History Hpp` di samping field `cost_price` pada detail product.
+10. Tambahkan modal histori HPP pada detail product.
 
 ## Technical Implementation
 - `StockOpname` perlu field `IsOpening bool` dengan default `false`.
@@ -74,6 +82,46 @@ Stock Opname Detail
 - Service stock opname harus menggunakan `cost_price` dari payload untuk opening stock, bukan selalu override dari `products.cost_price`.
 - Validasi opening global dilakukan saat approve untuk mencegah bypass dari draft lama atau request paralel.
 - `ReceivePurchaseOrder` harus memakai total stok global lintas warehouse karena HPP disepakati global per produk.
+- Endpoint `GET /api/products/:id/hpp-trace` menggunakan raw query `WITH RECURSIVE` tanpa model baru.
+- Sumber event HPP hanya dari `OPENING_STOCK` dan `PURCHASE_RECEIVE`.
+- Event purchase receive harus memakai `qty_receive` sebagai basis qty perubahan HPP.
+- Field `cost_price` di product detail dibuat readonly, dan histori dibuka lewat icon `History Hpp`.
+
+## History HPP Product
+### Sumber Event
+1. `OPENING_STOCK`
+- tabel: `stock_opnames`, `stock_opname_items`
+- filter: `is_opening = true`
+- status final: `posted` dan kompatibilitas lama `completed`
+- qty: `actual_quantity`
+- unit cost: `cost_price`
+
+2. `PURCHASE_RECEIVE`
+- tabel: `purchase_orders`, `purchase_order_items`
+- filter: `LOWER(status_receive) = 'receive'`
+- qty: `qty_receive`
+- unit cost: `unit_price`
+
+### Running HPP
+- event pertama opening stock menjadi basis HPP awal
+- setiap purchase receive berikutnya menghitung moving average berdasarkan qty receive
+- output UI hanya menampilkan `HPP` hasil running setelah event diproses
+
+### Modal History HPP
+Kolom tabel modal:
+- `Tanggal`
+- `Event`
+- `Referensi`
+- `Qty`
+- `Unit Cost`
+- `HPP`
+- `Warehouse`
+- `Notes`
+
+Catatan:
+- tidak menampilkan `HPP Sebelum`
+- tidak menampilkan `HPP Sesudah` sebagai kolom terpisah
+- kolom `HPP` adalah running HPP sesudah event
 
 ## Business Rules
 1. Opening stock hanya boleh sekali per produk secara global.
@@ -82,6 +130,8 @@ Stock Opname Detail
 4. `Stock Opname Opening` mengubah `products.cost_price` hanya saat approve.
 5. Setelah opening, HPP aktif berubah hanya dari receive pembelian.
 6. Stock opname adjustment setelah go-live tidak ikut mengubah HPP.
+7. `products.cost_price` tidak bisa diubah manual dari form product.
+8. Tracing HPP hanya berasal dari opening stock dan purchase receive.
 
 ## Formula
 ### Opening Stock
@@ -125,7 +175,10 @@ WHERE product_id = ?;
 4. Buat stock opname biasa untuk produk yang sama dan pastikan stok berubah tanpa mengubah HPP.
 5. Lakukan receive PO setelah opening dan validasi rumus moving average.
 6. Uji partial receive bertahap untuk memastikan hanya `qtyToAdd` yang memengaruhi average.
-7. Jalankan lint/build frontend dan build/test backend.
+7. Uji endpoint `hpp-trace` untuk produk dengan opening stock saja.
+8. Uji endpoint `hpp-trace` untuk produk dengan opening stock + purchase receive.
+9. Uji modal `History Hpp` pada detail product menampilkan kolom `HPP` saja sebagai hasil running.
+10. Jalankan lint/build frontend dan build/test backend.
 
 ## Risiko & Mitigasi
 - Risiko: opening stock dilakukan dua kali melalui dokumen berbeda.
@@ -147,3 +200,5 @@ WHERE product_id = ?;
 - Produk yang sudah pernah opening tetap bisa ikut stock opname biasa.
 - `ReceivePurchaseOrder` menghitung moving average ke `products.cost_price`.
 - Histori HPP opening dan penjualan tetap tersimpan pada tabel transaksi masing-masing.
+- Detail product memiliki icon `History Hpp` di samping field `cost_price`.
+- Modal `History Hpp` menampilkan histori event + running HPP dengan kolom `HPP` saja.

@@ -66,3 +66,19 @@ export async function deleteProduct(token, id) {
   if (!raw.success) throw new Error(raw.error || raw.message || 'Delete product failed')
   return raw
 }
+
+export async function getProductHppTrace(token, id) {
+  if (!token) {
+    return {
+      product_id: id,
+      sku: '',
+      name: '',
+      current_cost_price: 0,
+      events: [],
+    }
+  }
+
+  const raw = await apiFetch(`/api/products/${encodeURIComponent(id)}/hpp-trace`, { token })
+  if (!raw.success) throw new Error(raw.error || raw.message || 'Failed to load product HPP trace')
+  return raw.data || raw
+}
