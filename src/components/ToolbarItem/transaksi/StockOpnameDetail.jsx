@@ -51,6 +51,7 @@ export function StockOpnameDetail({ selectedId: propSelectedId, onExit, onSaveSu
     warehouse_id: '',
     opname_date: new Date().toISOString().split('T')[0],
     status: 'draft',
+    is_opening: false,
     notes: '',
   })
 
@@ -118,6 +119,7 @@ export function StockOpnameDetail({ selectedId: propSelectedId, onExit, onSaveSu
           warehouse_id: data.warehouse_id || '',
           opname_date: data.opname_date ? data.opname_date.split('T')[0] : new Date().toISOString().split('T')[0],
           status: normalizedStatus,
+          is_opening: Boolean(data.is_opening),
           notes: data.notes || '',
         })
         setIsLocked(['approved', 'approve', 'posted'].includes(normalizedStatus))
@@ -182,6 +184,15 @@ export function StockOpnameDetail({ selectedId: propSelectedId, onExit, onSaveSu
 
   const handleSelectProduct = useCallback(async (product) => {
     if (isLocked) return
+    if (header.is_opening && product.has_opening_stock) {
+      setToastMessage(`${product.name} sudah memiliki opening stock global`)
+      setToastType('warning')
+      setShowToast(true)
+      setShowProductPopup(false)
+      setSearch('')
+      setTimeout(() => focusSearchInput(), 50)
+      return
+    }
     const existingIndex = items.findIndex(item => item.product_id === product.id)
     if (existingIndex >= 0) {
       setToastMessage(`${product.name} sudah ada di daftar`)
@@ -218,7 +229,7 @@ export function StockOpnameDetail({ selectedId: propSelectedId, onExit, onSaveSu
     setSearch('')
     setSelectedIndex(items.length)
     setTimeout(() => focusSearchInput(), 50)
-  }, [isLocked, items, token, header.warehouse_id, focusSearchInput])
+  }, [isLocked, items, token, header.is_opening, header.warehouse_id, focusSearchInput])
 
   const handleSave = useCallback(async () => {
     if (isLocked) return
@@ -236,14 +247,14 @@ export function StockOpnameDetail({ selectedId: propSelectedId, onExit, onSaveSu
     }
 
     const invalidCostItems = items.filter((item) => Number(item.cost_price) <= 0)
-    if (invalidCostItems.length > 0) {
+    if (header.is_opening && invalidCostItems.length > 0) {
       const invalidNames = invalidCostItems
         .slice(0, 3)
         .map((item) => item.product_name || item.sku || item.product_id || '-')
         .join(', ')
       const extraCount = invalidCostItems.length - Math.min(invalidCostItems.length, 3)
       const extraLabel = extraCount > 0 ? ` dan ${extraCount} produk lainnya` : ''
-      setToastMessage(`Cost price produk ${invalidNames}${extraLabel} masih 0, stock opname tidak bisa disimpan`)
+      setToastMessage(`Cost price opening produk ${invalidNames}${extraLabel} masih 0, opening stock tidak bisa disimpan`)
       setToastType('error')
       setShowToast(true)
       return
@@ -256,6 +267,7 @@ export function StockOpnameDetail({ selectedId: propSelectedId, onExit, onSaveSu
       warehouse_id: header.warehouse_id,
       opname_date: header.opname_date,
       status: header.status,
+      is_opening: Boolean(header.is_opening),
       notes: header.notes || '',
       items: items.map((item) => {
         const itemPayload = {
@@ -406,6 +418,7 @@ export function StockOpnameDetail({ selectedId: propSelectedId, onExit, onSaveSu
           sku: p.sku || p.code || '',
           unit: p.unit_name || p.unit || '-',
           cost_price: Number(p.cost_price || p.purchase_price || 0),
+          has_opening_stock: Boolean(p.has_opening_stock),
           price: Number(p.cost_price || p.purchase_price || 0),
         }))
         if (products.length === 1) {
@@ -662,6 +675,20 @@ export function StockOpnameDetail({ selectedId: propSelectedId, onExit, onSaveSu
                 <option key={item.id} value={item.id}>{item.name}</option>
               ))}
             </select>
+          </div>
+          <div className="form-group">
+            <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <input
+                type="checkbox"
+                checked={Boolean(header.is_opening)}
+                onChange={(e) => setHeader({ ...header, is_opening: e.target.checked })}
+                disabled={isLocked}
+              />
+              Opening Stock
+            </label>
+            <div style={{ fontSize: 12, color: 'var(--color-text-secondary, #94a3b8)', marginTop: 6 }}>
+              Mode opening hanya untuk stok awal dan HPP awal produk.
+            </div>
           </div>
           <div className="form-group">
             <label className="form-label">Notes</label>

@@ -110,6 +110,7 @@ function normalizeOpnameHeader(raw) {
     username: raw?.user?.username || raw?.created_by_name || raw?.username || '',
     opname_date: raw?.opname_date ? raw.opname_date.split('T')[0] : '',
     status: raw?.status || 'draft',
+    is_opening: Boolean(raw?.is_opening),
     notes: raw?.notes || '',
     total_selisih: Number(raw?.total_selisih ?? raw?.grand_total ?? 0),
     created_at: raw?.created_at || '',
