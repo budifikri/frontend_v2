@@ -125,7 +125,14 @@ export function LapPembelian({ onExit }) {
   })
 
   const [pagination, setPagination] = useState({ total: 0, hasMore: false })
-  const [summary, setSummary] = useState({ totalRows: 0, totalPembelian: 0 })
+  const [summary, setSummary] = useState({
+    totalRows: 0,
+    totalPembelian: 0,
+    draftRows: 0,
+    approvedRows: 0,
+    completedRows: 0,
+    cancelledRows: 0,
+  })
   const [isSummaryLoading, setIsSummaryLoading] = useState(false)
   const [isAllRecords, setIsAllRecords] = useState(false)
   const [tooltipRow, setTooltipRow] = useState(null)
@@ -217,7 +224,7 @@ export function LapPembelian({ onExit }) {
     setIsSummaryLoading(true)
 
     if (!token) {
-      setSummary({ totalRows: 0, totalPembelian: 0 })
+      setSummary({ totalRows: 0, totalPembelian: 0, draftRows: 0, approvedRows: 0, completedRows: 0, cancelledRows: 0 })
       setIsSummaryLoading(false)
       return
     }
@@ -228,12 +235,21 @@ export function LapPembelian({ onExit }) {
     if (result.success) {
       const purchasesData = Array.isArray(result.items) ? result.items : []
       const totalPembelian = purchasesData.reduce((sum, p) => sum + (p.grand_total || 0), 0)
+      const draftRows = purchasesData.filter((p) => p.status === 'draft').length
+      const approvedRows = purchasesData.filter((p) => p.status === 'approved').length
+      const completedRows = purchasesData.filter((p) => p.status === 'completed').length
+      const cancelledRows = purchasesData.filter((p) => p.status === 'cancelled').length
+
       setSummary({
         totalRows: result.pagination?.total || purchasesData.length,
         totalPembelian,
+        draftRows,
+        approvedRows,
+        completedRows,
+        cancelledRows,
       })
     } else {
-      setSummary({ totalRows: 0, totalPembelian: 0 })
+      setSummary({ totalRows: 0, totalPembelian: 0, draftRows: 0, approvedRows: 0, completedRows: 0, cancelledRows: 0 })
     }
 
     setIsSummaryLoading(false)
@@ -409,8 +425,8 @@ export function LapPembelian({ onExit }) {
       )}
 
       <div className="master-table-wrapper">
-        <div className="master-table-container">
-          <table className="master-table">
+        <div className="master-table-container purchase-list-table-container">
+          <table className="master-table purchase-list-table">
             <MasterTableHeader columns={TABLE_COLUMNS} sortConfig={sortConfig} onSort={handleSort} />
             <tbody>
               {sortedData.map((purchase, index) => (
@@ -448,16 +464,37 @@ export function LapPembelian({ onExit }) {
               )}
             </tbody>
           </table>
-        </div>
-      </div>
-
-      <div className="stock-opname-summary">
-        <span className="summary-title">Summary</span>
-        <div className="summary-items">
-          <span className="summary-divider"></span>
-          <span className="summary-item summary-positive">
-            TOTAL PEMBELIAN: <span className="summary-value">{isSummaryLoading ? '...' : formatCurrency(summary.totalPembelian)}</span>
-          </span>
+          <div className="master-table-sticky-footer purchase-table-summary">
+            <div className="purchase-table-summary-left">
+              <div className="purchase-summary-item">
+                <p>Total Rows</p>
+                <strong>{isSummaryLoading ? '...' : summary.totalRows}</strong>
+              </div>
+              <div className="purchase-summary-item is-draft">
+                <p>Draft</p>
+                <strong>{isSummaryLoading ? '...' : summary.draftRows}</strong>
+              </div>
+              <div className="purchase-summary-item is-approved">
+                <p>Approved</p>
+                <strong>{isSummaryLoading ? '...' : summary.approvedRows}</strong>
+              </div>
+              <div className="purchase-summary-item pembelian-summary-completed">
+                <p>Completed</p>
+                <strong>{isSummaryLoading ? '...' : summary.completedRows}</strong>
+              </div>
+              <div className="purchase-summary-item pembelian-summary-cancelled">
+                <p>Cancelled</p>
+                <strong>{isSummaryLoading ? '...' : summary.cancelledRows}</strong>
+              </div>
+            </div>
+            <div className="purchase-table-summary-right">
+              <p>Total Pembelian</p>
+              <div className="purchase-total-value">
+                <span className="purchase-total-currency">Rp</span>
+                <strong>{isSummaryLoading ? '...' : formatCurrency(summary.totalPembelian).replace(/^Rp\s?/, '')}</strong>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 

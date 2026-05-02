@@ -4019,6 +4019,14 @@ body.has-wallpaper .cash-register {
   color: #b42318;
 }
 
+.pembelian-summary-completed strong {
+  color: #0f766e;
+}
+
+.pembelian-summary-cancelled strong {
+  color: #b42318;
+}
+
 @keyframes purchase-table-enter {
   from {
     opacity: 0;
