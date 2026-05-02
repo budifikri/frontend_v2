@@ -3998,13 +3998,14 @@ body.has-wallpaper .cash-register {
 
 .sales-summary-totals {
   display: flex;
-  flex-direction: column;
-  gap: 10px;
+  align-items: stretch;
+  gap: 18px;
+  flex-wrap: wrap;
 }
 
 .sales-summary-total-block + .sales-summary-total-block {
-  padding-top: 10px;
-  border-top: 1px solid rgba(148, 163, 184, 0.35);
+  padding-top: 0;
+  border-top: 0;
 }
 
 .sales-summary-total-profit strong {
@@ -4110,6 +4111,10 @@ body.has-wallpaper .cash-register {
 
   .sales-summary-totals {
     margin-left: 0;
+    width: 100%;
+  }
+
+  .sales-summary-total-block {
     width: 100%;
   }
 }
