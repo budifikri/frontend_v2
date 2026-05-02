@@ -3996,19 +3996,7 @@ body.has-wallpaper .cash-register {
   border-top: 1px solid #b7c6d8;
 }
 
-.sales-summary-totals {
-  display: flex;
-  align-items: stretch;
-  gap: 18px;
-  flex-wrap: wrap;
-}
-
-.sales-summary-total-block + .sales-summary-total-block {
-  padding-top: 0;
-  border-top: 0;
-}
-
-.sales-summary-total-profit strong {
+.sales-summary-total-profit-value strong {
   color: #138a4a;
 }
 
@@ -4018,6 +4006,10 @@ body.has-wallpaper .cash-register {
 
 .sales-summary-refunded strong {
   color: #b42318;
+}
+
+.sales-summary-profit-label {
+  margin-top: 10px !important;
 }
 
 @keyframes purchase-table-enter {
@@ -4088,10 +4080,6 @@ body.has-wallpaper .cash-register {
   .purchase-total-value {
     justify-content: flex-end;
   }
-
-  .sales-summary-totals {
-    margin-left: auto;
-  }
 }
 
 @media (max-width: 860px) {
@@ -4107,15 +4095,6 @@ body.has-wallpaper .cash-register {
 
   .purchase-total-value {
     justify-content: flex-start;
-  }
-
-  .sales-summary-totals {
-    margin-left: 0;
-    width: 100%;
-  }
-
-  .sales-summary-total-block {
-    width: 100%;
   }
 }
 

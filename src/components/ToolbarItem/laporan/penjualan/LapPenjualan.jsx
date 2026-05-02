@@ -423,8 +423,8 @@ export function LapPenjualan({ onExit }) {
         )}
 
         <div className="master-table-wrapper">
-          <div className="master-table-container">
-            <table className="master-table">
+          <div className="master-table-container purchase-list-table-container">
+            <table className="master-table purchase-list-table">
               <MasterTableHeader columns={TABLE_COLUMNS} sortConfig={sortConfig} onSort={handleSort} />
               <tbody>
                 {sortedData.map((sale, index) => (
@@ -464,38 +464,33 @@ export function LapPenjualan({ onExit }) {
                 )}
               </tbody>
             </table>
-          </div>
-
-          <div className="master-table-sticky-footer purchase-table-summary sales-summary-footer">
-            <div className="purchase-table-summary-left">
-              <div className="purchase-summary-item">
-                <p>Total Rows</p>
-                <strong>{isSummaryLoading ? '...' : summary.totalRows}</strong>
+            <div className="master-table-sticky-footer purchase-table-summary sales-summary-footer">
+              <div className="purchase-table-summary-left">
+                <div className="purchase-summary-item">
+                  <p>Total Rows</p>
+                  <strong>{isSummaryLoading ? '...' : summary.totalRows}</strong>
+                </div>
+                <div className="purchase-summary-item is-approved">
+                  <p>Done</p>
+                  <strong>{isSummaryLoading ? '...' : summary.doneRows}</strong>
+                </div>
+                <div className="purchase-summary-item is-draft sales-summary-cancelled">
+                  <p>Cancelled</p>
+                  <strong>{isSummaryLoading ? '...' : summary.cancelledRows}</strong>
+                </div>
+                <div className="purchase-summary-item sales-summary-refunded">
+                  <p>Refunded</p>
+                  <strong>{isSummaryLoading ? '...' : summary.refundedRows}</strong>
+                </div>
               </div>
-              <div className="purchase-summary-item is-approved">
-                <p>Done</p>
-                <strong>{isSummaryLoading ? '...' : summary.doneRows}</strong>
-              </div>
-              <div className="purchase-summary-item is-draft sales-summary-cancelled">
-                <p>Cancelled</p>
-                <strong>{isSummaryLoading ? '...' : summary.cancelledRows}</strong>
-              </div>
-              <div className="purchase-summary-item sales-summary-refunded">
-                <p>Refunded</p>
-                <strong>{isSummaryLoading ? '...' : summary.refundedRows}</strong>
-              </div>
-            </div>
-            <div className="purchase-table-summary-right sales-summary-totals">
-              <div className="sales-summary-total-block">
+              <div className="purchase-table-summary-right">
                 <p>Total Penjualan</p>
                 <div className="purchase-total-value">
                   <span className="purchase-total-currency">Rp</span>
                   <strong>{isSummaryLoading ? '...' : formatCurrency(summary.totalPenjualan).replace(/^Rp\s?/, '')}</strong>
                 </div>
-              </div>
-              <div className="sales-summary-total-block sales-summary-total-profit">
-                <p>Total Profit</p>
-                <div className="purchase-total-value">
+                <p className="sales-summary-profit-label">Total Profit</p>
+                <div className="purchase-total-value sales-summary-total-profit-value">
                   <span className="purchase-total-currency">Rp</span>
                   <strong>{isSummaryLoading ? '...' : formatCurrency(summary.totalProfit).replace(/^Rp\s?/, '')}</strong>
                 </div>
