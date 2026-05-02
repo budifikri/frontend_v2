@@ -3996,6 +3996,17 @@ body.has-wallpaper .cash-register {
   border-top: 1px solid #b7c6d8;
 }
 
+.sales-summary-right {
+  display: flex;
+  align-items: flex-end;
+  gap: 24px;
+}
+
+.sales-summary-metric {
+  display: flex;
+  flex-direction: column;
+}
+
 .sales-summary-total-profit-value strong {
   color: #138a4a;
 }
@@ -4006,10 +4017,6 @@ body.has-wallpaper .cash-register {
 
 .sales-summary-refunded strong {
   color: #b42318;
-}
-
-.sales-summary-profit-label {
-  margin-top: 10px !important;
 }
 
 @keyframes purchase-table-enter {
@@ -4077,6 +4084,10 @@ body.has-wallpaper .cash-register {
     text-align: right;
   }
 
+  .sales-summary-right {
+    margin-left: auto;
+  }
+
   .purchase-total-value {
     justify-content: flex-end;
   }
@@ -4091,6 +4102,13 @@ body.has-wallpaper .cash-register {
   .purchase-table-summary-right {
     margin-left: 0;
     text-align: left;
+  }
+
+  .sales-summary-right {
+    width: 100%;
+    align-items: flex-start;
+    gap: 12px;
+    flex-direction: column;
   }
 
   .purchase-total-value {

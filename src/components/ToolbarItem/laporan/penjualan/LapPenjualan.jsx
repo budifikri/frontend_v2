@@ -483,16 +483,20 @@ export function LapPenjualan({ onExit }) {
                   <strong>{isSummaryLoading ? '...' : summary.refundedRows}</strong>
                 </div>
               </div>
-              <div className="purchase-table-summary-right">
-                <p>Total Penjualan</p>
-                <div className="purchase-total-value">
-                  <span className="purchase-total-currency">Rp</span>
-                  <strong>{isSummaryLoading ? '...' : formatCurrency(summary.totalPenjualan).replace(/^Rp\s?/, '')}</strong>
+              <div className="purchase-table-summary-right sales-summary-right">
+                <div className="sales-summary-metric">
+                  <p>Total Penjualan</p>
+                  <div className="purchase-total-value">
+                    <span className="purchase-total-currency">Rp</span>
+                    <strong>{isSummaryLoading ? '...' : formatCurrency(summary.totalPenjualan).replace(/^Rp\s?/, '')}</strong>
+                  </div>
                 </div>
-                <p className="sales-summary-profit-label">Total Profit</p>
-                <div className="purchase-total-value sales-summary-total-profit-value">
-                  <span className="purchase-total-currency">Rp</span>
-                  <strong>{isSummaryLoading ? '...' : formatCurrency(summary.totalProfit).replace(/^Rp\s?/, '')}</strong>
+                <div className="sales-summary-metric sales-summary-total-profit-value">
+                  <p>Total Profit</p>
+                  <div className="purchase-total-value">
+                    <span className="purchase-total-currency">Rp</span>
+                    <strong>{isSummaryLoading ? '...' : formatCurrency(summary.totalProfit).replace(/^Rp\s?/, '')}</strong>
+                  </div>
                 </div>
               </div>
             </div>
