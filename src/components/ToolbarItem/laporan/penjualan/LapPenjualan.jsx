@@ -15,6 +15,7 @@ const TABLE_COLUMNS = [
   { key: 'cashier_name', label: 'KASIR', sortable: true },
   { key: 'warehouse_name', label: 'GUDANG', sortable: true },
   { key: 'total', label: 'TOTAL', sortable: true },
+  { key: 'profit', label: 'PROFIT', sortable: true },
   { key: 'status', label: 'STATUS', sortable: true },
 ]
 
@@ -126,7 +127,15 @@ export function LapPenjualan({ onExit }) {
   })
 
   const [pagination, setPagination] = useState({ total: 0, hasMore: false })
-  const [summary, setSummary] = useState({ totalRows: 0, totalPenjualan: 0 })
+  const [summary, setSummary] = useState({
+    totalRows: 0,
+    totalPenjualan: 0,
+    totalProfit: 0,
+    doneRows: 0,
+    cancelledRows: 0,
+    refundedRows: 0,
+    pendingRows: 0,
+  })
   const [isSummaryLoading, setIsSummaryLoading] = useState(false)
   const [isAllRecords, setIsAllRecords] = useState(false)
   const [tooltipRow, setTooltipRow] = useState(null)
@@ -137,6 +146,7 @@ export function LapPenjualan({ onExit }) {
     direction: 'desc',
     valueGetters: {
       total: (row) => Number(row.total_amount) || 0,
+      profit: (row) => Number(row.total_profit) || 0,
       created_at: (row) => new Date(row.created_at || 0).getTime(),
     },
   })
@@ -217,7 +227,7 @@ export function LapPenjualan({ onExit }) {
     setIsSummaryLoading(true)
 
     if (!token) {
-      setSummary({ totalRows: 0, totalPenjualan: 0 })
+      setSummary({ totalRows: 0, totalPenjualan: 0, totalProfit: 0, doneRows: 0, cancelledRows: 0, refundedRows: 0, pendingRows: 0 })
       setIsSummaryLoading(false)
       return
     }
@@ -230,9 +240,14 @@ export function LapPenjualan({ onExit }) {
       setSummary({
         totalRows: Number(payload.total_rows ?? payload.totalRows ?? 0),
         totalPenjualan: Number(payload.total_penjualan ?? payload.totalPenjualan ?? 0),
+        totalProfit: Number(payload.total_profit ?? payload.totalProfit ?? 0),
+        doneRows: Number(payload.done_rows ?? payload.doneRows ?? 0),
+        cancelledRows: Number(payload.cancelled_rows ?? payload.cancelledRows ?? 0),
+        refundedRows: Number(payload.refunded_rows ?? payload.refundedRows ?? 0),
+        pendingRows: Number(payload.pending_rows ?? payload.pendingRows ?? 0),
       })
     } else {
-      setSummary({ totalRows: 0, totalPenjualan: 0 })
+      setSummary({ totalRows: 0, totalPenjualan: 0, totalProfit: 0, doneRows: 0, cancelledRows: 0, refundedRows: 0, pendingRows: 0 })
     }
 
     setIsSummaryLoading(false)
@@ -428,6 +443,7 @@ export function LapPenjualan({ onExit }) {
                     <td>{sale.cashier_name || '-'}</td>
                     <td>{sale.warehouse_name || '-'}</td>
                     <td className="text-right">{formatCurrency(sale.total_amount)}</td>
+                    <td className="text-right">{formatCurrency(sale.total_profit)}</td>
               <td style={{ position: 'relative' }}>
                   <span className={`status-badge status-${sale.status?.toLowerCase()}`}>
                     {getStatusLabel(sale.status)}
@@ -449,15 +465,42 @@ export function LapPenjualan({ onExit }) {
               </tbody>
             </table>
           </div>
-        </div>
 
-        <div className="stock-opname-summary ">
-          <span className="summary-title">Summary</span>
-          <div className="summary-items">     
-            <span className="summary-divider"></span>
-            <span className="summary-item summary-positive">
-              TOTAL PENJUALAN: <span className="summary-value">{isSummaryLoading ? '...' : formatCurrency(summary.totalPenjualan)}</span>
-            </span>
+          <div className="master-table-sticky-footer purchase-table-summary sales-summary-footer">
+            <div className="purchase-table-summary-left">
+              <div className="purchase-summary-item">
+                <p>Total Rows</p>
+                <strong>{isSummaryLoading ? '...' : summary.totalRows}</strong>
+              </div>
+              <div className="purchase-summary-item is-approved">
+                <p>Done</p>
+                <strong>{isSummaryLoading ? '...' : summary.doneRows}</strong>
+              </div>
+              <div className="purchase-summary-item is-draft sales-summary-cancelled">
+                <p>Cancelled</p>
+                <strong>{isSummaryLoading ? '...' : summary.cancelledRows}</strong>
+              </div>
+              <div className="purchase-summary-item sales-summary-refunded">
+                <p>Refunded</p>
+                <strong>{isSummaryLoading ? '...' : summary.refundedRows}</strong>
+              </div>
+            </div>
+            <div className="purchase-table-summary-right sales-summary-totals">
+              <div className="sales-summary-total-block">
+                <p>Total Penjualan</p>
+                <div className="purchase-total-value">
+                  <span className="purchase-total-currency">Rp</span>
+                  <strong>{isSummaryLoading ? '...' : formatCurrency(summary.totalPenjualan).replace(/^Rp\s?/, '')}</strong>
+                </div>
+              </div>
+              <div className="sales-summary-total-block sales-summary-total-profit">
+                <p>Total Profit</p>
+                <div className="purchase-total-value">
+                  <span className="purchase-total-currency">Rp</span>
+                  <strong>{isSummaryLoading ? '...' : formatCurrency(summary.totalProfit).replace(/^Rp\s?/, '')}</strong>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 

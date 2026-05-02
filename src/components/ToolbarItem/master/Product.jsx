@@ -172,6 +172,7 @@ export function Product({ onExit }) {
   const [showHppHistoryModal, setShowHppHistoryModal] = useState(false)
   const [hppHistoryData, setHppHistoryData] = useState(null)
   const [isLoadingHppHistory, setIsLoadingHppHistory] = useState(false)
+  const [hppHistoryError, setHppHistoryError] = useState('')
   const [pendingImportData, setPendingImportData] = useState(null)
   const [showToast, setShowToast] = useState(false)
   const [toastMessage, setToastMessage] = useState('')
@@ -639,6 +640,8 @@ export function Product({ onExit }) {
 
     setIsLoadingHppHistory(true)
     setShowHppHistoryModal(true)
+    setHppHistoryError('')
+    setHppHistoryData(null)
 
     try {
       if (!token) {
@@ -666,8 +669,7 @@ export function Product({ onExit }) {
         setHppHistoryData(result)
       }
     } catch (err) {
-      setError(err.message || 'Failed to load History Hpp')
-      setShowHppHistoryModal(false)
+      setHppHistoryError(err.message || 'Failed to load History Hpp')
     } finally {
       setIsLoadingHppHistory(false)
     }
@@ -1521,95 +1523,95 @@ export function Product({ onExit }) {
       )}
 
       {showHppHistoryModal && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(15, 23, 42, 0.55)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1100,
-            padding: 24,
-          }}
-        >
-          <div
-            style={{
-              width: 'min(1100px, 100%)',
-              maxHeight: '85vh',
-              overflow: 'hidden',
-              background: '#0f172a',
-              border: '1px solid rgba(148, 163, 184, 0.18)',
-              borderRadius: 20,
-              boxShadow: '0 24px 80px rgba(15, 23, 42, 0.45)',
-              color: '#e2e8f0',
-              display: 'flex',
-              flexDirection: 'column',
-            }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, padding: '20px 24px 16px', borderBottom: '1px solid rgba(148, 163, 184, 0.14)' }}>
-              <div>
-                <div style={{ fontSize: 20, fontWeight: 700 }}>History Hpp</div>
-                <div style={{ fontSize: 13, color: '#94a3b8', marginTop: 6 }}>
-                  {hppHistoryData?.name || selectedProductForHistory?.name || '-'}
-                  {' · '}
-                  {hppHistoryData?.sku || selectedProductForHistory?.sku || '-'}
-                </div>
+        <div className="delete-master-overlay" onClick={() => setShowHppHistoryModal(false)}>
+          <div className="stock-card-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="delete-master-header">
+              <div className="stock-card-header-left">
+                <span className="material-icons-round material-icon orange">history</span>
+                <h2>History Hpp</h2>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: 12, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Current HPP</div>
-                  <div style={{ fontSize: 18, fontWeight: 700, color: '#f8fafc' }}>{formatCurrency(hppHistoryData?.current_cost_price ?? form.cost_price)}</div>
+              <div className="stock-card-header-right">
+                <div className="sale-detail-meta">
+                  <div className="sale-detail-meta-item">
+                    <span className="sale-detail-meta-label">Product</span>
+                    <span className="sale-detail-meta-value">{hppHistoryData?.name || selectedProductForHistory?.name || '-'}</span>
+                  </div>
+                  <div className="sale-detail-meta-item">
+                    <span className="sale-detail-meta-label">SKU</span>
+                    <span className="sale-detail-meta-value">{hppHistoryData?.sku || selectedProductForHistory?.sku || '-'}</span>
+                  </div>
+                  <div className="sale-detail-meta-item">
+                    <span className="sale-detail-meta-label">Current HPP</span>
+                    <span className="sale-detail-meta-value">{formatCurrency(hppHistoryData?.current_cost_price ?? form.cost_price)}</span>
+                  </div>
                 </div>
-                <button
-                  type="button"
-                  className="master-search-btn"
-                  onClick={() => setShowHppHistoryModal(false)}
-                  title="Tutup"
-                >
-                  <span className="material-icons-round material-icon">close</span>
-                </button>
               </div>
             </div>
 
-            <div style={{ padding: 24, overflow: 'auto' }}>
-              {isLoadingHppHistory ? (
-                <div style={{ color: '#94a3b8' }}>Memuat History Hpp...</div>
-              ) : (
-                <table className="master-table">
-                  <thead>
-                    <tr>
-                      <th>Tanggal</th>
-                      <th>Event</th>
-                      <th>Referensi</th>
-                      <th className="text-right">Qty</th>
-                      <th className="text-right">Unit Cost</th>
-                      <th className="text-right">HPP</th>
-                      <th>Warehouse</th>
-                      <th>Notes</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(hppHistoryData?.events || []).map((event) => (
-                      <tr key={`${event.reference_id}-${event.seq}`}>
-                        <td>{formatDateTime(event.event_date)}</td>
-                        <td>{event.event_type === 'OPENING_STOCK' ? 'Opening Stock' : 'Purchase Receive'}</td>
-                        <td>{event.reference_number || '-'}</td>
-                        <td className="text-right">{Number(event.qty || 0).toLocaleString('id-ID')}</td>
-                        <td className="text-right">{formatCurrency(event.unit_cost)}</td>
-                        <td className="text-right">{formatCurrency(event.hpp)}</td>
-                        <td>{event.warehouse_name || '-'}</td>
-                        <td>{event.notes || '-'}</td>
-                      </tr>
-                    ))}
-                    {!isLoadingHppHistory && (hppHistoryData?.events || []).length === 0 && (
-                      <tr>
-                        <td colSpan={8} className="text-center">Belum ada histori HPP untuk product ini</td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
+            <div className="stock-card-body">
+              {isLoadingHppHistory && (
+                <div className="stock-card-loading">
+                  <span className="material-icons-round animate-spin">sync</span>
+                  <span>Memuat History Hpp...</span>
+                </div>
               )}
+
+              {hppHistoryError && !isLoadingHppHistory && !hppHistoryData && (
+                <div className="stock-card-error">
+                  <span className="material-icons-round material-icon red">error</span>
+                  <span>{hppHistoryError}</span>
+                </div>
+              )}
+
+              {!isLoadingHppHistory && (hppHistoryData || !hppHistoryError) && (
+                <div className="master-table-container">
+                  <table className="master-table">
+                    <thead>
+                      <tr>
+                        <th>Tanggal</th>
+                        <th>Event</th>
+                        <th>Referensi</th>
+                        <th className="text-right">Qty</th>
+                        <th className="text-right">Unit Cost</th>
+                        <th className="text-right">HPP</th>
+                        <th>Warehouse</th>
+                        <th>Notes</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(hppHistoryData?.events || []).map((event, index) => (
+                        <tr key={`${event.reference_id}-${event.seq}`} className={index % 2 === 0 ? 'row-even' : 'row-odd'}>
+                          <td>{formatDateTime(event.event_date)}</td>
+                          <td>{event.event_type === 'OPENING_STOCK' ? 'Opening Stock' : 'Purchase Receive'}</td>
+                          <td>{event.reference_number || '-'}</td>
+                          <td className="text-right">{Number(event.qty || 0).toLocaleString('id-ID')}</td>
+                          <td className="text-right">{formatCurrency(event.unit_cost)}</td>
+                          <td className="text-right">{formatCurrency(event.hpp)}</td>
+                          <td>{event.warehouse_name || '-'}</td>
+                          <td>{event.notes || '-'}</td>
+                        </tr>
+                      ))}
+                      {!isLoadingHppHistory && (hppHistoryData?.events || []).length === 0 && (
+                        <tr>
+                          <td colSpan={8} className="text-center">Belum ada histori HPP untuk product ini</td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+            <div className="stock-card-footer">
+              <div className="stock-card-footer-left">
+                <button type="button" className="master-footer-btn" onClick={() => setShowHppHistoryModal(false)}>
+                  <span className="material-icons-round master-footer-icon red">exit_to_app</span>
+                </button>
+              </div>
+              <div className="stock-card-footer-right">
+                <span className="stock-card-total-row">Total Row: {(hppHistoryData?.events || []).length}</span>
+                <span className="stock-card-total-row sale-detail-footer-total">Current HPP: {formatCurrency(hppHistoryData?.current_cost_price ?? form.cost_price)}</span>
+              </div>
             </div>
           </div>
         </div>
