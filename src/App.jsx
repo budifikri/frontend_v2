@@ -69,6 +69,22 @@ function AppContent() {
   }, [])
 
   useEffect(() => {
+    const handleStorageChange = (e) => {
+      if (e.key === 'theme-wallpaper') {
+        const newWallpaper = e.newValue || import.meta.env.VITE_DEFAULT_WALLPAPER
+        applyWallpaper(newWallpaper)
+      }
+      if (e.key === 'theme-title-color') {
+        const newTitleColor = e.newValue || import.meta.env.VITE_DEFAULT_TITLEBAR_COLOR
+        if (newTitleColor) applyTitlebarColors(newTitleColor)
+      }
+    }
+
+    window.addEventListener('storage', handleStorageChange)
+    return () => window.removeEventListener('storage', handleStorageChange)
+  }, [])
+
+  useEffect(() => {
     if (view !== 'dashboard') return
 
     const handleKeyDown = (event) => {

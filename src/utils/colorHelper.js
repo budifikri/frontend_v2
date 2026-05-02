@@ -23,7 +23,7 @@ export function applyWallpaper(wallpaper) {
   if (typeof document === 'undefined') return
 
   if (wallpaper) {
-    document.documentElement.style.setProperty('--app-wallpaper', `url(${wallpaper})`)
+    document.documentElement.style.setProperty('--app-wallpaper', `url("${wallpaper}")`)
     document.body.classList.add('has-wallpaper')
     return
   }

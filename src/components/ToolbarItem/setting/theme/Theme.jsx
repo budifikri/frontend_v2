@@ -232,7 +232,11 @@ export function Theme({ onExit }) {
                     <div
                       key={index}
                       className={`browse-item ${wallpaper === img ? 'selected' : ''}`}
-                      onClick={() => { setWallpaper(img); setShowBrowse(false); }}
+                      onClick={() => {
+                        setWallpaper(img)
+                        applyWallpaper(img)
+                        setShowBrowse(false)
+                      }}
                     >
                       <img src={img} alt={`Wallpaper ${index + 1}`} />
                     </div>
