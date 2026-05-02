@@ -22,12 +22,27 @@ export function applyTitlebarColors(gradient) {
 export function applyWallpaper(wallpaper) {
   if (typeof document === 'undefined') return
 
+  const canvases = document.querySelectorAll('.dashboard-canvas')
+
   if (wallpaper) {
-    document.documentElement.style.setProperty('--app-wallpaper', `url("${wallpaper}")`)
+    const wallpaperUrl = `url("${wallpaper}")`
+    document.documentElement.style.setProperty('--app-wallpaper', wallpaperUrl)
     document.body.classList.add('has-wallpaper')
+
+    // Directly apply to dashboard canvas elements for immediate effect
+    canvases.forEach(el => {
+      el.style.backgroundImage = `${wallpaperUrl}, radial-gradient(ellipse at center, rgba(255, 255, 255, 0.08) 0%, transparent 70%)`
+      el.style.backgroundColor = 'transparent'
+    })
     return
   }
 
   document.documentElement.style.setProperty('--app-wallpaper', 'none')
   document.body.classList.remove('has-wallpaper')
+
+  // Reset dashboard canvas elements
+  canvases.forEach(el => {
+    el.style.backgroundImage = ''
+    el.style.backgroundColor = ''
+  })
 }

@@ -627,6 +627,10 @@
   overflow: hidden;
 }
 
+body.has-wallpaper .dashboard-canvas {
+  background-color: transparent;
+}
+
 .dashboard-canvas .master-content {
   flex: 1;
   display: flex;

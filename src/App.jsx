@@ -80,8 +80,22 @@ function AppContent() {
       }
     }
 
+    const handleThemeChange = (e) => {
+      const { wallpaper: newWallpaper, titleColor: newTitleColor } = e.detail
+      if (newWallpaper !== undefined) {
+        applyWallpaper(newWallpaper)
+      }
+      if (newTitleColor !== undefined) {
+        applyTitlebarColors(newTitleColor)
+      }
+    }
+
     window.addEventListener('storage', handleStorageChange)
-    return () => window.removeEventListener('storage', handleStorageChange)
+    window.addEventListener('theme-changed', handleThemeChange)
+    return () => {
+      window.removeEventListener('storage', handleStorageChange)
+      window.removeEventListener('theme-changed', handleThemeChange)
+    }
   }, [])
 
   useEffect(() => {

@@ -60,6 +60,11 @@ export function Theme({ onExit }) {
     applyTitlebarColors(titleColor)
     applyWallpaper(wallpaper)
 
+    // Dispatch custom event for same-tab communication
+    window.dispatchEvent(new CustomEvent('theme-changed', {
+      detail: { wallpaper, titleColor }
+    }))
+
     if (onExit) onExit()
   }
 
