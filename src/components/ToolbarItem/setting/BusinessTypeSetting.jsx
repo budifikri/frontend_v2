@@ -3,6 +3,9 @@ import { useCallback, useEffect, useState } from 'react'
 import { Toast } from '../../../components/Toast'
 import { listBusinessTypes, createBusinessType, updateBusinessType } from '../../../features/setting/businessType/businessType.api'
 import { useAuth } from '../../../shared/auth'
+import { MasterTableHeader } from '../table/MasterTableHeader'
+import { MasterStatusToggle } from '../table/MasterStatusToggle'
+import { MasterDefaultToggle } from '../table/MasterDefaultToggle'
 
 const DEFAULT_FORM = {
   code: '',
@@ -12,6 +15,14 @@ const DEFAULT_FORM = {
   is_default: false,
   is_system: false,
 }
+
+const TABLE_COLUMNS = [
+  { key: 'code', label: 'CODE' },
+  { key: 'name', label: 'NAME' },
+  { key: 'is_active', label: 'STATUS' },
+  { key: 'is_default', label: 'DEFAULT' },
+  { key: 'is_system', label: 'SYSTEM' },
+]
 
 export function BusinessTypeSetting({ onExit }) {
   const { auth } = useAuth()
@@ -24,6 +35,8 @@ export function BusinessTypeSetting({ onExit }) {
   const [showForm, setShowForm] = useState(false)
   const [isNewMode, setIsNewMode] = useState(true)
   const [selectedItem, setSelectedItem] = useState(null)
+  const [selectedId, setSelectedId] = useState(null)
+  const [togglingId, setTogglingId] = useState(null)
   const [form, setForm] = useState(DEFAULT_FORM)
   const [showToast, setShowToast] = useState(false)
 
@@ -54,6 +67,7 @@ export function BusinessTypeSetting({ onExit }) {
 
   function openEditForm(item) {
     setSelectedItem(item)
+    setSelectedId(item.id)
     setForm({
       code: item.code || '',
       name: item.name || '',
@@ -64,6 +78,54 @@ export function BusinessTypeSetting({ onExit }) {
     })
     setIsNewMode(false)
     setShowForm(true)
+  }
+
+  function handleSelect(item) {
+    setSelectedId(item.id)
+  }
+
+  async function handleToggleStatus(item) {
+    if (!item?.id || togglingId) return
+
+    const nextIsActive = !item.is_active
+    if (token) {
+      setTogglingId(item.id)
+      try {
+        await updateBusinessType(token, item.id, { is_active: nextIsActive })
+        await fetchData()
+      } catch (err) {
+        setError(err.message || 'Failed to update status')
+      } finally {
+        setTogglingId(null)
+      }
+      return
+    }
+
+    setItems((prev) => prev.map((row) =>
+      row.id === item.id ? { ...row, is_active: nextIsActive } : row
+    ))
+  }
+
+  async function handleToggleDefault(item) {
+    if (!item?.id || togglingId) return
+
+    const nextIsDefault = !item.is_default
+    if (token) {
+      setTogglingId(item.id)
+      try {
+        await updateBusinessType(token, item.id, { is_default: nextIsDefault })
+        await fetchData()
+      } catch (err) {
+        setError(err.message || 'Failed to update default status')
+      } finally {
+        setTogglingId(null)
+      }
+      return
+    }
+
+    setItems((prev) => prev.map((row) =>
+      row.id === item.id ? { ...row, is_default: nextIsDefault } : row
+    ))
   }
 
   async function handleSave() {
@@ -109,22 +171,37 @@ export function BusinessTypeSetting({ onExit }) {
       <div className="master-table-wrapper">
         <div className="master-table-container">
           <table className="master-table">
-            <thead>
-              <tr>
-                <th>CODE</th>
-                <th>NAME</th>
-                <th>STATUS</th>
-                <th>DEFAULT</th>
-                <th>SYSTEM</th>
-              </tr>
-            </thead>
+            <MasterTableHeader columns={TABLE_COLUMNS} />
             <tbody>
               {items.map((item) => (
-                <tr key={item.id} className="master-row" onDoubleClick={() => openEditForm(item)}>
+                <tr
+                  key={item.id}
+                  className={selectedId === item.id ? 'master-row-selected' : 'master-row'}
+                  onClick={() => handleSelect(item)}
+                  onDoubleClick={() => openEditForm(item)}
+                >
                   <td>{item.code}</td>
                   <td>{item.name}</td>
-                  <td>{item.is_active ? 'Active' : 'Inactive'}</td>
-                  <td>{item.is_default ? 'Yes' : 'No'}</td>
+                  <td>
+                    <MasterStatusToggle
+                      active={item.is_active}
+                      loading={togglingId === item.id}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleToggleStatus(item)
+                      }}
+                    />
+                  </td>
+                  <td>
+                    <MasterDefaultToggle
+                      active={item.is_default}
+                      loading={togglingId === item.id}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleToggleDefault(item)
+                      }}
+                    />
+                  </td>
                   <td>{item.is_system ? 'Yes' : 'No'}</td>
                 </tr>
               ))}
