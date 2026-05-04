@@ -9,8 +9,10 @@ export const toolbarItems = {
     { key: 'divider-3', divider: true },
     { key: 'customer', label: 'Customer', mark: 'C', tone: 'pink', filter: { businessType: ['retail', 'clinic'], moduleCodes: ['retail_basic', 'clinic_core'] } },
     { key: 'supplier', label: 'Supplier', mark: 'S', tone: 'lime', filter: { businessType: ['retail', 'clinic'], moduleCodes: ['retail_basic', 'clinic_core'] } },
-    { key: 'dokter', label: 'Dokter', mark: 'D', tone: 'cyan', filter: { businessType: ['clinic'], moduleCodes: ['clinic_core'] } },
-  
+{ key: 'dokter', label: 'Dokter', mark: 'D', tone: 'cyan', filter: { businessType: ['clinic'], moduleCodes: ['clinic_core'] } },
+    { key: 'jadwal_dokter', label: 'Jadwal Dokter', mark: 'J', tone: 'teal', filter: { businessType: ['clinic'], moduleCodes: ['clinic_core'] } },
+   
+
 
 
   ],
