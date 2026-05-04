@@ -41,8 +41,8 @@ const DEFAULT_PRICE_TIER = [
 ]
 
 const DUMMY_CATEGORIES = [
-  { id: 'CAT001', name: 'Makanan' },
-  { id: 'CAT002', name: 'Minuman' },
+  { id: 'CAT001', name: 'Makanan', product_type: 'stockable' },
+  { id: 'CAT002', name: 'Minuman', product_type: 'stockable' },
 ]
 
 const DUMMY_UNITS = [
@@ -120,6 +120,11 @@ function isActiveProduct(item) {
   return String(item?.status ?? 'active').toLowerCase() !== 'inactive'
 }
 
+function normalizeProductType(value) {
+  if (value === 'service' || value === 'consumable') return value
+  return 'stockable'
+}
+
 function normalizeProductItem(raw, index) {
   return {
     id: raw?.id || `product-${index}`,
@@ -128,7 +133,9 @@ function normalizeProductItem(raw, index) {
     name: raw?.name || raw?.product_name || '-',
     description: raw?.description || raw?.product_description || '',
     category_id: raw?.category_id || raw?.category?.id || '',
-    category: raw?.category || { id: raw?.category_id || '', name: raw?.category_name || '-' },
+    category: raw?.category
+      ? { ...raw.category, product_type: normalizeProductType(raw?.category?.product_type) }
+      : { id: raw?.category_id || '', name: raw?.category_name || '-', product_type: normalizeProductType(raw?.category?.product_type || raw?.category_type) },
     category_name: raw?.category_name || raw?.category?.name || '-',
     unit_id: raw?.unit_id || raw?.unit?.id || '',
     unit: raw?.unit || { id: raw?.unit_id || '', name: raw?.unit_name || '-' },
@@ -203,6 +210,16 @@ export function Product({ onExit }) {
     return map
   }, [units])
 
+  const selectedCategory = useMemo(() => {
+    if (!form.category_id) return null
+    return categories.find((item) => String(item?.id || '') === String(form.category_id)) || null
+  }, [categories, form.category_id])
+
+  const selectedCategoryType = normalizeProductType(selectedCategory?.product_type)
+  const isServiceCategory = selectedCategoryType === 'service'
+  const isConsumableCategory = selectedCategoryType === 'consumable'
+  const isStockManagedCategory = selectedCategoryType !== 'service'
+
   const fetchWarehouses = useCallback(async () => {
     if (!token) {
       setWarehouses(DUMMY_WAREHOUSES)
@@ -232,7 +249,10 @@ export function Product({ onExit }) {
         listUnits(token, { limit: 200, offset: 0, include_inactive: true }),
         listWarehouses(token, { limit: 200, offset: 0 }),
       ])
-      setCategories(catRes.items || [])
+      setCategories((catRes.items || []).map((item) => ({
+        ...item,
+        product_type: normalizeProductType(item?.product_type),
+      })))
       setUnits(unitRes.items || [])
       setWarehouses(warehouseRes.items || [])
     } catch {
@@ -518,9 +538,10 @@ export function Product({ onExit }) {
       description: form.description || undefined,
       category_id: form.category_id || undefined,
       unit_id: form.unit_id || undefined,
-      retail_price: Number(form.retail_price || 0),
+      cost_price: isServiceCategory ? 0 : Number(form.cost_price || 0),
+      retail_price: isConsumableCategory ? 0 : Number(form.retail_price || 0),
       tax_rate: Number(form.tax_rate || 0),
-      reorder_point: Number(form.reorder_point || 0),
+      reorder_point: isServiceCategory ? 0 : Number(form.reorder_point || 0),
     }
 
     try {
@@ -581,7 +602,7 @@ export function Product({ onExit }) {
             }))
           console.log('[Product] Saving price tiers:', priceTierPayload)
           
-          if (priceTierPayload.length > 0) {
+          if (!isConsumableCategory && priceTierPayload.length > 0) {
             const validationErrors = validatePriceTiers(priceTierPayload, Number(form.retail_price || 0))
             if (validationErrors.length > 0) {
               setToastMessage(validationErrors.join('\n'))
@@ -677,6 +698,23 @@ export function Product({ onExit }) {
 
   function handleSelect(row) {
     setSelectedId(row.id)
+  }
+
+  function handleCategoryChange(categoryId) {
+    const nextCategory = categories.find((item) => String(item?.id || '') === String(categoryId)) || null
+    const nextType = normalizeProductType(nextCategory?.product_type)
+
+    setForm((prev) => ({
+      ...prev,
+      category_id: categoryId,
+      cost_price: nextType === 'service' ? 0 : prev.cost_price,
+      retail_price: nextType === 'consumable' ? 0 : prev.retail_price,
+      reorder_point: nextType === 'service' ? 0 : prev.reorder_point,
+    }))
+
+    if ((nextType === 'service' && activeTab === 'adjustStock') || (nextType === 'consumable' && activeTab === 'hargaGrosir')) {
+      setActiveTab('general')
+    }
   }
 
   function handleNew() {
@@ -1185,20 +1223,24 @@ export function Product({ onExit }) {
               </button>
               {selectedItem && (
                 <>
-                  <button
-                    type="button"
-                    className={`product-form-tab ${activeTab === 'adjustStock' ? 'active' : ''}`}
-                    onClick={() => setActiveTab('adjustStock')}
-                  >
-                    Adjust Stock
-                  </button>
-                  <button
-                    type="button"
-                    className={`product-form-tab ${activeTab === 'hargaGrosir' ? 'active' : ''}`}
-                    onClick={() => setActiveTab('hargaGrosir')}
-                  >
-                    Harga Grosir
-                  </button>
+                  {isStockManagedCategory && (
+                    <button
+                      type="button"
+                      className={`product-form-tab ${activeTab === 'adjustStock' ? 'active' : ''}`}
+                      onClick={() => setActiveTab('adjustStock')}
+                    >
+                      Adjust Stock
+                    </button>
+                  )}
+                  {!isConsumableCategory && (
+                    <button
+                      type="button"
+                      className={`product-form-tab ${activeTab === 'hargaGrosir' ? 'active' : ''}`}
+                      onClick={() => setActiveTab('hargaGrosir')}
+                    >
+                      Harga Grosir
+                    </button>
+                  )}
                 </>
               )}
             </div>
@@ -1224,7 +1266,7 @@ export function Product({ onExit }) {
               </div>
               <div className="master-form-group">
                 <label className="master-form-label">Category :</label>
-                <select value={form.category_id} onChange={(e) => setForm({ ...form, category_id: e.target.value })} className="master-form-input">
+                <select value={form.category_id} onChange={(e) => handleCategoryChange(e.target.value)} className="master-form-input">
                   <option value="">(none)</option>
                   {categories.map((item) => (
                     <option key={item.id} value={item.id}>{item.name}</option>
@@ -1240,38 +1282,44 @@ export function Product({ onExit }) {
                   ))}
                 </select>
               </div>
-              <div className="master-form-group">
-                <label className="master-form-label">Cost :</label>
-                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                  <input type="number" value={form.cost_price} readOnly className="master-form-input master-form-input-readonly" />
-                  <button
-                    type="button"
-                    className="master-search-btn"
-                    title="History Hpp"
-                    onClick={handleOpenHppHistory}
-                    disabled={isNewMode || !selectedProductForHistory?.id}
-                    style={{ minWidth: 40, opacity: isNewMode || !selectedProductForHistory?.id ? 0.55 : 1 }}
-                  >
-                    <span className="material-icons-round material-icon">history</span>
-                  </button>
+              {!isServiceCategory && (
+                <div className="master-form-group">
+                  <label className="master-form-label">Cost :</label>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <input type="number" value={form.cost_price} readOnly className="master-form-input master-form-input-readonly" />
+                    <button
+                      type="button"
+                      className="master-search-btn"
+                      title="History Hpp"
+                      onClick={handleOpenHppHistory}
+                      disabled={isNewMode || !selectedProductForHistory?.id}
+                      style={{ minWidth: 40, opacity: isNewMode || !selectedProductForHistory?.id ? 0.55 : 1 }}
+                    >
+                      <span className="material-icons-round material-icon">history</span>
+                    </button>
+                  </div>
                 </div>
-              </div>
-              <div className="master-form-group">
-                <label className="master-form-label">Harga Jual :</label>
-                <input type="number" value={form.retail_price} onChange={(e) => setForm({ ...form, retail_price: Number(e.target.value) })} className="master-form-input" />
-              </div>
+              )}
+              {!isConsumableCategory && (
+                <div className="master-form-group">
+                  <label className="master-form-label">Harga Jual :</label>
+                  <input type="number" value={form.retail_price} onChange={(e) => setForm({ ...form, retail_price: Number(e.target.value) })} className="master-form-input" />
+                </div>
+              )}
               <div className="master-form-group">
                 <label className="master-form-label">Tax Rate :</label>
                 <input type="number" value={form.tax_rate} onChange={(e) => setForm({ ...form, tax_rate: Number(e.target.value) })} className="master-form-input" />
               </div>
-              <div className="master-form-group">
-                <label className="master-form-label">Reorder :</label>
-                <input type="number" value={form.reorder_point} onChange={(e) => setForm({ ...form, reorder_point: Number(e.target.value) })} className="master-form-input" />
-              </div>
+              {isStockManagedCategory && (
+                <div className="master-form-group">
+                  <label className="master-form-label">Reorder :</label>
+                  <input type="number" value={form.reorder_point} onChange={(e) => setForm({ ...form, reorder_point: Number(e.target.value) })} className="master-form-input" />
+                </div>
+              )}
             </div>
           )}
 
-          {activeTab === 'adjustStock' && (
+          {activeTab === 'adjustStock' && isStockManagedCategory && (
             <div className="master-form-grid">
              <div className="master-form-group"></div>
               <div className="master-form-group">
@@ -1345,7 +1393,7 @@ export function Product({ onExit }) {
             
           )}
 
-          {activeTab === 'hargaGrosir' && (
+          {activeTab === 'hargaGrosir' && !isConsumableCategory && (
             <div className="master-form-grid">   <div className="master-form-group"></div>
               <div className="master-form-group">
                 <label className="master-form-label">SKU :</label>

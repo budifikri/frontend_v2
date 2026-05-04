@@ -18,20 +18,28 @@ import { Toast } from '../../../components/Toast'
 const DEFAULT_FORM = {
   code: '',
   name: '',
+  product_type: 'stockable',
   description: '',
   parent_id: '',
 }
 
 const DUMMY_CATEGORIES = [
-  { id: 'CAT001', code: 'CAT001', name: 'Makanan', description: '', parent_id: '', is_active: true },
-  { id: 'CAT002', code: 'CAT002', name: 'Minuman', description: '', parent_id: '', is_active: true },
-  { id: 'CAT003', code: 'CAT003', name: 'ATK', description: '', parent_id: '', is_active: false },
+  { id: 'CAT001', code: 'CAT001', name: 'Makanan', product_type: 'stockable', description: '', parent_id: '', is_active: true },
+  { id: 'CAT002', code: 'CAT002', name: 'Minuman', product_type: 'stockable', description: '', parent_id: '', is_active: true },
+  { id: 'CAT003', code: 'CAT003', name: 'ATK', product_type: 'consumable', description: '', parent_id: '', is_active: false },
+]
+
+const PRODUCT_TYPE_OPTIONS = [
+  { value: 'stockable', label: 'Stockable' },
+  { value: 'service', label: 'Service' },
+  { value: 'consumable', label: 'Consumable' },
 ]
 
 const TABLE_COLUMNS = [
   { key: 'no', label: 'NO', sortable: false },
   { key: 'code', label: 'CODE' },
   { key: 'name', label: 'NAME' },
+  { key: 'product_type', label: 'TYPE' },
   { key: 'parent_id', label: 'PARENT' },
   { key: 'is_active', label: 'STATUS' },
 ]
@@ -39,12 +47,22 @@ const TABLE_COLUMNS = [
 const EXCEL_COLUMNS = [
   { key: 'code', label: 'CODE' },
   { key: 'name', label: 'NAME' },
+  { key: 'product_type', label: 'PRODUCT_TYPE' },
   { key: 'description', label: 'DESCRIPTION' },
   { key: 'parent_id', label: 'PARENT' },
 ]
 
 function isActiveCategory(item) {
   return Boolean(item?.is_active ?? true)
+}
+
+function normalizeProductType(value) {
+  if (value === 'service' || value === 'consumable') return value
+  return 'stockable'
+}
+
+function formatProductTypeLabel(value) {
+  return PRODUCT_TYPE_OPTIONS.find((item) => item.value === normalizeProductType(value))?.label || 'Stockable'
 }
 
 export function Category({ onExit }) {
@@ -111,7 +129,10 @@ export function Category({ onExit }) {
         is_active: isActiveFilter === 'all' ? undefined : isActiveFilter === 'active',
         include_inactive: isActiveFilter === 'all' ? true : undefined,
       })
-      const items = result.items || []
+      const items = (result.items || []).map((item) => ({
+        ...item,
+        product_type: normalizeProductType(item?.product_type),
+      }))
       const nextPagination = result.pagination || {}
 
       setData(items)
@@ -202,6 +223,7 @@ export function Category({ onExit }) {
       const payload = {
         code: form.code,
         name: form.name,
+        product_type: normalizeProductType(form.product_type),
         description: form.description,
         parent_id: form.parent_id || undefined,
       }
@@ -248,6 +270,7 @@ export function Category({ onExit }) {
     setForm({
       code: target.code || '',
       name: target.name || '',
+      product_type: normalizeProductType(target.product_type),
       description: target.description || '',
       parent_id: target.parent_id || '',
     })
@@ -264,6 +287,7 @@ export function Category({ onExit }) {
     setForm({
       code: nextItem.code || '',
       name: nextItem.name || '',
+      product_type: normalizeProductType(nextItem.product_type),
       description: nextItem.description || '',
       parent_id: nextItem.parent_id || '',
     })
@@ -278,6 +302,7 @@ export function Category({ onExit }) {
     setForm({
       code: prevItem.code || '',
       name: prevItem.name || '',
+      product_type: normalizeProductType(prevItem.product_type),
       description: prevItem.description || '',
       parent_id: prevItem.parent_id || '',
     })
@@ -350,6 +375,7 @@ export function Category({ onExit }) {
       { key: 'no', label: 'NO', align: 'text-center', formatter: (_, __, index) => index + 1 },
       { key: 'code', label: 'KODE' },
       { key: 'name', label: 'NAMA' },
+      { key: 'product_type', label: 'TIPE', formatter: (v) => formatProductTypeLabel(v) },
       { key: 'description', label: 'DESKRIPSI' },
       { key: 'parent_id', label: 'PARENT', align: 'text-center' },
       { key: 'is_active', label: 'STATUS', align: 'text-center', formatter: (v) => v ? 'Aktif' : 'Non-Aktif' },
@@ -398,6 +424,7 @@ export function Category({ onExit }) {
     const exportData = data.map(row => ({
       CODE: row.code || '',
       NAME: row.name || '',
+      PRODUCT_TYPE: normalizeProductType(row.product_type),
       DESCRIPTION: row.description || '',
       PARENT: row.parent_id || '',
     }))
@@ -430,6 +457,7 @@ export function Category({ onExit }) {
       const itemData = {
         code,
         name: row.NAME || row.name || '',
+        product_type: normalizeProductType(row.PRODUCT_TYPE || row.product_type),
         description: row.DESCRIPTION || row.description || '',
         parent_id: row.PARENT || row.parent_id || '',
         is_active: true,
@@ -542,6 +570,7 @@ export function Category({ onExit }) {
                   <td>{offset + index + 1}</td>
                   <td>{row.code || '-'}</td>
                   <td>{row.name || '-'}</td>
+                  <td>{formatProductTypeLabel(row.product_type)}</td>
                   <td>{row.parent_id || '-'}</td>
                   <td>
                     <MasterStatusToggle
@@ -557,7 +586,7 @@ export function Category({ onExit }) {
               ))}
               {!isLoading && sortedData.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="text-center">No data</td>
+                  <td colSpan={6} className="text-center">No data</td>
                 </tr>
               )}
             </tbody>
@@ -580,6 +609,14 @@ export function Category({ onExit }) {
             <div className="master-form-group">
               <label className="master-form-label">Nama :</label>
               <input type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="master-form-input" />
+            </div>
+            <div className="master-form-group">
+              <label className="master-form-label">Tipe Product :</label>
+              <select value={form.product_type} onChange={(e) => setForm({ ...form, product_type: normalizeProductType(e.target.value) })} className="master-form-input">
+                {PRODUCT_TYPE_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
+                ))}
+              </select>
             </div>
             <div className="master-form-group-wide">
               <label className="master-form-label">Deskripsi :</label>
