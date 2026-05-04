@@ -1,17 +1,24 @@
-import { useCallback, useEffect, useState, useRef } from 'react'
-import { useAuth } from '../../../shared/auth'
-import { createJadwalDokter, deleteJadwalDokter, listJadwalDokter, updateJadwalDokter, getDokters } from '../../../features/master/jadwal_dokter/jadwal_dokter.api'
-import { openReportPrintWindow } from '../../../utils/reportPrint'
-import { FooterMaster } from '../footer/FooterMaster'
-import { FooterFormMaster } from '../footer/FooterFormMaster'
-import { DeleteMaster } from '../footer/DeleteMaster'
-import { MasterTableHeader } from '../table/MasterTableHeader'
-import { MasterStatusToggle } from '../table/MasterStatusToggle'
-import { useMasterTableSort } from '../../../hooks/useMasterTableSort'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+
+import { Toast } from '../../../components/Toast'
+import { listDokters } from '../../../features/master/dokter/dokter.api'
+import {
+  createJadwalDokter,
+  deleteJadwalDokter,
+  listJadwalDokter,
+  updateJadwalDokter,
+} from '../../../features/master/jadwal_dokter/jadwal_dokter.api'
 import { useMasterPagination } from '../../../hooks/useMasterPagination'
 import { useMasterTableKeyboardNav } from '../../../hooks/useMasterTableKeyboardNav'
+import { useMasterTableSort } from '../../../hooks/useMasterTableSort'
+import { useAuth } from '../../../shared/auth'
 import { exportToExcel } from '../../../utils/excelUtils'
-import { Toast } from '../../../components/Toast'
+import { openReportPrintWindow } from '../../../utils/reportPrint'
+import { DeleteMaster } from '../footer/DeleteMaster'
+import { FooterFormMaster } from '../footer/FooterFormMaster'
+import { FooterMaster } from '../footer/FooterMaster'
+import { MasterStatusToggle } from '../table/MasterStatusToggle'
+import { MasterTableHeader } from '../table/MasterTableHeader'
 
 const DEFAULT_FORM = {
   dokter_id: '',
@@ -31,16 +38,32 @@ const TABLE_COLUMNS = [
   { key: 'is_active', label: 'STATUS' },
 ]
 
+const PRINT_COLUMNS = [
+  { key: 'no', label: 'No', align: 'text-center' },
+  { key: 'dokter_nama', label: 'Dokter' },
+  { key: 'hari', label: 'Hari' },
+  { key: 'jam_mulai', label: 'Jam Mulai', align: 'text-center' },
+  { key: 'jam_selesai', label: 'Jam Selesai', align: 'text-center' },
+  {
+    key: 'is_active',
+    label: 'Status',
+    formatter: (value) => (value ? 'Active' : 'Inactive'),
+    align: 'text-center',
+  },
+]
+
 const EXCEL_COLUMNS = [
   { key: 'dokter_nama', label: 'DOKTER' },
   { key: 'hari', label: 'HARI' },
   { key: 'jam_mulai', label: 'JAM MULAI' },
   { key: 'jam_selesai', label: 'JAM SELESAI' },
+  { key: 'status_label', label: 'STATUS' },
 ]
 
 const DUMMY_DATA = [
   {
-    id: 'JD001',
+    id: 'jd-1',
+    dokter_id: 'dok-1',
     dokter_nama: 'Dr. Budi Santoso',
     hari: 'Senin',
     jam_mulai: '08:00',
@@ -48,7 +71,8 @@ const DUMMY_DATA = [
     is_active: true,
   },
   {
-    id: 'JD002',
+    id: 'jd-2',
+    dokter_id: 'dok-2',
     dokter_nama: 'Dr. Ani Suryani',
     hari: 'Selasa',
     jam_mulai: '14:00',
@@ -57,9 +81,8 @@ const DUMMY_DATA = [
   },
 ]
 
-function isActiveItem(item) {
-  if (typeof item?.is_active === 'boolean') return item.is_active
-  return true
+function isActiveJadwal(item) {
+  return Boolean(item?.is_active)
 }
 
 export function JadwalDokter({ onExit }) {
@@ -67,27 +90,66 @@ export function JadwalDokter({ onExit }) {
   const token = auth?.token
 
   const [data, setData] = useState([])
-  const [pagination, setPagination] = useState({ has_more: false, total: 0 })
+  const [dokterList, setDokterList] = useState([])
+  const [pagination, setPagination] = useState({ total: 0, has_more: false })
   const [isLoading, setIsLoading] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState('')
-
   const [searchKeyword, setSearchKeyword] = useState('')
+  const [dokterFilter, setDokterFilter] = useState('')
   const [isActiveFilter, setIsActiveFilter] = useState('active')
-  const pager = useMasterPagination({ initialLimit: 10, total: pagination.total, hasMore: pagination.has_more })
+  const [selectedId, setSelectedId] = useState(null)
+  const [showForm, setShowForm] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [showExitConfirm, setShowExitConfirm] = useState(false)
+  const [isNewMode, setIsNewMode] = useState(false)
+  const [form, setForm] = useState(DEFAULT_FORM)
+  const [toastMessage, setToastMessage] = useState('')
+  const [showToast, setShowToast] = useState(false)
+  const [togglingId, setTogglingId] = useState(null)
+  const tableRef = useRef(null)
+
+  const pager = useMasterPagination({
+    initialLimit: 10,
+    total: pagination.total,
+    hasMore: pagination.has_more,
+  })
   const { limit, offset } = pager
 
-  const [form, setForm] = useState(DEFAULT_FORM)
-  const [selectedId, setSelectedId] = useState(null)
-  const [currentEditIndex, setCurrentEditIndex] = useState(null)
-  const [showForm, setShowForm] = useState(false)
-  const [isNewMode, setIsNewMode] = useState(false)
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
-  const [showToast, setShowToast] = useState(false)
-  const [toastMessage, setToastMessage] = useState('')
-  const [togglingId, setTogglingId] = useState(null)
-  const [dokterList, setDokterList] = useState([])
-  const tableRef = useRef(null)
+  const selectedItem = selectedId == null ? null : data.find((row) => row.id === selectedId) || null
+
+  const { sortConfig, sortedData, handleSort } = useMasterTableSort(data, {
+    initialKey: 'dokter_nama',
+    valueGetters: {
+      is_active: (row) => (isActiveJadwal(row) ? 1 : 0),
+    },
+  })
+
+  useMasterTableKeyboardNav({
+    data: sortedData,
+    selectedId,
+    setSelectedId,
+    handleEdit: (row) => handleEdit(row),
+    tableRef,
+    isModalOpen: showForm || showDeleteConfirm || showExitConfirm,
+  })
+
+  const printData = useMemo(() => {
+    return sortedData.map((item, index) => ({
+      ...item,
+      no: index + 1,
+    }))
+  }, [sortedData])
+
+  const exportData = useMemo(() => {
+    return sortedData.map((item) => ({
+      dokter_nama: item.dokter_nama || '-',
+      hari: item.hari || '-',
+      jam_mulai: item.jam_mulai || '-',
+      jam_selesai: item.jam_selesai || '-',
+      status_label: isActiveJadwal(item) ? 'Active' : 'Inactive',
+    }))
+  }, [sortedData])
 
   const fetchData = useCallback(async () => {
     setError('')
@@ -96,59 +158,175 @@ export function JadwalDokter({ onExit }) {
     if (!token) {
       const keyword = searchKeyword.trim().toLowerCase()
       const filtered = DUMMY_DATA.filter((item) => {
-        const active = isActiveItem(item)
-        if (isActiveFilter === 'active' && !active) return false
-        if (isActiveFilter === 'inactive' && active) return false
-        if (keyword) {
-          return (
-            item.dokter_nama?.toLowerCase().includes(keyword) ||
-            item.hari?.toLowerCase().includes(keyword)
-          )
-        }
-        return true
+        if (dokterFilter && item.dokter_id !== dokterFilter) return false
+        if (isActiveFilter === 'active' && !isActiveJadwal(item)) return false
+        if (isActiveFilter === 'inactive' && isActiveJadwal(item)) return false
+        if (!keyword) return true
+        return (
+          String(item.dokter_nama || '').toLowerCase().includes(keyword) ||
+          String(item.hari || '').toLowerCase().includes(keyword)
+        )
       })
-      setData(filtered)
-      setPagination({ has_more: false, total: filtered.length })
+
+      const rows = filtered.slice(offset, offset + limit)
+      setData(rows)
+      setPagination({
+        total: filtered.length,
+        has_more: offset + limit < filtered.length,
+      })
       setIsLoading(false)
       return
     }
 
     try {
-      const isActiveParam =
-        isActiveFilter === 'active' ? true : isActiveFilter === 'inactive' ? false : undefined
       const result = await listJadwalDokter(token, {
-        search: searchKeyword,
-        is_active: isActiveParam,
+        search: searchKeyword.trim() || undefined,
+        dokter_id: dokterFilter || undefined,
+        is_active: isActiveFilter === 'all' ? undefined : isActiveFilter === 'active',
         limit,
         offset,
       })
+
       setData(result.items || [])
-      setPagination(result.pagination || {})
+      const nextPagination = result.pagination || {}
+      setPagination({
+        total: Number(nextPagination.total ?? 0),
+        has_more: Boolean(nextPagination.has_more),
+      })
     } catch (err) {
-      setError(err.message || 'Failed to load data')
+      setError(err.message || 'Failed to load jadwal dokter')
+      setData([])
+      setPagination({ total: 0, has_more: false })
     } finally {
       setIsLoading(false)
     }
-  }, [token, searchKeyword, isActiveFilter, limit, offset])
+  }, [token, searchKeyword, dokterFilter, isActiveFilter, limit, offset])
 
-  const fetchDokters = useCallback(async () => {
-    if (!token) return
+  const fetchDokterList = useCallback(async () => {
+    if (!token) {
+      setDokterList([
+        { id: 'dok-1', nama: 'Dr. Budi Santoso' },
+        { id: 'dok-2', nama: 'Dr. Ani Suryani' },
+      ])
+      return
+    }
+
     try {
-      const result = await getDokters(token, { limit: 100 })
-      setDokterList(result || [])
+      const result = await listDokters(token, { active: true, limit: 100, offset: 0 })
+      setDokterList(result.items || [])
     } catch (err) {
-      console.error('Failed to load dokters:', err)
+      setDokterList([])
+      setError((prev) => prev || err.message || 'Failed to load dokter list')
     }
   }, [token])
 
   useEffect(() => {
     fetchData()
-    fetchDokters()
-  }, [fetchData, fetchDokters])
+  }, [fetchData])
 
-  const handleSave = useCallback(async () => {
+  useEffect(() => {
+    fetchDokterList()
+  }, [fetchDokterList])
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (showDeleteConfirm) {
+        if (e.key === 'Escape') {
+          e.preventDefault()
+          setShowDeleteConfirm(false)
+        }
+        return
+      }
+
+      if (showForm) {
+        if (e.key === 'Escape') {
+          e.preventDefault()
+          handleCloseForm()
+        }
+        return
+      }
+
+      if (showExitConfirm) {
+        if (e.key === 'Escape') {
+          e.preventDefault()
+          setShowExitConfirm(false)
+        }
+        return
+      }
+
+      if (e.key === 'F2') {
+        e.preventDefault()
+        handleEdit()
+      } else if (e.key === 'Delete') {
+        e.preventDefault()
+        handleDeleteClick()
+      } else if (e.key === '+' || e.key === 'F1') {
+        e.preventDefault()
+        handleNew()
+      } else if (e.key === 'Escape') {
+        e.preventDefault()
+        setShowExitConfirm(true)
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  })
+
+  function handleSearchChange(value) {
+    pager.reset()
+    setSearchKeyword(value)
+  }
+
+  function handleDokterFilter(value) {
+    pager.reset()
+    setDokterFilter(value)
+  }
+
+  function handleStatusFilter(value) {
+    pager.reset()
+    setIsActiveFilter(value)
+  }
+
+  function handleSelect(row) {
+    setSelectedId(row?.id || null)
+  }
+
+  function handleNew() {
+    setError('')
+    setForm(DEFAULT_FORM)
+    setIsNewMode(true)
+    setShowForm(true)
+  }
+
+  function handleEdit(row = selectedItem) {
+    if (!row) return
+    setError('')
+    setSelectedId(row.id)
+    setForm({
+      dokter_id: row.dokter_id || '',
+      hari: row.hari || 'Senin',
+      jam_mulai: row.jam_mulai || '08:00',
+      jam_selesai: row.jam_selesai || '12:00',
+    })
+    setIsNewMode(false)
+    setShowForm(true)
+  }
+
+  function handleCloseForm() {
+    setShowForm(false)
+    setIsNewMode(false)
+    setForm(DEFAULT_FORM)
+  }
+
+  async function handleSave() {
     if (!form.dokter_id || !form.hari || !form.jam_mulai || !form.jam_selesai) {
-      setError('All fields are required')
+      setError('Dokter, hari, jam mulai, dan jam selesai wajib diisi')
+      return
+    }
+
+    if (form.jam_mulai >= form.jam_selesai) {
+      setError('Jam mulai harus lebih kecil dari jam selesai')
       return
     }
 
@@ -158,276 +336,274 @@ export function JadwalDokter({ onExit }) {
     try {
       if (isNewMode) {
         await createJadwalDokter(token, form)
-        setToastMessage('Jadwal dokter created successfully')
-      } else {
+        setToastMessage('Jadwal dokter berhasil ditambahkan')
+      } else if (selectedId) {
         await updateJadwalDokter(token, selectedId, form)
-        setToastMessage('Jadwal dokter updated successfully')
+        setToastMessage('Jadwal dokter berhasil diperbarui')
       }
+
       setShowToast(true)
-      setShowForm(false)
-      setForm(DEFAULT_FORM)
-      setSelectedId(null)
-      setIsNewMode(false)
-      fetchData()
+      handleCloseForm()
+      await fetchData()
     } catch (err) {
-      setError(err.message || 'Save failed')
+      setError(err.message || 'Gagal menyimpan jadwal dokter')
     } finally {
       setIsSaving(false)
     }
-  }, [token, form, isNewMode, selectedId, fetchData])
+  }
 
-  const handleNew = useCallback(() => {
-    setForm(DEFAULT_FORM)
-    setSelectedId(null)
-    setIsNewMode(true)
-    setShowForm(true)
-  }, [])
+  function handleDeleteClick() {
+    if (!selectedItem) return
+    setShowDeleteConfirm(true)
+  }
 
-  const handleEdit = useCallback((item) => {
-    setForm({
-      dokter_id: item.dokter_id || '',
-      hari: item.hari || 'Senin',
-      jam_mulai: item.jam_mulai || '08:00',
-      jam_selesai: item.jam_selesai || '12:00',
-    })
-    setSelectedId(item.id)
-    setIsNewMode(false)
-    setShowForm(true)
-  }, [])
+  async function handleConfirmDelete() {
+    if (!selectedItem) return
 
-  const handleDelete = useCallback(async () => {
-    if (!selectedId) return
     try {
-      await deleteJadwalDokter(token, selectedId)
-      setToastMessage('Jadwal dokter deleted successfully')
-      setShowToast(true)
+      await deleteJadwalDokter(token, selectedItem.id)
       setShowDeleteConfirm(false)
       setSelectedId(null)
-      fetchData()
+      setToastMessage('Jadwal dokter berhasil dihapus')
+      setShowToast(true)
+      await fetchData()
     } catch (err) {
-      setError(err.message || 'Delete failed')
+      setError(err.message || 'Gagal menghapus jadwal dokter')
     }
-  }, [token, selectedId, fetchData])
+  }
 
-  const handleToggleActive = useCallback(async (item) => {
-    setTogglingId(item.id)
+  async function handleToggleStatus(row) {
+    if (!row?.id) return
+    setTogglingId(row.id)
+
     try {
-      await updateJadwalDokter(token, item.id, { is_active: !item.is_active })
-      fetchData()
+      await updateJadwalDokter(token, row.id, { is_active: !isActiveJadwal(row) })
+      await fetchData()
     } catch (err) {
-      setError(err.message || 'Toggle failed')
+      setError(err.message || 'Gagal mengubah status jadwal dokter')
     } finally {
       setTogglingId(null)
     }
-  }, [token, fetchData])
+  }
 
-  const handleExport = useCallback(() => {
-    const exportData = data.map((item, idx) => ({
-      No: idx + 1,
-      Dokter: item.dokter_nama || '',
-      Hari: item.hari || '',
-      'Jam Mulai': item.jam_mulai || '',
-      'Jam Selesai': item.jam_selesai || '',
-      Status: item.is_active ? 'Active' : 'Inactive',
-    }))
+  function handleExportExcel() {
     exportToExcel(exportData, 'jadwal_dokter.xlsx')
-  }, [data])
+  }
 
-  const {
-    sortConfig,
-    sortedData,
-    requestSort,
-  } = useMasterTableSort({ data, tableColumns: TABLE_COLUMNS })
+  function handlePrint() {
+    openReportPrintWindow({
+      title: 'Daftar Jadwal Dokter',
+      meta: {
+        date: new Date().toLocaleString('id-ID'),
+        user: auth?.username || 'Admin',
+      },
+      columns: PRINT_COLUMNS,
+      data: printData,
+      footerTextOverride: `Laporan Jadwal Dokter dicetak pada ${new Date().toLocaleDateString('id-ID')}`,
+    })
+  }
 
-  useMasterTableKeyboardNav({
-    tableRef,
-    data: sortedData,
-    selectedId,
-    setSelectedId,
-    setCurrentEditIndex,
-    onNew: handleNew,
-    onEdit: handleEdit,
-    onDelete: () => setShowDeleteConfirm(true),
-    onExit: () => setShowExitConfirm(true),
-  })
+  function handleConfirmExit() {
+    setShowExitConfirm(false)
+    onExit()
+  }
 
   return (
-    <div className="dashboard-canvas">
-      <MasterTableHeader
-        title="Jadwal Dokter"
-        searchKeyword={searchKeyword}
-        setSearchKeyword={setSearchKeyword}
-        isActiveFilter={isActiveFilter}
-        setIsActiveFilter={setIsActiveFilter}
-        showActiveFilter
-        onRefresh={fetchData}
-        extra={
-          <select
-            value={form.dokter_id}
-            onChange={(e) => setForm({ ...form, dokter_id: e.target.value })}
-            style={{ marginLeft: 8, padding: 4 }}
-          >
-            <option value="">All Dokters</option>
-            {dokterList.map((d) => (
-              <option key={d.id} value={d.id}>{d.nama}</option>
-            ))}
-          </select>
-        }
-      />
-
-      {error && (
-        <div style={{ color: 'red', padding: '8px', textAlign: 'center' }}>
-          {error}
-        </div>
-      )}
-
-      <div className="table-container" ref={tableRef}>
-        <table className="master-table">
-          <thead>
-            <tr>
-              {TABLE_COLUMNS.map((col) => (
-                <th
-                  key={col.key}
-                  onClick={() => col.sortable !== false && requestSort(col.key)}
-                  style={{ cursor: col.sortable !== false ? 'pointer' : 'default' }}
-                >
-                  {col.label}
-                  {sortConfig.key === col.key && (sortConfig.direction === 'asc' ? ' ↑' : ' ↓')}
-                </th>
+    <div className="master-content">
+      <div className="master-header">
+        <div className="master-header-accent"></div>
+        <h1 className="master-title">Daftar Jadwal Dokter</h1>
+        <div className="master-header-filters">
+          <div className="master-footer-search">
+            <input
+              type="text"
+              placeholder="Search keyword..."
+              className="master-search-input"
+              value={searchKeyword}
+              onChange={(e) => handleSearchChange(e.target.value)}
+            />
+            <button type="button" className="master-search-btn">
+              <span className="material-icons-round material-icon">search</span>
+            </button>
+          </div>
+          <div className="master-filter-wrap">
+            <label htmlFor="jadwal-dokter-filter" className="master-filter-label">Dokter</label>
+            <select
+              id="jadwal-dokter-filter"
+              className="master-filter-select"
+              value={dokterFilter}
+              onChange={(e) => handleDokterFilter(e.target.value)}
+            >
+              <option value="">All Dokter</option>
+              {dokterList.map((dokter) => (
+                <option key={dokter.id} value={dokter.id}>{dokter.nama}</option>
               ))}
-              <th>AKSI</th>
-            </tr>
-          </thead>
-          <tbody>
-            {isLoading ? (
-              <tr>
-                <td colSpan={TABLE_COLUMNS.length + 1} style={{ textAlign: 'center' }}>
-                  Loading...
-                </td>
-              </tr>
-            ) : sortedData.length === 0 ? (
-              <tr>
-                <td colSpan={TABLE_COLUMNS.length + 1} style={{ textAlign: 'center' }}>
-                  No data found
-                </td>
-              </tr>
-            ) : (
-              sortedData.map((item, idx) => (
-                <tr
-                  key={item.id}
-                  className={selectedId === item.id ? 'selected' : ''}
-                  onClick={() => setSelectedId(item.id)}
-                  onDoubleClick={() => handleEdit(item)}
-                >
-                  <td>{idx + 1 + (offset || 0)}</td>
-                  <td>{item.dokter_nama || '-'}</td>
-                  <td>{item.hari || '-'}</td>
-                  <td>{item.jam_mulai || '-'}</td>
-                  <td>{item.jam_selesai || '-'}</td>
-                  <td>
-                    <MasterStatusToggle
-                      isActive={isActiveItem(item)}
-                      isToggling={togglingId === item.id}
-                      onClick={() => handleToggleActive(item)}
-                    />
-                  </td>
-                  <td>
-                    <button onClick={() => handleEdit(item)}>Edit</button>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+            </select>
+          </div>
+          <div className="master-filter-wrap">
+            <label htmlFor="jadwal-status-filter" className="master-filter-label">Status</label>
+            <select
+              id="jadwal-status-filter"
+              className="master-filter-select"
+              value={isActiveFilter}
+              onChange={(e) => handleStatusFilter(e.target.value)}
+            >
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+              <option value="all">All</option>
+            </select>
+          </div>
+        </div>
       </div>
 
-      <FooterMaster
-        pager={pager}
-        onNew={handleNew}
-        onEdit={() => {
-          const item = sortedData.find((d) => d.id === selectedId)
-          if (item) handleEdit(item)
-        }}
-        onDelete={() => setShowDeleteConfirm(true)}
-        onPrint={() => openReportPrintWindow('Jadwal Dokter', sortedData)}
-        onImport={() => setShowImportConfirm(true)}
-        onExport={handleExport}
-        onExit={() => setShowExitConfirm(true)}
-        isFormOpen={showForm}
-        hasSelected={!!selectedId}
-      />
+      {error && <div className="master-error">{error}</div>}
+
+      <div className="master-table-wrapper" ref={tableRef} tabIndex={0}>
+        <div className="master-table-container">
+          <table className="master-table">
+            <MasterTableHeader columns={TABLE_COLUMNS} sortConfig={sortConfig} onSort={handleSort} />
+            <tbody>
+              {sortedData.map((row, index) => (
+                <tr
+                  key={row.id || index}
+                  className={selectedId === row.id ? 'master-row-selected' : 'master-row'}
+                  onClick={() => handleSelect(row)}
+                  onDoubleClick={() => handleEdit(row)}
+                >
+                  <td>{offset + index + 1}</td>
+                  <td>{row.dokter_nama || '-'}</td>
+                  <td>{row.hari || '-'}</td>
+                  <td>{row.jam_mulai || '-'}</td>
+                  <td>{row.jam_selesai || '-'}</td>
+                  <td>
+                    <MasterStatusToggle
+                      active={isActiveJadwal(row)}
+                      loading={togglingId === row.id}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleToggleStatus(row)
+                      }}
+                    />
+                  </td>
+                </tr>
+              ))}
+              {!isLoading && sortedData.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="text-center">No data</td>
+                </tr>
+              )}
+              {isLoading && (
+                <tr>
+                  <td colSpan={6} className="text-center">Loading...</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
 
       {showForm && (
-        <div className="form-overlay">
-          <div className="form-container">
-            <h3>{isNewMode ? 'New' : 'Edit'} Jadwal Dokter</h3>
-            <div className="form-body">
-              <div className="form-group">
-                <label>Dokter</label>
-                <select
-                  value={form.dokter_id}
-                  onChange={(e) => setForm({ ...form, dokter_id: e.target.value })}
-                >
-                  <option value="">Select Dokter</option>
-                  {dokterList.map((d) => (
-                    <option key={d.id} value={d.id}>{d.nama}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="form-group">
-                <label>Hari</label>
-                <select
-                  value={form.hari}
-                  onChange={(e) => setForm({ ...form, hari: e.target.value })}
-                >
-                  {HARI_LIST.map((h) => (
-                    <option key={h} value={h}>{h}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="form-group">
-                <label>Jam Mulai</label>
-                <input
-                  type="time"
-                  value={form.jam_mulai}
-                  onChange={(e) => setForm({ ...form, jam_mulai: e.target.value })}
-                />
-              </div>
-              <div className="form-group">
-                <label>Jam Selesai</label>
-                <input
-                  type="time"
-                  value={form.jam_selesai}
-                  onChange={(e) => setForm({ ...form, jam_selesai: e.target.value })}
-                />
-              </div>
+        <div className="master-form-card">
+          <div className="master-form-header">
+            <span className="material-icons-round master-form-icon">calendar_month</span>
+            <h2 className="master-form-title">{isNewMode ? 'Isi Jadwal Dokter' : 'Ubah Jadwal Dokter'}</h2>
+          </div>
+          <div className="master-form-grid">
+            <div className="master-form-group">
+              <label className="master-form-label">Dokter :</label>
+              <select
+                value={form.dokter_id}
+                onChange={(e) => setForm((prev) => ({ ...prev, dokter_id: e.target.value }))}
+                className="master-form-input"
+              >
+                <option value="">Pilih Dokter</option>
+                {dokterList.map((dokter) => (
+                  <option key={dokter.id} value={dokter.id}>{dokter.nama}</option>
+                ))}
+              </select>
             </div>
+            <div className="master-form-group">
+              <label className="master-form-label">Hari :</label>
+              <select
+                value={form.hari}
+                onChange={(e) => setForm((prev) => ({ ...prev, hari: e.target.value }))}
+                className="master-form-input"
+              >
+                {HARI_LIST.map((hari) => (
+                  <option key={hari} value={hari}>{hari}</option>
+                ))}
+              </select>
+            </div>
+            <div className="master-form-group">
+              <label className="master-form-label">Jam Mulai :</label>
+              <input
+                type="time"
+                value={form.jam_mulai}
+                onChange={(e) => setForm((prev) => ({ ...prev, jam_mulai: e.target.value }))}
+                className="master-form-input"
+              />
+            </div>
+            <div className="master-form-group">
+              <label className="master-form-label">Jam Selesai :</label>
+              <input
+                type="time"
+                value={form.jam_selesai}
+                onChange={(e) => setForm((prev) => ({ ...prev, jam_selesai: e.target.value }))}
+                className="master-form-input"
+              />
+            </div>
+
             <FooterFormMaster
               onSave={handleSave}
-              onCancel={() => {
-                setShowForm(false)
-                setForm(DEFAULT_FORM)
-              }}
+              onClose={handleCloseForm}
               isSaving={isSaving}
             />
           </div>
         </div>
       )}
 
+      <FooterMaster
+        onNew={handleNew}
+        onEdit={handleEdit}
+        onDelete={handleDeleteClick}
+        onPrint={handlePrint}
+        onExit={() => setShowExitConfirm(true)}
+        onRefresh={fetchData}
+        isLoading={isLoading}
+        page={pager.page}
+        totalPages={pager.totalPages}
+        canPrev={pager.canPrev}
+        canNext={pager.canNext}
+        onFirstPage={pager.goFirst}
+        onPrevPage={pager.goPrev}
+        onNextPage={pager.goNext}
+        onLastPage={pager.goLast}
+        excelColumns={EXCEL_COLUMNS}
+        excelFilename="jadwal_dokter.xlsx"
+        onExportExcel={handleExportExcel}
+      />
+
       {showDeleteConfirm && (
         <DeleteMaster
-          itemName={`jadwal dokter ${selectedId}`}
-          onConfirm={handleDelete}
+          itemName={selectedItem?.dokter_nama || 'jadwal dokter'}
+          onConfirm={handleConfirmDelete}
           onCancel={() => setShowDeleteConfirm(false)}
         />
       )}
 
-      {showToast && (
-        <Toast
-          message={toastMessage}
-          onClose={() => setShowToast(false)}
+      {showExitConfirm && (
+        <DeleteMaster
+          itemName="keluar dari halaman ini"
+          title="Konfirmasi Keluar"
+          confirmText="Ya"
+          cancelText="Tidak"
+          isExit={true}
+          onConfirm={handleConfirmExit}
+          onCancel={() => setShowExitConfirm(false)}
         />
       )}
+
+      {showToast && <Toast message={toastMessage} type="success" onClose={() => setShowToast(false)} />}
     </div>
   )
 }
