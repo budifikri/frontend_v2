@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState, useRef } from 'react'
 import { useAuth } from '../../../shared/auth'
+import { useModule } from '../../../shared/useModule'
 import { createCustomer, deleteCustomer, listCustomers, updateCustomer } from '../../../features/master/customer/customer.api'
 import { getCurrentCompany } from '../../../features/master/company/company.api'
 import { openReportPrintWindow } from '../../../utils/reportPrint'
@@ -109,7 +110,11 @@ function isActiveCustomer(item) {
 
 export function Customer({ onExit }) {
   const { auth } = useAuth()
+  const { companyConfig } = useModule()
   const token = auth?.token
+
+  const isClinic = companyConfig?.businessType === 'clinic'
+  const entityLabel = isClinic ? 'Pasien' : 'Customer'
 
   const [data, setData] = useState([])
   const [pagination, setPagination] = useState({ has_more: false, total: 0 })
@@ -485,31 +490,31 @@ export function Customer({ onExit }) {
           companyInfo.phone = res.data.telp || res.data.phone || '';
         }
         openReportPrintWindow({
-          title: 'Daftar Master Customer',
+          title: `Daftar Master ${entityLabel}`,
           company: companyInfo,
           meta: { date: new Date().toLocaleString('id-ID'), user: auth.username || 'Admin' },
           columns: printColumns,
           data: printData,
-          footerTextOverride: `Laporan Customer dicetak pada ${new Date().toLocaleDateString('id-ID')}`,
+          footerTextOverride: `Laporan ${entityLabel} dicetak pada ${new Date().toLocaleDateString('id-ID')}`,
         });
       }).catch(() => {
         openReportPrintWindow({
-          title: 'Daftar Master Customer',
+          title: `Daftar Master ${entityLabel}`,
           company: companyInfo,
           meta: { date: new Date().toLocaleString('id-ID'), user: auth.username || 'Admin' },
           columns: printColumns,
           data: printData,
-          footerTextOverride: `Laporan Customer dicetak pada ${new Date().toLocaleDateString('id-ID')}`,
+          footerTextOverride: `Laporan ${entityLabel} dicetak pada ${new Date().toLocaleDateString('id-ID')}`,
         });
       });
     } else {
       openReportPrintWindow({
-        title: 'Daftar Master Customer',
+        title: `Daftar Master ${entityLabel}`,
         company: companyInfo,
         meta: { date: new Date().toLocaleString('id-ID'), user: auth.username || 'Admin' },
         columns: printColumns,
         data: printData,
-        footerTextOverride: `Laporan Customer dicetak pada ${new Date().toLocaleDateString('id-ID')}`,
+        footerTextOverride: `Laporan ${entityLabel} dicetak pada ${new Date().toLocaleDateString('id-ID')}`,
       });
     }
   }
@@ -614,7 +619,7 @@ export function Customer({ onExit }) {
     <div className="master-content">
       <div className="master-header">
         <div className="master-header-accent"></div>
-        <h1 className="master-title">Daftar Customer</h1>
+        <h1 className="master-title">Daftar {entityLabel}</h1>
         <div className="master-header-filters">
           <div className="master-footer-search">
             <input
@@ -704,7 +709,7 @@ export function Customer({ onExit }) {
     
           <div className="master-form-header">
             <span className="material-icons-round master-form-icon">groups</span>
-            <h2 className="master-form-title">{isNewMode ? 'Isi Data Customer' : 'Ubah Data Customer'}</h2>
+            <h2 className="master-form-title">{isNewMode ? `Isi Data ${entityLabel}` : `Ubah Data ${entityLabel}`}</h2>
           </div>
           <div className="master-form-grid">
             <div className="master-form-group">

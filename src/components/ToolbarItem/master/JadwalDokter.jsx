@@ -212,7 +212,7 @@ export function JadwalDokter({ onExit }) {
     }
 
     try {
-      const result = await listDokters(token, { active: true, limit: 100, offset: 0 })
+      const result = await listDokters(token, { active: true, tipe: 'Dokter', limit: 100, offset: 0 })
       setDokterList(result.items || [])
     } catch (err) {
       setDokterList([])

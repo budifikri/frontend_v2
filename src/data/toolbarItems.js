@@ -11,6 +11,8 @@ export const toolbarItems = {
     { key: 'supplier', label: 'Supplier', mark: 'S', tone: 'lime', filter: { businessType: ['retail', 'clinic'], moduleCodes: ['retail_basic', 'clinic_core'] } },
 { key: 'dokter', label: 'Dokter', mark: 'D', tone: 'cyan', filter: { businessType: ['clinic'], moduleCodes: ['clinic_core'] } },
     { key: 'jadwal_dokter', label: 'Jadwal Dokter', mark: 'J', tone: 'teal', filter: { businessType: ['clinic'], moduleCodes: ['clinic_core'] } },
+    { key: 'divider-2', divider: true },
+    { key: 'paket', label: 'Paket', mark: 'P', tone: 'purple', filter: { businessType: ['retail', 'clinic'], moduleCodes: ['retail_basic', 'clinic_core'] } },
    
 
 
@@ -30,7 +32,7 @@ export const toolbarItems = {
     ]},
     
     { key: 'inventory', label: 'Inventory', mark: 'I', tone: 'blue', isPopup: true, subItems: [
-    { key: 'opname', label: 'Stock Opname', mark: 'O', tone: 'cyan', filter: { businessType: ['retail'], moduleCodes: ['retail_basic'] } },
+    { key: 'opname', label: 'Stock Opname', mark: 'O', tone: 'cyan', filter: { businessType: ['retail', 'clinic'], moduleCodes: ['retail_basic','clinic_core'] } },
     ]},
     // { key: 'divider-2', divider: true },
     // { key: 'jual', label: 'Penjualan', mark: 'J', tone: 'blue' },

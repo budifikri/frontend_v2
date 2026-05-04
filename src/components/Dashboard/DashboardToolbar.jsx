@@ -59,6 +59,13 @@ export function DashboardToolbar({ activeMenu, onLoginClick, onToolClick, shortc
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
+  const getLabel = (tool) => {
+    if (tool.key === 'customer' && companyConfig?.businessType === 'clinic') {
+      return 'Pasien'
+    }
+    return tool.label
+  }
+
   return (
     <div className="dashboard-toolbar" ref={toolbarRef}>
       {items.map((tool) => {
@@ -81,7 +88,7 @@ export function DashboardToolbar({ activeMenu, onLoginClick, onToolClick, shortc
                   {tool.mark}
                   <span className="toolbar-popdown-icon">▼</span>
                 </span>
-                <span>{tool.label}</span>
+                <span>{getLabel(tool)}</span>
               </button>
             </div>
           )
@@ -95,7 +102,7 @@ export function DashboardToolbar({ activeMenu, onLoginClick, onToolClick, shortc
             onClick={tool.backToLogin ? onLoginClick : () => onToolClick?.(tool.key)}
           >
             <span className={`icon tone-${tool.tone}`}>{tool.mark}</span>
-            <span>{tool.label}</span>
+            <span>{getLabel(tool)}</span>
           </button>
         )
       })}
@@ -116,10 +123,10 @@ export function DashboardToolbar({ activeMenu, onLoginClick, onToolClick, shortc
                 key={sub.key}
                 type="button"
                 className="toolbar-popup-item"
-                onClick={() => handleSubItemClick(sub.key, sub.label)}
+                onClick={() => handleSubItemClick(sub.key, getLabel(sub))}
               >
                 <span className={`icon tone-${sub.tone}`}>{sub.mark}</span>
-                <span>{sub.label}</span>
+                <span>{getLabel(sub)}</span>
               </button>
             ))}
         </div>

@@ -6,6 +6,7 @@ import { Customer } from '../ToolbarItem/master/Customer'
 import { Supplier } from '../ToolbarItem/master/Supplier'
 import { Dokter } from '../ToolbarItem/master/Dokter'
 import { JadwalDokter } from '../ToolbarItem/master/JadwalDokter'
+import { Paket } from '../ToolbarItem/master/Paket'
 import { Company } from '../ToolbarItem/master/Company'
 import { CompanySetting } from '../ToolbarItem/setting/CompanySetting'
 import { StockOpname } from '../ToolbarItem/transaksi/StockOpname'
@@ -114,6 +115,14 @@ export function DashboardCanvas({ activeTool, onExit }) {
     return (
       <div className="dashboard-canvas">
         <JadwalDokter onExit={onExit} />
+      </div>
+    )
+  }
+
+  if (activeTool === 'paket') {
+    return (
+      <div className="dashboard-canvas">
+        <Paket onExit={onExit} />
       </div>
     )
   }
