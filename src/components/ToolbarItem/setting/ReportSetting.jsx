@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useRef } from 'react'
 import { useAuth } from '../../../shared/auth'
 import { loadReportSettings, saveReportSettings, resetReportSettings, DEFAULT_REPORT_SETTINGS } from '../../../features/setting/reportSetting.storage'
 import { getCurrentCompany } from '../../../features/master/company/company.api'
+import { Toast } from '../../../components/Toast'
 
 const REPORT_FONTS = [
   { value: 'Arial', label: 'Arial' },
@@ -145,7 +146,6 @@ export function ReportSetting() {
     try {
       saveReportSettings(settings)
       setShowToast(true)
-      setTimeout(() => setShowToast(false), 3000)
     } catch (err) {
       setError('Gagal menyimpan pengaturan: ' + err.message)
     } finally {
@@ -212,12 +212,7 @@ export function ReportSetting() {
       </div>
 
       {error && <div className="master-error">{error}</div>}
-      {showToast && (
-        <div className="toast-notification">
-          <span className="material-icons-round">check_circle</span>
-          Pengaturan laporan disimpan
-        </div>
-      )}
+      <Toast message="Pengaturan laporan disimpan" type="success" isOpen={showToast} onClose={() => setShowToast(false)} />
 
       <div className="master-table-wrapper">
         <div className="master-table-container">

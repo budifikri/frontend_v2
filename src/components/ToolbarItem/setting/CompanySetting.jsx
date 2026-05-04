@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useAuth } from '../../../shared/auth'
 import { listCompanies, updateCompany } from '../../../features/master/company/company.api'
+import { Toast } from '../../../components/Toast'
 
 const DEFAULT_FORM = {
   code: '',
@@ -131,10 +132,6 @@ export function CompanySetting({ onExit }) {
 
       setIsEditing(false)
       setShowToast(true)
-
-      setTimeout(() => {
-        setShowToast(false)
-      }, 3000)
     } catch (err) {
       setError(err.message || 'Failed to update company')
     } finally {
@@ -155,12 +152,7 @@ export function CompanySetting({ onExit }) {
       </div>
 
       {error && <div className="master-error">{error}</div>}
-      {showToast && (
-        <div className="toast-notification">
-          <span className="material-icons-round">check_circle</span>
-          Data tersimpan
-        </div>
-      )}
+      <Toast message="Data tersimpan" type="success" isOpen={showToast} onClose={() => setShowToast(false)} />
 
       <div className="master-table-wrapper">
         <div className="master-table-container">

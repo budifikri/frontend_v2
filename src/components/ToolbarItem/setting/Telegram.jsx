@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, useMemo } from 'react'
 import { useAuth } from '../../../shared/auth'
 import { getTelegramConfig, saveTelegramConfig, testTelegramConnection } from '../../../features/setting/telegram.api'
+import { Toast } from '../../../components/Toast'
 
 const SAMPLE_SALE = {
   sale_number: 'SL-2026-0001',
@@ -173,7 +174,6 @@ export function Telegram({ onExit }) {
       setToastMessage(err.message || 'Gagal memuat konfigurasi telegram')
       setToastType('error')
       setShowToast(true)
-      setTimeout(() => setShowToast(false), 3000)
     }
   }, [token])
 
@@ -214,15 +214,10 @@ export function Telegram({ onExit }) {
       setToastMessage('Konfigurasi tersimpan')
       setToastType('success')
       setShowToast(true)
-
-      setTimeout(() => {
-        setShowToast(false)
-      }, 3000)
     } catch (err) {
       setToastMessage(err.message || 'Gagal menyimpan konfigurasi')
       setToastType('error')
       setShowToast(true)
-      setTimeout(() => setShowToast(false), 3000)
     } finally {
       setIsSaving(false)
     }
@@ -233,7 +228,6 @@ export function Telegram({ onExit }) {
       setToastMessage('Telegram ID harus diisi')
       setToastType('error')
       setShowToast(true)
-      setTimeout(() => setShowToast(false), 3000)
       return
     }
 
@@ -252,15 +246,10 @@ export function Telegram({ onExit }) {
       setToastMessage(`Koneksi ${typeLabel} berhasil!`)
       setToastType('success')
       setShowToast(true)
-
-      setTimeout(() => {
-        setShowToast(false)
-      }, 3000)
     } catch (err) {
       setToastMessage(`Koneksi ${typeLabel} gagal: ` + (err.message || 'Unknown error'))
       setToastType('error')
       setShowToast(true)
-      setTimeout(() => setShowToast(false), 3000)
     } finally {
       setTesting(false)
     }
@@ -282,12 +271,7 @@ export function Telegram({ onExit }) {
         </div>
       </div>
 
-      {showToast && (
-        <div className={`toast-notification toast-${toastType}`}>
-          <span className="material-icons-round">{toastType === 'success' ? 'check_circle' : 'error'}</span>
-          {toastMessage}
-        </div>
-      )}
+      <Toast message={toastMessage} type={toastType} isOpen={showToast} onClose={() => setShowToast(false)} />
 
       <div className="master-table-wrapper">
         <div className="master-table-container">
