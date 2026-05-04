@@ -11,8 +11,14 @@ export async function listDokters(token, params = {}) {
   const raw = await apiFetch(`/api/dokters?${qs.toString()}`, { token })
   if (!raw.success) throw new Error(raw.error || 'Failed to load dokters')
 
+  const items = Array.isArray(raw.data)
+    ? raw.data
+    : Array.isArray(raw.data?.items)
+      ? raw.data.items
+      : []
+
   return {
-    items: raw.data?.items ?? [],
+    items,
     pagination: raw.pagination ?? {}
   }
 }

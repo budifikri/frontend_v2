@@ -102,6 +102,7 @@
 
 ### 11. Backend Testing
 - [x] Test build: `go build ./...` - PASSED ✅
+- [x] Test static analysis: `go vet ./...` - PASSED ✅
 - [ ] Test model creation (manual API test)
 - [ ] Test repository methods (dengan test DB)
 - [ ] Test service methods
@@ -109,6 +110,7 @@
 
 ### 12. Frontend Testing
 - [x] Test build: `npm run build` - PASSED ✅
+- [x] Test lint: `npm run lint` - PASSED with 4 existing warnings di file lain ⚠️
 - [ ] Test API functions (mock fetch)
 - [ ] Test component rendering
 - [ ] Test form submission
@@ -122,8 +124,8 @@
 ### 13. Lint & Build
 - [x] Backend: `go build ./...` passes ✅
 - [x] Frontend: `npm run build` passes ✅
-- [ ] Frontend: `npm run lint` passes
-- [ ] Backend: `go vet ./...` passes
+- [x] Frontend: `npm run lint` passes with warning existing ✅
+- [x] Backend: `go vet ./...` passes ✅
 
 ### 14. Documentation
 - [x] Update PLAN_dokter.md
@@ -146,10 +148,10 @@
 | Frontend Component | 12/12 | ✅ COMPLETED |
 | Frontend Menu | 1/1 | ✅ COMPLETED |
 | Frontend Canvas | 1/1 | ✅ COMPLETED |
-| Testing (Build) | 2/2 | ✅ COMPLETED |
-| Final Checks (Build) | 2/2 | ✅ COMPLETED |
+| Testing (Build + Static Check) | 4/4 | ✅ COMPLETED |
+| Final Checks (Build + Static Check) | 4/4 | ✅ COMPLETED |
 
-**Total Progress: 46/48 tasks completed (95.8%)**
+**Progress Summary:** implementasi coding selesai, build/static checks selesai, manual dan integration test masih pending.
 
 ---
 

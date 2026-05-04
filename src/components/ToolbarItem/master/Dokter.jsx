@@ -76,6 +76,15 @@ const DUMMY_DOKTERS = [
   },
 ]
 
+function toDateInputValue(value) {
+  if (!value) return ''
+  if (typeof value === 'string') return value.slice(0, 10)
+
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return ''
+  return date.toISOString().slice(0, 10)
+}
+
 function isActiveDokter(item) {
   if (typeof item?.active === 'boolean') return item.active
   return String(item?.status ?? 'active').toLowerCase() !== 'inactive'
@@ -246,6 +255,16 @@ export function Dokter({ onExit }) {
   async function handleSave() {
     if (!form.nama) return
 
+    if (!form.email || !String(form.email).includes('@')) {
+      setError('Email dokter harus valid')
+      return
+    }
+
+    if (!form.tanggal_lahir) {
+      setError('Tanggal lahir wajib diisi')
+      return
+    }
+
     setIsSaving(true)
     setError('')
 
@@ -311,7 +330,7 @@ export function Dokter({ onExit }) {
       nama: target.nama || '',
       jenis_kelamin: target.jenis_kelamin || 'L',
       tempat_lahir: target.tempat_lahir || '',
-      tanggal_lahir: target.tanggal_lahir || '',
+      tanggal_lahir: toDateInputValue(target.tanggal_lahir),
       alamat: target.alamat || '',
       no_telp: target.no_telp || '',
       email: target.email || '',
@@ -332,7 +351,7 @@ export function Dokter({ onExit }) {
       nama: nextItem.nama || '',
       jenis_kelamin: nextItem.jenis_kelamin || 'L',
       tempat_lahir: nextItem.tempat_lahir || '',
-      tanggal_lahir: nextItem.tanggal_lahir || '',
+      tanggal_lahir: toDateInputValue(nextItem.tanggal_lahir),
       alamat: nextItem.alamat || '',
       no_telp: nextItem.no_telp || '',
       email: nextItem.email || '',
@@ -351,7 +370,7 @@ export function Dokter({ onExit }) {
       nama: prevItem.nama || '',
       jenis_kelamin: prevItem.jenis_kelamin || 'L',
       tempat_lahir: prevItem.tempat_lahir || '',
-      tanggal_lahir: prevItem.tanggal_lahir || '',
+      tanggal_lahir: toDateInputValue(prevItem.tanggal_lahir),
       alamat: prevItem.alamat || '',
       no_telp: prevItem.no_telp || '',
       email: prevItem.email || '',

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 
 import { Toast } from '../../../components/Toast'
 import { getCurrentCompany, updateCompany } from '../../../features/master/company/company.api'
+import { listBusinessTypes } from '../../../features/setting/businessType/businessType.api'
 import { listModulePackages } from '../../../features/setting/modulePackage/modulePackage.api'
 import { useAuth } from '../../../shared/auth'
 
@@ -85,6 +86,10 @@ export function CompanySetting({ onExit }) {
   const [companyId, setCompanyId] = useState(null)
   const [isEditing, setIsEditing] = useState(false)
   const [modulePackages, setModulePackages] = useState(FALLBACK_MODULE_PACKAGES.retail)
+  const [businessTypes, setBusinessTypes] = useState([
+    { id: 'retail', code: 'retail', name: 'Retail' },
+    { id: 'clinic', code: 'clinic', name: 'Klinik' },
+  ])
 
   const { defaultItems, optionalItems } = useMemo(() => splitModulePackages(modulePackages), [modulePackages])
 
@@ -113,6 +118,22 @@ export function CompanySetting({ onExit }) {
   useEffect(() => {
     fetchData()
   }, [fetchData])
+
+  useEffect(() => {
+    async function fetchBusinessTypes() {
+      if (!token) return
+      try {
+        const result = await listBusinessTypes(token, { is_active: true, limit: 100, offset: 0 })
+        if (Array.isArray(result.items) && result.items.length > 0) {
+          setBusinessTypes(result.items)
+        }
+      } catch {
+        // keep fallback options
+      }
+    }
+
+    fetchBusinessTypes()
+  }, [token])
 
   useEffect(() => {
     async function fetchModulePackages() {
@@ -295,7 +316,17 @@ export function CompanySetting({ onExit }) {
                   </div>
                   <div className="receipt-setting-field-inline">
                     <label htmlFor="company-business-type">Jenis Bisnis</label>
-                    <input type="text" id="company-business-type" className="receipt-text-input" value={form.business_type} readOnly />
+                    <select
+                      id="company-business-type"
+                      className="receipt-text-input"
+                      value={form.business_type}
+                      onChange={(e) => setForm({ ...form, business_type: e.target.value })}
+                      disabled={!isEditing}
+                    >
+                      {businessTypes.map((item) => (
+                        <option key={item.id || item.code} value={item.code}>{item.name || item.code}</option>
+                      ))}
+                    </select>
                   </div>
                   <div className="receipt-setting-field-inline">
                     <label htmlFor="company-phone">No. Telepon</label>
