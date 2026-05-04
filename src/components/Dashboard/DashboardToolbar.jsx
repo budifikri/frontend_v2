@@ -1,8 +1,11 @@
 import { useState, useRef, useEffect } from 'react'
 import { toolbarItems } from '../../data'
+import { useModule } from '../../shared/useModule'
+import { getVisibleToolbarItems } from '../../shared/moduleAccess'
 
 export function DashboardToolbar({ activeMenu, onLoginClick, onToolClick, shortcutPopupKey }) {
-  const items = toolbarItems[activeMenu] || toolbarItems.master
+  const { companyConfig } = useModule()
+  const items = getVisibleToolbarItems(toolbarItems[activeMenu] || toolbarItems.master, companyConfig)
   const [openPopupKey, setOpenPopupKey] = useState(null)
   const [popupPosition, setPopupPosition] = useState({ top: 0, left: 0 })
   const popupButtonRefs = useRef({})

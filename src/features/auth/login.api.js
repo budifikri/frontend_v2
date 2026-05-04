@@ -19,5 +19,7 @@ export async function login(input) {
   const role = extractRoleFromLoginData(raw.data)
   const username = raw.data?.username ?? raw.data?.user?.username ?? raw.data?.user?.name ?? input.username
   const companyName = raw.data?.company?.name ?? raw.data?.company_name ?? null
-  return { token, role, username, companyName, raw }
+  const companyId = raw.data?.company?.id ?? null
+  const businessType = raw.data?.company?.business_type ?? null
+  return { token, role, username, companyName, companyId, businessType, raw }
 }

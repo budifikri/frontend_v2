@@ -10,15 +10,20 @@ import {
   POS,
 } from './components'
 import { AuthProvider, useAuth } from './shared/auth'
+import { ModuleProvider } from './shared/ModuleContext'
+import { useModule } from './shared/useModule'
 import { defaultMenu } from './data'
+import { toolbarItems } from './data/toolbarItems'
 import { login } from './features/auth/login.api'
 import { applyTitlebarColors, applyWallpaper } from './utils/colorHelper'
 import { resolveShortcutTool } from './utils/shortcutHelper'
+import { canAccessTool } from './shared/moduleAccess'
 
-const IMPLEMENTED_TOOLS = new Set(['warehouse', 'satuan', 'categori', 'product', 'customer', 'supplier', 'company', 'theme', 'user', 'lapstok', 'laphargagrosir', 'lapjual', 'lapbeli', 'opname', 'beli', 'receive', 'retur', 'promotion', 'lapcashdrawer', 'report_setting', 'backup', 'telegram'])
+const IMPLEMENTED_TOOLS = new Set(['warehouse', 'satuan', 'categori', 'product', 'customer', 'supplier', 'company', 'theme', 'user', 'lapstok', 'laphargagrosir', 'lapjual', 'lapbeli', 'opname', 'beli', 'receive', 'retur', 'promotion', 'lapcashdrawer', 'report_setting', 'backup', 'telegram', 'module', 'business_type', 'module_package'])
 
 function AppContent() {
   const { auth, setAuth, clearAuth } = useAuth()
+  const { companyConfig } = useModule()
   const [view, setView] = useState('login')
   const [activeMenu, setActiveMenu] = useState(defaultMenu)
   const [activeTool, setActiveTool] = useState(null)
@@ -37,9 +42,14 @@ function AppContent() {
       return
     }
 
+    if (!canAccessTool(toolbarItems, toolKey, companyConfig)) {
+      window.alert(`${label} tidak aktif untuk company ini`)
+      return
+    }
+
     setActiveTool(toolKey)
     setIsToolbarVisible(false)
-  }, [])
+  }, [companyConfig])
 
   useEffect(() => {
     if (auth.token) {
@@ -147,7 +157,7 @@ function AppContent() {
     try {
       const result = await login({ username: userId, password })
       const role = result.role?.toLowerCase()
-      setAuth({ token: result.token, role, username: result.username, companyName: result.companyName })
+      setAuth({ token: result.token, role, username: result.username, companyName: result.companyName, companyId: result.companyId, businessType: result.businessType })
       if (role === 'cashier') {
         setView('pos')
       } else {
@@ -265,7 +275,9 @@ function AppContent() {
 function App() {
   return (
     <AuthProvider>
-      <AppContent />
+      <ModuleProvider>
+        <AppContent />
+      </ModuleProvider>
     </AuthProvider>
   )
 }

@@ -60,19 +60,21 @@ export function extractRoleFromLoginData(data) {
 
 function loadAuthFromStorage() {
   try {
-    if (typeof localStorage === 'undefined') return { token: null, role: null, username: null, companyName: null }
+    if (typeof localStorage === 'undefined') return { token: null, role: null, username: null, companyName: null, companyId: null, businessType: null }
     const raw = localStorage.getItem(AUTH_STORAGE_KEY)
-    if (!raw) return { token: null, role: null, username: null, companyName: null }
+    if (!raw) return { token: null, role: null, username: null, companyName: null, companyId: null, businessType: null }
 
     const parsed = JSON.parse(raw)
     const token = typeof parsed?.token === 'string' ? parsed.token : null
     const role = isUserRole(parsed?.role) ? parsed.role : token ? extractRoleFromToken(token) : null
     const username = parsed?.username ?? null
     const companyName = parsed?.companyName ?? null
+    const companyId = parsed?.companyId ?? null
+    const businessType = parsed?.businessType ?? null
 
-    return { token, role, username, companyName }
+    return { token, role, username, companyName, companyId, businessType }
   } catch {
-    return { token: null, role: null, username: null, companyName: null }
+    return { token: null, role: null, username: null, companyName: null, companyId: null, businessType: null }
   }
 }
 
@@ -85,13 +87,15 @@ export function AuthProvider({ children }) {
       role: next.role ?? (next.token ? extractRoleFromToken(next.token) : null),
       username: next.username ?? next.user ?? null,
       companyName: next.companyName ?? null,
+      companyId: next.companyId ?? null,
+      businessType: next.businessType ?? null,
     }
     setAuthState(normalized)
     if (typeof localStorage !== 'undefined') localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(normalized))
   }, [])
 
   const clearAuth = useCallback(() => {
-    setAuthState({ token: null, role: null, username: null, companyName: null })
+    setAuthState({ token: null, role: null, username: null, companyName: null, companyId: null, businessType: null })
     if (typeof localStorage !== 'undefined') localStorage.removeItem(AUTH_STORAGE_KEY)
   }, [])
 

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, useRef } from 'react'
 import { useAuth } from '../../../shared/auth'
 import { createCompany, deleteCompany, listCompanies, updateCompany } from '../../../features/master/company/company.api'
+import { listBusinessTypes } from '../../../features/setting/businessType/businessType.api'
 import { FooterMaster } from '../footer/FooterMaster'
 import { FooterFormMaster } from '../footer/FooterFormMaster'
 import { DeleteMaster } from '../footer/DeleteMaster'
@@ -22,6 +23,7 @@ const DEFAULT_FORM = {
   website: '',
   tax_id: '',
   business_license: '',
+  business_type: 'retail',
   is_active: true,
 }
 
@@ -36,6 +38,8 @@ const DUMMY_COMPANIES = [
     website: 'https://majujaya.co.id',
     tax_id: '01.234.567.8-999.000',
     business_license: 'NIB-2025-0001',
+    business_type: 'retail',
+    modules: ['retail_basic', 'retail_advanced'],
     is_active: true,
   },
   {
@@ -48,6 +52,8 @@ const DUMMY_COMPANIES = [
     website: 'https://nusantara-grosir.id',
     tax_id: '02.345.678.9-888.000',
     business_license: 'NIB-2025-0002',
+    business_type: 'clinic',
+    modules: ['clinic_core'],
     is_active: false,
   },
 ]
@@ -85,6 +91,7 @@ function mapFormFromItem(item) {
     website: item?.website || '',
     tax_id: item?.tax_id || '',
     business_license: item?.business_license || '',
+    business_type: item?.business_type || 'retail',
     is_active: isActiveCompany(item),
   }
 }
@@ -117,6 +124,10 @@ export function Company({ onExit }) {
   const [togglingId, setTogglingId] = useState(null)
 
   const [form, setForm] = useState(DEFAULT_FORM)
+  const [businessTypes, setBusinessTypes] = useState([
+    { id: 'retail', code: 'retail', name: 'Retail' },
+    { id: 'clinic', code: 'clinic', name: 'Klinik' },
+  ])
 
   const selectedItem = selectedId == null ? null : data.find((row) => row.id === selectedId) || null
   const { sortConfig, sortedData, handleSort } = useMasterTableSort(data, {
@@ -193,6 +204,22 @@ export function Company({ onExit }) {
   }, [fetchData])
 
   useEffect(() => {
+    async function fetchBusinessTypes() {
+      if (!token) return
+      try {
+        const result = await listBusinessTypes(token, { is_active: true, limit: 100, offset: 0 })
+        if (Array.isArray(result.items) && result.items.length > 0) {
+          setBusinessTypes(result.items)
+        }
+      } catch {
+        // keep fallback options
+      }
+    }
+
+    fetchBusinessTypes()
+  }, [token])
+
+  useEffect(() => {
     const handleKeyDown = (e) => {
       if (showDeleteConfirm) {
         if (e.key === 'Escape') {
@@ -236,12 +263,13 @@ export function Company({ onExit }) {
     setIsSaving(true)
     setError('')
 
-    const payload = {
-      code: form.code,
-      nama: form.nama,
-      email: form.email,
-      telp: form.telp || undefined,
-      address: form.address || undefined,
+      const payload = {
+        code: form.code,
+        nama: form.nama,
+        email: form.email,
+        business_type: form.business_type,
+        telp: form.telp || undefined,
+        address: form.address || undefined,
       website: form.website || undefined,
       tax_id: form.tax_id || undefined,
       business_license: form.business_license || undefined,
@@ -398,11 +426,12 @@ export function Company({ onExit }) {
       if (!code) continue
 
       const existingIndex = newData.findIndex(item => item.code === code)
-      const itemData = {
-        code,
-        nama: row.NAME || row.nama || row.name || '',
-        email: row.EMAIL || row.email || '',
-        telp: row.PHONE || row.phone || row.telp || '',
+        const itemData = {
+          code,
+          nama: row.NAME || row.nama || row.name || '',
+          email: row.EMAIL || row.email || '',
+          business_type: row.BUSINESS_TYPE || row.business_type || 'retail',
+          telp: row.PHONE || row.phone || row.telp || '',
         address: row.ADDRESS || row.address || '',
         website: row.WEBSITE || row.website || '',
         is_active: true,
@@ -559,6 +588,19 @@ export function Company({ onExit }) {
             <div className="master-form-group">
               <label className="master-form-label">Phone :</label>
               <input type="text" value={form.telp} onChange={(e) => setForm({ ...form, telp: e.target.value })} className="master-form-input" />
+            </div>
+            <div className="master-form-group">
+              <label className="master-form-label">Business Type :</label>
+              <select
+                value={form.business_type}
+                onChange={(e) => setForm({ ...form, business_type: e.target.value })}
+                className="master-form-input"
+                disabled={!isNewMode}
+              >
+                {businessTypes.map((item) => (
+                  <option key={item.id || item.code} value={item.code}>{item.name || item.code}</option>
+                ))}
+              </select>
             </div>
             <div className="master-form-group">
               <label className="master-form-label">Website :</label>

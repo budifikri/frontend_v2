@@ -13,6 +13,9 @@ import { PurchaseReturn } from '../ToolbarItem/transaksi/PurchaseReturn'
 import { Promotion } from '../ToolbarItem/transaksi/Promotion'
 import { Theme } from '../ToolbarItem/setting/theme/Theme'
 import { User } from '../ToolbarItem/setting/user/User'
+import { BusinessTypeSetting } from '../ToolbarItem/setting/BusinessTypeSetting'
+import { ModulePackageSetting } from '../ToolbarItem/setting/ModulePackageSetting'
+import { ModuleSettings } from '../ToolbarItem/setting/ModuleSettings'
 import { ReportSetting } from '../ToolbarItem/setting/ReportSetting'
 import { LapStock } from '../ToolbarItem/laporan/stok/LapStock'
 import { LapHargaGrosir } from '../ToolbarItem/laporan/harga-grosir/LapHargaGrosir'
@@ -53,6 +56,30 @@ export function DashboardCanvas({ activeTool, onExit }) {
     return (
       <div className="dashboard-canvas">
         <User onExit={onExit} />
+      </div>
+    )
+  }
+
+  if (activeTool === 'business_type') {
+    return (
+      <div className="dashboard-canvas">
+        <BusinessTypeSetting onExit={onExit} />
+      </div>
+    )
+  }
+
+  if (activeTool === 'module_package') {
+    return (
+      <div className="dashboard-canvas">
+        <ModulePackageSetting onExit={onExit} />
+      </div>
+    )
+  }
+
+  if (activeTool === 'module') {
+    return (
+      <div className="dashboard-canvas">
+        <ModuleSettings onExit={onExit} />
       </div>
     )
   }
