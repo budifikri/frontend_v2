@@ -595,7 +595,6 @@ export function Company({ onExit }) {
                 value={form.business_type}
                 onChange={(e) => setForm({ ...form, business_type: e.target.value })}
                 className="master-form-input"
-                disabled={!isNewMode}
               >
                 {businessTypes.map((item) => (
                   <option key={item.id || item.code} value={item.code}>{item.name || item.code}</option>
