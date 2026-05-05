@@ -10,7 +10,6 @@ import { FooterMaster } from '../footer/FooterMaster'
 import { FooterFormMaster } from '../footer/FooterFormMaster'
 import { DeleteMaster } from '../footer/DeleteMaster'
 import { MasterTableHeader } from '../table/MasterTableHeader'
-import { MasterStatusToggle } from '../table/MasterStatusToggle'
 import { useMasterTableSort } from '../../../hooks/useMasterTableSort'
 import { useMasterPagination } from '../../../hooks/useMasterPagination'
 import { useMasterTableKeyboardNav } from '../../../hooks/useMasterTableKeyboardNav'
@@ -188,10 +187,18 @@ function formatDisplayDate(dateValue) {
 }
 
 function getStatusTone(status) {
-  if (status === 'confirmed') return 'confirmed'
-  if (status === 'completed') return 'completed'
-  if (status === 'cancelled') return 'cancelled'
-  return 'scheduled'
+  if (status === 'confirmed') return 'approve'
+  if (status === 'completed') return 'receive'
+  if (status === 'cancelled') return 'void'
+  return 'pending'
+}
+
+function getAppointmentStatusMeta(status) {
+  const value = String(status || '').toLowerCase()
+  if (value === 'confirmed') return { label: 'Confirmed', variant: 'approve', icon: 'check_circle' }
+  if (value === 'completed') return { label: 'Completed', variant: 'receive', icon: 'task_alt' }
+  if (value === 'cancelled') return { label: 'Cancelled', variant: 'void', icon: 'cancel' }
+  return { label: 'Scheduled', variant: 'pending', icon: 'schedule' }
 }
 
 function sortAppointments(items) {
@@ -236,7 +243,6 @@ export function Appointment({ onExit }) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [showExitConfirm, setShowExitConfirm] = useState(false)
   const tableRef = useRef(null)
-  const [togglingId, setTogglingId] = useState(null)
   const [showToast, setShowToast] = useState(false)
   const [toastMessage, setToastMessage] = useState('')
 
@@ -722,26 +728,6 @@ export function Appointment({ onExit }) {
     }
   }
 
-  function handleToggleStatus(row) {
-    if (!row?.id || togglingId) return
-
-    const nextStatus = row.status === 'scheduled' ? 'confirmed' :
-                      row.status === 'confirmed' ? 'completed' : 'scheduled'
-
-    if (token) {
-      setTogglingId(row.id)
-      updateAppointment(token, row.id, { status: nextStatus })
-        .then(() => Promise.all([fetchData(), fetchCalendarData()]))
-        .catch((err) => setError(err.message || 'Failed to update status'))
-        .finally(() => setTogglingId(null))
-      return
-    }
-
-    setLocalAppointments((prev) => prev.map((item) => (
-      item.id === row.id ? { ...item, status: nextStatus } : item
-    )))
-  }
-
   function handleCloseForm() {
     setShowForm(false)
     setSelectedId(null)
@@ -1155,16 +1141,24 @@ export function Appointment({ onExit }) {
                       onClick={() => handleSelect(item)}
                       onDoubleClick={() => handleEdit(item)}
                     >
+                      {(() => {
+                        const statusMeta = getAppointmentStatusMeta(item.status)
+                        return (
                       <div className="appointment-calendar-detail-main">
                         <div>
                           <div className="appointment-calendar-detail-time">{formatTime(item.start_time)} - {formatTime(item.end_time)}</div>
                           <div className="appointment-calendar-detail-patient">{item.patient_name || '-'}</div>
                           <div className="appointment-calendar-detail-meta">{item.treatment_name || '-'} • {item.therapist_name || '-'}</div>
                         </div>
-                        <span className={`appointment-calendar-status-badge is-${getStatusTone(item.status)}`}>
-                          {getStatusLabel(item.status)}
-                        </span>
+                        <div className="purchase-status-stack">
+                          <span className={`purchase-status-pill is-${statusMeta.variant}`}>
+                            <span className="material-icons-round purchase-status-icon">{statusMeta.icon}</span>
+                            {statusMeta.label}
+                          </span>
+                        </div>
                       </div>
+                        )
+                      })()}
                     </button>
                   ))}
                 </div>
@@ -1192,15 +1186,17 @@ export function Appointment({ onExit }) {
                     <td>{row.therapist_name || '-'}</td>
                     <td>{row.time_range || '-'}</td>
                     <td>
-                      <MasterStatusToggle
-                        active={row.status === 'scheduled' || row.status === 'confirmed'}
-                        loading={togglingId === row.id}
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          handleToggleStatus(row)
-                        }}
-                      />
-                      <span style={{ marginLeft: 8 }}>{getStatusLabel(row.status)}</span>
+                      {(() => {
+                        const statusMeta = getAppointmentStatusMeta(row.status)
+                        return (
+                          <div className="purchase-status-stack">
+                            <span className={`purchase-status-pill is-${statusMeta.variant}`}>
+                              <span className="material-icons-round purchase-status-icon">{statusMeta.icon}</span>
+                              {statusMeta.label}
+                            </span>
+                          </div>
+                        )
+                      })()}
                     </td>
                   </tr>
                 ))}

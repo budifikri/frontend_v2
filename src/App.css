@@ -2022,24 +2022,21 @@ body.has-wallpaper .cash-register {
   display: inline-block;
 }
 
-.appointment-status-dot.is-scheduled,
-.appointment-calendar-status-badge.is-scheduled {
-  background: #8b5cf6;
-}
-
-.appointment-status-dot.is-confirmed,
-.appointment-calendar-status-badge.is-confirmed {
+.appointment-status-dot.is-pending,
+.appointment-calendar-status-badge.is-pending {
   background: #f59e0b;
 }
 
-.appointment-status-dot.is-completed,
-.appointment-calendar-status-badge.is-completed {
-  background: #10b981;
+.appointment-status-dot.is-approve,
+.appointment-calendar-status-badge.is-approve,
+.appointment-status-dot.is-receive,
+.appointment-calendar-status-badge.is-receive {
+  background: #16a34a;
 }
 
-.appointment-status-dot.is-cancelled,
-.appointment-calendar-status-badge.is-cancelled {
-  background: #ef4444;
+.appointment-status-dot.is-void,
+.appointment-calendar-status-badge.is-void {
+  background: #dc2626;
 }
 
 .appointment-calendar-detail-header {
