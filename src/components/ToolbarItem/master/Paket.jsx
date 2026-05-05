@@ -252,6 +252,7 @@ export function Paket({ onExit }) {
       setToastMessage('Data tersimpan')
       setToastType('success')
       setShowToast(true)
+      handleCloseForm()
     } catch (err) {
       setError(err.message || 'Failed to save paket')
       setToastMessage(err.message || 'Failed to save paket')
