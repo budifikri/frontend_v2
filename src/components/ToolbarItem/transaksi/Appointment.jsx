@@ -816,6 +816,137 @@ export function Appointment({ onExit }) {
     return accumulator
   }, {})
   const selectedCalendarItems = sortAppointments(appointmentsByDate[selectedCalendarDate] || [])
+  const formFields = (
+    <>
+      <div className="master-form-group">
+        <label className="master-form-label">Pasien :</label>
+        <select
+          value={form.patient_id}
+          onChange={(e) => setForm({ ...form, patient_id: e.target.value })}
+          className="master-form-input"
+        >
+          <option value="">Pilih Pasien</option>
+          {patients.map((p) => (
+            <option key={p.id} value={p.id}>{p.name || p.nama}</option>
+          ))}
+        </select>
+      </div>
+      <div className="master-form-group">
+        <label className="master-form-label">Treatment :</label>
+        <select
+          value={form.treatment_id}
+          onChange={(e) => setForm({ ...form, treatment_id: e.target.value })}
+          className="master-form-input"
+        >
+          <option value="">Pilih Treatment</option>
+          {treatments.map((t) => (
+            <option key={t.id} value={t.id}>{t.name || t.nama}</option>
+          ))}
+        </select>
+      </div>
+      <div className="master-form-group">
+        <label className="master-form-label">Therapist :</label>
+        <select
+          value={form.therapist_id}
+          onChange={(e) => setForm({ ...form, therapist_id: e.target.value })}
+          className="master-form-input"
+        >
+          <option value="">Pilih Therapist</option>
+          {therapists.map((t) => (
+            <option key={t.id} value={t.id}>{t.nama || t.name}</option>
+          ))}
+        </select>
+      </div>
+      <div className="master-form-group">
+        <label className="master-form-label">Tanggal :</label>
+        <input
+          type="date"
+          value={form.booking_date}
+          onChange={(e) => setForm({ ...form, booking_date: e.target.value })}
+          className="master-form-input"
+        />
+      </div>
+      <div className="master-form-group">
+        <label className="master-form-label">Jam Mulai :</label>
+        <input
+          type="time"
+          value={form.start_time}
+          onChange={(e) => setForm({ ...form, start_time: e.target.value })}
+          className="master-form-input"
+        />
+      </div>
+      <div className="master-form-group">
+        <label className="master-form-label">Jam Selesai :</label>
+        <input
+          type="time"
+          value={form.end_time}
+          onChange={(e) => setForm({ ...form, end_time: e.target.value })}
+          className="master-form-input"
+        />
+      </div>
+      <div className="master-form-group">
+        <label className="master-form-label">Status :</label>
+        <select
+          value={form.status}
+          onChange={(e) => setForm({ ...form, status: e.target.value })}
+          className="master-form-input"
+        >
+          {STATUS_OPTIONS.map((opt) => (
+            <option key={opt.value} value={opt.value}>{opt.label}</option>
+          ))}
+        </select>
+      </div>
+      <div className="master-form-group-wide">
+        <label className="master-form-label">Notes :</label>
+        <input
+          type="text"
+          value={form.notes}
+          onChange={(e) => setForm({ ...form, notes: e.target.value })}
+          className="master-form-input"
+        />
+      </div>
+    </>
+  )
+
+  const formActions = (
+    <FooterFormMaster
+      onSave={handleSave}
+      onClose={handleCloseForm}
+      isSaving={isSaving}
+      onNext={handleNextRecord}
+      onPrev={handlePrevRecord}
+      canNext={currentEditIndex !== null && sortedData.length > 1 && currentEditIndex < sortedData.length - 1}
+      canPrev={currentEditIndex !== null && sortedData.length > 1 && currentEditIndex > 0}
+    />
+  )
+
+  const formSection = showForm ? (
+    viewMode === 'calendar' ? (
+      <div className="appointment-calendar-form-overlay">
+        <div className="appointment-calendar-form-panel">
+          <div className="master-form-header appointment-calendar-form-header">
+            <span className="material-icons-round master-form-icon">event</span>
+            <h2 className="master-form-title">{isNewMode ? 'Isi Data Appointment' : 'Ubah Data Appointment'}</h2>
+          </div>
+          <div className="appointment-calendar-form-body">
+            <div className="master-form-grid appointment-calendar-form-grid">{formFields}</div>
+          </div>
+          <div className="appointment-calendar-form-footer">{formActions}</div>
+        </div>
+      </div>
+    ) : (
+      <div className="master-form-card">
+        <div className="master-form-header">
+          <span className="material-icons-round master-form-icon">event</span>
+          <h2 className="master-form-title">{isNewMode ? 'Isi Data Appointment' : 'Ubah Data Appointment'}</h2>
+        </div>
+        <div className="master-form-grid">
+          {formFields}
+          {formActions}
+        </div>
+      </div>
+    )
+  ) : null
 
   return (
     <div className="master-content">
@@ -1068,113 +1199,7 @@ export function Appointment({ onExit }) {
         </div>
       )}
 
-      {showForm && (
-        <div className={`master-form-card ${viewMode === 'calendar' ? 'appointment-form-card-calendar' : ''}`}>
-          <div className="master-form-header">
-            <span className="material-icons-round master-form-icon">event</span>
-            <h2 className="master-form-title">{isNewMode ? 'Isi Data Appointment' : 'Ubah Data Appointment'}</h2>
-          </div>
-          <div className="master-form-grid">
-            <div className="master-form-group">
-              <label className="master-form-label">Pasien :</label>
-              <select
-                value={form.patient_id}
-                onChange={(e) => setForm({ ...form, patient_id: e.target.value })}
-                className="master-form-input"
-              >
-                <option value="">Pilih Pasien</option>
-                {patients.map((p) => (
-                  <option key={p.id} value={p.id}>{p.name || p.nama}</option>
-                ))}
-              </select>
-            </div>
-            <div className="master-form-group">
-              <label className="master-form-label">Treatment :</label>
-              <select
-                value={form.treatment_id}
-                onChange={(e) => setForm({ ...form, treatment_id: e.target.value })}
-                className="master-form-input"
-              >
-                <option value="">Pilih Treatment</option>
-                {treatments.map((t) => (
-                  <option key={t.id} value={t.id}>{t.name || t.nama}</option>
-                ))}
-              </select>
-            </div>
-            <div className="master-form-group">
-              <label className="master-form-label">Therapist :</label>
-              <select
-                value={form.therapist_id}
-                onChange={(e) => setForm({ ...form, therapist_id: e.target.value })}
-                className="master-form-input"
-              >
-                <option value="">Pilih Therapist</option>
-                {therapists.map((t) => (
-                  <option key={t.id} value={t.id}>{t.nama || t.name}</option>
-                ))}
-              </select>
-            </div>
-            <div className="master-form-group">
-              <label className="master-form-label">Tanggal :</label>
-              <input
-                type="date"
-                value={form.booking_date}
-                onChange={(e) => setForm({ ...form, booking_date: e.target.value })}
-                className="master-form-input"
-              />
-            </div>
-            <div className="master-form-group">
-              <label className="master-form-label">Jam Mulai :</label>
-              <input
-                type="time"
-                value={form.start_time}
-                onChange={(e) => setForm({ ...form, start_time: e.target.value })}
-                className="master-form-input"
-              />
-            </div>
-            <div className="master-form-group">
-              <label className="master-form-label">Jam Selesai :</label>
-              <input
-                type="time"
-                value={form.end_time}
-                onChange={(e) => setForm({ ...form, end_time: e.target.value })}
-                className="master-form-input"
-              />
-            </div>
-            <div className="master-form-group">
-              <label className="master-form-label">Status :</label>
-              <select
-                value={form.status}
-                onChange={(e) => setForm({ ...form, status: e.target.value })}
-                className="master-form-input"
-              >
-                {STATUS_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>{opt.label}</option>
-                ))}
-              </select>
-            </div>
-            <div className="master-form-group-wide">
-              <label className="master-form-label">Notes :</label>
-              <input
-                type="text"
-                value={form.notes}
-                onChange={(e) => setForm({ ...form, notes: e.target.value })}
-                className="master-form-input"
-              />
-            </div>
-
-            <FooterFormMaster
-              onSave={handleSave}
-              onClose={handleCloseForm}
-              isSaving={isSaving}
-              onNext={handleNextRecord}
-              onPrev={handlePrevRecord}
-              canNext={currentEditIndex !== null && sortedData.length > 1 && currentEditIndex < sortedData.length - 1}
-              canPrev={currentEditIndex !== null && sortedData.length > 1 && currentEditIndex > 0}
-            />
-          </div>
-        </div>
-      )}
+      {formSection}
 
       {viewMode !== 'calendar' && (
         <FooterMaster
