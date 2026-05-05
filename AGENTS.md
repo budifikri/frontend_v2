@@ -160,6 +160,7 @@ Prefer existing patterns over new abstractions.
 
 # TODO
 - setiap proses selalu buatkan todo write to code
+- jika ada permintaan simpan PLAN_xxxx.md dan TODO_xxx.md difolder frontend_v2/document 
 
 
 # RESPONSE AI

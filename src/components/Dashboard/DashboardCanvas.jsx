@@ -7,6 +7,7 @@ import { Supplier } from '../ToolbarItem/master/Supplier'
 import { Dokter } from '../ToolbarItem/master/Dokter'
 import { JadwalDokter } from '../ToolbarItem/master/JadwalDokter'
 import { Paket } from '../ToolbarItem/master/Paket'
+import { Treatment } from '../ToolbarItem/master/Treatment'
 import { Company } from '../ToolbarItem/master/Company'
 import { CompanySetting } from '../ToolbarItem/setting/CompanySetting'
 import { StockOpname } from '../ToolbarItem/transaksi/StockOpname'
@@ -29,6 +30,7 @@ import { LapLabaRugi } from '../ToolbarItem/laporan/laba-rugi/LapLabaRugi'
 import { LapPengeluaran } from '../ToolbarItem/laporan/pengeluaran/LapPengeluaran'
 import { BackupRestore } from '../ToolbarItem/setting/BackupRestore'
 import { Telegram } from '../ToolbarItem/setting/Telegram'
+import { Appointment } from '../ToolbarItem/transaksi/Appointment'
 
 export function DashboardCanvas({ activeTool, onExit }) {
   if (activeTool === 'warehouse') {
@@ -123,6 +125,14 @@ export function DashboardCanvas({ activeTool, onExit }) {
     return (
       <div className="dashboard-canvas">
         <Paket onExit={onExit} />
+      </div>
+    )
+  }
+
+  if (activeTool === 'treatment') {
+    return (
+      <div className="dashboard-canvas">
+        <Treatment onExit={onExit} />
       </div>
     )
   }
@@ -275,6 +285,14 @@ export function DashboardCanvas({ activeTool, onExit }) {
     return (
       <div className="dashboard-canvas">
         <Telegram onExit={onExit} />
+      </div>
+    )
+  }
+
+  if (activeTool === 'appointment') {
+    return (
+      <div className="dashboard-canvas">
+        <Appointment onExit={onExit} />
       </div>
     )
   }

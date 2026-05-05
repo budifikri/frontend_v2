@@ -99,12 +99,15 @@ export function Paket({ onExit }) {
   const [productSearch, setProductSearch] = useState('')
   const [productResults, setProductResults] = useState([])
   const [showProductPopup, setShowProductPopup] = useState(false)
+  const [showActionPopup, setShowActionPopup] = useState(false)
+  const [actionPopupIndex, setActionPopupIndex] = useState(0)
   const [selectedProductIndex, setSelectedProductIndex] = useState(0)
   const [isLoadingProducts, setIsLoadingProducts] = useState(false)
   const searchInputRef = useRef(null)
   const tableRef = useRef(null)
   const detailTableWrapperRef = useRef(null)
   const popupTableWrapperRef = useRef(null)
+  const actionPopupRef = useRef(null)
 
   const currentProductOptions = productSearch.trim() ? productResults : DUMMY_PRODUCTS
 
@@ -443,7 +446,7 @@ export function Paket({ onExit }) {
     }, 100)
   }
 
-  function handleRemoveProduct(index) {
+  const handleRemoveProduct = useCallback((index) => {
     setDetailItems(detailItems.filter((_, idx) => idx !== index))
     setSelectedDetailIndex((prev) => {
       if (detailItems.length <= 1) return null
@@ -452,13 +455,13 @@ export function Paket({ onExit }) {
       if (prev === index) return Math.max(0, prev - 1)
       return prev
     })
-  }
+  }, [detailItems])
 
-  function handleRequestRemoveProduct(index) {
+  const handleRequestRemoveProduct = useCallback((index) => {
     if (index == null || index < 0 || index >= detailItems.length) return
     setPendingDetailDeleteIndex(index)
     setShowDetailDeleteConfirm(true)
-  }
+  }, [detailItems])
 
   function handleConfirmRemoveProduct() {
     if (pendingDetailDeleteIndex == null) {
@@ -481,7 +484,7 @@ export function Paket({ onExit }) {
   }
 
   // Keyboard handler for detail items
-  function handleDetailKeyDown(e) {
+  const handleDetailKeyDown = useCallback((e) => {
     if (e.key === 'ArrowDown') {
       e.preventDefault()
       if (detailItems.length === 0) return
@@ -500,12 +503,19 @@ export function Paket({ onExit }) {
       e.preventDefault()
       handleRequestRemoveProduct(selectedDetailIndex)
     }
-  }
+  }, [detailItems, selectedDetailIndex, handleRequestRemoveProduct])
 
   // Keyboard handler for product search
   function handleSearchKeyDown(e) {
     if (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Delete') {
       handleDetailKeyDown(e)
+      return
+    }
+
+    if (e.key === 'Enter' && !productSearch.trim()) {
+      e.preventDefault()
+      setActionPopupIndex(0)
+      setShowActionPopup(true)
       return
     }
 
@@ -517,6 +527,42 @@ export function Paket({ onExit }) {
       } else if (results.length > 1) {
         setShowProductPopup(true)
       }
+    }
+  }
+
+  async function handleActionSelect(index) {
+    setShowActionPopup(false)
+    setProductSearch('')
+
+    if (index === 0) {
+      await handleSave()
+      return
+    }
+
+    if (index === 1) {
+      handleCloseForm()
+      return
+    }
+  }
+
+  function handleActionPopupKeyDown(e) {
+    if (!showActionPopup) return
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      setActionPopupIndex((prev) => (prev >= 1 ? 0 : prev + 1))
+      return
+    }
+
+    if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      setActionPopupIndex((prev) => (prev <= 0 ? 1 : prev - 1))
+      return
+    }
+
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      handleActionSelect(actionPopupIndex)
     }
   }
 
@@ -698,12 +744,13 @@ export function Paket({ onExit }) {
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (showDeleteConfirm || showDetailDeleteConfirm || showProductPopup) {
+      if (showDeleteConfirm || showDetailDeleteConfirm || showProductPopup || showActionPopup) {
         if (e.key === 'Escape') {
           e.preventDefault()
           if (showDeleteConfirm) setShowDeleteConfirm(false)
           if (showDetailDeleteConfirm) handleCancelRemoveProduct()
           if (showProductPopup) setShowProductPopup(false)
+          if (showActionPopup) setShowActionPopup(false)
         }
         return
       }
@@ -753,6 +800,7 @@ export function Paket({ onExit }) {
     showDetailDeleteConfirm,
     showForm,
     showProductPopup,
+    showActionPopup,
     selectedItem,
     data,
     handlePrevRecord,
@@ -782,6 +830,11 @@ export function Paket({ onExit }) {
   }, [showProductPopup, selectedProductIndex, currentProductOptions])
 
   useEffect(() => {
+    if (!showActionPopup || !actionPopupRef.current) return
+    actionPopupRef.current.focus()
+  }, [showActionPopup, actionPopupIndex])
+
+  useEffect(() => {
     const element = detailTableWrapperRef.current
     if (!showForm || !element) return undefined
 
@@ -793,7 +846,7 @@ export function Paket({ onExit }) {
     return () => {
       element.removeEventListener('keydown', nativeKeyHandler)
     }
-  }, [showForm, detailItems, selectedDetailIndex])
+  }, [showForm, handleDetailKeyDown])
 
   return (
     <div className="master-content">
@@ -1158,6 +1211,34 @@ export function Paket({ onExit }) {
             <div className="popup-footer">
               <span>↑↓ Navigasi</span>
               <span>Enter: Pilih | Esc: Tutup</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showActionPopup && (
+        <div className="popup-overlay" onClick={() => setShowActionPopup(false)}>
+          <div className="popup action-popup" onClick={(e) => e.stopPropagation()}>
+            <div className="popup-header"><h3>PILIH AKSI</h3></div>
+            <div ref={actionPopupRef} className="action-popup-list" onKeyDown={handleActionPopupKeyDown} tabIndex={0} style={{ outline: 'none' }}>
+              <div
+                className={`action-popup-item ${actionPopupIndex === 0 ? 'is-selected' : ''}`}
+                onClick={() => handleActionSelect(0)}
+              >
+                <span className="material-icons">save</span>
+                <span>Simpan</span>
+              </div>
+              <div
+                className={`action-popup-item ${actionPopupIndex === 1 ? 'is-selected' : ''}`}
+                onClick={() => handleActionSelect(1)}
+              >
+                <span className="material-icons">exit_to_app</span>
+                <span>Keluar</span>
+              </div>
+            </div>
+            <div className="popup-footer">
+              <span>↑↓ Pilih</span>
+              <span>Enter: OK | Esc: Tutup</span>
             </div>
           </div>
         </div>

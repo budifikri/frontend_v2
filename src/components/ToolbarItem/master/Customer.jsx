@@ -16,6 +16,32 @@ import { useMasterTableKeyboardNav } from '../../../hooks/useMasterTableKeyboard
 import { exportToExcel, generateTemplate, validateImportFile } from '../../../utils/excelUtils'
 import { Toast } from '../../../components/Toast'
 
+function getTableColumns(isClinic) {
+  return [
+    { key: 'no', label: 'NO', sortable: false },
+    { key: 'customer_code', label: 'CODE' },
+    { key: 'name', label: 'NAME' },
+    { key: 'email', label: 'EMAIL' },
+    { key: 'phone', label: 'PHONE' },
+    { key: 'tier', label: 'TIER' },
+    ...(isClinic ? [{ key: 'allergies', label: 'ALERGI' }] : []),
+    { key: 'is_active', label: 'STATUS' },
+  ]
+}
+
+function getExcelColumns(isClinic) {
+  return [
+    { key: 'customer_code', label: 'CODE' },
+    { key: 'name', label: 'NAME' },
+    { key: 'email', label: 'EMAIL' },
+    { key: 'phone', label: 'PHONE' },
+    { key: 'address', label: 'ADDRESS' },
+    { key: 'city', label: 'CITY' },
+    { key: 'tier', label: 'TIER' },
+    ...(isClinic ? [{ key: 'allergies', label: 'ALERGI' }] : []),
+  ]
+}
+
 const DEFAULT_FORM = {
   name: '',
   email: '',
@@ -23,6 +49,7 @@ const DEFAULT_FORM = {
   address: '',
   city: '',
   tier: 'BRONZE',
+  allergies: '',
   credit_limit: 0,
   bank_name: '',
   bank_account_number: '',
@@ -31,26 +58,6 @@ const DEFAULT_FORM = {
 }
 
 const TIERS = ['BRONZE', 'SILVER', 'GOLD', 'PLATINUM']
-
-const TABLE_COLUMNS = [
-  { key: 'no', label: 'NO', sortable: false },
-  { key: 'customer_code', label: 'CODE' },
-  { key: 'name', label: 'NAME' },
-  { key: 'email', label: 'EMAIL' },
-  { key: 'phone', label: 'PHONE' },
-  { key: 'tier', label: 'TIER' },
-  { key: 'is_active', label: 'STATUS' },
-]
-
-const EXCEL_COLUMNS = [
-  { key: 'customer_code', label: 'CODE' },
-  { key: 'name', label: 'NAME' },
-  { key: 'email', label: 'EMAIL' },
-  { key: 'phone', label: 'PHONE' },
-  { key: 'address', label: 'ADDRESS' },
-  { key: 'city', label: 'CITY' },
-  { key: 'tier', label: 'TIER' },
-]
 
 const DUMMY_CUSTOMERS = [
   {
@@ -295,6 +302,7 @@ export function Customer({ onExit }) {
       address: form.address,
       city: form.city,
       tier: form.tier,
+      allergies: form.allergies,
       credit_limit: Number(form.credit_limit || 0),
       bank_name: form.bank_name,
       bank_account_number: form.bank_account_number,
@@ -357,6 +365,7 @@ export function Customer({ onExit }) {
       address: target.address || '',
       city: target.city || '',
       tier: target.tier || 'BRONZE',
+      allergies: target.allergies || '',
       credit_limit: Number(target.credit_limit || 0),
       bank_name: target.bank_name || '',
       bank_account_number: target.bank_account_number || '',
@@ -380,6 +389,7 @@ export function Customer({ onExit }) {
       address: nextItem.address || '',
       city: nextItem.city || '',
       tier: nextItem.tier || 'BRONZE',
+      allergies: nextItem.allergies || '',
       credit_limit: Number(nextItem.credit_limit || 0),
       bank_name: nextItem.bank_name || '',
       bank_account_number: nextItem.bank_account_number || '',
@@ -401,6 +411,7 @@ export function Customer({ onExit }) {
       address: prevItem.address || '',
       city: prevItem.city || '',
       tier: prevItem.tier || 'BRONZE',
+      allergies: prevItem.allergies || '',
       credit_limit: Number(prevItem.credit_limit || 0),
       bank_name: prevItem.bank_name || '',
       bank_account_number: prevItem.bank_account_number || '',
@@ -477,6 +488,7 @@ export function Customer({ onExit }) {
       { key: 'phone', label: 'TELEPON' },
       { key: 'address', label: 'ALAMAT' },
       { key: 'city', label: 'KOTA' },
+      ...(isClinic ? [{ key: 'allergies', label: 'ALERGI' }] : []),
       { key: 'is_active', label: 'STATUS', align: 'text-center', formatter: (v) => v ? 'Aktif' : 'Non-Aktif' },
     ]
     const printData = sortedData.map((item, index) => ({ ...item, no: index + 1 }))
@@ -520,15 +532,19 @@ export function Customer({ onExit }) {
   }
 
   const handleExportExcel = () => {
-    const exportData = data.map(row => ({
-      CODE: row.customer_code || row.code || '',
-      NAME: row.name || '',
-      EMAIL: row.email || '',
-      PHONE: row.phone || '',
-      ADDRESS: row.address || '',
-      CITY: row.city || '',
-      TIER: row.tier || 'BRONZE',
-    }))
+    const exportData = data.map(row => {
+      const base = {
+        CODE: row.customer_code || row.code || '',
+        NAME: row.name || '',
+        EMAIL: row.email || '',
+        PHONE: row.phone || '',
+        ADDRESS: row.address || '',
+        CITY: row.city || '',
+        TIER: row.tier || 'BRONZE',
+      }
+      if (isClinic) base.ALERGI = row.allergies || ''
+      return base
+    })
     exportToExcel(exportData, 'customer')
   }
 
@@ -563,6 +579,7 @@ export function Customer({ onExit }) {
         address: row.ADDRESS || row.address || '',
         city: row.CITY || row.city || '',
         tier: row.TIER || row.tier || 'BRONZE',
+        allergies: isClinic ? (row.ALERGI || row.allergies || '') : '',
         is_active: true,
       }
 
@@ -667,7 +684,7 @@ export function Customer({ onExit }) {
       <div className="master-table-wrapper" ref={tableRef} tabIndex={0}>
         <div className="master-table-container">
           <table className="master-table">
-            <MasterTableHeader columns={TABLE_COLUMNS} sortConfig={sortConfig} onSort={handleSort} />
+            <MasterTableHeader columns={getTableColumns(isClinic)} sortConfig={sortConfig} onSort={handleSort} />
             <tbody>
               {sortedData.map((row, index) => (
                 <tr
@@ -682,6 +699,7 @@ export function Customer({ onExit }) {
                   <td>{row.email || '-'}</td>
                   <td>{row.phone || '-'}</td>
                   <td>{row.tier || '-'}</td>
+                  {isClinic && <td>{row.allergies || '-'}</td>}
                   <td>
                     <MasterStatusToggle
                       active={isActiveCustomer(row)}
@@ -696,7 +714,7 @@ export function Customer({ onExit }) {
               ))}
               {!isLoading && sortedData.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="text-center">No data</td>
+                  <td colSpan={isClinic ? 8 : 7} className="text-center">No data</td>
                 </tr>
               )}
             </tbody>
@@ -740,31 +758,46 @@ export function Customer({ onExit }) {
                 ))}
               </select>
             </div>
-            <div className="master-form-group">
-              <label className="master-form-label">Credit Limit :</label>
-              <input
-                type="number"
-                value={form.credit_limit}
-                onChange={(e) => setForm({ ...form, credit_limit: Number(e.target.value) })}
-                className="master-form-input"
-              />
-            </div>
-            <div className="master-form-group">
-              <label className="master-form-label">Bank :</label>
-              <input type="text" value={form.bank_name} onChange={(e) => setForm({ ...form, bank_name: e.target.value })} className="master-form-input" />
-            </div>
-            <div className="master-form-group">
-              <label className="master-form-label">Cabang :</label>
-              <input type="text" value={form.bank_branch} onChange={(e) => setForm({ ...form, bank_branch: e.target.value })} className="master-form-input" />
-            </div>
-            <div className="master-form-group">
-              <label className="master-form-label">No. Rek :</label>
-              <input type="text" value={form.bank_account_number} onChange={(e) => setForm({ ...form, bank_account_number: e.target.value })} className="master-form-input" />
-            </div>
-            <div className="master-form-group">
-              <label className="master-form-label">A/N Rek :</label>
-              <input type="text" value={form.bank_account_name} onChange={(e) => setForm({ ...form, bank_account_name: e.target.value })} className="master-form-input" />
-            </div>
+            {isClinic && (
+              <div className="master-form-group-wide">
+                <label className="master-form-label">Alergi :</label>
+                <textarea
+                  value={form.allergies}
+                  onChange={(e) => setForm({ ...form, allergies: e.target.value })}
+                  className="master-form-input"
+                  rows={3}
+                />
+              </div>
+            )}
+            {!isClinic && (
+              <>
+                <div className="master-form-group">
+                  <label className="master-form-label">Credit Limit :</label>
+                  <input
+                    type="number"
+                    value={form.credit_limit}
+                    onChange={(e) => setForm({ ...form, credit_limit: Number(e.target.value) })}
+                    className="master-form-input"
+                  />
+                </div>
+                <div className="master-form-group">
+                  <label className="master-form-label">Bank :</label>
+                  <input type="text" value={form.bank_name} onChange={(e) => setForm({ ...form, bank_name: e.target.value })} className="master-form-input" />
+                </div>
+                <div className="master-form-group">
+                  <label className="master-form-label">Cabang :</label>
+                  <input type="text" value={form.bank_branch} onChange={(e) => setForm({ ...form, bank_branch: e.target.value })} className="master-form-input" />
+                </div>
+                <div className="master-form-group">
+                  <label className="master-form-label">No. Rek :</label>
+                  <input type="text" value={form.bank_account_number} onChange={(e) => setForm({ ...form, bank_account_number: e.target.value })} className="master-form-input" />
+                </div>
+                <div className="master-form-group">
+                  <label className="master-form-label">A/N Rek :</label>
+                  <input type="text" value={form.bank_account_name} onChange={(e) => setForm({ ...form, bank_account_name: e.target.value })} className="master-form-input" />
+                </div>
+              </>
+            )}
 
             <FooterFormMaster
               onSave={handleSave}

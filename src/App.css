@@ -1730,6 +1730,241 @@ body.has-wallpaper .cash-register {
   justify-content: center;
 }
 
+.treatment-tag-selector {
+  position: relative;
+}
+
+.treatment-tag-trigger {
+  min-height: 40px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #f8fafc;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+
+.treatment-tag-trigger.is-open,
+.treatment-tag-trigger:focus {
+  outline: none;
+  border-color: #0d9488;
+  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.1);
+}
+
+.treatment-tag-chip-list {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 8px;
+  overflow: hidden;
+}
+
+.treatment-tag-placeholder {
+  color: #94a3b8;
+  font-size: 0.875rem;
+}
+
+.treatment-tag-chip {
+  max-width: 180px;
+  height: 26px;
+  padding: 0 8px 0 10px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #0d9488 0%, #0f766e 100%);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.treatment-tag-chip-summary {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.treatment-tag-chip-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.treatment-tag-chip-remove {
+  width: 16px;
+  height: 16px;
+  border: none;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.2);
+  color: inherit;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  font-size: 0.8rem;
+  line-height: 1;
+}
+
+.treatment-tag-chip-remove:hover {
+  background: rgba(255, 255, 255, 0.32);
+}
+
+.treatment-tag-trigger-icon {
+  color: #64748b;
+  flex-shrink: 0;
+}
+
+.treatment-tag-dropdown {
+  position: absolute;
+  left: 0;
+  right: 0;
+  z-index: 120;
+  border: 1px solid #dbe2ea;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.14);
+  overflow: hidden;
+  max-height: 320px;
+  display: flex;
+  flex-direction: column;
+}
+
+.treatment-tag-dropdown-down {
+  top: calc(100% + 8px);
+}
+
+.treatment-tag-dropdown-up {
+  bottom: calc(100% + 8px);
+}
+
+.treatment-tag-search {
+  width: 100%;
+  height: 38px;
+  border: none;
+  border-bottom: 1px solid #e2e8f0;
+  padding: 0 14px;
+  font-size: 0.875rem;
+  color: #334155;
+}
+
+.treatment-tag-search:focus {
+  outline: none;
+}
+
+.treatment-tag-options {
+  flex: 1;
+  min-height: 0;
+  max-height: 272px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 6px 6px 10px;
+  scrollbar-width: thin;
+  scrollbar-color: #94a3b8 #e2e8f0;
+}
+
+.treatment-tag-options::-webkit-scrollbar {
+  width: 10px;
+}
+
+.treatment-tag-options::-webkit-scrollbar-track {
+  background: #e2e8f0;
+  border-radius: 999px;
+}
+
+.treatment-tag-options::-webkit-scrollbar-thumb {
+  background: #94a3b8;
+  border-radius: 999px;
+  border: 2px solid #e2e8f0;
+}
+
+.treatment-tag-option {
+  min-height: 40px;
+  border-radius: 8px;
+  background: transparent;
+  color: #334155;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 6px 0 0;
+}
+
+.treatment-tag-option:hover {
+  background: #f1f5f9;
+}
+
+.treatment-tag-option.is-selected {
+  background: #ecfdf5;
+  color: #0f766e;
+}
+
+.treatment-tag-option-main {
+  flex: 1;
+  min-height: 40px;
+  border: none;
+  background: transparent;
+  color: inherit;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 10px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.treatment-tag-option-main:focus {
+  outline: none;
+}
+
+.treatment-tag-option-delete {
+  width: 30px;
+  height: 30px;
+  border: 1px solid #fca5a5;
+  border-radius: 999px;
+  background: #fef2f2;
+  color: #dc2626;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  padding: 0;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.35);
+}
+
+.treatment-tag-option-delete:hover {
+  background: #fecaca;
+  color: #b91c1c;
+  border-color: #f87171;
+}
+
+.treatment-tag-option-delete .material-icons-round {
+  font-size: 18px;
+}
+
+.treatment-tag-option-check {
+  font-size: 18px;
+  color: currentColor;
+}
+
+.treatment-tag-option-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.treatment-tag-empty {
+  padding: 14px 12px;
+  color: #94a3b8;
+  font-size: 0.875rem;
+  text-align: center;
+}
+
 /* Date filter clear button */
 .master-filter-clear-btn {
   width: 28px;
