@@ -36,6 +36,13 @@ const STATUS_OPTIONS = [
   { value: 'cancelled', label: 'Cancelled' },
 ]
 
+const FORM_STATUS_STEPS = [
+  { value: 'scheduled', label: 'Scheduled' },
+  { value: 'confirmed', label: 'Confirmed' },
+  { value: 'completed', label: 'Completed' },
+  { value: 'cancelled', label: 'Cancelled', tone: 'cancelled' },
+]
+
 const DAY_LABELS = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab']
 
 const TABLE_COLUMNS = [
@@ -884,18 +891,6 @@ export function Appointment({ onExit }) {
           className="master-form-input"
         />
       </div>
-      <div className="master-form-group">
-        <label className="master-form-label">Status :</label>
-        <select
-          value={form.status}
-          onChange={(e) => setForm({ ...form, status: e.target.value })}
-          className="master-form-input"
-        >
-          {STATUS_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>{opt.label}</option>
-          ))}
-        </select>
-      </div>
       <div className="master-form-group-wide">
         <label className="master-form-label">Notes :</label>
         <input
@@ -920,6 +915,25 @@ export function Appointment({ onExit }) {
     />
   )
 
+  const formStatusBar = (
+    <div className="appointment-arrow-status-bar" aria-label="Appointment status">
+      {FORM_STATUS_STEPS.map((item) => {
+        const isActive = form.status === item.value
+        return (
+          <button
+            key={item.value}
+            type="button"
+            className={`appointment-arrow-step ${isActive ? 'is-active' : 'is-inactive'} ${item.tone === 'cancelled' ? 'appointment-arrow-step-cancelled' : ''}`}
+            onClick={() => setForm({ ...form, status: item.value })}
+            aria-pressed={isActive}
+          >
+            {item.label}
+          </button>
+        )
+      })}
+    </div>
+  )
+
   const formSection = showForm ? (
     viewMode === 'calendar' ? (
       <div className="appointment-calendar-form-overlay">
@@ -927,6 +941,7 @@ export function Appointment({ onExit }) {
           <div className="master-form-header appointment-calendar-form-header">
             <span className="material-icons-round master-form-icon">event</span>
             <h2 className="master-form-title">{isNewMode ? 'Isi Data Appointment' : 'Ubah Data Appointment'}</h2>
+            {formStatusBar}
           </div>
           <div className="appointment-calendar-form-body">
             <div className="master-form-grid appointment-calendar-form-grid">{formFields}</div>
@@ -939,6 +954,7 @@ export function Appointment({ onExit }) {
         <div className="master-form-header">
           <span className="material-icons-round master-form-icon">event</span>
           <h2 className="master-form-title">{isNewMode ? 'Isi Data Appointment' : 'Ubah Data Appointment'}</h2>
+          {formStatusBar}
         </div>
         <div className="master-form-grid">
           {formFields}

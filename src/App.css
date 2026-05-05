@@ -1164,6 +1164,10 @@ body.has-wallpaper .cash-register {
   flex-wrap: wrap;
 }
 
+.master-form-header .appointment-arrow-status-bar {
+  margin-left: auto;
+}
+
 .master-form-header-telegram {
   display: flex;
   align-items: center;
@@ -2111,6 +2115,67 @@ body.has-wallpaper .cash-register {
   flex-shrink: 0;
 }
 
+.appointment-arrow-status-bar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0;
+  flex-wrap: nowrap;
+}
+
+.appointment-arrow-step {
+  position: relative;
+  min-width: 108px;
+  height: 30px;
+  padding: 0 16px 0 20px;
+  border: none;
+  background: #e2e8f0;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 50%, calc(100% - 14px) 100%, 0 100%, 12px 50%);
+  margin-left: -8px;
+  transition: filter 160ms ease, transform 160ms ease, background-color 160ms ease, color 160ms ease;
+}
+
+.appointment-arrow-step:first-child {
+  margin-left: 0;
+  clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 50%, calc(100% - 14px) 100%, 0 100%);
+  border-radius: 8px 0 0 8px;
+}
+
+.appointment-arrow-step:last-child {
+  border-radius: 0 8px 8px 0;
+}
+
+.appointment-arrow-step.is-active {
+  background: linear-gradient(135deg, #0f766e, #14b8a6);
+  color: #ffffff;
+  z-index: 2;
+}
+
+.appointment-arrow-step.is-inactive {
+  background: #e2e8f0;
+  color: #64748b;
+}
+
+.appointment-arrow-step.appointment-arrow-step-cancelled.is-active {
+  background: linear-gradient(135deg, #dc2626, #ef4444);
+}
+
+.appointment-arrow-step:hover {
+  filter: brightness(0.98);
+}
+
+.appointment-arrow-step:focus-visible {
+  outline: 2px solid #0f766e;
+  outline-offset: 2px;
+  z-index: 3;
+}
+
 .appointment-calendar-form-body {
   flex: 1;
   min-height: 0;
@@ -2304,6 +2369,23 @@ body.has-wallpaper .cash-register {
 
   .appointment-calendar-form-header {
     padding: 16px 16px 0;
+  }
+
+  .appointment-arrow-status-bar {
+    width: 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-left: 0;
+  }
+
+  .appointment-arrow-step,
+  .appointment-arrow-step:first-child,
+  .appointment-arrow-step:last-child {
+    min-width: 96px;
+    margin-left: 0;
+    clip-path: none;
+    border-radius: 8px;
   }
 
   .appointment-calendar-form-body {
