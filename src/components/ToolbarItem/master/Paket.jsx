@@ -14,6 +14,7 @@ import { useMasterPagination } from '../../../hooks/useMasterPagination'
 import { useMasterTableKeyboardNav } from '../../../hooks/useMasterTableKeyboardNav'
 import { exportToExcel, generateTemplate, validateImportFile } from '../../../utils/excelUtils'
 import { Toast } from '../../../components/Toast'
+import '../transaksi/PurchaseDetail.css'
 
 const DEFAULT_FORM = {
   kodepaket: '',
@@ -82,6 +83,8 @@ export function Paket({ onExit }) {
   const [showForm, setShowForm] = useState(false)
   const [isNewMode, setIsNewMode] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [showDetailDeleteConfirm, setShowDetailDeleteConfirm] = useState(false)
+  const [pendingDetailDeleteIndex, setPendingDetailDeleteIndex] = useState(null)
   const [showExitConfirm, setShowExitConfirm] = useState(false)
   const [showImportConfirm, setShowImportConfirm] = useState(false)
   const [pendingImportData, setPendingImportData] = useState(null)
@@ -96,8 +99,14 @@ export function Paket({ onExit }) {
   const [productSearch, setProductSearch] = useState('')
   const [productResults, setProductResults] = useState([])
   const [showProductPopup, setShowProductPopup] = useState(false)
+  const [selectedProductIndex, setSelectedProductIndex] = useState(0)
+  const [isLoadingProducts, setIsLoadingProducts] = useState(false)
   const searchInputRef = useRef(null)
   const tableRef = useRef(null)
+  const detailTableWrapperRef = useRef(null)
+  const popupTableWrapperRef = useRef(null)
+
+  const currentProductOptions = productSearch.trim() ? productResults : DUMMY_PRODUCTS
 
   const fetchData = useCallback(async () => {
     setError('')
@@ -164,21 +173,25 @@ export function Paket({ onExit }) {
     setSelectedId,
     handleEdit,
     tableRef,
-    isModalOpen: showForm || showDeleteConfirm || showExitConfirm || showImportConfirm || showProductPopup,
+    isModalOpen: showForm || showDeleteConfirm || showDetailDeleteConfirm || showExitConfirm || showImportConfirm || showProductPopup,
   })
 
   // Fetch product search
   useEffect(() => {
     if (!productSearch.trim() || !token) {
+      setIsLoadingProducts(false)
       setProductResults(DUMMY_PRODUCTS)
       return
     }
     const delayDebounce = setTimeout(async () => {
+      setIsLoadingProducts(true)
       try {
         const result = await listProducts(token, { search: productSearch, limit: 10, offset: 0 })
         setProductResults(result.items || DUMMY_PRODUCTS)
       } catch {
         setProductResults(DUMMY_PRODUCTS)
+      } finally {
+        setIsLoadingProducts(false)
       }
     }, 300)
     return () => clearTimeout(delayDebounce)
@@ -190,6 +203,7 @@ export function Paket({ onExit }) {
     setError('')
 
     try {
+      let savedResult = null
       const payload = {
         kodepaket: form.kodepaket,
         nm_paket: form.nm_paket,
@@ -200,9 +214,31 @@ export function Paket({ onExit }) {
 
       if (token) {
         if (isNewMode) {
-          await createPaket(token, payload)
+          savedResult = await createPaket(token, payload)
         } else {
-          await updatePaket(token, selectedItem.id, payload)
+          savedResult = await updatePaket(token, selectedItem.id, payload)
+        }
+
+        const savedData = savedResult?.data ?? null
+        if (savedData) {
+          setSelectedId(savedData.id || selectedId)
+          setForm({
+            kodepaket: savedData.kodepaket || payload.kodepaket,
+            nm_paket: savedData.nm_paket || payload.nm_paket,
+            deskripsi: savedData.deskripsi || payload.deskripsi || '',
+            is_active: Boolean(savedData.is_active ?? payload.is_active),
+            harga_paket: Number(savedData.harga_paket || 0),
+          })
+          const nextDetails = (savedData.details || []).map((detail) => ({
+            id: detail.id,
+            id_produk: detail.id_produk,
+            kode: detail.produk?.sku || '-',
+            nama: detail.produk?.name || '-',
+            harga: Number(detail.produk?.retail_price || 0),
+          }))
+          if (nextDetails.length > 0) {
+            setDetailItems(nextDetails)
+          }
         }
         await fetchData()
       } else {
@@ -399,6 +435,7 @@ export function Paket({ onExit }) {
     }])
     setShowProductPopup(false)
     setProductSearch('')
+    setSelectedProductIndex(0)
     // Focus back to search input
     setTimeout(() => {
       if (searchInputRef.current) searchInputRef.current.focus()
@@ -407,9 +444,35 @@ export function Paket({ onExit }) {
 
   function handleRemoveProduct(index) {
     setDetailItems(detailItems.filter((_, idx) => idx !== index))
-    if (selectedDetailIndex === index) {
-      setSelectedDetailIndex(null)
+    setSelectedDetailIndex((prev) => {
+      if (detailItems.length <= 1) return null
+      if (prev === null) return null
+      if (prev > index) return prev - 1
+      if (prev === index) return Math.max(0, prev - 1)
+      return prev
+    })
+  }
+
+  function handleRequestRemoveProduct(index) {
+    if (index == null || index < 0 || index >= detailItems.length) return
+    setPendingDetailDeleteIndex(index)
+    setShowDetailDeleteConfirm(true)
+  }
+
+  function handleConfirmRemoveProduct() {
+    if (pendingDetailDeleteIndex == null) {
+      setShowDetailDeleteConfirm(false)
+      return
     }
+
+    handleRemoveProduct(pendingDetailDeleteIndex)
+    setPendingDetailDeleteIndex(null)
+    setShowDetailDeleteConfirm(false)
+  }
+
+  function handleCancelRemoveProduct() {
+    setPendingDetailDeleteIndex(null)
+    setShowDetailDeleteConfirm(false)
   }
 
   function calculateTotal() {
@@ -434,18 +497,50 @@ export function Paket({ onExit }) {
       })
     } else if (e.key === 'Delete' && selectedDetailIndex !== null) {
       e.preventDefault()
-      handleRemoveProduct(selectedDetailIndex)
+      handleRequestRemoveProduct(selectedDetailIndex)
     }
   }
 
   // Keyboard handler for product search
   function handleSearchKeyDown(e) {
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Delete') {
+      handleDetailKeyDown(e)
+      return
+    }
+
     if (e.key === 'Enter' && productSearch.trim()) {
       e.preventDefault()
-      // If there's search result, add first item
-      const results = productSearch.trim() ? productResults : DUMMY_PRODUCTS
-      if (results.length > 0) {
+      const results = currentProductOptions
+      if (results.length === 1) {
         handleAddProduct(results[0])
+      } else if (results.length > 1) {
+        setShowProductPopup(true)
+      }
+    }
+  }
+
+  function handleProductPopupKeyDown(e) {
+    if (!showProductPopup) return
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      if (currentProductOptions.length === 0) return
+      setSelectedProductIndex((prev) => (prev >= currentProductOptions.length - 1 ? 0 : prev + 1))
+      return
+    }
+
+    if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      if (currentProductOptions.length === 0) return
+      setSelectedProductIndex((prev) => (prev <= 0 ? currentProductOptions.length - 1 : prev - 1))
+      return
+    }
+
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      const selectedProduct = currentProductOptions[selectedProductIndex]
+      if (selectedProduct) {
+        handleAddProduct(selectedProduct)
       }
     }
   }
@@ -602,16 +697,25 @@ export function Paket({ onExit }) {
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (showDeleteConfirm || showProductPopup) {
+      if (showDeleteConfirm || showDetailDeleteConfirm || showProductPopup) {
         if (e.key === 'Escape') {
           e.preventDefault()
           if (showDeleteConfirm) setShowDeleteConfirm(false)
+          if (showDetailDeleteConfirm) handleCancelRemoveProduct()
           if (showProductPopup) setShowProductPopup(false)
         }
         return
       }
 
       if (showForm) {
+        const activeTag = document.activeElement?.tagName
+        const isTypingInField = document.activeElement === searchInputRef.current || activeTag === 'INPUT' || activeTag === 'TEXTAREA'
+
+        if (!isTypingInField && (e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'Delete')) {
+          handleDetailKeyDown(e)
+          return
+        }
+
         if (e.key === 'Escape') {
           e.preventDefault()
           handleCloseForm()
@@ -643,95 +747,171 @@ export function Paket({ onExit }) {
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showDeleteConfirm, showForm, showProductPopup, selectedItem, data, handlePrevRecord, handleNextRecord])
+  }, [
+    showDeleteConfirm,
+    showDetailDeleteConfirm,
+    showForm,
+    showProductPopup,
+    selectedItem,
+    data,
+    handlePrevRecord,
+    handleNextRecord,
+    detailItems,
+    selectedDetailIndex,
+  ])
+
+  useEffect(() => {
+    if (!showProductPopup) return
+    setSelectedProductIndex(0)
+  }, [showProductPopup, productSearch])
+
+  useEffect(() => {
+    if (!showForm || detailItems.length === 0 || selectedDetailIndex !== null) return
+    setSelectedDetailIndex(0)
+  }, [showForm, detailItems, selectedDetailIndex])
+
+  useEffect(() => {
+    if (!showProductPopup || !popupTableWrapperRef.current) return
+
+    popupTableWrapperRef.current.focus()
+    const selectedRow = popupTableWrapperRef.current.querySelector('tr.selected')
+    if (selectedRow) {
+      selectedRow.scrollIntoView({ block: 'nearest' })
+    }
+  }, [showProductPopup, selectedProductIndex, currentProductOptions])
+
+  useEffect(() => {
+    const element = detailTableWrapperRef.current
+    if (!showForm || !element) return undefined
+
+    const nativeKeyHandler = (event) => {
+      handleDetailKeyDown(event)
+    }
+
+    element.addEventListener('keydown', nativeKeyHandler)
+    return () => {
+      element.removeEventListener('keydown', nativeKeyHandler)
+    }
+  }, [showForm, detailItems, selectedDetailIndex])
 
   return (
     <div className="master-content">
-      <div className="master-header">
-        <div className="master-header-accent"></div>
-        <h1 className="master-title">Daftar Paket</h1>
-        <div className="master-header-filters">
-          <div className="master-footer-search">
-            <input
-              type="text"
-              placeholder="Search keyword..."
-              className="master-search-input"
-              onChange={(e) => handleSearchChange(e.target.value)}
-            />
-            <button type="button" className="master-search-btn">
-              <span className="material-icons-round material-icon">search</span>
-            </button>
-          </div>
-          <div className="master-filter-wrap">
-            <label htmlFor="paket-status-filter" className="master-filter-label">Status</label>
-            <select
-              id="paket-status-filter"
-              className="master-filter-select"
-              value={isActiveFilter}
-              onChange={(e) => handleStatusChange(e.target.value)}
-            >
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-              <option value="all">All</option>
-            </select>
-          </div>
-        </div>
-      </div>
+      <Toast message={toastMessage} type={toastType} isOpen={showToast} onClose={() => setShowToast(false)} duration={5000} />
 
       {error && <div className="master-error">{error}</div>}
 
-      {showToast && (
-        <div className={`toast-notification toast-${toastType}`}>
-          <span className="material-icons-round">{toastType === 'success' ? 'check_circle' : 'warning'}</span>
-          <span className="toast-message">{toastMessage}</span>
-        </div>
-      )}
-
-      <div className="master-table-wrapper" ref={tableRef} tabIndex={0}>
-        <div className="master-table-container">
-          <table className="master-table">
-            <MasterTableHeader columns={TABLE_COLUMNS} sortConfig={sortConfig} onSort={handleSort} />
-            <tbody>
-              {sortedData.map((row, index) => (
-                <tr
-                  key={row.id || index}
-                  className={selectedId === row.id ? 'master-row-selected' : 'master-row'}
-                  onClick={() => handleSelect(row)}
-                  onDoubleClick={() => handleEdit()}
+      {!showForm && (
+        <>
+          <div className="master-header">
+            <div className="master-header-accent"></div>
+            <h1 className="master-title">Daftar Paket</h1>
+            <div className="master-header-filters">
+              <div className="master-footer-search">
+                <input
+                  type="text"
+                  placeholder="Search keyword..."
+                  className="master-search-input"
+                  onChange={(e) => handleSearchChange(e.target.value)}
+                />
+                <button type="button" className="master-search-btn">
+                  <span className="material-icons-round material-icon">search</span>
+                </button>
+              </div>
+              <div className="master-filter-wrap">
+                <label htmlFor="paket-status-filter" className="master-filter-label">Status</label>
+                <select
+                  id="paket-status-filter"
+                  className="master-filter-select"
+                  value={isActiveFilter}
+                  onChange={(e) => handleStatusChange(e.target.value)}
                 >
-                  <td>{offset + index + 1}</td>
-                  <td>{row.kodepaket || '-'}</td>
-                  <td>{row.nm_paket || '-'}</td>
-                  <td>{formatCurrency(row.harga_paket)}</td>
-                  <td>
-                    <MasterStatusToggle
-                      active={isActivePaket(row)}
-                      loading={togglingId === row.id}
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        handleToggleStatus(row)
-                      }}
-                    />
-                  </td>
-                </tr>
-              ))}
-              {!isLoading && sortedData.length === 0 && (
-                <tr>
-                  <td colSpan={5} className="text-center">No data</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                  <option value="all">All</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div className="master-table-wrapper" ref={tableRef} tabIndex={0}>
+            <div className="master-table-container">
+              <table className="master-table">
+                <MasterTableHeader columns={TABLE_COLUMNS} sortConfig={sortConfig} onSort={handleSort} />
+                <tbody>
+                  {sortedData.map((row, index) => (
+                    <tr
+                      key={row.id || index}
+                      className={selectedId === row.id ? 'master-row-selected' : 'master-row'}
+                      onClick={() => handleSelect(row)}
+                      onDoubleClick={() => handleEdit()}
+                    >
+                      <td>{offset + index + 1}</td>
+                      <td>{row.kodepaket || '-'}</td>
+                      <td>{row.nm_paket || '-'}</td>
+                      <td>{formatCurrency(row.harga_paket)}</td>
+                      <td>
+                        <MasterStatusToggle
+                          active={isActivePaket(row)}
+                          loading={togglingId === row.id}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleToggleStatus(row)
+                          }}
+                        />
+                      </td>
+                    </tr>
+                  ))}
+                  {!isLoading && sortedData.length === 0 && (
+                    <tr>
+                      <td colSpan={5} className="text-center">No data</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <FooterMaster
+            onNew={handleNew}
+            onEdit={handleEdit}
+            onDelete={handleDeleteClick}
+            totalRow={pagination.total}
+            onPrint={handlePrint}
+            onExit={handleExitClick}
+            onRefresh={fetchData}
+            isLoading={isLoading}
+            page={pager.page}
+            totalPages={pager.totalPages}
+            canPrev={pager.canPrev}
+            canNext={pager.canNext}
+            onFirstPage={pager.goFirst}
+            onPrevPage={pager.goPrev}
+            onNextPage={pager.goNext}
+            onLastPage={pager.goLast}
+            excelColumns={EXCEL_COLUMNS}
+            excelFilename="paket"
+            onExportExcel={handleExportExcel}
+            onImportExcel={handleImportExcel}
+            onGenerateTemplate={handleGenerateTemplate}
+            isAllRecords={pager.isAllRecords}
+            onToggleAllRecords={handleToggleAllRecords}
+          />
+        </>
+      )}
 
       {showForm && (
         <div className="po-layout-container">
-          <Toast message={toastMessage} type={toastType} isOpen={showToast} onClose={() => setShowToast(false)} duration={5000} />
-          
           {/* LEFT: Main Content - Detail Produk */}
           <div className="po-main-content">
-            <div className="po-items-wrapper" onKeyDown={handleDetailKeyDown}>
+            <div
+              ref={detailTableWrapperRef}
+              className="po-items-wrapper"
+              onKeyDown={handleDetailKeyDown}
+              onMouseDown={() => detailTableWrapperRef.current?.focus()}
+              onClick={() => detailTableWrapperRef.current?.focus()}
+              tabIndex={0}
+              style={{ outline: 'none' }}
+            >
               {detailItems.length === 0 ? (
                 <div className="po-empty-items">
                   <span className="material-icons">inventory_2</span>
@@ -752,7 +932,10 @@ export function Paket({ onExit }) {
                       <tr 
                         key={item.id_produk || index} 
                         className={selectedDetailIndex === index ? 'selected' : ''} 
-                        onClick={() => setSelectedDetailIndex(index)}
+                        onClick={() => {
+                          setSelectedDetailIndex(index)
+                          detailTableWrapperRef.current?.focus()
+                        }}
                       >
                         <td>{index + 1}</td>
                         <td>
@@ -763,7 +946,7 @@ export function Paket({ onExit }) {
                         <td>
                           <button 
                             className="po-delete-btn" 
-                            onClick={(e) => { e.stopPropagation(); handleRemoveProduct(index) }}
+                            onClick={(e) => { e.stopPropagation(); handleRequestRemoveProduct(index) }}
                           >
                             <span className="material-icons" style={{ fontSize: 18 }}>delete</span>
                           </button>
@@ -771,13 +954,6 @@ export function Paket({ onExit }) {
                       </tr>
                     ))}
                   </tbody>
-                  <tfoot>
-                    <tr>
-                      <td colSpan={2}><strong>TOTAL HARGA</strong></td>
-                      <td><strong>{formatCurrency(calculateTotal())}</strong></td>
-                      <td></td>
-                    </tr>
-                  </tfoot>
                 </table>
               )}
             </div>
@@ -795,41 +971,37 @@ export function Paket({ onExit }) {
                   value={productSearch}
                   onChange={(e) => setProductSearch(e.target.value)}
                   onKeyDown={handleSearchKeyDown}
-                  autoFocus={showForm && !isNewMode}
+                  autoFocus={showForm}
                   autoComplete="off"
                 />
               </div>
               <div className="po-action-buttons">
+                <button
+                  type="button"
+                  className="po-btn po-btn-exit"
+                  onClick={handleCloseForm}
+                  disabled={isSaving}
+                >
+                  <span className="material-icons">exit_to_app</span>
+                  KELUAR
+                </button>
+                <button
+                  type="button"
+                  className="po-btn po-btn-print"
+                  onClick={handlePrint}
+                  disabled={detailItems.length === 0}
+                >
+                  <span className="material-icons">print</span>
+                  CETAK
+                </button>
                 <button 
                   type="button" 
                   className="po-btn po-btn-save" 
                   onClick={handleSave}
                   disabled={isSaving}
                 >
-                  {isSaving ? 'Saving...' : 'Save'}
-                </button>
-                <button 
-                  type="button" 
-                  className="po-btn po-btn-exit" 
-                  onClick={handleCloseForm}
-                >
-                  Cancel
-                </button>
-                <button 
-                  type="button" 
-                  className="po-btn po-btn-prev" 
-                  onClick={handlePrevRecord}
-                  disabled={currentEditIndex === null || currentEditIndex <= 0}
-                >
-                  ← Prev
-                </button>
-                <button 
-                  type="button" 
-                  className="po-btn po-btn-next" 
-                  onClick={handleNextRecord}
-                  disabled={currentEditIndex === null || currentEditIndex >= sortedData.length - 1}
-                >
-                  Next →
+                  <span className="material-icons">save</span>
+                  {isSaving ? 'SAVING...' : 'SIMPAN'}
                 </button>
               </div>
             </div>
@@ -838,120 +1010,80 @@ export function Paket({ onExit }) {
           {/* RIGHT: Sidebar - Header Form */}
           <aside className="po-sidebar">
             <div className="po-header-section">
-              <span className="material-icons-round" style={{ fontSize: 28, color: '#6b7280' }}>inventory_2</span>
-              <h2 className="po-title" style={{ marginLeft: 8 }}>{isNewMode ? 'Isi Data Paket' : 'Ubah Data Paket'}</h2>
-              <div className="po-header-nav" style={{ marginLeft: 'auto' }}>
-                <button 
-                  type="button" 
-                  className="po-btn po-btn-prev" 
-                  onClick={handlePrevRecord}
-                  disabled={currentEditIndex === null || currentEditIndex <= 0}
+              <h1 className="po-title">PAKET PRODUK</h1>
+              <div className="po-arrow-status-bar" aria-label="Paket status">
+                <button
+                  type="button"
+                  className={`po-arrow-step ${form.is_active ? 'is-active' : 'is-inactive'}`}
+                  onClick={() => setForm((prev) => ({ ...prev, is_active: true }))}
                 >
-                  ←
+                  Active
                 </button>
-                <button 
-                  type="button" 
-                  className="po-btn po-btn-next" 
-                  onClick={handleNextRecord}
-                  disabled={currentEditIndex === null || currentEditIndex >= sortedData.length - 1}
+                <button
+                  type="button"
+                  className={`po-arrow-step po-arrow-step-void ${!form.is_active ? 'is-active' : 'is-inactive'}`}
+                  onClick={() => setForm((prev) => ({ ...prev, is_active: false }))}
                 >
-                  →
+                  Inactive
                 </button>
               </div>
             </div>
 
             <div className="po-form-panel">
-              <div className="master-form-group">
-                <label className="master-form-label">Kode Paket*:</label>
+              <div className="form-group">
+                <label className="form-label">Kode Paket *</label>
                 <input 
                   type="text" 
                   value={form.kodepaket} 
                   onChange={(e) => setForm({ ...form, kodepaket: e.target.value })} 
-                  className="master-form-input" 
+                  className="form-input" 
                 />
               </div>
-              <div className="master-form-group-wide">
-                <label className="master-form-label">Nama Paket*:</label>
+              <div className="form-group">
+                <label className="form-label">Nama Paket *</label>
                 <input 
                   type="text" 
                   value={form.nm_paket} 
                   onChange={(e) => setForm({ ...form, nm_paket: e.target.value })} 
-                  className="master-form-input" 
+                  className="form-input" 
                 />
               </div>
-              <div className="master-form-group-wide">
-                <label className="master-form-label">Deskripsi:</label>
-                <input 
-                  type="text" 
+              <div className="form-group">
+                <label className="form-label">Deskripsi</label>
+                <textarea
                   value={form.deskripsi} 
                   onChange={(e) => setForm({ ...form, deskripsi: e.target.value })} 
-                  className="master-form-input" 
-                />
-              </div>
-              <div className="master-form-group">
-                <label className="master-form-label">Status:</label>
-                <MasterStatusToggle
-                  active={form.is_active}
-                  onClick={() => setForm({ ...form, is_active: !form.is_active })}
-                />
-              </div>
-              <div className="master-form-group">
-                <label className="master-form-label">Harga Total:</label>
-                <input 
-                  type="text" 
-                  value={formatCurrency(form.harga_paket || calculateTotal())} 
-                  readOnly 
-                  className="master-form-input master-form-input-readonly" 
+                  className="form-input form-textarea po-notes-textarea"
+                  rows={3}
                 />
               </div>
             </div>
 
             <div className="po-summary-section">
-              <h3>SUMMARY</h3>
-              <div className="po-summary-row">
-                <span>Total Harga:</span>
-                <span>{formatCurrency(form.harga_paket || calculateTotal())}</span>
-              </div>
               <div className="po-summary-row">
                 <span>Jumlah Item:</span>
                 <span>{detailItems.length} produk</span>
               </div>
+              <div className="po-summary-total-label">GRAND TOTAL</div>
+              <div className="po-summary-total-value">{formatCurrency(form.harga_paket || calculateTotal())}</div>
             </div>
           </aside>
         </div>
       )}
-
-      <FooterMaster
-        onNew={handleNew}
-        onEdit={handleEdit}
-        onDelete={handleDeleteClick}
-        totalRow={pagination.total}
-        onPrint={handlePrint}
-        onExit={handleExitClick}
-        onRefresh={fetchData}
-        isLoading={isLoading}
-        page={pager.page}
-        totalPages={pager.totalPages}
-        canPrev={pager.canPrev}
-        canNext={pager.canNext}
-        onFirstPage={pager.goFirst}
-        onPrevPage={pager.goPrev}
-        onNextPage={pager.goNext}
-        onLastPage={pager.goLast}
-        excelColumns={EXCEL_COLUMNS}
-        excelFilename="paket"
-        onExportExcel={handleExportExcel}
-        onImportExcel={handleImportExcel}
-        onGenerateTemplate={handleGenerateTemplate}
-        isAllRecords={pager.isAllRecords}
-        onToggleAllRecords={handleToggleAllRecords}
-      />
 
       {showDeleteConfirm && (
         <DeleteMaster
           itemName={selectedItem?.nm_paket}
           onConfirm={handleConfirmDelete}
           onCancel={() => setShowDeleteConfirm(false)}
+        />
+      )}
+
+      {showDetailDeleteConfirm && (
+        <DeleteMaster
+          itemName={detailItems[pendingDetailDeleteIndex]?.nama || 'item detail'}
+          onConfirm={handleConfirmRemoveProduct}
+          onCancel={handleCancelRemoveProduct}
         />
       )}
 
@@ -980,46 +1112,51 @@ export function Paket({ onExit }) {
 
       {/* Product Search Popup */}
       {showProductPopup && (
-        <div className="popup-overlay">
-          <div className="popup">
+        <div className="popup-overlay" onClick={() => setShowProductPopup(false)}>
+          <div className="popup" onClick={(e) => e.stopPropagation()}>
             <div className="popup-header">
               <h3>DAFTAR PRODUK</h3>
-              <button type="button" className="popup-close" onClick={() => setShowProductPopup(false)}>X</button>
+              <button type="button" className="popup-close" onClick={() => setShowProductPopup(false)}>
+                <span className="material-icons">close</span>
+              </button>
             </div>
-            <div className="popup-table-wrapper">
+            <div
+              ref={popupTableWrapperRef}
+              className="popup-table-wrapper"
+              onKeyDown={handleProductPopupKeyDown}
+              tabIndex={0}
+              style={{ outline: 'none' }}
+            >
               <table className="popup-table">
                 <thead>
-                  <tr>
-                    <th>No</th>
-                    <th>SKU</th>
-                    <th>Nama Produk</th>
-                    <th>Harga Jual</th>
-                  </tr>
+                  <tr><th>No</th><th>Nama Produk</th><th>Satuan</th><th>Harga</th></tr>
                 </thead>
                 <tbody>
-                  {(productSearch.trim() ? productResults : DUMMY_PRODUCTS).map((product, idx) => (
-                    <tr
-                      key={product.id}
-                      className="popup-row"
-                      onDoubleClick={() => handleAddProduct(product)}
-                      style={{ cursor: 'pointer' }}
-                    >
-                      <td>{idx + 1}</td>
-                      <td>{product.sku || '-'}</td>
-                      <td>{product.name || '-'}</td>
-                      <td>{formatCurrency(product.retail_price)}</td>
-                    </tr>
-                  ))}
-                  {(productSearch.trim() ? productResults : DUMMY_PRODUCTS).length === 0 && (
-                    <tr>
-                      <td colSpan={4} className="text-center">Produk tidak ditemukan</td>
-                    </tr>
+                  {isLoadingProducts ? (
+                    <tr><td colSpan={4} style={{ textAlign: 'center', color: '#94a3b8' }}>Memuat...</td></tr>
+                  ) : currentProductOptions.length === 0 ? (
+                    <tr><td colSpan={4} style={{ textAlign: 'center', color: '#94a3b8' }}>Produk tidak ditemukan</td></tr>
+                  ) : (
+                    currentProductOptions.map((product, idx) => (
+                      <tr
+                        key={product.id}
+                        className={selectedProductIndex === idx ? 'selected' : ''}
+                        onClick={() => handleAddProduct(product)}
+                        onMouseEnter={() => setSelectedProductIndex(idx)}
+                      >
+                        <td>{idx + 1}</td>
+                        <td>{product.name || '-'}</td>
+                        <td>{product.unit || product.unit_name || '-'}</td>
+                        <td style={{ textAlign: 'right' }}>{formatCurrency(product.retail_price)}</td>
+                      </tr>
+                    ))
                   )}
                 </tbody>
               </table>
             </div>
             <div className="popup-footer">
-              <p style={{ fontSize: 12, color: '#666', margin: 0 }}>↑↓ Navigasi | Enter: Pilih | Double click untuk menambahkan ke paket</p>
+              <span>↑↓ Navigasi</span>
+              <span>Enter: Pilih | Esc: Tutup</span>
             </div>
           </div>
         </div>
