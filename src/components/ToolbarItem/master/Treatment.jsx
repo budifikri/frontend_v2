@@ -857,7 +857,17 @@ export function Treatment({ onExit }) {
                   <td>{row.name || '-'}</td>
                   <td>{row.duration || 0}</td>
                   <td>{formatCurrency(row.price || 0)}</td>
-                  <td>{getTagsString(row.tags)}</td>
+                  <td>
+                    {Array.isArray(row.tags) && row.tags.length > 0 ? (
+                      <div className="treatment-table-tag-list">
+                        {row.tags.map((tag) => (
+                          <span key={tag.id} className="treatment-table-tag-chip">
+                            <span className="treatment-table-tag-text">{tag.name}</span>
+                          </span>
+                        ))}
+                      </div>
+                    ) : '-'}
+                  </td>
                   <td>
                     <MasterStatusToggle
                       active={isActiveTreatment(row)}

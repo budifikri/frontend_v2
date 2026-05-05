@@ -310,6 +310,11 @@ export function Appointment({ onExit }) {
       return
     }
 
+    if (!form.treatment_id) {
+      setError('Treatment wajib dipilih')
+      return
+    }
+
     if (!form.therapist_id) {
       setError('Therapist wajib dipilih')
       return

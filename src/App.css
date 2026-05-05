@@ -1815,6 +1815,33 @@ body.has-wallpaper .cash-register {
   background: rgba(255, 255, 255, 0.32);
 }
 
+.treatment-table-tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 6px;
+  min-width: 0;
+}
+
+.treatment-table-tag-chip {
+  max-width: 100%;
+  min-height: 24px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #0d9488 0%, #0f766e 100%);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+}
+
+.treatment-table-tag-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
 .treatment-tag-trigger-icon {
   color: #64748b;
   flex-shrink: 0;
