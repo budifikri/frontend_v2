@@ -75,6 +75,44 @@ const DUMMY_APPOINTMENTS = [
   },
 ]
 
+function formatDateISO(date) {
+  if (!date || Number.isNaN(date.getTime())) return ''
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+function getDateRange(filterType, customFrom, customTo) {
+  const now = new Date()
+
+  if (filterType === 'today') {
+    const today = formatDateISO(now)
+    return { date_from: today, date_to: today }
+  }
+
+  if (filterType === 'this_month') {
+    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1)
+    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+    return { date_from: formatDateISO(firstDay), date_to: formatDateISO(lastDay) }
+  }
+
+  if (filterType === 'this_year') {
+    const firstDay = new Date(now.getFullYear(), 0, 1)
+    const lastDay = new Date(now.getFullYear(), 11, 31)
+    return { date_from: formatDateISO(firstDay), date_to: formatDateISO(lastDay) }
+  }
+
+  if (filterType === 'custom' && customFrom && customTo) {
+    return {
+      date_from: formatDateISO(new Date(customFrom)),
+      date_to: formatDateISO(new Date(customTo)),
+    }
+  }
+
+  return { date_from: '', date_to: '' }
+}
+
 function formatTime(time) {
   if (!time) return ''
   const str = String(time)
@@ -101,8 +139,11 @@ export function Appointment({ onExit }) {
 
   const [searchKeyword, setSearchKeyword] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
-  const [dateFromFilter, setDateFromFilter] = useState('')
-  const [dateToFilter, setDateToFilter] = useState('')
+  const [dateFilter, setDateFilter] = useState('today')
+  const [showDateModal, setShowDateModal] = useState(false)
+  const todayStr = formatDateISO(new Date())
+  const [customDateFrom, setCustomDateFrom] = useState(todayStr)
+  const [customDateTo, setCustomDateTo] = useState(todayStr)
   const pager = useMasterPagination({ initialLimit: 10, total: pagination.total, hasMore: pagination.has_more })
   const { limit, offset } = pager
 
@@ -125,6 +166,7 @@ export function Appointment({ onExit }) {
   const fetchData = useCallback(async () => {
     setError('')
     setIsLoading(true)
+    const { date_from, date_to } = getDateRange(dateFilter, customDateFrom, customDateTo)
 
     if (!token) {
       let filtered = DUMMY_APPOINTMENTS
@@ -133,12 +175,8 @@ export function Appointment({ onExit }) {
         filtered = filtered.filter((item) => item.status === statusFilter)
       }
 
-      if (dateFromFilter) {
-        filtered = filtered.filter((item) => item.booking_date >= dateFromFilter)
-      }
-
-      if (dateToFilter) {
-        filtered = filtered.filter((item) => item.booking_date <= dateToFilter)
+      if (date_from && date_to) {
+        filtered = filtered.filter((item) => item.booking_date >= date_from && item.booking_date <= date_to)
       }
 
       if (searchKeyword.trim()) {
@@ -162,8 +200,8 @@ export function Appointment({ onExit }) {
 
     try {
       const result = await listAppointments(token, {
-        date_from: dateFromFilter || undefined,
-        date_to: dateToFilter || undefined,
+        date_from: date_from || undefined,
+        date_to: date_to || undefined,
         status: statusFilter || undefined,
         limit,
         offset,
@@ -191,7 +229,7 @@ export function Appointment({ onExit }) {
     } finally {
       setIsLoading(false)
     }
-  }, [token, searchKeyword, statusFilter, dateFromFilter, dateToFilter, limit, offset])
+  }, [token, searchKeyword, statusFilter, dateFilter, customDateFrom, customDateTo, limit, offset])
 
   const fetchDropdownData = useCallback(async () => {
     if (!token) return
@@ -294,14 +332,41 @@ export function Appointment({ onExit }) {
     setStatusFilter(value)
   }
 
-  function handleDateFromChange(value) {
+  function handleDateFilterChange(value) {
+    setError('')
+    if (value === 'custom') {
+      const today = formatDateISO(new Date())
+      setCustomDateFrom(today)
+      setCustomDateTo(today)
+      setShowDateModal(true)
+      return
+    }
+
     pager.reset()
-    setDateFromFilter(value)
+    setDateFilter(value)
   }
 
-  function handleDateToChange(value) {
+  function handleApplyCustomDate() {
+    if (!customDateFrom || !customDateTo) {
+      setError('Please select both from and to dates')
+      return
+    }
+
+    const from = new Date(customDateFrom)
+    const to = new Date(customDateTo)
+    if (from > to) {
+      setError('From date must be before to date')
+      return
+    }
+
+    setError('')
+    setShowDateModal(false)
+    setDateFilter('custom')
     pager.reset()
-    setDateToFilter(value)
+  }
+
+  function handleCancelDateModal() {
+    setShowDateModal(false)
   }
 
   async function handleSave() {
@@ -589,24 +654,18 @@ export function Appointment({ onExit }) {
             </button>
           </div>
           <div className="master-filter-wrap">
-            <label htmlFor="appointment-date-from" className="master-filter-label">Dari</label>
-            <input
-              id="appointment-date-from"
-              type="date"
+            <label htmlFor="appointment-date-filter" className="master-filter-label">Date</label>
+            <select
+              id="appointment-date-filter"
               className="master-filter-select"
-              value={dateFromFilter}
-              onChange={(e) => handleDateFromChange(e.target.value)}
-            />
-          </div>
-          <div className="master-filter-wrap">
-            <label htmlFor="appointment-date-to" className="master-filter-label">Sampai</label>
-            <input
-              id="appointment-date-to"
-              type="date"
-              className="master-filter-select"
-              value={dateToFilter}
-              onChange={(e) => handleDateToChange(e.target.value)}
-            />
+              value={dateFilter}
+              onChange={(e) => handleDateFilterChange(e.target.value)}
+            >
+              <option value="today">Today</option>
+              <option value="this_month">This Month</option>
+              <option value="this_year">This Year</option>
+              <option value="custom">Custom</option>
+            </select>
           </div>
           <div className="master-filter-wrap">
             <label htmlFor="appointment-status-filter" className="master-filter-label">Status</label>
@@ -813,6 +872,56 @@ export function Appointment({ onExit }) {
           onConfirm={handleConfirmExit}
           onCancel={() => setShowExitConfirm(false)}
         />
+      )}
+
+      {showDateModal && (
+        <div className="delete-master-overlay">
+          <div className="delete-master-modal date-filter-modal">
+            <div className="delete-master-header">
+              <span className="material-icons-round material-icon red">calendar_today</span>
+              <h2>Custom Date Range</h2>
+            </div>
+            <div className="delete-master-body">
+              <div className="date-filter-group">
+                <label htmlFor="appointment-date-from" className="master-form-label">From Date</label>
+                <input
+                  id="appointment-date-from"
+                  type="date"
+                  className="master-form-input date-input"
+                  value={customDateFrom}
+                  onChange={(e) => setCustomDateFrom(e.target.value)}
+                />
+              </div>
+              <div className="date-filter-group">
+                <label htmlFor="appointment-date-to" className="master-form-label">To Date</label>
+                <input
+                  id="appointment-date-to"
+                  type="date"
+                  className="master-form-input date-input"
+                  value={customDateTo}
+                  onChange={(e) => setCustomDateTo(e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="delete-master-footer">
+              <button
+                type="button"
+                className="master-btn-cancel-secondary"
+                onClick={handleCancelDateModal}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="master-btn-save-primary"
+                onClick={handleApplyCustomDate}
+              >
+                <span className="material-icons-round">check</span>
+                Apply
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {showToast && <Toast message={toastMessage} type="success" onClose={() => setShowToast(false)} />}
