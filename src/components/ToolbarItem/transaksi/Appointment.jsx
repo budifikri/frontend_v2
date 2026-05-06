@@ -223,7 +223,7 @@ export function Appointment({ onExit }) {
 
   const [searchKeyword, setSearchKeyword] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
-  const [viewMode, setViewMode] = useState('list')
+  const [viewMode, setViewMode] = useState('calendar')
   const [dateFilter, setDateFilter] = useState('today')
   const [showDateModal, setShowDateModal] = useState(false)
   const todayStr = formatDateISO(new Date())
