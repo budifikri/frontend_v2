@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useAuth } from '../../../shared/auth'
+import { useModule } from '../../../shared/useModule'
 import { listCategories } from '../../../features/master/category/category.api'
 import { listUnits } from '../../../features/master/unit/unit.api'
 import { listWarehouses } from '../../../features/master/warehouse/warehouse.api'
@@ -151,7 +152,9 @@ function normalizeProductItem(raw, index) {
 
 export function Product({ onExit }) {
   const { auth } = useAuth()
+  const { companyConfig } = useModule()
   const token = auth?.token
+  const isClinic = companyConfig?.businessType === 'clinic'
 
   const [data, setData] = useState([])
   const [categories, setCategories] = useState([])
@@ -1232,7 +1235,7 @@ export function Product({ onExit }) {
                       Adjust Stock
                     </button>
                   )}
-                  {!isConsumableCategory && (
+                  {!isConsumableCategory && !isClinic && (
                     <button
                       type="button"
                       className={`product-form-tab ${activeTab === 'hargaGrosir' ? 'active' : ''}`}
@@ -1393,7 +1396,7 @@ export function Product({ onExit }) {
             
           )}
 
-          {activeTab === 'hargaGrosir' && !isConsumableCategory && (
+          {activeTab === 'hargaGrosir' && !isConsumableCategory && !isClinic && (
             <div className="master-form-grid">   <div className="master-form-group"></div>
               <div className="master-form-group">
                 <label className="master-form-label">SKU :</label>

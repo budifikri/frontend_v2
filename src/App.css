@@ -1737,15 +1737,19 @@ body.has-wallpaper .cash-register {
 
 .appointment-disabled-tooltip {
   position: absolute;
-  left: 50%;
-  bottom: calc(100% + 10px);
+  left: 150%;
+  /* right:50%; */
+  
+  /* bottom: calc(100% + 10px); */
   transform: translateX(-50%) translateY(4px);
-  background: rgba(15, 23, 42, 0.96);
-  color: #fff;
+  /* background: rgba(15, 23, 42, 0.96); */
+  background: #fff;
+  color: #000;
   font-size: 11px;
   font-weight: 500;
   padding: 6px 10px;
   border-radius: 6px;
+  border: 1px solid #000;
   white-space: nowrap;
   pointer-events: none;
   opacity: 0;
@@ -1753,15 +1757,34 @@ body.has-wallpaper .cash-register {
   transition: opacity 160ms ease, transform 160ms ease;
 }
 
+/* .appointment-disabled-tooltip::after { */
+/*   content: ''; */
+/*   position: absolute; */
+/*   top: 100%; */
+/*   left: 50%; */
+/*   transform: translateX(-50%); */
+/*   border: 5px solid transparent; */
+/*   border-top-color: rgba(15, 23, 42, 0.96); */
+/* } */
+
+/* PANAH */
 .appointment-disabled-tooltip::after {
-  content: '';
+  content: "";
   position: absolute;
-  top: 100%;
-  left: 50%;
-  transform: translateX(-50%);
-  border: 5px solid transparent;
-  border-top-color: rgba(15, 23, 42, 0.96);
+  top: 50%;
+  left: 0; /* ubah dari -6px dulu */
+  transform: translate(-100%, -50%);
+
+  width: 0;
+  height: 0;
+
+  border-top: 6px solid transparent;
+  border-bottom: 6px solid transparent;
+  border-right: 6px solid rgba(15, 23, 42, 0.96);
 }
+
+
+
 
 .appointment-date-filter-wrap.is-disabled:hover .appointment-disabled-tooltip,
 .appointment-date-filter-wrap.is-disabled:focus-within .appointment-disabled-tooltip {

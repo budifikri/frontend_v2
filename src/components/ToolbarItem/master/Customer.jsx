@@ -17,14 +17,28 @@ import { exportToExcel, generateTemplate, validateImportFile } from '../../../ut
 import { Toast } from '../../../components/Toast'
 
 function getTableColumns(isClinic) {
+  if (isClinic) {
+    return [
+      { key: 'no', label: 'NO', sortable: false },
+      { key: 'name', label: 'NAME' },
+      { key: 'no_rm', label: 'NO RM' },
+      { key: 'no_nik', label: 'KTP' },
+      { key: 'email', label: 'EMAIL' },
+      { key: 'phone', label: 'PHONE' },
+      { key: 'tier', label: 'TIER' },
+      { key: 'allergies', label: 'ALERGI' },
+      { key: 'is_active', label: 'STATUS' },
+    ]
+  }
+
   return [
     { key: 'no', label: 'NO', sortable: false },
     { key: 'customer_code', label: 'CODE' },
     { key: 'name', label: 'NAME' },
+    { key: 'no_nik', label: 'KTP' },
     { key: 'email', label: 'EMAIL' },
     { key: 'phone', label: 'PHONE' },
     { key: 'tier', label: 'TIER' },
-    ...(isClinic ? [{ key: 'allergies', label: 'ALERGI' }] : []),
     { key: 'is_active', label: 'STATUS' },
   ]
 }
@@ -33,6 +47,8 @@ function getExcelColumns(isClinic) {
   return [
     { key: 'customer_code', label: 'CODE' },
     { key: 'name', label: 'NAME' },
+    ...(isClinic ? [{ key: 'no_rm', label: 'NO RM' }] : []),
+    { key: 'no_nik', label: 'KTP' },
     { key: 'email', label: 'EMAIL' },
     { key: 'phone', label: 'PHONE' },
     { key: 'address', label: 'ADDRESS' },
@@ -44,6 +60,8 @@ function getExcelColumns(isClinic) {
 
 const DEFAULT_FORM = {
   name: '',
+  no_rm: '',
+  no_nik: '',
   email: '',
   phone: '',
   address: '',
@@ -57,6 +75,27 @@ const DEFAULT_FORM = {
   bank_branch: '',
 }
 
+const KTP_PATTERN = /^\d{16}$/
+
+function getFormState(item = {}) {
+  return {
+    name: item.name || '',
+    no_rm: item.no_rm || '',
+    no_nik: item.no_nik || '',
+    email: item.email || '',
+    phone: item.phone || '',
+    address: item.address || '',
+    city: item.city || '',
+    tier: item.tier || 'BRONZE',
+    allergies: item.allergies || '',
+    credit_limit: Number(item.credit_limit || 0),
+    bank_name: item.bank_name || '',
+    bank_account_number: item.bank_account_number || '',
+    bank_account_name: item.bank_account_name || '',
+    bank_branch: item.bank_branch || '',
+  }
+}
+
 const TIERS = ['BRONZE', 'SILVER', 'GOLD', 'PLATINUM']
 
 const DUMMY_CUSTOMERS = [
@@ -64,6 +103,7 @@ const DUMMY_CUSTOMERS = [
     id: 'CUS001',
     customer_code: 'CUS001',
     name: 'Andi Wijaya',
+    no_nik: '3174010101010001',
     email: 'andi@example.com',
     phone: '081234567890',
     address: 'Jl. Merdeka No. 10',
@@ -80,6 +120,7 @@ const DUMMY_CUSTOMERS = [
     id: 'CUS002',
     customer_code: 'CUS002',
     name: 'Budi Santoso',
+    no_nik: '3174010101010002',
     email: 'budi@example.com',
     phone: '082345678901',
     address: 'Jl. Sudirman No. 20',
@@ -96,6 +137,7 @@ const DUMMY_CUSTOMERS = [
     id: 'CUS003',
     customer_code: 'CUS003',
     name: 'Citra Lestari',
+    no_nik: '3174010101010003',
     email: 'citra@example.com',
     phone: '083456789012',
     address: 'Jl. Diponegoro No. 8',
@@ -164,6 +206,8 @@ export function Customer({ onExit }) {
         if (!keyword) return true
         return (
           String(item.customer_code || '').toLowerCase().includes(keyword) ||
+          String(item.no_rm || '').toLowerCase().includes(keyword) ||
+          String(item.no_nik || '').toLowerCase().includes(keyword) ||
           String(item.name || '').toLowerCase().includes(keyword) ||
           String(item.email || '').toLowerCase().includes(keyword) ||
           String(item.phone || '').toLowerCase().includes(keyword)
@@ -290,13 +334,23 @@ export function Customer({ onExit }) {
   }
 
   async function handleSave() {
-    if (!form.name) return
+    const trimmedName = form.name.trim()
+    const trimmedNoRM = form.no_rm.trim()
+    const trimmedNoNIK = form.no_nik.trim()
+
+    if (!trimmedName) return
+    if (trimmedNoNIK && !KTP_PATTERN.test(trimmedNoNIK)) {
+      setError('KTP harus 16 digit angka')
+      return
+    }
 
     setIsSaving(true)
     setError('')
 
     const payload = {
-      name: form.name,
+      name: trimmedName,
+      no_rm: isClinic ? trimmedNoRM : undefined,
+      no_nik: trimmedNoNIK || undefined,
       email: form.email,
       phone: form.phone,
       address: form.address,
@@ -321,6 +375,8 @@ export function Customer({ onExit }) {
             id: `CUST${Date.now()}`,
             customer_code: `CUST${Date.now().toString().slice(-4)}`,
             ...payload,
+            no_rm: isClinic ? trimmedNoRM : '',
+            no_nik: trimmedNoNIK,
             is_active: true,
           }
           setData((prev) => [newItem, ...prev])
@@ -358,20 +414,7 @@ export function Customer({ onExit }) {
     const idx = sortedData.findIndex((item) => item.id === target.id)
     setSelectedId(target.id)
     setCurrentEditIndex(idx)
-    setForm({
-      name: target.name || '',
-      email: target.email || '',
-      phone: target.phone || '',
-      address: target.address || '',
-      city: target.city || '',
-      tier: target.tier || 'BRONZE',
-      allergies: target.allergies || '',
-      credit_limit: Number(target.credit_limit || 0),
-      bank_name: target.bank_name || '',
-      bank_account_number: target.bank_account_number || '',
-      bank_account_name: target.bank_account_name || '',
-      bank_branch: target.bank_branch || '',
-    })
+    setForm(getFormState(target))
     setIsNewMode(false)
     setShowForm(true)
   }
@@ -382,20 +425,7 @@ export function Customer({ onExit }) {
     if (!nextItem) return
     setSelectedId(nextItem.id)
     setCurrentEditIndex(currentEditIndex + 1)
-    setForm({
-      name: nextItem.name || '',
-      email: nextItem.email || '',
-      phone: nextItem.phone || '',
-      address: nextItem.address || '',
-      city: nextItem.city || '',
-      tier: nextItem.tier || 'BRONZE',
-      allergies: nextItem.allergies || '',
-      credit_limit: Number(nextItem.credit_limit || 0),
-      bank_name: nextItem.bank_name || '',
-      bank_account_number: nextItem.bank_account_number || '',
-      bank_account_name: nextItem.bank_account_name || '',
-      bank_branch: nextItem.bank_branch || '',
-    })
+    setForm(getFormState(nextItem))
   }
 
   function handlePrevRecord() {
@@ -404,20 +434,7 @@ export function Customer({ onExit }) {
     if (!prevItem) return
     setSelectedId(prevItem.id)
     setCurrentEditIndex(currentEditIndex - 1)
-    setForm({
-      name: prevItem.name || '',
-      email: prevItem.email || '',
-      phone: prevItem.phone || '',
-      address: prevItem.address || '',
-      city: prevItem.city || '',
-      tier: prevItem.tier || 'BRONZE',
-      allergies: prevItem.allergies || '',
-      credit_limit: Number(prevItem.credit_limit || 0),
-      bank_name: prevItem.bank_name || '',
-      bank_account_number: prevItem.bank_account_number || '',
-      bank_account_name: prevItem.bank_account_name || '',
-      bank_branch: prevItem.bank_branch || '',
-    })
+    setForm(getFormState(prevItem))
   }
 
   function handleDeleteClick() {
@@ -482,8 +499,10 @@ export function Customer({ onExit }) {
     setShowForm(false)
     const printColumns = [
       { key: 'no', label: 'NO', align: 'text-center', formatter: (_, __, index) => index + 1 },
-      { key: 'customer_code', label: 'KODE' },
+      ...(!isClinic ? [{ key: 'customer_code', label: 'KODE' }] : []),
       { key: 'name', label: 'NAMA' },
+      ...(isClinic ? [{ key: 'no_rm', label: 'NO RM' }] : []),
+      { key: 'no_nik', label: 'KTP' },
       { key: 'email', label: 'EMAIL' },
       { key: 'phone', label: 'TELEPON' },
       { key: 'address', label: 'ALAMAT' },
@@ -536,12 +555,14 @@ export function Customer({ onExit }) {
       const base = {
         CODE: row.customer_code || row.code || '',
         NAME: row.name || '',
+        KTP: row.no_nik || '',
         EMAIL: row.email || '',
         PHONE: row.phone || '',
         ADDRESS: row.address || '',
         CITY: row.city || '',
         TIER: row.tier || 'BRONZE',
       }
+      if (isClinic) base['NO RM'] = row.no_rm || ''
       if (isClinic) base.ALERGI = row.allergies || ''
       return base
     })
@@ -550,7 +571,7 @@ export function Customer({ onExit }) {
 
   const handleImportExcel = async (file) => {
     try {
-      const result = await validateImportFile(file, EXCEL_COLUMNS)
+      const result = await validateImportFile(file, getExcelColumns(isClinic))
       setPendingImportData({ file, data: result.data, count: result.recordCount, fileName: result.fileName, isValid: true })
       setShowImportConfirm(true)
     } catch (err) {
@@ -574,6 +595,8 @@ export function Customer({ onExit }) {
       const itemData = {
         customer_code: code,
         name: row.NAME || row.name || '',
+        no_rm: isClinic ? (row['NO RM'] || row.no_rm || '') : '',
+        no_nik: row.KTP || row.no_nik || '',
         email: row.EMAIL || row.email || '',
         phone: row.PHONE || row.phone || '',
         address: row.ADDRESS || row.address || '',
@@ -586,7 +609,7 @@ export function Customer({ onExit }) {
       if (existingIndex >= 0) {
         if (token) {
           try {
-            await updateCustomer(token, code, itemData)
+            await updateCustomer(token, newData[existingIndex].id, itemData)
           } catch (err) {
             console.warn('Update failed:', err.message)
           }
@@ -620,7 +643,7 @@ export function Customer({ onExit }) {
   }
 
   const handleGenerateTemplate = () => {
-    generateTemplate(EXCEL_COLUMNS, 'customer_template')
+    generateTemplate(getExcelColumns(isClinic), 'customer_template')
   }
 
   function handleExitClick() {
@@ -694,8 +717,10 @@ export function Customer({ onExit }) {
                   onDoubleClick={() => handleEdit()}
                 >
                   <td>{offset + index + 1}</td>
-                  <td>{row.customer_code || '-'}</td>
+                  {!isClinic && <td>{row.customer_code || '-'}</td>}
                   <td>{row.name || '-'}</td>
+                  {isClinic && <td>{row.no_rm || '-'}</td>}
+                  <td>{row.no_nik || '-'}</td>
                   <td>{row.email || '-'}</td>
                   <td>{row.phone || '-'}</td>
                   <td>{row.tier || '-'}</td>
@@ -714,7 +739,7 @@ export function Customer({ onExit }) {
               ))}
               {!isLoading && sortedData.length === 0 && (
                 <tr>
-                  <td colSpan={isClinic ? 8 : 7} className="text-center">No data</td>
+                  <td colSpan={isClinic ? 9 : 8} className="text-center">No data</td>
                 </tr>
               )}
             </tbody>
@@ -733,6 +758,16 @@ export function Customer({ onExit }) {
             <div className="master-form-group">
               <label className="master-form-label">Nama :</label>
               <input type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="master-form-input" />
+            </div>
+            {isClinic && (
+              <div className="master-form-group">
+                <label className="master-form-label">NO RM :</label>
+                <input type="text" value={form.no_rm} onChange={(e) => setForm({ ...form, no_rm: e.target.value })} className="master-form-input" />
+              </div>
+            )}
+            <div className="master-form-group">
+              <label className="master-form-label">KTP :</label>
+              <input type="text" value={form.no_nik} onChange={(e) => setForm({ ...form, no_nik: e.target.value })} className="master-form-input" maxLength={16} />
             </div>
             <div className="master-form-group">
               <label className="master-form-label">Email :</label>
@@ -829,7 +864,7 @@ export function Customer({ onExit }) {
         onPrevPage={pager.goPrev}
         onNextPage={pager.goNext}
         onLastPage={pager.goLast}
-        excelColumns={EXCEL_COLUMNS}
+        excelColumns={getExcelColumns(isClinic)}
         excelFilename="customer"
         onExportExcel={handleExportExcel}
         onImportExcel={handleImportExcel}

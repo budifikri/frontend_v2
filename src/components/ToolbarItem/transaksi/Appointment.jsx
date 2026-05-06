@@ -969,8 +969,8 @@ export function Appointment({ onExit }) {
             </button>
           </div>
           <div className={`master-filter-wrap appointment-date-filter-wrap ${viewMode === 'calendar' ? 'is-disabled' : ''}`}>
-            <label htmlFor="appointment-date-filter" className="master-filter-label">Date</label>
-            <div className="appointment-date-filter-control">
+        {/*    <label htmlFor="appointment-date-filter" className="master-filter-label">Date1</label> */}
+            <div className="appointment-date-filter-control"><label htmlFor="appointment-date-filter" className="master-filter-label">Date </label> 
               <select
                 id="appointment-date-filter"
                 className="master-filter-select"
@@ -984,17 +984,18 @@ export function Appointment({ onExit }) {
                 <option value="this_year">This Year</option>
                 <option value="custom">Custom</option>
               </select>
-              {viewMode === 'calendar' && (
-                <span className="appointment-disabled-tooltip" role="tooltip">
+                    {viewMode === 'calendar' && (
+                <span className="appointment-disabled-tooltip"  role="tooltip">
                   Date mengikuti bulan kalender
                 </span>
-              )}
+              )} 
             </div>
-            {viewMode === 'calendar' && (
+         
+           {/*  {viewMode === 'calendar' && (
               <span id="appointment-calendar-date-note" className="appointment-filter-helper-text">
                 Date mengikuti bulan kalender
               </span>
-            )}
+            )} */}
           </div>
           <div className="master-filter-wrap">
             <label htmlFor="appointment-status-filter" className="master-filter-label">Status</label>
