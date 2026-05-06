@@ -32,7 +32,7 @@ import { BackupRestore } from '../ToolbarItem/setting/BackupRestore'
 import { Telegram } from '../ToolbarItem/setting/Telegram'
 import { Appointment } from '../ToolbarItem/transaksi/Appointment'
 
-export function DashboardCanvas({ activeTool, onExit }) {
+export function DashboardCanvas({ activeTool, toolContext, onExit, onOpenTool }) {
   if (activeTool === 'warehouse') {
     return (
       <div className="dashboard-canvas">
@@ -92,7 +92,7 @@ export function DashboardCanvas({ activeTool, onExit }) {
   if (activeTool === 'customer') {
     return (
       <div className="dashboard-canvas">
-        <Customer onExit={onExit} />
+        <Customer onExit={onExit} toolContext={toolContext} onOpenTool={onOpenTool} />
       </div>
     )
   }
@@ -292,7 +292,7 @@ export function DashboardCanvas({ activeTool, onExit }) {
   if (activeTool === 'appointment') {
     return (
       <div className="dashboard-canvas">
-        <Appointment onExit={onExit} />
+        <Appointment onExit={onExit} onOpenTool={onOpenTool} toolContext={toolContext} />
       </div>
     )
   }

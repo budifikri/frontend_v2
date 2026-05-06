@@ -1,14 +1,15 @@
 # PLAN: Appointment Patient Integration
 
 ## Overview
-Tahap ini fokus pada integrasi halaman `Appointment` dengan data pasien terlebih dahulu, tanpa masuk ke perubahan POS. Tujuannya adalah menjadikan `Appointment` lebih patient-centric agar user bisa mencari, memilih, menambah, dan membuka data pasien dari satu workspace yang sama.
+Tahap ini fokus pada integrasi halaman `Appointment` dengan data pasien terlebih dahulu, tanpa masuk ke perubahan POS. Tujuannya adalah memperbaiki pengalaman pemilihan pasien di dalam form `Isi Data Appointment`, tanpa menambah section atau panel baru di halaman utama appointment.
 
 ---
 
 ## Scope
-- Ubah pengalaman pencarian pasien di `Appointment`
-- Tambah panel hasil pencarian pasien
-- Tambah panel detail pasien terpilih
+- Ubah pengalaman pencarian pasien di dalam form `Isi Data Appointment`
+- Tambah area pencarian pasien inline di form appointment
+- Tambah daftar hasil pencarian pasien di dalam form appointment
+- Tambah ringkasan pasien terpilih di dalam form appointment
 - Hubungkan `Appointment` ke data pasien existing di modul `Customer`
 - Tambah aksi `Tambah Pasien`
 - Tambah aksi `Edit Data Pasien`
@@ -44,18 +45,14 @@ Tahap ini fokus pada integrasi halaman `Appointment` dengan data pasien terlebih
 
 ## Target UX
 - User membuka `Appointment`
-- User mencari pasien berdasarkan:
-  - nama
-  - no RM
-  - NIK
-  - HP
-- Hasil pencarian tampil sebagai daftar yang mudah discan
+- User klik `Tambah` atau `Edit`
+- Di dalam form `Isi Data Appointment`, user melihat area pasien:
+  - `[Cari Nama / No RM / NIK / HP...] [Filter] [Tambah Pasien]`
+- Hasil pencarian pasien tampil di dalam form yang sama
 - User memilih satu pasien
-- Detail pasien tampil di panel kanan
-- Dari panel itu user bisa:
-  - buat appointment
-  - edit data pasien
-  - tambah pasien baru jika belum ada
+- Form menampilkan ringkasan pasien terpilih
+- User melanjutkan isi treatment, therapist, tanggal, dan jam
+- Jika pasien belum ada, user bisa klik `Tambah Pasien`
 
 ---
 
@@ -63,23 +60,21 @@ Tahap ini fokus pada integrasi halaman `Appointment` dengan data pasien terlebih
 
 ```text
 +----------------------------------------------------------------------------------+
-| Appointment Workspace                                                            |
+| Isi Data Appointment                                                             |
 |----------------------------------------------------------------------------------|
 | [Cari Nama / No RM / NIK / HP....................] [Filter] [Tambah Pasien]     |
-| [Status Appointment] [Dokter] [Tanggal]                                          |
 |----------------------------------------------------------------------------------|
-| HASIL PASIEN                             | DETAIL PASIEN                         |
-|------------------------------------------|---------------------------------------|
-| Andi Wijaya                              | Nama : Andi Wijaya                    |
-| RM-00123 | 0812xxxx                      | No RM: RM-00123                       |
-| Aktif                                    | HP   : 0812xxxx                       |
-|                                          | Alergi: -                             |
-| Siti Rahma                               |---------------------------------------|
-| RM-00124 | 0821xxxx                      | [Buat Appointment]                    |
-| Aktif                                    | [Edit Data Pasien]                    |
-|                                          | [Refresh Data Pasien]                 |
+| Hasil Pencarian Pasien                                                           |
+| Andi Wijaya        RM-00123     0812xxxx      [Pilih]                            |
+| Siti Rahma         RM-00124     0821xxxx      [Pilih]                            |
 |----------------------------------------------------------------------------------|
-| KALENDER / LIST APPOINTMENT                                                    |
+| Pasien Terpilih : Andi Wijaya                                                    |
+| Treatment        : [..........................]                                  |
+| Therapist        : [..........................]                                  |
+| Tanggal          : [..........................]                                  |
+| Jam Mulai        : [..........................]                                  |
+| Jam Selesai      : [..........................]                                  |
+| Notes            : [..........................]                                  |
 +----------------------------------------------------------------------------------+
 ```
 
@@ -99,23 +94,28 @@ Tambahkan state baru di `Appointment.jsx`:
 - `patientResults`
 - `selectedPatient`
 - `isPatientLoading`
-- `patientSearchMode` bila diperlukan
+- `showPatientSearchResults` bila diperlukan
 
 #### 2. Patient Search UI
-- Tambah search bar pasien yang lebih eksplisit di header appointment
-- Gunakan placeholder yang jelas: `Cari nama / no RM / NIK / HP`
-- Hasil pencarian tampil di panel daftar, bukan `select` panjang
+- Pindahkan pencarian pasien ke dalam form `Isi Data Appointment`
+- Ganti field pasien dari `select` sederhana menjadi kombinasi:
+  - search input
+  - tombol `Filter`
+  - tombol `Tambah Pasien`
+- Hasil pencarian tampil inline di bawah area search
+- Batasi hasil yang tampil agar form tidak terlalu tinggi
 
 #### 3. Patient Selection
 - Saat user klik pasien dari hasil pencarian:
   - set `selectedPatient`
   - sinkronkan ke `form.patient_id`
-  - tampilkan detail pasien di panel kanan
+  - tampilkan ringkasan pasien terpilih di dalam form
 
 #### 4. Patient Actions
 - Tambah tombol `Tambah Pasien`
 - Tambah tombol `Edit Data Pasien`
 - Jika user masuk ke form appointment baru, pasien terpilih tetap menjadi context utama
+- Jangan menambah panel baru di halaman utama `Appointment`
 
 #### 5. Customer API Reuse
 - Reuse `listCustomers(token, { search })`
@@ -126,11 +126,13 @@ Tambahkan state baru di `Appointment.jsx`:
 
 ## Interaction Flow
 1. User buka `Appointment`
-2. User cari pasien
-3. Hasil pasien tampil di panel kiri
-4. User pilih pasien
-5. Detail pasien tampil di panel kanan
-6. User klik `Buat Appointment` atau `Edit Data Pasien`
+2. User klik `Tambah` atau `Edit` appointment
+3. Form `Isi Data Appointment` terbuka
+4. User cari pasien di area search form
+5. Hasil pasien tampil di dalam form yang sama
+6. User pilih pasien
+7. Ringkasan pasien tampil di form
+8. User melanjutkan pengisian appointment
 
 ---
 
@@ -138,7 +140,7 @@ Tambahkan state baru di `Appointment.jsx`:
 
 | Risiko | Mitigasi |
 |--------|----------|
-| UI appointment terlalu padat | Pecah menjadi panel search, detail pasien, dan area jadwal |
+| Form appointment terlalu padat | Batasi hasil pencarian pasien dan tampilkan ringkasan pasien secara ringkas |
 | Search pasien berat jika data besar | Gunakan search via API, bukan filter frontend-only |
 | Sinkronisasi pasien dengan form appointment membingungkan | Jadikan `selectedPatient` sebagai source utama untuk `patient_id` |
 | Perubahan mengganggu retail | Batasi perubahan pada tool `Appointment` yang clinic-only |
@@ -146,8 +148,8 @@ Tambahkan state baru di `Appointment.jsx`:
 ---
 
 ## Acceptance Criteria
-- User bisa mencari pasien dari halaman `Appointment`
-- User bisa memilih pasien dan melihat detail ringkasnya
+- User bisa mencari pasien dari dalam form `Isi Data Appointment`
+- User bisa memilih pasien dan melihat ringkasan pasien terpilih di form
 - User bisa menambah pasien dari konteks appointment
 - User bisa membuka data pasien dari appointment
 - Form appointment jelas memakai pasien yang sedang dipilih
@@ -157,16 +159,24 @@ Tambahkan state baru di `Appointment.jsx`:
 ---
 
 ## Verification Plan
+- Uji buka form `Isi Data Appointment`
 - Uji search pasien dengan nama
 - Uji search pasien dengan no RM
 - Uji search pasien dengan NIK
 - Uji search pasien dengan HP
-- Uji pilih pasien
-- Uji detail pasien tampil benar
+- Uji pilih pasien dari hasil pencarian inline
+- Uji ringkasan pasien tampil benar di form
 - Uji create appointment dengan pasien terpilih
 - Jalankan:
   - `npm run lint`
   - `npm run build`
+
+---
+
+## Design Note
+- Revisi design ini menggantikan pendekatan panel pasien di halaman utama appointment
+- Pendekatan yang dipakai sekarang: patient search inline di form `Isi Data Appointment`
+- Tujuannya agar UI tetap fokus, ringkas, dan tidak menambah layout baru pada halaman utama
 
 ---
 

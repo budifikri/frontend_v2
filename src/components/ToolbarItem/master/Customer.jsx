@@ -157,7 +157,7 @@ function isActiveCustomer(item) {
   return String(item?.status ?? 'active').toLowerCase() !== 'inactive'
 }
 
-export function Customer({ onExit }) {
+export function Customer({ onExit, toolContext = null, onOpenTool }) {
   const { auth } = useAuth()
   const { companyConfig } = useModule()
   const token = auth?.token
@@ -190,6 +190,29 @@ export function Customer({ onExit }) {
   const [toastMessage, setToastMessage] = useState('')
   const [togglingId, setTogglingId] = useState(null)
   const tableRef = useRef(null)
+  const isAppointmentDirectMode = toolContext?.source === 'appointment' && toolContext?.openFormDirectly
+
+  const normalizeReturnPatient = useCallback((item = {}, fallbackId = '') => ({
+    id: item.id || item.customer_id || fallbackId || toolContext?.selectedId || '',
+    name: item.name || form.name.trim() || '',
+    no_rm: item.no_rm || form.no_rm.trim() || '',
+    no_nik: item.no_nik || form.no_nik.trim() || '',
+    phone: item.phone || form.phone || '',
+    allergies: item.allergies || form.allergies || '',
+    email: item.email || form.email || '',
+  }), [form, toolContext])
+
+  const handleReturnToAppointment = useCallback((patientOverride = null) => {
+    if (!isAppointmentDirectMode) return false
+
+    onOpenTool?.('appointment', 'Appointment', {
+      source: 'customer',
+      action: 'resume-appointment',
+      appointmentDraft: toolContext?.appointmentDraft || null,
+      selectedPatient: patientOverride || toolContext?.selectedPatient || null,
+    })
+    return true
+  }, [isAppointmentDirectMode, onOpenTool, toolContext])
 
   const fetchData = useCallback(async () => {
     setError('')
@@ -271,6 +294,36 @@ export function Customer({ onExit }) {
   }, [fetchData])
 
   useEffect(() => {
+    if (!toolContext) return
+
+    if (toolContext.searchKeyword !== undefined) {
+      pager.reset()
+      setSearchKeyword(toolContext.searchKeyword)
+    }
+
+    if (toolContext.action === 'create' || toolContext.action === 'create-direct') {
+      setSelectedId(null)
+      setCurrentEditIndex(null)
+      setForm(DEFAULT_FORM)
+      setIsNewMode(true)
+      setShowForm(true)
+    }
+
+    if (toolContext.action === 'edit-direct') {
+      setSelectedId(toolContext.selectedId || toolContext.selectedPatient?.id || null)
+      setCurrentEditIndex(null)
+      setForm(getFormState(toolContext.selectedPatient || {}))
+      setIsNewMode(false)
+      setShowForm(true)
+    }
+
+    if (toolContext.selectedId) {
+      setSelectedId(toolContext.selectedId)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [toolContext])
+
+  useEffect(() => {
     const handleKeyDown = (e) => {
       if (showDeleteConfirm) {
         if (e.key === 'Escape') {
@@ -283,7 +336,7 @@ export function Customer({ onExit }) {
       if (showForm) {
         if (e.key === 'Escape') {
           e.preventDefault()
-          setShowForm(false)
+          handleCloseForm()
         } else if (e.ctrlKey && e.key === 'ArrowLeft') {
           e.preventDefault()
           handlePrevRecord()
@@ -364,10 +417,17 @@ export function Customer({ onExit }) {
       bank_branch: form.bank_branch,
     }
 
+    const editingCustomerId = selectedItem?.id || toolContext?.selectedId || toolContext?.selectedPatient?.id || ''
+
     try {
+      let savedPatient = null
+
       if (token) {
-        if (isNewMode) await createCustomer(token, payload)
-        else await updateCustomer(token, selectedItem.id, payload)
+        const response = isNewMode ? await createCustomer(token, payload) : await updateCustomer(token, editingCustomerId, payload)
+        savedPatient = normalizeReturnPatient({
+          ...(response?.data || response?.item || {}),
+          ...payload,
+        }, editingCustomerId)
         await fetchData()
       } else {
         if (isNewMode) {
@@ -380,15 +440,31 @@ export function Customer({ onExit }) {
             is_active: true,
           }
           setData((prev) => [newItem, ...prev])
+          savedPatient = normalizeReturnPatient(newItem, newItem.id)
         } else {
+          const updatedItem = {
+            ...selectedItem,
+            ...payload,
+            no_rm: isClinic ? trimmedNoRM : '',
+            no_nik: trimmedNoNIK,
+          }
           setData((prev) => prev.map((row) => (
-            row.id === selectedItem.id ? { ...row, ...payload } : row
+            row.id === editingCustomerId ? updatedItem : row
           )))
+          savedPatient = normalizeReturnPatient(updatedItem, editingCustomerId)
         }
+      }
+
+      if (!savedPatient) {
+        savedPatient = normalizeReturnPatient(payload, editingCustomerId)
       }
 
       setToastMessage('Data tersimpan')
       setShowToast(true)
+
+      if (handleReturnToAppointment(savedPatient)) {
+        return
+      }
     } catch (err) {
       setError(err.message || 'Failed to save customer')
     } finally {
@@ -488,6 +564,8 @@ export function Customer({ onExit }) {
 
 
   function handleCloseForm() {
+    if (handleReturnToAppointment()) return
+
     setShowForm(false)
     setSelectedId(null)
     setCurrentEditIndex(null)
@@ -652,100 +730,106 @@ export function Customer({ onExit }) {
 
   function handleConfirmExit() {
     setShowExitConfirm(false)
+    if (handleReturnToAppointment()) return
     onExit()
   }
 
   return (
     <div className="master-content">
-      <div className="master-header">
-        <div className="master-header-accent"></div>
-        <h1 className="master-title">Daftar {entityLabel}</h1>
-        <div className="master-header-filters">
-          <div className="master-footer-search">
-            <input
-              type="text"
-              placeholder="Search keyword..."
-              className="master-search-input"
-              onChange={(e) => handleSearchChange(e.target.value)}
-            />
-            <button type="button" className="master-search-btn">
-              <span className="material-icons-round material-icon">search</span>
-            </button>
-          </div>
-          <div className="master-filter-wrap">
-            <label htmlFor="customer-tier-filter" className="master-filter-label">Tier</label>
-            <select
-              id="customer-tier-filter"
-              className="master-filter-select"
-              value={tierFilter}
-              onChange={(e) => handleTierChange(e.target.value)}
-            >
-              <option value="">All Tier</option>
-              {TIERS.map((tier) => (
-                <option key={tier} value={tier}>{tier}</option>
-              ))}
-            </select>
-          </div>
-          <div className="master-filter-wrap">
-            <label htmlFor="customer-status-filter" className="master-filter-label">Status</label>
-            <select
-              id="customer-status-filter"
-              className="master-filter-select"
-              value={isActiveFilter}
-              onChange={(e) => handleStatusFilter(e.target.value)}
-            >
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-              <option value="all">All</option>
-            </select>
+      {!isAppointmentDirectMode && (
+        <div className="master-header">
+          <div className="master-header-accent"></div>
+          <h1 className="master-title">Daftar {entityLabel}</h1>
+          <div className="master-header-filters">
+            <div className="master-footer-search">
+              <input
+                type="text"
+                placeholder="Search keyword..."
+                className="master-search-input"
+                value={searchKeyword}
+                onChange={(e) => handleSearchChange(e.target.value)}
+              />
+              <button type="button" className="master-search-btn">
+                <span className="material-icons-round material-icon">search</span>
+              </button>
+            </div>
+            <div className="master-filter-wrap">
+              <label htmlFor="customer-tier-filter" className="master-filter-label">Tier</label>
+              <select
+                id="customer-tier-filter"
+                className="master-filter-select"
+                value={tierFilter}
+                onChange={(e) => handleTierChange(e.target.value)}
+              >
+                <option value="">All Tier</option>
+                {TIERS.map((tier) => (
+                  <option key={tier} value={tier}>{tier}</option>
+                ))}
+              </select>
+            </div>
+            <div className="master-filter-wrap">
+              <label htmlFor="customer-status-filter" className="master-filter-label">Status</label>
+              <select
+                id="customer-status-filter"
+                className="master-filter-select"
+                value={isActiveFilter}
+                onChange={(e) => handleStatusFilter(e.target.value)}
+              >
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+                <option value="all">All</option>
+              </select>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {error && <div className="master-error">{error}</div>}
 
-      <div className="master-table-wrapper" ref={tableRef} tabIndex={0}>
-        <div className="master-table-container">
-          <table className="master-table">
-            <MasterTableHeader columns={getTableColumns(isClinic)} sortConfig={sortConfig} onSort={handleSort} />
-            <tbody>
-              {sortedData.map((row, index) => (
-                <tr
-                  key={row.id || index}
-                  className={selectedId === row.id ? 'master-row-selected' : 'master-row'}
-                  onClick={() => handleSelect(row)}
-                  onDoubleClick={() => handleEdit()}
-                >
-                  <td>{offset + index + 1}</td>
-                  {!isClinic && <td>{row.customer_code || '-'}</td>}
-                  <td>{row.name || '-'}</td>
-                  {isClinic && <td>{row.no_rm || '-'}</td>}
-                  <td>{row.no_nik || '-'}</td>
-                  <td>{row.email || '-'}</td>
-                  <td>{row.phone || '-'}</td>
-                  <td>{row.tier || '-'}</td>
-                  {isClinic && <td>{row.allergies || '-'}</td>}
-                  <td>
-                    <MasterStatusToggle
-                      active={isActiveCustomer(row)}
-                      loading={togglingId === row.id}
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        handleToggleStatus(row)
-                      }}
-                    />
-                  </td>
-                </tr>
-              ))}
-              {!isLoading && sortedData.length === 0 && (
-                <tr>
-                  <td colSpan={isClinic ? 9 : 8} className="text-center">No data</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+      {!isAppointmentDirectMode && (
+        <div className="master-table-wrapper" ref={tableRef} tabIndex={0}>
+          <div className="master-table-container">
+            <table className="master-table">
+              <MasterTableHeader columns={getTableColumns(isClinic)} sortConfig={sortConfig} onSort={handleSort} />
+              <tbody>
+                {sortedData.map((row, index) => (
+                  <tr
+                    key={row.id || index}
+                    className={selectedId === row.id ? 'master-row-selected' : 'master-row'}
+                    onClick={() => handleSelect(row)}
+                    onDoubleClick={() => handleEdit()}
+                  >
+                    <td>{offset + index + 1}</td>
+                    {!isClinic && <td>{row.customer_code || '-'}</td>}
+                    <td>{row.name || '-'}</td>
+                    {isClinic && <td>{row.no_rm || '-'}</td>}
+                    <td>{row.no_nik || '-'}</td>
+                    <td>{row.email || '-'}</td>
+                    <td>{row.phone || '-'}</td>
+                    <td>{row.tier || '-'}</td>
+                    {isClinic && <td>{row.allergies || '-'}</td>}
+                    <td>
+                      <MasterStatusToggle
+                        active={isActiveCustomer(row)}
+                        loading={togglingId === row.id}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleToggleStatus(row)
+                        }}
+                      />
+                    </td>
+                  </tr>
+                ))}
+                {!isLoading && sortedData.length === 0 && (
+                  <tr>
+                    <td colSpan={isClinic ? 9 : 8} className="text-center">No data</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
+      )}
 
       {showForm && (
         <div className="master-form-card">
@@ -847,31 +931,33 @@ export function Customer({ onExit }) {
         </div>
       )}
 
-      <FooterMaster
-        onNew={handleNew}
-        onEdit={handleEdit}
-        onDelete={handleDeleteClick}
-        totalRow={pagination.total}
-        onPrint={handlePrint}
-        onExit={handleExitClick}
-        onRefresh={fetchData}
-        isLoading={isLoading}
-        page={pager.page}
-        totalPages={pager.totalPages}
-        canPrev={pager.canPrev}
-        canNext={pager.canNext}
-        onFirstPage={pager.goFirst}
-        onPrevPage={pager.goPrev}
-        onNextPage={pager.goNext}
-        onLastPage={pager.goLast}
-        excelColumns={getExcelColumns(isClinic)}
-        excelFilename="customer"
-        onExportExcel={handleExportExcel}
-        onImportExcel={handleImportExcel}
-        onGenerateTemplate={handleGenerateTemplate}
-        isAllRecords={pager.isAllRecords}
-        onToggleAllRecords={handleToggleAllRecords}
-      />
+      {!isAppointmentDirectMode && (
+        <FooterMaster
+          onNew={handleNew}
+          onEdit={handleEdit}
+          onDelete={handleDeleteClick}
+          totalRow={pagination.total}
+          onPrint={handlePrint}
+          onExit={handleExitClick}
+          onRefresh={fetchData}
+          isLoading={isLoading}
+          page={pager.page}
+          totalPages={pager.totalPages}
+          canPrev={pager.canPrev}
+          canNext={pager.canNext}
+          onFirstPage={pager.goFirst}
+          onPrevPage={pager.goPrev}
+          onNextPage={pager.goNext}
+          onLastPage={pager.goLast}
+          excelColumns={getExcelColumns(isClinic)}
+          excelFilename="customer"
+          onExportExcel={handleExportExcel}
+          onImportExcel={handleImportExcel}
+          onGenerateTemplate={handleGenerateTemplate}
+          isAllRecords={pager.isAllRecords}
+          onToggleAllRecords={handleToggleAllRecords}
+        />
+      )}
 
       {showDeleteConfirm && (
         <DeleteMaster
@@ -904,7 +990,7 @@ export function Customer({ onExit }) {
         />
       )}
 
-      {showToast && <Toast message={toastMessage} type="success" onClose={() => setShowToast(false)} />}
+      {showToast && <Toast message={toastMessage} type="success" isOpen={showToast} onClose={() => setShowToast(false)} />}
     </div>
   )
 }

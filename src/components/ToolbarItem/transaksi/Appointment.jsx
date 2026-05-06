@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState, useRef } from 'react'
 import { useAuth } from '../../../shared/auth'
 import { listAppointments, createAppointment, updateAppointment, deleteAppointment } from '../../../features/transaksi/appointment/appointment.api'
-import { listCustomers } from '../../../features/master/customer/customer.api'
+import { createCustomer, listCustomers, updateCustomer } from '../../../features/master/customer/customer.api'
 import { listTreatments } from '../../../features/master/treatment/treatment.api'
 import { listDokters } from '../../../features/master/dokter/dokter.api'
 import { getCurrentCompany } from '../../../features/master/company/company.api'
@@ -27,6 +27,19 @@ const DEFAULT_FORM = {
   status: 'scheduled',
   notes: '',
 }
+
+const DEFAULT_PATIENT_FORM = {
+  name: '',
+  no_rm: '',
+  no_nik: '',
+  email: '',
+  phone: '',
+  address: '',
+  city: '',
+  allergies: '',
+}
+
+const KTP_PATTERN = /^\d{16}$/
 
 const STATUS_OPTIONS = [
   { value: 'scheduled', label: 'Scheduled' },
@@ -186,6 +199,39 @@ function formatDisplayDate(dateValue) {
   })
 }
 
+function normalizePatient(item = {}) {
+  return {
+    id: item.id || item.patient_id || item.customer_id || '',
+    name: item.name || item.nama || item.patient_name || item.customer_name || '-',
+    no_rm: item.no_rm || item.medical_record_number || '',
+    no_nik: item.no_nik || item.nik || '',
+    phone: item.phone || item.mobile_phone || item.telp || '',
+    allergies: item.allergies || '',
+    is_active: item.is_active ?? (String(item.status || 'active').toLowerCase() !== 'inactive'),
+  }
+}
+
+function matchPatientKeyword(item, keyword) {
+  const normalizedKeyword = String(keyword || '').trim().toLowerCase()
+  if (!normalizedKeyword) return true
+
+  return [item.name, item.no_rm, item.no_nik, item.phone]
+    .some((value) => String(value || '').toLowerCase().includes(normalizedKeyword))
+}
+
+function getPatientFormState(item = {}) {
+  return {
+    name: item.name || '',
+    no_rm: item.no_rm || '',
+    no_nik: item.no_nik || '',
+    email: item.email || '',
+    phone: item.phone || '',
+    address: item.address || '',
+    city: item.city || '',
+    allergies: item.allergies || '',
+  }
+}
+
 function getStatusTone(status) {
   if (status === 'confirmed') return 'approve'
   if (status === 'completed') return 'receive'
@@ -209,7 +255,7 @@ function sortAppointments(items) {
   })
 }
 
-export function Appointment({ onExit }) {
+export function Appointment({ onExit, onOpenTool, toolContext = null }) {
   const { auth } = useAuth()
   const token = auth?.token
 
@@ -245,10 +291,28 @@ export function Appointment({ onExit }) {
   const tableRef = useRef(null)
   const [showToast, setShowToast] = useState(false)
   const [toastMessage, setToastMessage] = useState('')
+  const [toastType, setToastType] = useState('success')
 
   const [patients, setPatients] = useState([])
   const [treatments, setTreatments] = useState([])
   const [therapists, setTherapists] = useState([])
+  const [patientSearchKeyword, setPatientSearchKeyword] = useState('')
+  const [patientResults, setPatientResults] = useState([])
+  const [selectedPatient, setSelectedPatient] = useState(null)
+  const [isPatientLoading, setIsPatientLoading] = useState(false)
+  const [showPatientSearchResults, setShowPatientSearchResults] = useState(false)
+
+  const buildAppointmentDraft = useCallback(() => ({
+    form,
+    selectedId,
+    currentEditIndex,
+    isNewMode,
+    showForm,
+    selectedCalendarDate,
+    viewMode,
+    selectedPatient,
+    patientSearchKeyword,
+  }), [currentEditIndex, form, isNewMode, patientSearchKeyword, selectedCalendarDate, selectedId, selectedPatient, showForm, viewMode])
 
   const fetchData = useCallback(async () => {
     setError('')
@@ -383,7 +447,14 @@ export function Appointment({ onExit }) {
   }, [calendarMonth, localAppointments, searchKeyword, statusFilter, token])
 
   const fetchDropdownData = useCallback(async () => {
-    if (!token) return
+    if (!token) {
+      const localPatients = [
+        { id: 'CUST001', name: 'Bpk. Budi', no_rm: 'RM001', no_nik: '3174010101010001', phone: '081234567890', allergies: '-' },
+        { id: 'CUST002', name: 'Ibu Sari', no_rm: 'RM002', no_nik: '3174010101010002', phone: '081298765432', allergies: 'Seafood' },
+      ].map((item) => normalizePatient(item))
+      setPatients(localPatients)
+      return
+    }
 
     try {
       const [patientsRes, treatmentsRes, therapistsRes] = await Promise.all([
@@ -392,7 +463,7 @@ export function Appointment({ onExit }) {
         listDokters(token, { limit: 100 }),
       ])
 
-      setPatients(patientsRes.items || patientsRes || [])
+      setPatients((patientsRes.items || patientsRes || []).map((item) => normalizePatient(item)))
       setTreatments(treatmentsRes.items || treatmentsRes || [])
       setTherapists(therapistsRes.items || therapistsRes || [])
     } catch (err) {
@@ -434,6 +505,50 @@ export function Appointment({ onExit }) {
   useEffect(() => {
     fetchCalendarData()
   }, [fetchCalendarData])
+
+  useEffect(() => {
+    if (!showForm) return
+    if (selectedPatient?.id) return
+    if (!patientSearchKeyword.trim()) {
+      setPatientResults(patients.slice(0, 5))
+    }
+  }, [patients, patientSearchKeyword, selectedPatient, showForm])
+
+  useEffect(() => {
+    if (!showForm || !form.patient_id || selectedPatient?.id === form.patient_id) return
+    const matched = patients.find((item) => item.id === form.patient_id)
+    if (matched) setSelectedPatient(matched)
+  }, [form.patient_id, patients, selectedPatient, showForm])
+
+  useEffect(() => {
+    if (!toolContext || toolContext.action !== 'resume-appointment') return
+
+    const draft = toolContext.appointmentDraft || {}
+    const nextPatient = toolContext.selectedPatient ? normalizePatient(toolContext.selectedPatient) : draft.selectedPatient ? normalizePatient(draft.selectedPatient) : null
+
+    if (draft.viewMode) setViewMode(draft.viewMode)
+    if (draft.selectedCalendarDate) setSelectedCalendarDate(draft.selectedCalendarDate)
+    if (typeof draft.isNewMode === 'boolean') setIsNewMode(draft.isNewMode)
+    if (draft.selectedId !== undefined) setSelectedId(draft.selectedId)
+    if (draft.currentEditIndex !== undefined) setCurrentEditIndex(draft.currentEditIndex)
+
+    const nextForm = {
+      ...DEFAULT_FORM,
+      ...(draft.form || {}),
+      patient_id: nextPatient?.id || draft.form?.patient_id || '',
+    }
+
+    setForm(nextForm)
+    setSelectedPatient(nextPatient)
+    setPatientSearchKeyword(nextPatient?.name || draft.patientSearchKeyword || '')
+    setShowPatientSearchResults(false)
+    setPatientResults([])
+    setShowForm(draft.showForm ?? true)
+
+    if (nextPatient?.id) {
+      setPatients((prev) => (prev.some((item) => item.id === nextPatient.id) ? prev : [...prev, nextPatient]))
+    }
+  }, [toolContext])
 
   useEffect(() => {
     if (!isDateInMonth(selectedCalendarDate, calendarMonth)) {
@@ -488,6 +603,114 @@ export function Appointment({ onExit }) {
   function handleSearchChange(value) {
     pager.reset()
     setSearchKeyword(value)
+  }
+
+  function handlePatientSearchChange(value) {
+    setPatientSearchKeyword(value)
+    if (!value.trim()) {
+      setPatientResults([])
+      setShowPatientSearchResults(false)
+    }
+  }
+
+  async function handlePatientSearch() {
+    const keyword = patientSearchKeyword.trim()
+    setError('')
+
+    if (!keyword) {
+      setPatientResults([])
+      setShowPatientSearchResults(false)
+      return
+    }
+
+    setIsPatientLoading(true)
+    try {
+      if (!token) {
+        const filteredItems = patients.filter((item) => matchPatientKeyword(item, keyword)).slice(0, 8)
+        setPatientResults(filteredItems)
+        if (filteredItems.length === 1) {
+          handleSelectPatient(filteredItems[0])
+        } else {
+          setShowPatientSearchResults(filteredItems.length > 1)
+        }
+        if (filteredItems.length === 0) {
+          setToastType('error')
+          setToastMessage('Pasien tidak ditemukan')
+          setShowToast(true)
+        }
+        return
+      }
+
+      const result = await listCustomers(token, {
+        search: keyword,
+        include_inactive: true,
+        limit: 8,
+        offset: 0,
+      })
+      const items = (result.items || []).map((item) => normalizePatient(item))
+      setPatientResults(items)
+      if (items.length === 1) {
+        handleSelectPatient(items[0])
+      } else {
+        setShowPatientSearchResults(items.length > 1)
+      }
+      if (items.length > 0) {
+        setPatients((prev) => {
+          const merged = [...prev]
+          items.forEach((item) => {
+            if (!merged.some((patient) => patient.id === item.id)) merged.push(item)
+          })
+          return merged
+        })
+      } else {
+        setToastType('error')
+        setToastMessage('Pasien tidak ditemukan')
+        setShowToast(true)
+      }
+    } catch (err) {
+      setToastType('error')
+      setError(err.message || 'Failed to load patients')
+      setToastMessage(err.message || 'Gagal memuat data pasien')
+      setShowToast(true)
+      setPatientResults([])
+      setShowPatientSearchResults(false)
+    } finally {
+      setIsPatientLoading(false)
+    }
+  }
+
+  function handleSelectPatient(patient) {
+    const normalized = normalizePatient(patient)
+    setSelectedPatient(normalized)
+    setForm((prev) => ({ ...prev, patient_id: normalized.id }))
+    setPatientSearchKeyword(normalized.name || '')
+    setShowPatientSearchResults(false)
+  }
+
+  function handleOpenPatientCreate() {
+    onOpenTool?.('customer', 'Customer', {
+      source: 'appointment',
+      action: 'create-direct',
+      openFormDirectly: true,
+      searchKeyword: patientSearchKeyword.trim(),
+      selectedPatient,
+      returnTo: 'appointment',
+      appointmentDraft: buildAppointmentDraft(),
+    })
+  }
+
+  function handleOpenPatientDetail() {
+    if (!selectedPatient?.id) return
+    onOpenTool?.('customer', 'Customer', {
+      source: 'appointment',
+      action: 'edit-direct',
+      openFormDirectly: true,
+      searchKeyword: selectedPatient.name || '',
+      selectedId: selectedPatient.id,
+      selectedPatient,
+      returnTo: 'appointment',
+      appointmentDraft: buildAppointmentDraft(),
+    })
   }
 
   function handleStatusFilterChange(value) {
@@ -613,6 +836,7 @@ export function Appointment({ onExit }) {
         }
       }
 
+      setToastType('success')
       setToastMessage('Data tersimpan')
       setShowToast(true)
     } catch (err) {
@@ -630,6 +854,10 @@ export function Appointment({ onExit }) {
     setSelectedId(null)
     setCurrentEditIndex(null)
     setForm(DEFAULT_FORM)
+    setSelectedPatient(null)
+    setPatientSearchKeyword('')
+    setPatientResults(patients.slice(0, 5))
+    setShowPatientSearchResults(false)
     setIsNewMode(true)
     setShowForm(true)
   }
@@ -641,6 +869,10 @@ export function Appointment({ onExit }) {
       ...DEFAULT_FORM,
       booking_date: selectedCalendarDate || DEFAULT_FORM.booking_date,
     })
+    setSelectedPatient(null)
+    setPatientSearchKeyword('')
+    setPatientResults(patients.slice(0, 5))
+    setShowPatientSearchResults(false)
     setIsNewMode(true)
     setShowForm(true)
   }
@@ -661,6 +893,12 @@ export function Appointment({ onExit }) {
       status: target.status || 'scheduled',
       notes: target.notes || '',
     })
+    setSelectedPatient(normalizePatient({
+      id: target.patient_id,
+      name: target.patient_name || target.patient?.name || '',
+    }))
+    setPatientSearchKeyword(target.patient_name || target.patient?.name || '')
+    setShowPatientSearchResults(false)
     setIsNewMode(false)
     setShowForm(true)
   }
@@ -681,6 +919,12 @@ export function Appointment({ onExit }) {
       status: nextItem.status || 'scheduled',
       notes: nextItem.notes || '',
     })
+    setSelectedPatient(normalizePatient({
+      id: nextItem.patient_id,
+      name: nextItem.patient_name || nextItem.patient?.name || '',
+    }))
+    setPatientSearchKeyword(nextItem.patient_name || nextItem.patient?.name || '')
+    setShowPatientSearchResults(false)
   }
 
   function handlePrevRecord() {
@@ -699,6 +943,12 @@ export function Appointment({ onExit }) {
       status: prevItem.status || 'scheduled',
       notes: prevItem.notes || '',
     })
+    setSelectedPatient(normalizePatient({
+      id: prevItem.patient_id,
+      name: prevItem.patient_name || prevItem.patient?.name || '',
+    }))
+    setPatientSearchKeyword(prevItem.patient_name || prevItem.patient?.name || '')
+    setShowPatientSearchResults(false)
   }
 
   function handleDeleteClick() {
@@ -725,6 +975,10 @@ export function Appointment({ onExit }) {
       setShowForm(false)
       setSelectedId(null)
       setForm(DEFAULT_FORM)
+      setSelectedPatient(null)
+      setPatientSearchKeyword('')
+      setPatientResults(patients.slice(0, 5))
+      setShowPatientSearchResults(false)
     }
   }
 
@@ -733,6 +987,10 @@ export function Appointment({ onExit }) {
     setSelectedId(null)
     setCurrentEditIndex(null)
     setForm(DEFAULT_FORM)
+    setSelectedPatient(null)
+    setPatientSearchKeyword('')
+    setPatientResults(patients.slice(0, 5))
+    setShowPatientSearchResults(false)
     setIsNewMode(false)
   }
 
@@ -809,20 +1067,85 @@ export function Appointment({ onExit }) {
     return accumulator
   }, {})
   const selectedCalendarItems = sortAppointments(appointmentsByDate[selectedCalendarDate] || [])
+  const selectedPatientNoRm = selectedPatient?.no_rm || ''
   const formFields = (
     <>
+      <div className="master-form-group appointment-patient-search-group">
+        <label className="master-form-label">Pencarian Pasien :</label>
+        <div className="appointment-inline-input-shell appointment-patient-search-shell">
+          <input
+            type="text"
+            value={patientSearchKeyword}
+            onChange={(e) => handlePatientSearchChange(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault()
+                handlePatientSearch()
+              }
+            }}
+            placeholder="Cari Nama / No RM / NIK / HP"
+            className="master-form-input appointment-inline-input"
+          />
+          <button
+            type="button"
+            className="appointment-inline-embedded-btn appointment-inline-patient-filter-btn"
+            onClick={handlePatientSearch}
+            title="Filter pasien"
+            aria-label="Filter pasien"
+          >
+            <span className="material-icons-round">filter_alt</span>
+          </button>
+          <button
+            type="button"
+            className="appointment-inline-embedded-btn appointment-inline-patient-add-btn"
+            onClick={handleOpenPatientCreate}
+            title="Tambah pasien"
+            aria-label="Tambah pasien"
+          >
+            <span className="material-icons-round">person_add</span>
+          </button>
+          {showPatientSearchResults && (
+            <div className="appointment-inline-patient-dropdown">
+              {isPatientLoading ? (
+                <div className="appointment-inline-patient-empty">Mencari data pasien...</div>
+              ) : (
+                patientResults.map((patient) => (
+                  <button
+                    key={patient.id}
+                    type="button"
+                    className="appointment-inline-patient-option"
+                    onClick={() => handleSelectPatient(patient)}
+                  >
+                    {`${patient.no_rm || '-'} - ${patient.name}`}
+                  </button>
+                ))
+              )}
+            </div>
+          )}
+        </div>
+      </div>
       <div className="master-form-group">
-        <label className="master-form-label">Pasien :</label>
-        <select
-          value={form.patient_id}
-          onChange={(e) => setForm({ ...form, patient_id: e.target.value })}
-          className="master-form-input"
-        >
-          <option value="">Pilih Pasien</option>
-          {patients.map((p) => (
-            <option key={p.id} value={p.id}>{p.name || p.nama}</option>
-          ))}
-        </select>
+        <label className="master-form-label">No RM :</label>
+        <div className="appointment-inline-input-shell appointment-inline-readonly-shell">
+          <input
+            type="text"
+            value={selectedPatientNoRm}
+            readOnly
+            placeholder="Belum pilih pasien"
+            className="master-form-input appointment-inline-input appointment-inline-readonly-input"
+            title={selectedPatientNoRm || 'Belum pilih pasien'}
+          />
+          <button
+            type="button"
+            className="appointment-inline-embedded-btn appointment-inline-patient-edit-btn"
+            onClick={handleOpenPatientDetail}
+            disabled={!selectedPatient}
+            title="Edit data pasien"
+            aria-label="Edit data pasien"
+          >
+            <span className="material-icons-round">open_in_new</span>
+          </button>
+        </div>
       </div>
       <div className="master-form-group">
         <label className="master-form-label">Treatment :</label>
@@ -860,24 +1183,24 @@ export function Appointment({ onExit }) {
         />
       </div>
       <div className="master-form-group">
-        <label className="master-form-label">Jam Mulai :</label>
-        <input
-          type="time"
-          value={form.start_time}
-          onChange={(e) => setForm({ ...form, start_time: e.target.value })}
-          className="master-form-input"
-        />
+        <label className="master-form-label">Jam :</label>
+        <div className="appointment-time-range-row">
+          <input
+            type="time"
+            value={form.start_time}
+            onChange={(e) => setForm({ ...form, start_time: e.target.value })}
+            className="master-form-input"
+          />
+          <span className="appointment-time-range-separator">-</span>
+          <input
+            type="time"
+            value={form.end_time}
+            onChange={(e) => setForm({ ...form, end_time: e.target.value })}
+            className="master-form-input"
+          />
+        </div>
       </div>
-      <div className="master-form-group">
-        <label className="master-form-label">Jam Selesai :</label>
-        <input
-          type="time"
-          value={form.end_time}
-          onChange={(e) => setForm({ ...form, end_time: e.target.value })}
-          className="master-form-input"
-        />
-      </div>
-      <div className="master-form-group-wide">
+      <div className="master-form-group appointment-notes-group">
         <label className="master-form-label">Notes :</label>
         <input
           type="text"
@@ -942,7 +1265,7 @@ export function Appointment({ onExit }) {
           <h2 className="master-form-title">{isNewMode ? 'Isi Data Appointment' : 'Ubah Data Appointment'}</h2>
           {formStatusBar}
         </div>
-        <div className="master-form-grid">
+        <div className="master-form-grid appointment-form-grid">
           {formFields}
           {formActions}
         </div>
@@ -1305,7 +1628,7 @@ export function Appointment({ onExit }) {
         </div>
       )}
 
-      {showToast && <Toast message={toastMessage} type="success" onClose={() => setShowToast(false)} />}
+      {showToast && <Toast message={toastMessage} type={toastType} isOpen={showToast} onClose={() => setShowToast(false)} />}
     </div>
   )
 }

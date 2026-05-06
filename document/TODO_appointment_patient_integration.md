@@ -9,6 +9,7 @@
 
 ## Documentation
 - [✅] Konfirmasi scope tahap 1 fokus ke integrasi data pasien
+- [✅] Revisi design: pencarian pasien dipindah ke form `Isi Data Appointment`
 - [✅] Buat `document/PLAN_appointment_patient_integration.md`
 - [✅] Buat `document/TODO_appointment_patient_integration.md`
 
@@ -24,47 +25,49 @@
 ---
 
 ## UI & UX Tasks
-- [❌] Tambah search pasien yang jelas di header appointment
-- [❌] Tambah placeholder `Cari nama / no RM / NIK / HP`
-- [❌] Tampilkan hasil pasien dalam daftar/panel
-- [❌] Tambah state pasien terpilih
-- [❌] Tampilkan panel detail pasien terpilih
-- [❌] Tambah tombol `Tambah Pasien`
-- [❌] Tambah tombol `Edit Data Pasien`
-- [❌] Tambah tombol `Buat Appointment` yang memakai pasien aktif
+- [✅] Tambah search pasien yang jelas di dalam form `Isi Data Appointment`
+- [✅] Tambah placeholder `Cari nama / no RM / NIK / HP`
+- [✅] Tampilkan hasil pasien dalam daftar inline di form
+- [✅] Tambah state pasien terpilih
+- [✅] Tampilkan ringkasan pasien terpilih di form
+- [✅] Tambah tombol `Tambah Pasien`
+- [✅] Tambah tombol `Edit Data Pasien`
+- [✅] Tambah tombol `Filter` pada area pencarian pasien di form
 
 ---
 
 ## Logic & Data Tasks
-- [❌] Hubungkan pencarian pasien ke `listCustomers`
-- [❌] Sinkronkan `selectedPatient` dengan `form.patient_id`
-- [❌] Pastikan pasien terpilih tetap konsisten saat form dibuka/ditutup
-- [❌] Pastikan create/update/delete appointment existing tidak rusak
-- [❌] Pastikan list/calendar appointment existing tetap usable
+- [✅] Hubungkan pencarian pasien ke `listCustomers`
+- [✅] Sinkronkan `selectedPatient` dengan `form.patient_id`
+- [✅] Pastikan pasien terpilih tetap konsisten saat form dibuka/ditutup
+- [✅] Pastikan hasil pencarian inline tidak membuat form terlalu panjang
+- [✅] Pastikan create/update/delete appointment existing tidak rusak
+- [✅] Pastikan list/calendar appointment existing tetap usable
 
 ---
 
 ## Navigation Tasks
-- [❌] Tambah mekanisme buka data pasien dari appointment
-- [❌] Tentukan payload/context jika edit pasien dibuka dari appointment
-- [❌] Pastikan alur kembali ke appointment tetap jelas
+- [✅] Tambah mekanisme buka data pasien dari appointment
+- [✅] Tentukan payload/context jika edit pasien dibuka dari appointment
+- [✅] Pastikan alur kembali ke appointment tetap jelas
 
 ---
 
 ## Retail Safety Tasks
-- [❌] Pastikan UI baru hanya berada di tool `Appointment`
-- [❌] Pastikan tidak ada perubahan perilaku pada mode `Customer` retail
-- [❌] Pastikan tidak ada perubahan pada flow POS retail di tahap ini
+- [✅] Pastikan UI baru hanya berada di form appointment pada tool `Appointment`
+- [✅] Pastikan tidak ada perubahan perilaku pada mode `Customer` retail
+- [✅] Pastikan tidak ada perubahan pada flow POS retail di tahap ini
 
 ---
 
 ## Manual Testing
+- [❌] Uji buka form `Isi Data Appointment`
 - [❌] Uji search pasien dengan nama
 - [❌] Uji search pasien dengan no RM
 - [❌] Uji search pasien dengan NIK
 - [❌] Uji search pasien dengan HP
-- [❌] Uji pilih pasien dari hasil pencarian
-- [❌] Uji detail pasien tampil sesuai
+- [❌] Uji pilih pasien dari hasil pencarian inline
+- [❌] Uji ringkasan pasien tampil sesuai
 - [❌] Uji tombol `Tambah Pasien`
 - [❌] Uji tombol `Edit Data Pasien`
 - [❌] Uji create appointment dari pasien terpilih
@@ -72,8 +75,8 @@
 ---
 
 ## Verification
-- [❌] Jalankan `npm run lint`
-- [❌] Jalankan `npm run build`
+- [✅] Jalankan `npm run lint`
+- [✅] Jalankan `npm run build`
 - [❌] Pastikan tidak ada error runtime pada halaman appointment
 
 ---
@@ -82,18 +85,18 @@
 
 | Category | Total | Completed | Pending | Progress |
 |----------|-------|-----------|---------|----------|
-| Documentation | 3 | 3 | 0 | 100% |
+| Documentation | 4 | 4 | 0 | 100% |
 | Analysis | 5 | 5 | 0 | 100% |
-| UI & UX | 8 | 0 | 8 | 0% |
-| Logic & Data | 5 | 0 | 5 | 0% |
-| Navigation | 3 | 0 | 3 | 0% |
-| Retail Safety | 3 | 0 | 3 | 0% |
-| Manual Testing | 9 | 0 | 9 | 0% |
-| Verification | 3 | 0 | 3 | 0% |
-| **Total** | **39** | **8** | **31** | **21%** |
+| UI & UX | 8 | 8 | 0 | 100% |
+| Logic & Data | 6 | 6 | 0 | 100% |
+| Navigation | 3 | 3 | 0 | 100% |
+| Retail Safety | 3 | 3 | 0 | 100% |
+| Manual Testing | 10 | 0 | 10 | 0% |
+| Verification | 3 | 2 | 1 | 67% |
+| **Total** | **42** | **31** | **11** | **74%** |
 
 ---
 
 **Created:** 2026-05-06  
 **Last Updated:** 2026-05-06  
-**Overall Progress:** 21%
+**Overall Progress:** 74%

@@ -3567,6 +3567,178 @@ body.has-wallpaper .cash-register {
   box-shadow: 0 4px 6px rgba(37, 99, 235, 0.3);
 }
 
+.appointment-inline-input-shell {
+  position: relative;
+}
+
+.appointment-inline-input {
+  width: 100%;
+  min-width: 0;
+  height: 42px;
+  padding-right: 94px;
+  background: #fff;
+  border-color: #dbe4f0;
+}
+
+.appointment-inline-readonly-input {
+  padding-right: 54px;
+}
+
+.appointment-inline-embedded-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 5px 12px rgba(15, 23, 42, 0.18);
+  transition: transform 120ms ease, box-shadow 120ms ease;
+}
+
+.appointment-inline-embedded-btn:hover:not(:disabled) {
+  transform: translateY(calc(-50% - 1px));
+  box-shadow: 0 7px 16px rgba(15, 23, 42, 0.24);
+}
+
+.appointment-inline-embedded-btn .material-icons-round {
+  font-size: 1rem;
+}
+
+.appointment-inline-patient-filter-btn {
+  right: 46px;
+  background: linear-gradient(135deg, #8b5cf6, #6d28d9);
+  color: #fff;
+  border: 1px solid #7c3aed;
+}
+
+.appointment-inline-patient-add-btn {
+  right: 6px;
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  color: #fff;
+  border: 1px solid #2563eb;
+}
+
+.appointment-inline-patient-edit-btn {
+  right: 6px;
+  background: linear-gradient(135deg, #334155, #0f172a);
+  color: #fff;
+  border: 1px solid #1e293b;
+}
+
+.appointment-inline-patient-edit-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.appointment-inline-patient-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 12;
+  border: 1px solid #dbe4f0;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 14px 24px rgba(15, 23, 42, 0.14);
+  overflow: hidden;
+}
+
+.appointment-inline-patient-option {
+  width: 100%;
+  border: none;
+  border-bottom: 1px solid #eef2f7;
+  background: #fff;
+  color: #334155;
+  padding: 10px 12px;
+  text-align: left;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.appointment-inline-patient-option:last-child {
+  border-bottom: none;
+}
+
+.appointment-inline-patient-option:hover {
+  background: #eff6ff;
+}
+
+.appointment-inline-patient-empty {
+  padding: 12px;
+  color: #64748b;
+  font-size: 0.85rem;
+}
+
+.appointment-form-grid,
+.appointment-calendar-form-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px 18px;
+  align-items: start;
+}
+
+.appointment-form-grid .master-form-group,
+.appointment-calendar-form-grid .master-form-group,
+.appointment-form-grid .master-form-group-wide,
+.appointment-calendar-form-grid .master-form-group-wide {
+  min-width: 0;
+}
+
+.appointment-notes-group {
+  grid-column: span 2;
+}
+
+.appointment-time-range-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+}
+
+.appointment-time-range-separator {
+  color: #64748b;
+  font-weight: 700;
+}
+
+.appointment-form-grid,
+.appointment-calendar-form-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px 18px;
+  align-items: start;
+}
+
+.appointment-form-grid .master-form-input,
+.appointment-calendar-form-grid .master-form-input {
+  width: 100%;
+}
+
+@media (max-width: 900px) {
+  .appointment-form-grid,
+  .appointment-calendar-form-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .appointment-notes-group {
+    grid-column: span 2;
+  }
+}
+
+@media (max-width: 640px) {
+  .appointment-form-grid,
+  .appointment-calendar-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .appointment-notes-group {
+    grid-column: span 1;
+  }
+}
+
 /* ========================================
    Stock Opname - Optimized Layout
    ======================================== */

@@ -27,6 +27,7 @@ function AppContent() {
   const [view, setView] = useState('login')
   const [activeMenu, setActiveMenu] = useState(defaultMenu)
   const [activeTool, setActiveTool] = useState(null)
+  const [toolContext, setToolContext] = useState(null)
   const [isToolbarVisible, setIsToolbarVisible] = useState(true)
   const [userId, setUserId] = useState('')
   const [password, setPassword] = useState('')
@@ -34,7 +35,7 @@ function AppContent() {
   const [error, setError] = useState('')
   const [shortcutPopupKey, setShortcutPopupKey] = useState(null)
 
-  const activateTool = useCallback((toolKey, label = toolKey) => {
+  const activateTool = useCallback((toolKey, label = toolKey, context = null) => {
     if (!toolKey) return
 
     if (!IMPLEMENTED_TOOLS.has(toolKey)) {
@@ -47,7 +48,11 @@ function AppContent() {
       return
     }
 
+    if (toolKey === 'customer') setActiveMenu('master')
+    if (toolKey === 'appointment') setActiveMenu('transaksi')
+
     setActiveTool(toolKey)
+    setToolContext(context)
     setIsToolbarVisible(false)
   }, [companyConfig])
 
@@ -65,6 +70,7 @@ function AppContent() {
 
     setView('login')
     setActiveTool(null)
+    setToolContext(null)
     setIsToolbarVisible(true)
   }, [auth.token, auth.role])
 
@@ -211,16 +217,17 @@ function AppContent() {
     setIsToolbarVisible(true)
   }
 
-  const handleToolClick = (toolKey, label) => {
+  const handleToolClick = (toolKey, label, context = null) => {
     if (!IMPLEMENTED_TOOLS.has(toolKey)) {
       window.alert(`${label || toolKey} masih dalam pengembangan`)
       return
     }
-    activateTool(toolKey, label || toolKey)
+    activateTool(toolKey, label || toolKey, context)
   }
 
   const handleExit = () => {
     setActiveTool(null)
+    setToolContext(null)
     setIsToolbarVisible(true)
   }
 
@@ -246,7 +253,7 @@ function AppContent() {
             />
           )}
           <div className="dashboard-canvas-panel">
-            <DashboardCanvas activeTool={activeTool} onExit={handleExit} />
+            <DashboardCanvas activeTool={activeTool} toolContext={toolContext} onExit={handleExit} onOpenTool={handleToolClick} />
           </div>
         </section>
         <DashboardFooter username={auth.username} role={auth.role} />
