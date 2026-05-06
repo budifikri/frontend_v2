@@ -255,7 +255,7 @@ function sortAppointments(items) {
   })
 }
 
-export function Appointment({ onExit, toolContext = null }) {
+export function Appointment({ onExit }) {
   const { auth } = useAuth()
   const token = auth?.token
 
@@ -512,36 +512,6 @@ export function Appointment({ onExit, toolContext = null }) {
     const matched = patients.find((item) => item.id === form.patient_id)
     if (matched) setSelectedPatient(matched)
   }, [form.patient_id, patients, selectedPatient, showForm])
-
-  useEffect(() => {
-    if (!toolContext || toolContext.action !== 'resume-appointment') return
-
-    const draft = toolContext.appointmentDraft || {}
-    const nextPatient = toolContext.selectedPatient ? normalizePatient(toolContext.selectedPatient) : draft.selectedPatient ? normalizePatient(draft.selectedPatient) : null
-
-    if (draft.viewMode) setViewMode(draft.viewMode)
-    if (draft.selectedCalendarDate) setSelectedCalendarDate(draft.selectedCalendarDate)
-    if (typeof draft.isNewMode === 'boolean') setIsNewMode(draft.isNewMode)
-    if (draft.selectedId !== undefined) setSelectedId(draft.selectedId)
-    if (draft.currentEditIndex !== undefined) setCurrentEditIndex(draft.currentEditIndex)
-
-    const nextForm = {
-      ...DEFAULT_FORM,
-      ...(draft.form || {}),
-      patient_id: nextPatient?.id || draft.form?.patient_id || '',
-    }
-
-    setForm(nextForm)
-    setSelectedPatient(nextPatient)
-    setPatientSearchKeyword(nextPatient?.name || draft.patientSearchKeyword || '')
-    setShowPatientSearchResults(false)
-    setPatientResults([])
-    setShowForm(draft.showForm ?? true)
-
-    if (nextPatient?.id) {
-      setPatients((prev) => (prev.some((item) => item.id === nextPatient.id) ? prev : [...prev, nextPatient]))
-    }
-  }, [toolContext])
 
   useEffect(() => {
     if (!isDateInMonth(selectedCalendarDate, calendarMonth)) {
