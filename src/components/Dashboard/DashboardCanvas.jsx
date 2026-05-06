@@ -92,7 +92,7 @@ export function DashboardCanvas({ activeTool, toolContext, onExit, onOpenTool })
   if (activeTool === 'customer') {
     return (
       <div className="dashboard-canvas">
-        <Customer onExit={onExit} toolContext={toolContext} onOpenTool={onOpenTool} />
+        <Customer onExit={onExit} toolContext={toolContext} />
       </div>
     )
   }
@@ -292,7 +292,7 @@ export function DashboardCanvas({ activeTool, toolContext, onExit, onOpenTool })
   if (activeTool === 'appointment') {
     return (
       <div className="dashboard-canvas">
-        <Appointment onExit={onExit} onOpenTool={onOpenTool} toolContext={toolContext} />
+        <Appointment onExit={onExit} />
       </div>
     )
   }

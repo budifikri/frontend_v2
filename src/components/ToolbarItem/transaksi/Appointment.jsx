@@ -255,7 +255,7 @@ function sortAppointments(items) {
   })
 }
 
-export function Appointment({ onExit, onOpenTool, toolContext = null }) {
+export function Appointment({ onExit, toolContext = null }) {
   const { auth } = useAuth()
   const token = auth?.token
 
@@ -301,18 +301,11 @@ export function Appointment({ onExit, onOpenTool, toolContext = null }) {
   const [selectedPatient, setSelectedPatient] = useState(null)
   const [isPatientLoading, setIsPatientLoading] = useState(false)
   const [showPatientSearchResults, setShowPatientSearchResults] = useState(false)
-
-  const buildAppointmentDraft = useCallback(() => ({
-    form,
-    selectedId,
-    currentEditIndex,
-    isNewMode,
-    showForm,
-    selectedCalendarDate,
-    viewMode,
-    selectedPatient,
-    patientSearchKeyword,
-  }), [currentEditIndex, form, isNewMode, patientSearchKeyword, selectedCalendarDate, selectedId, selectedPatient, showForm, viewMode])
+  const [showPatientModal, setShowPatientModal] = useState(false)
+  const [patientModalMode, setPatientModalMode] = useState('create')
+  const [patientModalForm, setPatientModalForm] = useState(DEFAULT_PATIENT_FORM)
+  const [patientModalSaving, setPatientModalSaving] = useState(false)
+  const [patientModalError, setPatientModalError] = useState('')
 
   const fetchData = useCallback(async () => {
     setError('')
@@ -687,30 +680,121 @@ export function Appointment({ onExit, onOpenTool, toolContext = null }) {
     setShowPatientSearchResults(false)
   }
 
+  function handleOpenPatientModal(mode) {
+    setPatientModalMode(mode)
+    setPatientModalError('')
+    setShowPatientSearchResults(false)
+
+    if (mode === 'edit' && selectedPatient) {
+      setPatientModalForm(getPatientFormState(selectedPatient))
+    } else {
+      setPatientModalForm({
+        ...DEFAULT_PATIENT_FORM,
+        name: patientSearchKeyword.trim(),
+      })
+    }
+
+    setShowPatientModal(true)
+  }
+
   function handleOpenPatientCreate() {
-    onOpenTool?.('customer', 'Customer', {
-      source: 'appointment',
-      action: 'create-direct',
-      openFormDirectly: true,
-      searchKeyword: patientSearchKeyword.trim(),
-      selectedPatient,
-      returnTo: 'appointment',
-      appointmentDraft: buildAppointmentDraft(),
-    })
+    handleOpenPatientModal('create')
   }
 
   function handleOpenPatientDetail() {
     if (!selectedPatient?.id) return
-    onOpenTool?.('customer', 'Customer', {
-      source: 'appointment',
-      action: 'edit-direct',
-      openFormDirectly: true,
-      searchKeyword: selectedPatient.name || '',
-      selectedId: selectedPatient.id,
-      selectedPatient,
-      returnTo: 'appointment',
-      appointmentDraft: buildAppointmentDraft(),
-    })
+    handleOpenPatientModal('edit')
+  }
+
+  function handleClosePatientModal() {
+    setShowPatientModal(false)
+    setPatientModalError('')
+    setPatientModalSaving(false)
+  }
+
+  async function handleSavePatientModal() {
+    const trimmedName = patientModalForm.name.trim()
+    const trimmedNoRM = patientModalForm.no_rm.trim()
+    const trimmedNoNIK = patientModalForm.no_nik.trim()
+
+    if (!trimmedName) {
+      setPatientModalError('Nama pasien wajib diisi')
+      return
+    }
+
+    if (trimmedNoNIK && !KTP_PATTERN.test(trimmedNoNIK)) {
+      setPatientModalError('KTP harus 16 digit angka')
+      return
+    }
+
+    setPatientModalSaving(true)
+    setPatientModalError('')
+
+    const payload = {
+      name: trimmedName,
+      no_rm: trimmedNoRM || undefined,
+      no_nik: trimmedNoNIK || undefined,
+      email: patientModalForm.email,
+      phone: patientModalForm.phone,
+      address: patientModalForm.address,
+      city: patientModalForm.city,
+      allergies: patientModalForm.allergies,
+      tier: 'BRONZE',
+      credit_limit: 0,
+      bank_name: '',
+      bank_account_number: '',
+      bank_account_name: '',
+      bank_branch: '',
+    }
+
+    try {
+      let savedPatient = null
+
+      if (token) {
+        const response = patientModalMode === 'create'
+          ? await createCustomer(token, payload)
+          : await updateCustomer(token, selectedPatient?.id, payload)
+        savedPatient = normalizePatient({
+          ...(response?.data || response?.item || {}),
+          ...payload,
+          id: response?.data?.id || response?.item?.id || selectedPatient?.id || '',
+        })
+      } else if (patientModalMode === 'create') {
+        savedPatient = normalizePatient({
+          id: `CUST${Date.now()}`,
+          ...payload,
+          is_active: true,
+        })
+      } else {
+        savedPatient = normalizePatient({
+          ...selectedPatient,
+          ...payload,
+        })
+      }
+
+      if (!savedPatient?.id) {
+        savedPatient = normalizePatient({
+          id: selectedPatient?.id || `CUST${Date.now()}`,
+          ...payload,
+        })
+      }
+
+      setPatients((prev) => {
+        const exists = prev.some((item) => item.id === savedPatient.id)
+        if (!exists) return [savedPatient, ...prev]
+        return prev.map((item) => (item.id === savedPatient.id ? { ...item, ...savedPatient } : item))
+      })
+
+      handleSelectPatient(savedPatient)
+      setToastType('success')
+      setToastMessage(patientModalMode === 'create' ? 'Pasien berhasil ditambahkan' : 'Data pasien berhasil diperbarui')
+      setShowToast(true)
+      handleClosePatientModal()
+    } catch (err) {
+      setPatientModalError(err.message || 'Gagal menyimpan data pasien')
+    } finally {
+      setPatientModalSaving(false)
+    }
   }
 
   function handleStatusFilterChange(value) {
@@ -1273,6 +1357,63 @@ export function Appointment({ onExit, onOpenTool, toolContext = null }) {
     )
   ) : null
 
+  const patientModalSection = showPatientModal ? (
+    <div className="appointment-nested-patient-overlay">
+      <div className="appointment-nested-patient-card master-form-card">
+        <div className="master-form-header">
+          <span className="material-icons-round master-form-icon">groups</span>
+          <h2 className="master-form-title">{patientModalMode === 'create' ? 'Isi Data Pasien' : 'Ubah Data Pasien'}</h2>
+        </div>
+
+        {patientModalError && <div className="master-error">{patientModalError}</div>}
+
+        <div className="master-form-grid appointment-patient-modal-grid">
+          <div className="master-form-group">
+            <label className="master-form-label">Nama :</label>
+            <input type="text" value={patientModalForm.name} onChange={(e) => setPatientModalForm({ ...patientModalForm, name: e.target.value })} className="master-form-input" />
+          </div>
+          <div className="master-form-group">
+            <label className="master-form-label">NO RM :</label>
+            <input type="text" value={patientModalForm.no_rm} onChange={(e) => setPatientModalForm({ ...patientModalForm, no_rm: e.target.value })} className="master-form-input" />
+          </div>
+          <div className="master-form-group">
+            <label className="master-form-label">KTP :</label>
+            <input type="text" value={patientModalForm.no_nik} onChange={(e) => setPatientModalForm({ ...patientModalForm, no_nik: e.target.value })} className="master-form-input" maxLength={16} />
+          </div>
+          <div className="master-form-group">
+            <label className="master-form-label">Email :</label>
+            <input type="email" value={patientModalForm.email} onChange={(e) => setPatientModalForm({ ...patientModalForm, email: e.target.value })} className="master-form-input" />
+          </div>
+          <div className="master-form-group">
+            <label className="master-form-label">Telepon :</label>
+            <input type="text" value={patientModalForm.phone} onChange={(e) => setPatientModalForm({ ...patientModalForm, phone: e.target.value })} className="master-form-input" />
+          </div>
+          <div className="master-form-group">
+            <label className="master-form-label">Kota :</label>
+            <input type="text" value={patientModalForm.city} onChange={(e) => setPatientModalForm({ ...patientModalForm, city: e.target.value })} className="master-form-input" />
+          </div>
+          <div className="master-form-group-wide">
+            <label className="master-form-label">Alamat :</label>
+            <input type="text" value={patientModalForm.address} onChange={(e) => setPatientModalForm({ ...patientModalForm, address: e.target.value })} className="master-form-input" />
+          </div>
+          <div className="master-form-group-wide">
+            <label className="master-form-label">Alergi :</label>
+            <textarea value={patientModalForm.allergies} onChange={(e) => setPatientModalForm({ ...patientModalForm, allergies: e.target.value })} className="master-form-input appointment-patient-modal-textarea" rows={3} />
+          </div>
+          <FooterFormMaster
+            onSave={handleSavePatientModal}
+            onClose={handleClosePatientModal}
+            isSaving={patientModalSaving}
+            onNext={null}
+            onPrev={null}
+            canNext={false}
+            canPrev={false}
+          />
+        </div>
+      </div>
+    </div>
+  ) : null
+
   return (
     <div className="master-content">
       <div className="master-header">
@@ -1536,6 +1677,8 @@ export function Appointment({ onExit, onOpenTool, toolContext = null }) {
       )}
 
       {formSection}
+
+      {patientModalSection}
 
       {viewMode !== 'calendar' && (
         <FooterMaster

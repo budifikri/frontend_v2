@@ -3675,6 +3675,46 @@ body.has-wallpaper .cash-register {
   font-size: 0.85rem;
 }
 
+.appointment-nested-patient-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 20px;
+  background: rgba(15, 23, 42, 0.18);
+  backdrop-filter: blur(4px);
+}
+
+.appointment-nested-patient-card {
+  width: min(880px, calc(100vw - 40px));
+  max-height: calc(100vh - 64px);
+  overflow: auto;
+  margin: 0;
+  box-shadow: 0 30px 80px rgba(15, 23, 42, 0.28);
+}
+
+.appointment-patient-modal-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px 18px;
+}
+
+.appointment-patient-modal-grid .master-form-group,
+.appointment-patient-modal-grid .master-form-group-wide {
+  min-width: 0;
+}
+
+.appointment-patient-modal-grid .master-form-group-wide {
+  grid-column: 1 / -1;
+}
+
+.appointment-patient-modal-textarea {
+  min-height: 88px;
+  padding: 10px 16px;
+  resize: vertical;
+}
+
 .appointment-form-grid,
 .appointment-calendar-form-grid {
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -3726,6 +3766,10 @@ body.has-wallpaper .cash-register {
   .appointment-notes-group {
     grid-column: span 2;
   }
+
+  .appointment-patient-modal-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 640px) {
@@ -3736,6 +3780,20 @@ body.has-wallpaper .cash-register {
 
   .appointment-notes-group {
     grid-column: span 1;
+  }
+
+  .appointment-nested-patient-overlay {
+    padding: 20px 12px;
+    align-items: flex-end;
+  }
+
+  .appointment-nested-patient-card {
+    width: 100%;
+    max-height: calc(100vh - 24px);
+  }
+
+  .appointment-patient-modal-grid {
+    grid-template-columns: 1fr;
   }
 }
 
