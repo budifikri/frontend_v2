@@ -49,7 +49,7 @@ export const toolbarItems = {
     { key: 'divider-2', divider: true },
     { key: 'penjualan', label: 'Penjualan', mark: 'J', tone: 'blue', isPopup: true, subItems: [
       { key: 'lapjual', label: 'Detail Penjualan', mark: 'D', tone: 'blue', filter: { businessType: ['retail', 'clinic'], moduleCodes: ['retail_basic', 'clinic_core'] } },
-      { key: 'lapcashdrawer', label: 'Lap. Cash Drawer', mark: 'D', tone: 'orange', filter: { businessType: ['retail'], moduleCodes: ['retail_basic'] } },
+      { key: 'lapcashdrawer', label: 'Lap. Cash Drawer', mark: 'D', tone: 'orange', filter: { businessType: ['retail','clinic'], moduleCodes: ['retail_basic', 'clinic_core'] } },
       { key: 'laphargagrosir', label: 'Lap. Harga Grosir', mark: 'G', tone: 'blue', filter: { businessType: ['retail'], moduleCodes: ['retail_advanced', 'clinic_advanced'] } },
      
        ]
