@@ -1,0 +1,16 @@
+- main [ref=e69]:
+  - region "Minimarket login" [ref=e70]:
+    - generic [ref=e71]:
+      - generic [ref=e72]: P
+      - strong [ref=e73]: PosXpress
+    - generic [ref=e80]:
+      - generic [ref=e81]: USER ID
+      - textbox "USER ID" [ref=e82]: fikri
+      - generic [ref=e83]: PASSWORD
+      - textbox "PASSWORD" [active] [ref=e84]: "486456"
+      - button [ref=e85]: Login
+    - generic [ref=e86]:
+      - generic [ref=e87]: Ver 3.0
+      - generic "login actions" [ref=e88]:
+        - button "Batal" [ref=e89] [cursor=pointer]: ×
+        - button "Masuk" [ref=e90] [cursor=pointer]: ✓

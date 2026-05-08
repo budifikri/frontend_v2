@@ -1,0 +1,196 @@
+- main "POS Admin Menu Dashboard" [ref=e3]:
+  - generic [ref=e4]:
+    - generic [ref=e5]:
+      - strong [ref=e8]: POS Admin - fikrisoftware
+      - generic "window controls" [ref=e9]:
+        - button "Minimize" [ref=e10] [cursor=pointer]: "-"
+        - button "Close" [ref=e11] [cursor=pointer]: x
+    - generic [ref=e12]:
+      - button "Master" [ref=e13] [cursor=pointer]
+      - button "Transaksi" [ref=e14] [cursor=pointer]
+      - button "Laporan" [ref=e15] [cursor=pointer]
+      - button "Setting" [ref=e16] [cursor=pointer]
+      - button "Help" [ref=e17] [cursor=pointer]
+    - generic [ref=e87]:
+      - generic [ref=e88]:
+        - heading "Appointment" [level=1] [ref=e90]
+        - generic [ref=e91]:
+          - generic [ref=e92]:
+            - textbox "Search keyword..." [ref=e93]
+            - button "search" [ref=e94] [cursor=pointer]:
+              - generic [ref=e95]: search
+          - generic [ref=e97]:
+            - text: Date
+            - combobox "Date" [disabled] [ref=e98]:
+              - option "Today" [selected]
+              - option "This Month"
+              - option "This Year"
+              - option "Custom"
+            - tooltip "Date mengikuti bulan kalender"
+          - generic [ref=e99]:
+            - generic [ref=e100]: Status
+            - combobox "Status" [ref=e101]:
+              - option "All Status" [selected]
+              - option "Scheduled"
+              - option "Confirmed"
+              - option "Completed"
+              - option "Cancelled"
+          - generic "Appointment view mode" [ref=e102]:
+            - button "view_list" [ref=e103] [cursor=pointer]:
+              - generic [ref=e104]: view_list
+            - button "calendar_month" [pressed] [ref=e105] [cursor=pointer]:
+              - generic [ref=e106]: calendar_month
+      - generic [ref=e107]:
+        - generic [ref=e108]:
+          - generic [ref=e109]:
+            - button "Bulan sebelumnya" [ref=e110] [cursor=pointer]:
+              - generic [ref=e111]: chevron_left
+            - generic [ref=e112]:
+              - heading "Mei 2026" [level=2] [ref=e113]
+              - paragraph [ref=e114]: Monitoring appointment per tanggal
+            - button "Bulan berikutnya" [ref=e115] [cursor=pointer]:
+              - generic [ref=e116]: chevron_right
+          - generic [ref=e117]:
+            - generic [ref=e118]:
+              - generic [ref=e119]: Min
+              - generic [ref=e120]: Sen
+              - generic [ref=e121]: Sel
+              - generic [ref=e122]: Rab
+              - generic [ref=e123]: Kam
+              - generic [ref=e124]: Jum
+              - generic [ref=e125]: Sab
+            - generic [ref=e126]:
+              - button "1 Tidak ada" [ref=e132] [cursor=pointer]:
+                - generic [ref=e134]: "1"
+                - generic [ref=e136]: Tidak ada
+              - button "2 Tidak ada" [ref=e138] [cursor=pointer]:
+                - generic [ref=e140]: "2"
+                - generic [ref=e142]: Tidak ada
+              - button "3 Tidak ada" [ref=e144] [cursor=pointer]:
+                - generic [ref=e146]: "3"
+                - generic [ref=e148]: Tidak ada
+              - button "4 Tidak ada" [ref=e150] [cursor=pointer]:
+                - generic [ref=e152]: "4"
+                - generic [ref=e154]: Tidak ada
+              - button "5 2 2 appt Confirmed Scheduled" [ref=e156] [cursor=pointer]:
+                - generic [ref=e157]:
+                  - generic [ref=e158]: "5"
+                  - generic [ref=e159]: "2"
+                - generic [ref=e160]:
+                  - generic [ref=e161]: 2 appt
+                  - generic [ref=e162]:
+                    - generic "Confirmed" [ref=e163]
+                    - generic "Scheduled" [ref=e164]
+              - button "6 2 2 appt Confirmed Scheduled" [ref=e165] [cursor=pointer]:
+                - generic [ref=e166]:
+                  - generic [ref=e167]: "6"
+                  - generic [ref=e168]: "2"
+                - generic [ref=e169]:
+                  - generic [ref=e170]: 2 appt
+                  - generic [ref=e171]:
+                    - generic "Confirmed" [ref=e172]
+                    - generic "Scheduled" [ref=e173]
+              - button "7 1 1 appt Completed" [ref=e174] [cursor=pointer]:
+                - generic [ref=e175]:
+                  - generic [ref=e176]: "7"
+                  - generic [ref=e177]: "1"
+                - generic [ref=e178]:
+                  - generic [ref=e179]: 1 appt
+                  - generic "Completed" [ref=e181]
+              - button "8 Tidak ada" [ref=e182] [cursor=pointer]:
+                - generic [ref=e184]: "8"
+                - generic [ref=e186]: Tidak ada
+              - button "9 Tidak ada" [ref=e188] [cursor=pointer]:
+                - generic [ref=e190]: "9"
+                - generic [ref=e192]: Tidak ada
+              - button "10 Tidak ada" [ref=e194] [cursor=pointer]:
+                - generic [ref=e196]: "10"
+                - generic [ref=e198]: Tidak ada
+              - button "11 Tidak ada" [ref=e200] [cursor=pointer]:
+                - generic [ref=e202]: "11"
+                - generic [ref=e204]: Tidak ada
+              - button "12 Tidak ada" [ref=e206] [cursor=pointer]:
+                - generic [ref=e208]: "12"
+                - generic [ref=e210]: Tidak ada
+              - button "13 Tidak ada" [ref=e212] [cursor=pointer]:
+                - generic [ref=e214]: "13"
+                - generic [ref=e216]: Tidak ada
+              - button "14 Tidak ada" [ref=e218] [cursor=pointer]:
+                - generic [ref=e220]: "14"
+                - generic [ref=e222]: Tidak ada
+              - button "15 Tidak ada" [ref=e224] [cursor=pointer]:
+                - generic [ref=e226]: "15"
+                - generic [ref=e228]: Tidak ada
+              - button "16 Tidak ada" [ref=e230] [cursor=pointer]:
+                - generic [ref=e232]: "16"
+                - generic [ref=e234]: Tidak ada
+              - button "17 Tidak ada" [ref=e236] [cursor=pointer]:
+                - generic [ref=e238]: "17"
+                - generic [ref=e240]: Tidak ada
+              - button "18 Tidak ada" [ref=e242] [cursor=pointer]:
+                - generic [ref=e244]: "18"
+                - generic [ref=e246]: Tidak ada
+              - button "19 Tidak ada" [ref=e248] [cursor=pointer]:
+                - generic [ref=e250]: "19"
+                - generic [ref=e252]: Tidak ada
+              - button "20 Tidak ada" [ref=e254] [cursor=pointer]:
+                - generic [ref=e256]: "20"
+                - generic [ref=e258]: Tidak ada
+              - button "21 Tidak ada" [ref=e260] [cursor=pointer]:
+                - generic [ref=e262]: "21"
+                - generic [ref=e264]: Tidak ada
+              - button "22 Tidak ada" [ref=e266] [cursor=pointer]:
+                - generic [ref=e268]: "22"
+                - generic [ref=e270]: Tidak ada
+              - button "23 Tidak ada" [ref=e272] [cursor=pointer]:
+                - generic [ref=e274]: "23"
+                - generic [ref=e276]: Tidak ada
+              - button "24 Tidak ada" [ref=e278] [cursor=pointer]:
+                - generic [ref=e280]: "24"
+                - generic [ref=e282]: Tidak ada
+              - button "25 Tidak ada" [ref=e284] [cursor=pointer]:
+                - generic [ref=e286]: "25"
+                - generic [ref=e288]: Tidak ada
+              - button "26 Tidak ada" [ref=e290] [cursor=pointer]:
+                - generic [ref=e292]: "26"
+                - generic [ref=e294]: Tidak ada
+              - button "27 Tidak ada" [ref=e296] [cursor=pointer]:
+                - generic [ref=e298]: "27"
+                - generic [ref=e300]: Tidak ada
+              - button "28 Tidak ada" [ref=e302] [cursor=pointer]:
+                - generic [ref=e304]: "28"
+                - generic [ref=e306]: Tidak ada
+              - button "29 Tidak ada" [ref=e308] [cursor=pointer]:
+                - generic [ref=e310]: "29"
+                - generic [ref=e312]: Tidak ada
+              - button "30 Tidak ada" [ref=e314] [cursor=pointer]:
+                - generic [ref=e316]: "30"
+                - generic [ref=e318]: Tidak ada
+              - button "31 Tidak ada" [ref=e320] [cursor=pointer]:
+                - generic [ref=e322]: "31"
+                - generic [ref=e324]: Tidak ada
+        - complementary [ref=e332]:
+          - generic [ref=e333]:
+            - generic [ref=e334]:
+              - heading "Appointment Tanggal Terpilih" [level=2] [ref=e335]
+              - paragraph [ref=e336]: 07 Mei 2026
+            - button "Add Appointment" [ref=e337] [cursor=pointer]:
+              - generic [ref=e338]: add
+          - 'button "10:00 - 11:00 sdfsd wajah glowing • Joko Invoice: Belum dibuat task_alt Completed Bayar" [ref=e341] [cursor=pointer]':
+            - generic [ref=e342]:
+              - generic [ref=e343]:
+                - generic [ref=e344]: 10:00 - 11:00
+                - generic [ref=e345]: sdfsd
+                - generic [ref=e346]: wajah glowing • Joko
+                - generic [ref=e347]: "Invoice: Belum dibuat"
+              - generic [ref=e348]:
+                - generic [ref=e349]:
+                  - generic [ref=e350]: task_alt
+                  - text: Completed
+                - button "Bayar" [ref=e351]
+  - generic [ref=e61]:
+    - generic [ref=e62]:
+      - generic [ref=e63]: fikri(admin)
+      - generic [ref=e64]: 07 May 2026
+      - generic [ref=e65]: Version 3.0
+    - generic [ref=e68]: System Connected

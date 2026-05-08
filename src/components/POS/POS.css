@@ -115,6 +115,29 @@
   overflow: hidden;
 }
 
+.pos-appointment-banner {
+  display: grid;
+  gap: 8px;
+  margin: 0 22px 14px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(13, 148, 136, 0.12);
+  border: 1px solid rgba(13, 148, 136, 0.2);
+}
+
+.pos-appointment-banner-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+  color: #0f172a;
+}
+
+.pos-appointment-banner-label {
+  color: #475569;
+  font-weight: 600;
+}
+
 /* ============================
    LEFT: RECEIPT PAPER (40%)
    ============================ */

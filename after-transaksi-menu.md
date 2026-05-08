@@ -1,0 +1,41 @@
+- main "POS Admin Menu Dashboard" [ref=e91]:
+  - generic [ref=e92]:
+    - generic [ref=e93]:
+      - strong [ref=e96]: POS Admin - fikrisoftware
+      - generic "window controls" [ref=e97]:
+        - button "Minimize" [ref=e98] [cursor=pointer]: "-"
+        - button "Close" [ref=e99] [cursor=pointer]: x
+    - generic [ref=e100]:
+      - button "Master" [ref=e101] [cursor=pointer]
+      - button "Transaksi" [active] [ref=e102] [cursor=pointer]
+      - button "Laporan" [ref=e103] [cursor=pointer]
+      - button "Setting" [ref=e104] [cursor=pointer]
+      - button "Help" [ref=e105] [cursor=pointer]
+    - generic [ref=e106]:
+      - button "L Logout" [ref=e107] [cursor=pointer]:
+        - generic [ref=e108]: L
+        - generic [ref=e109]: Logout
+      - button "J ▼ Penjualan" [ref=e158] [cursor=pointer]:
+        - generic [ref=e159]:
+          - text: J
+          - generic [ref=e160]: ▼
+        - generic [ref=e161]: Penjualan
+      - button "P ▼ Pembelian" [ref=e163] [cursor=pointer]:
+        - generic [ref=e164]:
+          - text: P
+          - generic [ref=e165]: ▼
+        - generic [ref=e166]: Pembelian
+      - button "I ▼ Inventory" [ref=e168] [cursor=pointer]:
+        - generic [ref=e169]:
+          - text: I
+          - generic [ref=e170]: ▼
+        - generic [ref=e171]: Inventory
+      - button "A Appointment" [ref=e172] [cursor=pointer]:
+        - generic [ref=e173]: A
+        - generic [ref=e174]: Appointment
+  - generic [ref=e149]:
+    - generic [ref=e150]:
+      - generic [ref=e151]: fikri(admin)
+      - generic [ref=e152]: 07 May 2026
+      - generic [ref=e153]: Version 3.0
+    - generic [ref=e156]: System Connected

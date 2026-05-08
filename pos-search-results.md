@@ -1,0 +1,120 @@
+- generic [ref=e352]:
+  - generic [ref=e354]:
+    - generic [ref=e355]:
+      - generic [ref=e356]: point_of_sale
+      - heading "Buka Cash Drawer" [level=3] [ref=e357]
+    - generic [ref=e358]:
+      - generic [ref=e359]:
+        - generic [ref=e360]: inventory_2
+        - generic [ref=e361]: dsfsdf
+      - generic [ref=e362]:
+        - generic [ref=e363]: "Opening Balance:"
+        - spinbutton [ref=e364]
+      - generic [ref=e365]:
+        - generic [ref=e366]: "Catatan:"
+        - textbox "Opsional" [ref=e367]
+    - generic [ref=e368]:
+      - button "Lewati" [ref=e369] [cursor=pointer]
+      - button "Buka Kasir" [ref=e370] [cursor=pointer]
+  - generic [ref=e371]:
+    - main [ref=e372]:
+      - generic [ref=e373]:
+        - generic [ref=e374]:
+          - heading "NOTA PENJUALAN" [level=2] [ref=e375]
+          - generic [ref=e376]:
+            - generic [ref=e377]: fikrisoftware
+            - generic [ref=e378]:
+              - generic [ref=e379]: INV/20231024/001
+              - strong [ref=e380]: FIKRI
+              - generic [ref=e381]: 07/05/2026 12:00
+        - generic [ref=e382]:
+          - generic [ref=e383]:
+            - generic [ref=e384]: Pasien Aktif
+            - strong [ref=e385]: sdfsd
+          - generic [ref=e386]:
+            - generic [ref=e387]: Sumber
+            - generic [ref=e388]: Appointment 523c0cf8-bff3-4a4c-8a50-9105b3d5e7d9
+          - generic [ref=e389]:
+            - generic [ref=e390]: Cash Drawer
+            - generic [ref=e391]: Closed
+          - generic [ref=e392]:
+            - generic [ref=e393]: Harga
+            - generic [ref=e394]: Terkunci dari master item
+        - generic [ref=e469] [cursor=pointer]:
+          - generic [ref=e470]: "1"
+          - generic [ref=e471]:
+            - generic [ref=e472]: wajah glowing
+            - generic [ref=e475]:
+              - generic [ref=e476]: 1 x Rp 300.000
+              - generic [ref=e477]: Rp 300.000
+        - generic [ref=e397]:
+          - generic [ref=e398]:
+            - generic [ref=e399]: Subtotal (1 Item)
+            - generic [ref=e400]: Rp 300.000
+          - generic [ref=e401]:
+            - generic [ref=e402]: Total Diskon
+            - generic [ref=e403]: "- Rp 0"
+          - generic [ref=e404]:
+            - generic [ref=e405]: PPN (11%)
+            - generic [ref=e406]: Rp 33.000
+          - generic [ref=e407]:
+            - generic [ref=e408]: Total
+            - generic [ref=e409]: Rp 333.000
+        - generic [ref=e410]:
+          - generic [ref=e411]:
+            - generic [ref=e412]: search
+            - textbox "Cari barang atau scan barcode..." [active] [ref=e413]
+            - generic [ref=e414]: qr_code_scanner
+          - button "payments BAYAR F10" [ref=e415] [cursor=pointer]:
+            - generic [ref=e416]: payments
+            - generic [ref=e417]: BAYAR
+            - generic [ref=e418]: F10
+    - generic [ref=e419]:
+      - generic [ref=e421]:
+        - generic [ref=e422]:
+          - generic [ref=e423]:
+            - strong [ref=e424]: PosXpress
+            - generic [ref=e425]: Online
+          - generic [ref=e427]: 12:00:23
+        - generic [ref=e428]:
+          - generic [ref=e429]: wajah glowing
+          - generic [ref=e480]:
+            - generic [ref=e481]: 1 x Rp 300.000
+            - generic [ref=e482]: Rp 300.000
+        - generic [ref=e430]:
+          - generic [ref=e431]:
+            - generic [ref=e432]: Total
+            - generic [ref=e433]: +PPN (11%)
+          - generic [ref=e435]: Rp 333.000
+      - generic [ref=e438]:
+        - text: PROMO HARI INI
+        - list [ref=e439]:
+          - listitem [ref=e440]: dfsdfsd, All Product, Diskon 10% (1/4/2026-1/4/2026)
+    - complementary [ref=e441]:
+      - button "pause_circle Pending F6" [ref=e442] [cursor=pointer]:
+        - generic [ref=e443]: pause_circle
+        - generic [ref=e444]: Pending
+        - generic [ref=e445]: F6
+      - button "print Cetak F7" [ref=e446] [cursor=pointer]:
+        - generic [ref=e447]: print
+        - generic [ref=e448]: Cetak
+        - generic [ref=e449]: F7
+      - button "account_balance_wallet Cash In F8" [ref=e450] [cursor=pointer]:
+        - generic [ref=e451]: account_balance_wallet
+        - generic [ref=e452]: Cash In
+        - generic [ref=e453]: F8
+      - button "account_balance_wallet Cash Out F9" [ref=e454] [cursor=pointer]:
+        - generic [ref=e455]: account_balance_wallet
+        - generic [ref=e456]: Cash Out
+        - generic [ref=e457]: F9
+      - button "settings Setting F11" [ref=e458] [cursor=pointer]:
+        - generic [ref=e459]: settings
+        - generic [ref=e460]: Setting
+        - generic [ref=e461]: F11
+      - button "help_outline Help F12" [ref=e462] [cursor=pointer]:
+        - generic [ref=e463]: help_outline
+        - generic [ref=e464]: Help
+        - generic [ref=e465]: F12
+      - button "power_settings_new Kembali" [ref=e466] [cursor=pointer]:
+        - generic [ref=e467]: power_settings_new
+        - generic [ref=e468]: Kembali

@@ -193,12 +193,12 @@ function AppContent() {
     }
   }
 
-  const handleLogout = () => {
+  const handleLogout = useCallback(() => {
     clearAuth()
     setView('login')
     setUserId('')
     setPassword('')
-  }
+  }, [clearAuth])
 
   const handleMenuChange = (menuKey) => {
     if (!activeTool) {
@@ -218,6 +218,13 @@ function AppContent() {
   }
 
   const handleToolClick = (toolKey, label, context = null) => {
+    if (toolKey === 'pos') {
+      setToolContext(context)
+      setView('pos')
+      setIsToolbarVisible(false)
+      return
+    }
+
     if (!IMPLEMENTED_TOOLS.has(toolKey)) {
       window.alert(`${label || toolKey} masih dalam pengembangan`)
       return
@@ -230,6 +237,25 @@ function AppContent() {
     setToolContext(null)
     setIsToolbarVisible(true)
   }
+
+  const handlePosExit = useCallback((nextContext = null) => {
+    if (toolContext?.returnTo === 'appointment') {
+      setView('dashboard')
+      setActiveMenu('transaksi')
+      setActiveTool('appointment')
+      setToolContext(nextContext)
+      setIsToolbarVisible(false)
+      return
+    }
+
+    if (auth.role === 'cashier') {
+      handleLogout()
+      return
+    }
+
+    setView('dashboard')
+    setToolContext(null)
+  }, [auth.role, handleLogout, toolContext])
 
   if (view === 'dashboard') {
     const dashboardWindowClassName = !isToolbarVisible
@@ -262,7 +288,7 @@ function AppContent() {
   }
 
   if (view === 'pos') {
-    return <POS />
+    return <POS posContext={toolContext} onExit={handlePosExit} />
   }
 
   return (

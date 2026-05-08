@@ -1,0 +1,53 @@
+- main "POS Admin Menu Dashboard" [ref=e91]:
+  - generic [ref=e92]:
+    - generic [ref=e93]:
+      - strong [ref=e96]: POS Admin - fikrisoftware
+      - generic "window controls" [ref=e97]:
+        - button "Minimize" [ref=e98] [cursor=pointer]: "-"
+        - button "Close" [ref=e99] [cursor=pointer]: x
+    - generic [ref=e100]:
+      - button "Master" [ref=e101] [cursor=pointer]
+      - button "Transaksi" [ref=e102] [cursor=pointer]
+      - button "Laporan" [ref=e103] [cursor=pointer]
+      - button "Setting" [ref=e104] [cursor=pointer]
+      - button "Help" [ref=e105] [cursor=pointer]
+    - generic [ref=e106]:
+      - button "L Logout" [ref=e107] [cursor=pointer]:
+        - generic [ref=e108]: L
+        - generic [ref=e109]: Logout
+      - button "W Warehouse" [ref=e111] [cursor=pointer]:
+        - generic [ref=e112]: W
+        - generic [ref=e113]: Warehouse
+      - button "U Unit" [ref=e114] [cursor=pointer]:
+        - generic [ref=e115]: U
+        - generic [ref=e116]: Unit
+      - button "K Kategori" [ref=e117] [cursor=pointer]:
+        - generic [ref=e118]: K
+        - generic [ref=e119]: Kategori
+      - button "P Product" [ref=e120] [cursor=pointer]:
+        - generic [ref=e121]: P
+        - generic [ref=e122]: Product
+      - button "C Pasien" [ref=e124] [cursor=pointer]:
+        - generic [ref=e125]: C
+        - generic [ref=e126]: Pasien
+      - button "S Supplier" [ref=e127] [cursor=pointer]:
+        - generic [ref=e128]: S
+        - generic [ref=e129]: Supplier
+      - button "D Dokter" [ref=e130] [cursor=pointer]:
+        - generic [ref=e131]: D
+        - generic [ref=e132]: Dokter
+      - button "J Jadwal Dokter" [ref=e133] [cursor=pointer]:
+        - generic [ref=e134]: J
+        - generic [ref=e135]: Jadwal Dokter
+      - button "P Paket" [ref=e137] [cursor=pointer]:
+        - generic [ref=e138]: P
+        - generic [ref=e139]: Paket
+      - button "T Treatment" [ref=e140] [cursor=pointer]:
+        - generic [ref=e141]: T
+        - generic [ref=e142]: Treatment
+  - generic [ref=e149]:
+    - generic [ref=e150]:
+      - generic [ref=e151]: fikri(admin)
+      - generic [ref=e152]: 07 May 2026
+      - generic [ref=e153]: Version 3.0
+    - generic [ref=e156]: System Connected

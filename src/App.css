@@ -990,6 +990,7 @@ body.has-wallpaper .cash-register {
 
 .master-table thead {
   background: var(--secondcolor-bg);
+  color:#fff;
 }
 
 .master-th-header {
@@ -2316,6 +2317,91 @@ body.has-wallpaper .cash-register {
   color: #64748b;
 }
 
+.appointment-calendar-invoice-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.appointment-calendar-detail-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.appointment-action-icon-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.appointment-pay-icon-btn {
+  width: 34px;
+  height: 34px;
+  border: 1px solid #99f6e4;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #0f766e, #14b8a6);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 10px 22px rgba(20, 184, 166, 0.14);
+}
+
+.appointment-pay-icon-btn .material-icons-round {
+  font-size: 18px;
+  color: inherit;
+}
+
+.appointment-pay-icon-btn:hover:not(:disabled) {
+  filter: brightness(1.05);
+}
+
+.appointment-pay-icon-btn:focus-visible {
+  outline: 2px solid #0f766e;
+  outline-offset: 2px;
+}
+
+.appointment-pay-icon-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+  box-shadow: none;
+  background: linear-gradient(135deg, #cbd5e1, #94a3b8);
+  border-color: #cbd5e1;
+}
+
+.appointment-print-icon-btn {
+  border-color: #bfdbfe;
+  background: linear-gradient(135deg, #2563eb, #3b82f6);
+  box-shadow: 0 10px 22px rgba(59, 130, 246, 0.14);
+}
+
+.appointment-receipt-preview-modal {
+  width: min(960px, calc(100vw - 32px));
+  max-height: calc(100vh - 48px);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 24px 64px rgba(15, 23, 42, 0.18);
+}
+
+.appointment-receipt-preview-body {
+  padding: 16px 18px;
+  overflow: auto;
+}
+
+.appointment-receipt-preview-wrap {
+  display: flex;
+  justify-content: center;
+  padding: 6px 0;
+  min-height: 240px;
+}
+
 .appointment-calendar-status-badge {
   color: #fff;
   border-radius: 999px;
@@ -2937,6 +3023,236 @@ body.has-wallpaper .cash-register {
   place-items: center;
   z-index: 1000;
   backdrop-filter: blur(2px);
+}
+
+.patient-history-cell {
+  text-align: center;
+}
+
+.patient-history-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 62px;
+  padding: 6px 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 999px;
+  background: #f8fafc;
+  color: #0f766e;
+  cursor: pointer;
+  transition: all 150ms ease;
+  box-shadow: inset 0 0 0 1px rgba(15, 118, 110, 0.05);
+}
+
+.patient-history-btn:hover {
+  background: linear-gradient(135deg, #ccfbf1 0%, #ecfeff 100%);
+  border-color: #0f766e;
+  color: #115e59;
+}
+
+.patient-history-btn.is-empty {
+  color: #64748b;
+  background: #f8fafc;
+}
+
+.patient-history-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+  border-color: #cbd5e1;
+  background: #f8fafc;
+  box-shadow: none;
+}
+
+.patient-history-btn:disabled:hover {
+  background: #f8fafc;
+  color: #64748b;
+  border-color: #cbd5e1;
+}
+
+.patient-history-btn:focus-visible {
+  outline: 2px solid #0ea5e9;
+  outline-offset: 2px;
+}
+
+.patient-history-btn-icon {
+  font-size: 18px;
+  color: #0b5d56;
+  background: #99f6e4;
+  border-radius: 999px;
+  padding: 3px;
+  box-shadow: inset 0 0 0 1px rgba(15, 118, 110, 0.2);
+}
+
+.patient-history-btn-count {
+  font-size: 0.8rem;
+  font-weight: 700;
+  line-height: 1;
+  color: #0f172a;
+}
+
+.patient-history-modal {
+  width: min(92vw, 1080px);
+  max-height: 86vh;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.24);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  animation: modal-pop 200ms ease-out;
+}
+
+.patient-history-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 20px;
+  background: linear-gradient(135deg, #0f766e 0%, #14b8a6 100%);
+  color: #fff;
+}
+
+.patient-history-modal-title-wrap {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.patient-history-modal-icon {
+  font-size: 24px;
+}
+
+.patient-history-modal-title {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.patient-history-modal-subtitle {
+  margin: 4px 0 0;
+  font-size: 0.88rem;
+  opacity: 0.92;
+}
+
+.patient-history-modal-close {
+  width: 38px;
+  height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  cursor: pointer;
+}
+
+.patient-history-modal-close:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.patient-history-modal-filters {
+  display: flex;
+  align-items: end;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 16px 20px;
+  border-bottom: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+
+.patient-history-search-wrap {
+  min-width: min(100%, 320px);
+  margin-left: auto;
+}
+
+.patient-history-modal-error {
+  margin: 16px 20px 0;
+}
+
+.patient-history-modal-body {
+  padding: 16px 20px;
+  overflow: auto;
+}
+
+.patient-history-table-container {
+  max-height: 48vh;
+  overflow: auto;
+  border: 1px solid #dbe4ee;
+  border-radius: 10px;
+}
+
+.patient-history-table tbody td {
+  vertical-align: middle;
+}
+
+.patient-history-modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 20px;
+  border-top: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+
+.patient-history-modal-footer-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.patient-history-modal-total {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: #334155;
+}
+
+.patient-history-modal-page-info {
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
+.patient-history-modal-footer-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.patient-history-pagination-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #fff;
+  color: #0f172a;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 150ms ease;
+}
+
+.patient-history-pagination-btn:hover {
+  background: #ecfeff;
+  border-color: #14b8a6;
+  color: #0f766e;
+}
+
+.patient-history-pagination-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+  background: #f8fafc;
+  color: #94a3b8;
+}
+
+.patient-history-pagination-btn .material-icons-round {
+  font-size: 18px;
 }
 
 .delete-master-modal {
@@ -5191,9 +5507,57 @@ body.has-wallpaper .cash-register {
   flex-wrap: nowrap;
 }
 
+.appointment-invoice-note {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.72rem;
+  color: #64748b;
+}
+
+.appointment-invoice-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  /* min-width: 88px; */
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.appointment-invoice-pill-icon {
+  color: currentColor !important;
+  font-size: 15px;
+}
+
+.appointment-invoice-pill.is-done {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.appointment-invoice-pill.is-draft {
+  background: #e5e7eb;
+  color: #4b5563;
+}
+
+.appointment-invoice-pill.is-none {
+  background: #ffedd5;
+  color: #c2410c;
+}
+
 .purchase-status-pill.is-draft {
   background-color: #ffedd5;
   color: #b45309;
+}
+
+.purchase-status-pill.is-draft .purchase-status-icon {
+  color: inherit;
 }
 
 .purchase-status-pill.is-approve,

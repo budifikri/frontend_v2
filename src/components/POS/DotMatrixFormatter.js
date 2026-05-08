@@ -467,7 +467,7 @@ function buildDotMatrixPrintModel(sale, settings, helpers) {
     const itemDiscount = originalSubtotal - subtotal
     return {
       index: idx + 1,
-      name: item.product_name || item.name || '-',
+      name: item.item_name || item.product_name || item.name || '-',
       quantity,
       unitPrice,
       originalPrice,

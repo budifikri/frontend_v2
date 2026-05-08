@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 
 const ITEM_COLUMNS = [
   { key: 'no', label: 'NO', width: '50px' },
-  { key: 'product_name', label: 'PRODUK' },
+  { key: 'item_name', label: 'ITEM' },
   { key: 'quantity', label: 'QTY', width: '80px' },
   { key: 'unit', label: 'SATUAN', width: '90px' },
   { key: 'price', label: 'HARGA', width: '140px' },
@@ -137,7 +137,7 @@ export function PenjualanDetailModal({
                     items.map((item, index) => (
                       <tr key={item.id || index} className={index % 2 === 0 ? 'row-even' : 'row-odd'}>
                         <td>{index + 1}</td>
-                        <td>{item.product_name || item.product_id || '-'}</td>
+                        <td>{item.item_name || item.product_name || item.product_id || item.treatment_id || '-'}</td>
                         <td className="text-right">{item.quantity || 0}</td>
                         <td>{item.unit_name || item.unit || '-'}</td>
                         <td className="text-right">{formatCurrency(item.original_price ?? item.price ?? item.unit_price)}</td>

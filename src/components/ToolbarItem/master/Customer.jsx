@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState, useRef } from 'react'
 import { useAuth } from '../../../shared/auth'
 import { useModule } from '../../../shared/useModule'
 import { createCustomer, deleteCustomer, listCustomers, updateCustomer } from '../../../features/master/customer/customer.api'
+import { listAppointments } from '../../../features/transaksi/appointment/appointment.api'
 import { getCurrentCompany } from '../../../features/master/company/company.api'
 import { openReportPrintWindow } from '../../../utils/reportPrint'
 import { FooterMaster } from '../footer/FooterMaster'
@@ -27,6 +28,7 @@ function getTableColumns(isClinic) {
       { key: 'phone', label: 'PHONE' },
       { key: 'tier', label: 'TIER' },
       { key: 'allergies', label: 'ALERGI' },
+      { key: 'history', label: 'HISTORY', sortable: false },
       { key: 'is_active', label: 'STATUS' },
     ]
   }
@@ -152,9 +154,127 @@ const DUMMY_CUSTOMERS = [
   },
 ]
 
+const DUMMY_APPOINTMENTS_BY_PATIENT = {
+  CUS001: [
+    {
+      id: 'APT001',
+      patient_id: 'CUS001',
+      patient_name: 'Andi Wijaya',
+      treatment_name: 'Facial',
+      therapist_name: 'Dr. Ani',
+      booking_date: '2026-05-05',
+      start_time: '10:00',
+      end_time: '11:00',
+      status: 'completed',
+      notes: 'Kontrol rutin',
+    },
+    {
+      id: 'APT002',
+      patient_id: 'CUS001',
+      patient_name: 'Andi Wijaya',
+      treatment_name: 'Massage',
+      therapist_name: 'Dr. Budi',
+      booking_date: '2026-05-03',
+      start_time: '14:00',
+      end_time: '15:00',
+      status: 'scheduled',
+      notes: '',
+    },
+  ],
+  CUS002: [
+    {
+      id: 'APT003',
+      patient_id: 'CUS002',
+      patient_name: 'Budi Santoso',
+      treatment_name: 'Consultation',
+      therapist_name: 'Dr. Sari',
+      booking_date: '2026-04-28',
+      start_time: '09:00',
+      end_time: '09:30',
+      status: 'confirmed',
+      notes: 'Evaluasi lanjutan',
+    },
+  ],
+  CUS003: [],
+}
+
+const HISTORY_PAGE_SIZE = 5
+
 function isActiveCustomer(item) {
   if (typeof item?.is_active === 'boolean') return item.is_active
   return String(item?.status ?? 'active').toLowerCase() !== 'inactive'
+}
+
+function formatDate(value) {
+  if (!value) return '-'
+  return new Date(`${String(value).slice(0, 10)}T00:00:00`).toLocaleDateString('id-ID', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  })
+}
+
+function formatTime(time) {
+  if (!time) return ''
+  const str = String(time)
+  if (str.includes('T')) return str.slice(11, 16)
+  return str.slice(0, 5)
+}
+
+function getDateRange(filterType) {
+  if (filterType === 'all') return { date_from: '', date_to: '' }
+
+  const now = new Date()
+  const formatDateISO = (date) => {
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  }
+
+  if (filterType === 'today') {
+    const today = formatDateISO(now)
+    return { date_from: today, date_to: today }
+  }
+
+  if (filterType === 'this_year') {
+    return {
+      date_from: formatDateISO(new Date(now.getFullYear(), 0, 1)),
+      date_to: formatDateISO(new Date(now.getFullYear(), 11, 31)),
+    }
+  }
+
+  return {
+    date_from: formatDateISO(new Date(now.getFullYear(), now.getMonth(), 1)),
+    date_to: formatDateISO(new Date(now.getFullYear(), now.getMonth() + 1, 0)),
+  }
+}
+
+function getAppointmentStatusMeta(status) {
+  const value = String(status || '').toLowerCase()
+  if (value === 'confirmed') return { label: 'Confirmed', variant: 'approve', icon: 'check_circle' }
+  if (value === 'completed') return { label: 'Completed', variant: 'receive', icon: 'task_alt' }
+  if (value === 'cancelled') return { label: 'Cancelled', variant: 'void', icon: 'cancel' }
+  return { label: 'Scheduled', variant: 'pending', icon: 'schedule' }
+}
+
+function normalizeAppointment(item = {}) {
+  return {
+    ...item,
+    treatment_name: item.treatment_name || item.treatment?.name || '-',
+    therapist_name: item.therapist_name || item.therapist?.nama || '-',
+    booking_date: String(item.booking_date || '').slice(0, 10),
+    start_time: formatTime(item.start_time),
+    end_time: formatTime(item.end_time),
+  }
+}
+
+function matchAppointmentKeyword(item, keyword) {
+  const normalizedKeyword = String(keyword || '').trim().toLowerCase()
+  if (!normalizedKeyword) return true
+
+  return [item.treatment_name, item.therapist_name, item.notes]
+    .some((value) => String(value || '').toLowerCase().includes(normalizedKeyword))
 }
 
 export function Customer({ onExit, toolContext = null }) {
@@ -189,7 +309,105 @@ export function Customer({ onExit, toolContext = null }) {
   const [showToast, setShowToast] = useState(false)
   const [toastMessage, setToastMessage] = useState('')
   const [togglingId, setTogglingId] = useState(null)
+  const [showHistoryModal, setShowHistoryModal] = useState(false)
+  const [historyPatient, setHistoryPatient] = useState(null)
+  const [historyData, setHistoryData] = useState([])
+  const [historyPagination, setHistoryPagination] = useState({ total: 0, has_more: false })
+  const [historyLoading, setHistoryLoading] = useState(false)
+  const [historyError, setHistoryError] = useState('')
+  const [historyPage, setHistoryPage] = useState(1)
+  const [historyFilter, setHistoryFilter] = useState({
+    dateRange: 'this_month',
+    status: '',
+    keyword: '',
+  })
   const tableRef = useRef(null)
+
+  const enrichCustomersWithAppointmentCount = useCallback(async (items) => {
+    if (!isClinic) return items
+
+    if (!token) {
+      return items.map((item) => ({
+        ...item,
+        appointment_count: (DUMMY_APPOINTMENTS_BY_PATIENT[item.id] || []).length,
+      }))
+    }
+
+    const counts = await Promise.all(items.map(async (item) => {
+      try {
+        const result = await listAppointments(token, {
+          patient_id: item.id,
+          limit: 1,
+          offset: 0,
+        })
+
+        return [item.id, Number(result.pagination?.total ?? 0)]
+      } catch {
+        return [item.id, 0]
+      }
+    }))
+
+    const countMap = new Map(counts)
+    return items.map((item) => ({
+      ...item,
+      appointment_count: countMap.get(item.id) ?? 0,
+    }))
+  }, [isClinic, token])
+
+  const fetchHistoryData = useCallback(async (patient, filter = historyFilter) => {
+    if (!patient?.id) return
+
+    setHistoryLoading(true)
+    setHistoryError('')
+
+    if (!token) {
+      const { date_from, date_to } = getDateRange(filter.dateRange)
+      const filtered = (DUMMY_APPOINTMENTS_BY_PATIENT[patient.id] || [])
+        .map((item) => normalizeAppointment(item))
+        .filter((item) => {
+          if (filter.status && item.status !== filter.status) return false
+          if (date_from && item.booking_date < date_from) return false
+          if (date_to && item.booking_date > date_to) return false
+          return matchAppointmentKeyword(item, filter.keyword)
+        })
+
+      setHistoryData(filtered)
+      setHistoryPagination({ total: filtered.length, has_more: false })
+      setHistoryPage(1)
+      setHistoryLoading(false)
+      return
+    }
+
+    try {
+      const { date_from, date_to } = getDateRange(filter.dateRange)
+      const result = await listAppointments(token, {
+        patient_id: patient.id,
+        date_from: date_from || undefined,
+        date_to: date_to || undefined,
+        status: filter.status || undefined,
+        limit: 100,
+        offset: 0,
+      })
+
+      const items = (result.items || [])
+        .map((item) => normalizeAppointment(item))
+        .filter((item) => matchAppointmentKeyword(item, filter.keyword))
+
+      setHistoryData(items)
+      setHistoryPagination({
+        total: Number(result.pagination?.total ?? items.length),
+        has_more: Boolean(result.pagination?.has_more),
+      })
+      setHistoryPage(1)
+    } catch (err) {
+      setHistoryError(err.message || 'Failed to load appointment history')
+      setHistoryData([])
+      setHistoryPagination({ total: 0, has_more: false })
+      setHistoryPage(1)
+    } finally {
+      setHistoryLoading(false)
+    }
+  }, [historyFilter, token])
 
   const fetchData = useCallback(async () => {
     setError('')
@@ -214,7 +432,7 @@ export function Customer({ onExit, toolContext = null }) {
         )
       })
 
-      const rows = filtered.slice(offset, offset + limit)
+      const rows = await enrichCustomersWithAppointmentCount(filtered.slice(offset, offset + limit))
       setData(rows)
       setPagination({
         total: filtered.length,
@@ -234,7 +452,8 @@ export function Customer({ onExit, toolContext = null }) {
         offset,
       })
 
-      setData(result.items || [])
+      const enrichedItems = await enrichCustomersWithAppointmentCount(result.items || [])
+      setData(enrichedItems)
       const nextPagination = result.pagination || {}
       setPagination({
         total: Number(nextPagination.total ?? 0),
@@ -247,7 +466,7 @@ export function Customer({ onExit, toolContext = null }) {
     } finally {
       setIsLoading(false)
     }
-  }, [token, searchKeyword, tierFilter, isActiveFilter, limit, offset])
+  }, [token, searchKeyword, tierFilter, isActiveFilter, limit, offset, enrichCustomersWithAppointmentCount])
 
   const selectedItem = selectedId == null ? null : data.find((row) => row.id === selectedId) || null
   const { sortConfig, sortedData, handleSort } = useMasterTableSort(data, {
@@ -421,6 +640,35 @@ export function Customer({ onExit, toolContext = null }) {
   function handleSelect(row) {
     setSelectedId(row.id)
   }
+
+  function handleOpenHistory(row) {
+    if ((row.appointment_count || 0) === 0) return
+    setHistoryPatient(row)
+    setHistoryPage(1)
+    setHistoryFilter({ dateRange: 'this_month', status: '', keyword: '' })
+    setShowHistoryModal(true)
+    fetchHistoryData(row, { dateRange: 'this_month', status: '', keyword: '' })
+  }
+
+  function handleCloseHistory() {
+    setShowHistoryModal(false)
+    setHistoryPatient(null)
+    setHistoryData([])
+    setHistoryError('')
+    setHistoryPagination({ total: 0, has_more: false })
+    setHistoryPage(1)
+  }
+
+  function handleHistoryFilterChange(key, value) {
+    const nextFilter = { ...historyFilter, [key]: value }
+    setHistoryFilter(nextFilter)
+    if (historyPatient?.id) fetchHistoryData(historyPatient, nextFilter)
+  }
+
+  const historyTotalPages = Math.max(1, Math.ceil(historyData.length / HISTORY_PAGE_SIZE))
+  const safeHistoryPage = Math.min(historyPage, historyTotalPages)
+  const historyPageStart = (safeHistoryPage - 1) * HISTORY_PAGE_SIZE
+  const pagedHistoryData = historyData.slice(historyPageStart, historyPageStart + HISTORY_PAGE_SIZE)
 
   function handleNew() {
     setSelectedId(null)
@@ -748,6 +996,23 @@ export function Customer({ onExit, toolContext = null }) {
                   <td>{row.phone || '-'}</td>
                   <td>{row.tier || '-'}</td>
                   {isClinic && <td>{row.allergies || '-'}</td>}
+                  {isClinic && (
+                    <td className="patient-history-cell">
+                      <button
+                        type="button"
+                        className={`patient-history-btn ${(row.appointment_count || 0) === 0 ? 'is-empty' : ''}`}
+                        disabled={(row.appointment_count || 0) === 0}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleOpenHistory(row)
+                        }}
+                        title={(row.appointment_count || 0) === 0 ? 'Belum ada appointment' : `Lihat history appointment ${row.name || ''}`}
+                      >
+                        <span className="material-icons-round patient-history-btn-icon">history</span>
+                        <span className="patient-history-btn-count">{row.appointment_count || 0}</span>
+                      </button>
+                    </td>
+                  )}
                   <td>
                     <MasterStatusToggle
                       active={isActiveCustomer(row)}
@@ -762,7 +1027,7 @@ export function Customer({ onExit, toolContext = null }) {
               ))}
               {!isLoading && sortedData.length === 0 && (
                 <tr>
-                  <td colSpan={isClinic ? 9 : 8} className="text-center">No data</td>
+                  <td colSpan={isClinic ? 10 : 8} className="text-center">No data</td>
                 </tr>
               )}
             </tbody>
@@ -866,6 +1131,150 @@ export function Customer({ onExit, toolContext = null }) {
               canNext={currentEditIndex !== null && sortedData.length > 1 && currentEditIndex < sortedData.length - 1}
               canPrev={currentEditIndex !== null && sortedData.length > 1 && currentEditIndex > 0}
             />
+          </div>
+        </div>
+      )}
+
+      {showHistoryModal && (
+        <div className="delete-master-overlay" onClick={handleCloseHistory}>
+          <div className="patient-history-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="patient-history-modal-header">
+              <div className="patient-history-modal-title-wrap">
+                <span className="material-icons-round patient-history-modal-icon">history</span>
+                <div>
+                  <h2 className="patient-history-modal-title">History Appointment</h2>
+                  <p className="patient-history-modal-subtitle">{historyPatient?.name || '-'} • {historyPatient?.no_rm || 'No RM belum ada'}</p>
+                </div>
+              </div>
+              <button type="button" className="patient-history-modal-close" onClick={handleCloseHistory} aria-label="Tutup history appointment">
+                <span className="material-icons-round">close</span>
+              </button>
+            </div>
+
+            <div className="patient-history-modal-filters">
+              <div className="master-filter-wrap">
+                <label htmlFor="patient-history-date-filter" className="master-filter-label">Tanggal</label>
+                <select
+                  id="patient-history-date-filter"
+                  className="master-filter-select"
+                  value={historyFilter.dateRange}
+                  onChange={(e) => handleHistoryFilterChange('dateRange', e.target.value)}
+                >
+                  <option value="today">Hari Ini</option>
+                  <option value="this_month">Bulan Ini</option>
+                  <option value="this_year">Tahun Ini</option>
+                  <option value="all">Semua</option>
+                </select>
+              </div>
+              <div className="master-filter-wrap">
+                <label htmlFor="patient-history-status-filter" className="master-filter-label">Status</label>
+                <select
+                  id="patient-history-status-filter"
+                  className="master-filter-select"
+                  value={historyFilter.status}
+                  onChange={(e) => handleHistoryFilterChange('status', e.target.value)}
+                >
+                  <option value="">All Status</option>
+                  <option value="scheduled">Scheduled</option>
+                  <option value="confirmed">Confirmed</option>
+                  <option value="completed">Completed</option>
+                  <option value="cancelled">Cancelled</option>
+                </select>
+              </div>
+              <div className="master-footer-search patient-history-search-wrap">
+                <input
+                  type="text"
+                  placeholder="Cari treatment / therapist / catatan"
+                  className="master-search-input"
+                  value={historyFilter.keyword}
+                  onChange={(e) => handleHistoryFilterChange('keyword', e.target.value)}
+                />
+                <button type="button" className="master-search-btn" tabIndex={-1}>
+                  <span className="material-icons-round material-icon">search</span>
+                </button>
+              </div>
+            </div>
+
+            {historyError && <div className="master-error patient-history-modal-error">{historyError}</div>}
+
+            <div className="patient-history-modal-body">
+              <div className="master-table-container patient-history-table-container">
+                <table className="master-table patient-history-table">
+                  <thead>
+                    <tr>
+                      <th>NO</th>
+                      <th>TANGGAL</th>
+                      <th>WAKTU</th>
+                      <th>TREATMENT</th>
+                      <th>THERAPIST</th>
+                      <th>STATUS</th>
+                      <th>CATATAN</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {historyLoading ? (
+                      <tr>
+                        <td colSpan={7} className="text-center">Loading history...</td>
+                      </tr>
+                    ) : historyData.length === 0 ? (
+                      <tr>
+                        <td colSpan={7} className="text-center">Belum ada appointment untuk pasien ini</td>
+                      </tr>
+                    ) : pagedHistoryData.map((item, index) => {
+                      const statusMeta = getAppointmentStatusMeta(item.status)
+                      return (
+                        <tr key={item.id || `${item.booking_date}-${index}`} className="master-row">
+                          <td>{historyPageStart + index + 1}</td>
+                          <td>{formatDate(item.booking_date)}</td>
+                          <td>{`${item.start_time || '-'}${item.end_time ? ` - ${item.end_time}` : ''}`}</td>
+                          <td>{item.treatment_name || '-'}</td>
+                          <td>{item.therapist_name || '-'}</td>
+                          <td>
+                            <div className="purchase-status-stack">
+                              <span className={`purchase-status-pill is-${statusMeta.variant}`}>
+                                <span className="material-icons-round purchase-status-icon">{statusMeta.icon}</span>
+                                {statusMeta.label}
+                              </span>
+                            </div>
+                          </td>
+                          <td>{item.notes || '-'}</td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div className="patient-history-modal-footer">
+              <div className="patient-history-modal-footer-left">
+                <span className="patient-history-modal-total">Total Appointment: {historyPagination.total}</span>
+                {historyData.length > 0 && (
+                  <span className="patient-history-modal-page-info">Halaman {safeHistoryPage} / {historyTotalPages}</span>
+                )}
+              </div>
+              <div className="patient-history-modal-footer-actions">
+                <button
+                  type="button"
+                  className="patient-history-pagination-btn"
+                  onClick={() => setHistoryPage((prev) => Math.max(1, prev - 1))}
+                  disabled={safeHistoryPage <= 1 || historyLoading || historyData.length === 0}
+                >
+                  <span className="material-icons-round">chevron_left</span>
+                  Prev
+                </button>
+                <button
+                  type="button"
+                  className="patient-history-pagination-btn"
+                  onClick={() => setHistoryPage((prev) => Math.min(historyTotalPages, prev + 1))}
+                  disabled={safeHistoryPage >= historyTotalPages || historyLoading || historyData.length === 0}
+                >
+                  Next
+                  <span className="material-icons-round">chevron_right</span>
+                </button>
+                <button type="button" className="master-btn-cancel-secondary" onClick={handleCloseHistory}>Tutup</button>
+              </div>
+            </div>
           </div>
         </div>
       )}

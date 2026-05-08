@@ -343,7 +343,7 @@ function buildItemRows(sale) {
     const tierLabel = item.notes || ''
     return {
       index: index + 1,
-      name: item.product_name || item.name || '-',
+      name: item.item_name || item.product_name || item.name || '-',
       quantity,
       unitPrice,
       originalPrice,
@@ -423,7 +423,11 @@ export function buildReceiptTemplateModel(sale, settings, options = {}) {
     change: sale.change_amount || 0,
   }
 
-  const summary = itemRows.length > 0
+  const hasStoredSummary = ['subtotal', 'tax_amount', 'total_amount'].every((key) => Object.prototype.hasOwnProperty.call(sale || {}, key))
+
+  const summary = hasStoredSummary
+    ? baseSummary
+    : itemRows.length > 0
     ? computeSummaryFromItems(itemRows, baseSummary, showPpn ? ppnPercentage : 0)
     : baseSummary
 

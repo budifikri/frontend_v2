@@ -1,0 +1,121 @@
+- main "POS Admin Menu Dashboard" [ref=e91]:
+  - generic [ref=e92]:
+    - generic [ref=e93]:
+      - strong [ref=e96]: POS Admin - fikrisoftware
+      - generic "window controls" [ref=e97]:
+        - button "Minimize" [ref=e98] [cursor=pointer]: "-"
+        - button "Close" [ref=e99] [cursor=pointer]: x
+    - generic [ref=e100]:
+      - button "Master" [ref=e101] [cursor=pointer]
+      - button "Transaksi" [ref=e102] [cursor=pointer]
+      - button "Laporan" [ref=e103] [cursor=pointer]
+      - button "Setting" [ref=e104] [cursor=pointer]
+      - button "Help" [ref=e105] [cursor=pointer]
+    - generic [ref=e175]:
+      - generic [ref=e176]:
+        - heading "Appointment" [level=1] [ref=e178]
+        - generic [ref=e179]:
+          - generic [ref=e180]:
+            - textbox "Search keyword..." [ref=e181]
+            - button "search" [ref=e182] [cursor=pointer]:
+              - generic [ref=e183]: search
+          - generic [ref=e185]:
+            - text: Date
+            - combobox "Date" [ref=e186]:
+              - option "Today" [selected]
+              - option "This Month"
+              - option "This Year"
+              - option "Custom"
+          - generic [ref=e187]:
+            - generic [ref=e188]: Status
+            - combobox "Status" [ref=e189]:
+              - option "All Status" [selected]
+              - option "Scheduled"
+              - option "Confirmed"
+              - option "Completed"
+              - option "Cancelled"
+          - generic "Appointment view mode" [ref=e190]:
+            - button "view_list" [pressed] [ref=e191] [cursor=pointer]:
+              - generic [ref=e192]: view_list
+            - button "calendar_month" [ref=e193] [cursor=pointer]:
+              - generic [ref=e194]: calendar_month
+      - table [ref=e428]:
+        - rowgroup [ref=e429]:
+          - row "NO TANGGAL expand_less PASIEN unfold_more TREATMENT unfold_more THERAPIST unfold_more WAKTU unfold_more STATUS unfold_more INVOICE" [ref=e430]:
+            - columnheader "NO" [ref=e431]:
+              - generic [ref=e432]: "NO"
+            - columnheader "TANGGAL expand_less" [ref=e433] [cursor=pointer]:
+              - generic [ref=e434]:
+                - text: TANGGAL
+                - generic [ref=e435]: expand_less
+            - columnheader "PASIEN unfold_more" [ref=e436] [cursor=pointer]:
+              - generic [ref=e437]:
+                - text: PASIEN
+                - generic [ref=e438]: unfold_more
+            - columnheader "TREATMENT unfold_more" [ref=e439] [cursor=pointer]:
+              - generic [ref=e440]:
+                - text: TREATMENT
+                - generic [ref=e441]: unfold_more
+            - columnheader "THERAPIST unfold_more" [ref=e442] [cursor=pointer]:
+              - generic [ref=e443]:
+                - text: THERAPIST
+                - generic [ref=e444]: unfold_more
+            - columnheader "WAKTU unfold_more" [ref=e445] [cursor=pointer]:
+              - generic [ref=e446]:
+                - text: WAKTU
+                - generic [ref=e447]: unfold_more
+            - columnheader "STATUS unfold_more" [ref=e448] [cursor=pointer]:
+              - generic [ref=e449]:
+                - text: STATUS
+                - generic [ref=e450]: unfold_more
+            - columnheader "INVOICE" [ref=e451]:
+              - generic [ref=e452]: INVOICE
+        - rowgroup [ref=e453]:
+          - row "1 2026-05-07 sdfsd wajah glowing Joko 10:00 - 11:00 task_alt Completed pending_actions Belum dibuat" [ref=e484] [cursor=pointer]:
+            - cell "1" [ref=e485]
+            - cell "2026-05-07" [ref=e486]
+            - cell "sdfsd" [ref=e487]
+            - cell "wajah glowing" [ref=e488]
+            - cell "Joko" [ref=e489]
+            - cell "10:00 - 11:00" [ref=e490]
+            - cell "task_alt Completed" [ref=e491]:
+              - generic [ref=e493]:
+                - generic [ref=e494]: task_alt
+                - text: Completed
+            - cell "pending_actions Belum dibuat" [ref=e495]:
+              - generic [ref=e497]:
+                - generic [ref=e498]: pending_actions
+                - text: Belum dibuat
+      - generic [ref=e456]:
+        - generic [ref=e457]:
+          - button "New" [ref=e458] [cursor=pointer]:
+            - generic [ref=e459]: add_box
+            - generic [ref=e460]: +
+          - button "Edit" [ref=e461] [cursor=pointer]:
+            - generic [ref=e462]: edit
+            - generic [ref=e463]: F2
+          - button "Delete" [ref=e464] [cursor=pointer]:
+            - generic [ref=e465]: remove_circle
+            - generic [ref=e466]: DEL
+          - button "Print" [ref=e467] [cursor=pointer]:
+            - generic [ref=e468]: print
+          - button "Refresh" [ref=e469] [cursor=pointer]:
+            - generic [ref=e470]: refresh
+          - button "Exit" [ref=e471] [cursor=pointer]:
+            - generic [ref=e472]: exit_to_app
+        - generic [ref=e474]:
+          - button "first_page" [disabled] [ref=e475] [cursor=pointer]:
+            - generic [ref=e476]: first_page
+          - button "chevron_left" [disabled] [ref=e477] [cursor=pointer]:
+            - generic [ref=e478]: chevron_left
+          - generic [ref=e479]: Page 1 of 1
+          - button "chevron_right" [disabled] [ref=e480] [cursor=pointer]:
+            - generic [ref=e481]: chevron_right
+          - button "last_page" [disabled] [ref=e482] [cursor=pointer]:
+            - generic [ref=e483]: last_page
+  - generic [ref=e149]:
+    - generic [ref=e150]:
+      - generic [ref=e151]: fikri(admin)
+      - generic [ref=e152]: 07 May 2026
+      - generic [ref=e153]: Version 3.0
+    - generic [ref=e156]: System Connected

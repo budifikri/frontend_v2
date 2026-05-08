@@ -1,12 +1,14 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useAuth } from '../../shared/auth'
 import { listProducts } from '../../features/master/product/product.api'
+import { listTreatments } from '../../features/master/treatment/treatment.api'
 import { getPriceTier } from '../../features/master/price-tier/priceTier.api'
 import { listPromotions } from '../../features/master/promotion/promotion.api'
 import { getCurrentCompany, listCompanies } from '../../features/master/company/company.api'
 import { listWarehouses } from '../../features/master/warehouse/warehouse.api'
 import { openCashDrawer, getCurrentCashDrawer, getCashDrawerSummary, closeCashDrawer, cashInDrawer, cashOutDrawer } from '../../features/transaksi/cash-drawer/cashDrawer.api'
 import { createSale, listSales, getSaleById } from '../../features/transaksi/sales/sales.api'
+import { updateAppointment } from '../../features/transaksi/appointment/appointment.api'
 import { DEFAULT_RECEIPT_SETTINGS, RECEIPT_FONTS, BAUD_RATE_OPTIONS, DOT_MATRIX_CONNECTION_OPTIONS, loadReceiptSettings, resetReceiptSettings, saveReceiptSettings } from '../../features/setting/receiptSetting.storage'
 import { getReceiptLayoutOptions, getReceiptPaperClass, renderReceiptContent, getDefaultCustomTemplate, normalizeReceiptDraftForPrinter, RECEIPT_TEMPLATE_TOKENS } from './ReceiptLayouts'
 import { ReceiptPreview } from './ReceiptPreview'
@@ -16,8 +18,115 @@ import { DOT_MATRIX_TOKEN_LIST, renderDotMatrixReceipt, renderDotMatrixPlainText
 import { createTemplatePayload, validateTemplatePayload, extractTemplateFromPayload, readTemplateFile, saveTemplateNative } from '../../features/setting/receiptTemplateFile'
 import './POS.css'
 
-export function POS() {
+const APPOINTMENT_DRAFT_PREFIX = 'pos_appointment_draft_'
+const APPOINTMENT_DRAFT_LIMIT = 20
+const APPOINTMENT_DRAFT_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000
+
+function getAppointmentDraftKey(appointmentId) {
+  return `${APPOINTMENT_DRAFT_PREFIX}${appointmentId}`
+}
+
+function safeReadDraftKeys() {
+  if (typeof window === 'undefined' || !window.localStorage) return []
+  return Object.keys(window.localStorage).filter((key) => key.startsWith(APPOINTMENT_DRAFT_PREFIX))
+}
+
+function cleanupAppointmentDraftStorage() {
+  if (typeof window === 'undefined' || !window.localStorage) return
+
+  const now = Date.now()
+  const draftEntries = safeReadDraftKeys().map((key) => {
+    try {
+      const parsed = JSON.parse(window.localStorage.getItem(key) || 'null')
+      return { key, draft: parsed }
+    } catch {
+      window.localStorage.removeItem(key)
+      return null
+    }
+  }).filter(Boolean)
+
+  draftEntries.forEach(({ key, draft }) => {
+    const updatedAt = new Date(draft?.updatedAt || 0).getTime()
+    if (!updatedAt || now - updatedAt > APPOINTMENT_DRAFT_MAX_AGE_MS) {
+      window.localStorage.removeItem(key)
+    }
+  })
+
+  const activeEntries = safeReadDraftKeys().map((key) => {
+    try {
+      return { key, draft: JSON.parse(window.localStorage.getItem(key) || 'null') }
+    } catch {
+      return null
+    }
+  }).filter(Boolean).sort((left, right) => {
+    const leftTime = new Date(left.draft?.updatedAt || 0).getTime()
+    const rightTime = new Date(right.draft?.updatedAt || 0).getTime()
+    return leftTime - rightTime
+  })
+
+  while (activeEntries.length > APPOINTMENT_DRAFT_LIMIT) {
+    const oldest = activeEntries.shift()
+    if (oldest?.key) {
+      window.localStorage.removeItem(oldest.key)
+    }
+  }
+}
+
+function loadAppointmentDraft(appointmentId) {
+  if (!appointmentId || typeof window === 'undefined' || !window.localStorage) return null
+  cleanupAppointmentDraftStorage()
+  try {
+    const raw = window.localStorage.getItem(getAppointmentDraftKey(appointmentId))
+    return raw ? JSON.parse(raw) : null
+  } catch {
+    return null
+  }
+}
+
+function saveAppointmentDraft(appointmentId, draft) {
+  if (!appointmentId || typeof window === 'undefined' || !window.localStorage) return false
+  cleanupAppointmentDraftStorage()
+  window.localStorage.setItem(getAppointmentDraftKey(appointmentId), JSON.stringify(draft))
+  return true
+}
+
+function clearAppointmentDraft(appointmentId) {
+  if (!appointmentId || typeof window === 'undefined' || !window.localStorage) return
+  window.localStorage.removeItem(getAppointmentDraftKey(appointmentId))
+}
+
+function mapProductSearchResult(item = {}) {
+  return {
+    id: item.id,
+    product_id: item.id,
+    item_type: 'product',
+    name: item.name,
+    unit: item.unit_name || item.unit || 'Pcs',
+    retail_price: Number(item.retail_price || 0),
+    cost_price: Number(item.cost_price || 0),
+    tax_rate: Number(item.tax_rate || 0),
+    price: Number(item.retail_price || 0),
+  }
+}
+
+function mapTreatmentSearchResult(item = {}) {
+  return {
+    id: `treatment-${item.id}`,
+    treatment_id: item.id,
+    item_type: 'treatment',
+    name: item.name || item.nama || 'Treatment',
+    unit: 'Treatment',
+    retail_price: Number(item.price || 0),
+    cost_price: 0,
+    tax_rate: 0,
+    price: Number(item.price || 0),
+  }
+}
+
+export function POS({ posContext = null, onExit = null }) {
   const { auth, clearAuth } = useAuth()
+  const isClinicAppointmentFlow = auth?.businessType === 'clinic' && posContext?.source === 'appointment'
+  const appointmentId = posContext?.appointmentId || null
   const [items, setItems] = useState([])
   const [search, setSearch] = useState('')
   const [currentTime, setCurrentTime] = useState(new Date())
@@ -105,6 +214,14 @@ export function POS() {
   const [availablePorts, setAvailablePorts] = useState([])
   const [availableWindowsPrinters, setAvailableWindowsPrinters] = useState([])
   const [serialStatus, setSerialStatus] = useState('')
+  const [selectedCustomer, setSelectedCustomer] = useState(() => (
+    posContext?.customerId
+      ? {
+          id: posContext.customerId,
+          name: posContext.customerName || '',
+        }
+      : null
+  ))
 
   const ensureRuntimeReceiptSettings = useCallback((value) => {
     const source = value && typeof value === 'object' ? value : DEFAULT_RECEIPT_SETTINGS
@@ -281,6 +398,39 @@ export function POS() {
   }, [])
 
   useEffect(() => {
+    if (!posContext?.customerId) {
+      setSelectedCustomer(null)
+      return
+    }
+
+    setSelectedCustomer({
+      id: posContext.customerId,
+      name: posContext.customerName || '',
+    })
+  }, [posContext])
+
+  useEffect(() => {
+    if (!isClinicAppointmentFlow || !appointmentId) return
+
+    const draft = loadAppointmentDraft(appointmentId)
+    if (posContext?.salesId) {
+      clearAppointmentDraft(appointmentId)
+      return
+    }
+
+    if (Array.isArray(draft?.items) && draft.items.length > 0) {
+      setItems(draft.items)
+      setPaymentMethod(draft.paymentMethod || 'CASH')
+      setTransferAccount(draft.transferAccount || '')
+      setToast({ isOpen: true, message: 'Draft transaksi appointment dipulihkan', type: 'info' })
+      return
+    }
+
+    setItems([])
+    setSelectedIndex(-1)
+  }, [appointmentId, isClinicAppointmentFlow, posContext])
+
+  useEffect(() => {
     if (showPaymentForm) {
       setPaymentMethodIndex(0)
       setPaymentMethod('CASH')
@@ -313,11 +463,40 @@ export function POS() {
     }
   }, [showDeleteConfirm])
 
-  const handleLogout = () => {
-    handleShowClosingForm()
-  }
+  const handleReturnToAppointment = useCallback(() => {
+    if (!isClinicAppointmentFlow || !appointmentId || !onExit) return
 
-  const handleShowClosingForm = async () => {
+    if (items.length > 0) {
+      try {
+        const saved = saveAppointmentDraft(appointmentId, {
+          appointmentId,
+          customerId: selectedCustomer?.id || posContext?.customerId || '',
+          customerName: selectedCustomer?.name || posContext?.customerName || '',
+          items,
+          paymentMethod,
+          transferAccount,
+          updatedAt: new Date().toISOString(),
+        })
+
+        if (saved) {
+          setToast({ isOpen: true, message: 'Draft transaksi appointment disimpan', type: 'success' })
+        }
+      } catch {
+        setToast({ isOpen: true, message: 'Draft appointment gagal disimpan di perangkat ini', type: 'warning' })
+      }
+    } else {
+      clearAppointmentDraft(appointmentId)
+    }
+
+    onExit({
+      source: 'appointment-pos-return',
+      selectedId: appointmentId,
+      selectedCalendarDate: posContext?.selectedCalendarDate || '',
+      viewMode: posContext?.viewMode || 'calendar',
+    })
+  }, [appointmentId, isClinicAppointmentFlow, items, onExit, paymentMethod, posContext, selectedCustomer, transferAccount])
+
+  const handleShowClosingForm = useCallback(async () => {
     try {
       const result = await getCurrentCashDrawer(auth.token)
       if (result.success && result.data) {
@@ -336,7 +515,16 @@ export function POS() {
       console.error('Failed to get cash drawer summary:', err)
       clearAuth()
     }
-  }
+  }, [auth.token, clearAuth])
+
+  const handleLogout = useCallback(() => {
+    if (isClinicAppointmentFlow) {
+      handleReturnToAppointment()
+      return
+    }
+
+    handleShowClosingForm()
+  }, [handleReturnToAppointment, handleShowClosingForm, isClinicAppointmentFlow])
 
   const handleCloseDrawer = useCallback(async () => {
     if (!currentCashDrawer) return
@@ -1083,7 +1271,10 @@ const handleExportTemplate = useCallback(async () => {
   const subtotal = items.reduce((sum, item) => sum + (item.price * item.qty), 0)
   const ppnPercentage = receiptSettings.ppn_percentage || 11
   const showPpn = receiptSettings.show_ppn !== false
-  const tax = showPpn ? (subtotalOriginal - totalDiscount) * (ppnPercentage / 100) : 0
+  const clinicTax = items.reduce((sum, item) => sum + ((Number(item.price || 0) * Number(item.qty || 0)) * (Number(item.tax_rate || 0) / 100)), 0)
+  const tax = showPpn
+    ? (isClinicAppointmentFlow ? clinicTax : (subtotalOriginal - totalDiscount) * (ppnPercentage / 100))
+    : 0
   const total = subtotal + tax
   const selectedItem = selectedIndex >= 0 ? items[selectedIndex] : null
   const displayItem = selectedItem || items[items.length - 1]
@@ -1140,6 +1331,26 @@ const handleExportTemplate = useCallback(async () => {
   const handleSearchChange = (value) => {
     setSearch(value)
   }
+
+  const searchCatalog = useCallback(async (keyword) => {
+    const trimmedKeyword = keyword.trim()
+    const productPromise = listProducts(auth.token, { search: trimmedKeyword, limit: 50 })
+
+    if (!isClinicAppointmentFlow) {
+      const result = await productPromise
+      return (result.items || []).map((item) => mapProductSearchResult(item))
+    }
+
+    const [productResult, treatmentResult] = await Promise.all([
+      productPromise,
+      listTreatments(auth.token, { search: trimmedKeyword, limit: 50 }),
+    ])
+
+    return [
+      ...(productResult.items || []).map((item) => mapProductSearchResult(item)),
+      ...(treatmentResult.items || []).map((item) => mapTreatmentSearchResult(item)),
+    ]
+  }, [auth.token, isClinicAppointmentFlow])
 
   const handleSearchKeyDown = async (e) => {
     if (e.key === 'F7') {
@@ -1207,15 +1418,7 @@ const handleExportTemplate = useCallback(async () => {
           if (filterText) {
             setIsLoadingProducts(true)
             try {
-              const result = await listProducts(auth.token, { search: filterText, limit: 50 })
-              const products = result.items.map(p => ({
-                id: p.id,
-                name: p.name,
-                unit: p.unit_name || p.unit || 'Pcs',
-                retail_price: Number(p.retail_price || 0),
-                cost_price: Number(p.cost_price || 0),
-                price: Number(p.retail_price || 0),
-              }))
+              const products = await searchCatalog(filterText)
               setProductResults(products)
               setPopupSelectedIndex(0)
               setShowProductPopup(true)
@@ -1229,15 +1432,7 @@ const handleExportTemplate = useCallback(async () => {
         } else if (search.trim()) {
           setIsLoadingProducts(true)
           try {
-            const result = await listProducts(auth.token, { search: search.trim(), limit: 50 })
-              const products = result.items.map(p => ({
-                id: p.id,
-                name: p.name,
-                unit: p.unit_name || p.unit || 'Pcs',
-                retail_price: Number(p.retail_price || 0),
-                cost_price: Number(p.cost_price || 0),
-                price: Number(p.retail_price || 0),
-              }))
+              const products = await searchCatalog(search.trim())
               if (products.length === 1) {
                 await handleSelectProduct(products[0])
               } else if (products.length > 1) {
@@ -1297,6 +1492,44 @@ const handleExportTemplate = useCallback(async () => {
   }
 
   const handleSelectProduct = async (product) => {
+    if (product?.item_type === 'treatment') {
+      setItems((prev) => {
+        const existingIndex = prev.findIndex((item) => item.treatment_id === product.treatment_id)
+        if (existingIndex >= 0) {
+          const updated = prev.map((item, idx) => idx === existingIndex
+            ? {
+                ...item,
+                qty: item.qty + 1,
+              }
+            : item)
+          setSelectedIndex(existingIndex)
+          return updated
+        }
+
+        const newIndex = prev.length
+        setSelectedIndex(newIndex)
+        return [
+          ...prev,
+          {
+            id: product.id,
+            treatment_id: product.treatment_id,
+            item_type: 'treatment',
+            name: product.name,
+            qty: 1,
+            unit: product.unit || 'Treatment',
+            retail_price: Number(product.retail_price || product.price || 0),
+            cost_price: Number(product.cost_price || 0),
+            tax_rate: Number(product.tax_rate || 0),
+            price: Number(product.price || product.retail_price || 0),
+            price_tiers: [],
+          },
+        ]
+      })
+      setShowProductPopup(false)
+      setSearch('')
+      return
+    }
+
     const retailPrice = Number(product?.retail_price ?? product?.price ?? 0)
     const loadedTiers = Array.isArray(product?.price_tiers)
       ? product.price_tiers
@@ -1330,6 +1563,7 @@ const handleExportTemplate = useCallback(async () => {
         qty: 1,
         retail_price: retailPrice,
         cost_price: Number(product.cost_price || 0),
+        tax_rate: Number(product.tax_rate || 0),
         price_tiers: loadedTiers,
         price: unitPrice,
       }
@@ -1480,6 +1714,13 @@ const handleExportTemplate = useCallback(async () => {
 
   const handlePayment = async () => {
     const payment = parseFloat(paymentAmount) || 0
+
+    if (isClinicAppointmentFlow && !currentCashDrawer?.id) {
+      alert('Cash drawer belum dibuka')
+      setShowCashDrawerForm(true)
+      return
+    }
+
     if (paymentMethod === 'CASH' && payment < total) {
       alert('Jumlah pembayaran kurang dari total')
       return
@@ -1496,13 +1737,14 @@ const handleExportTemplate = useCallback(async () => {
       const currentTotal = total
 
       const saleItems = items.map(item => {
+        const isTreatment = item.item_type === 'treatment'
         const productId = item.product_id
-        const promo = checkPromoForProduct(productId)
-        console.log('[Checkout] productId:', productId, 'promo found:', promo?.code, 'promo scope:', promo?.scope, 'activePromos:', activePromos.map(p => p.code))
+        const promo = isTreatment ? null : checkPromoForProduct(productId)
         return {
+          item_type: isTreatment ? 'treatment' : 'product',
           product_id: productId,
+          treatment_id: item.treatment_id,
           quantity: item.qty,
-          cost_price: Number(item.cost_price || 0),
           ...(promo && { promotion_code: promo.code }),
         }
       })
@@ -1519,12 +1761,28 @@ const handleExportTemplate = useCallback(async () => {
       const salePayload = {
         warehouse_id: mainWarehouse?.id,
         cash_drawer_id: currentCashDrawer?.id,
+        customer_id: selectedCustomer?.id || undefined,
+        appointment_id: appointmentId || undefined,
         status: 'DONE',
         items: saleItems,
         payments: [paymentData],
       }
 
       const result = await createSale(auth.token, salePayload)
+      const createdSaleId = result?.data?.id || result?.data?.sale_id || null
+
+      if (isClinicAppointmentFlow && appointmentId) {
+        clearAppointmentDraft(appointmentId)
+
+        if (createdSaleId) {
+          try {
+            await updateAppointment(auth.token, appointmentId, { sales_id: createdSaleId })
+          } catch (linkErr) {
+            console.error('Failed to link sale to appointment:', linkErr)
+            setToast({ isOpen: true, message: 'Penjualan sukses, tetapi invoice belum terhubung ke appointment', type: 'warning' })
+          }
+        }
+      }
 
       const change = payment - total
       const successNote = paymentMethod === 'CASH'
@@ -1591,6 +1849,9 @@ const handleExportTemplate = useCallback(async () => {
       setPaymentMethod('CASH')
       setPaymentMethodIndex(0)
       setTransferAccount('')
+      if (isClinicAppointmentFlow && appointmentId) {
+        clearAppointmentDraft(appointmentId)
+      }
     } catch (err) {
       console.error('Failed to save sale:', err)
       const errorMsg = err.message || 'Unknown error'
@@ -2784,10 +3045,31 @@ const handleExportTemplate = useCallback(async () => {
              
               <div className="receipt-meta">              
                 <span>INV/20231024/001</span> <strong> {(auth.username || '').toUpperCase()}</strong>
-                <span>{currentTime.toLocaleDateString('en-GB')} {currentTime.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</span>
+               <span>{currentTime.toLocaleDateString('en-GB')} {currentTime.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</span>
               </div>
               </div>
             </div>
+
+            {isClinicAppointmentFlow && (
+              <div className="pos-appointment-banner">
+                <div className="pos-appointment-banner-row">
+                  <span className="pos-appointment-banner-label">Pasien Aktif</span>
+                  <strong>{selectedCustomer?.name || '-'}</strong>
+                </div>
+                <div className="pos-appointment-banner-row">
+                  <span className="pos-appointment-banner-label">Sumber</span>
+                  <span>Appointment {appointmentId || '-'}</span>
+                </div>
+                <div className="pos-appointment-banner-row">
+                  <span className="pos-appointment-banner-label">Cash Drawer</span>
+                  <span>{currentCashDrawer?.id ? 'Open' : 'Closed'}</span>
+                </div>
+                <div className="pos-appointment-banner-row">
+                  <span className="pos-appointment-banner-label">Harga</span>
+                  <span>Terkunci dari master item</span>
+                </div>
+              </div>
+            )}
 
             <div className="receipt-items-wrapper">
               <div className="receipt-items">
@@ -2888,7 +3170,7 @@ const handleExportTemplate = useCallback(async () => {
               >
                 <div className="product-popup" onClick={(e) => e.stopPropagation()}>
                   <div className="product-popup-header">
-                    <h3>Daftar Produk</h3>
+                    <h3>{isClinicAppointmentFlow ? 'Daftar Product & Treatment' : 'Daftar Produk'}</h3>
                     <button className="product-popup-close" onClick={() => { setShowProductPopup(false); setSearch('') }}>
                       <span className="material-icons">close</span>
                     </button>
@@ -2900,17 +3182,18 @@ const handleExportTemplate = useCallback(async () => {
                           <th>No</th>
                           <th>Nama</th>
                           <th>Satuan</th>
+                          <th>Tipe</th>
                           <th>Harga</th>
                         </tr>
                       </thead>
                       <tbody>
                         {isLoadingProducts ? (
                           <tr>
-                            <td colSpan="4" className="product-popup-empty">Memuat produk...</td>
+                            <td colSpan="5" className="product-popup-empty">Memuat item...</td>
                           </tr>
                         ) : productResults.length === 0 ? (
                           <tr>
-                            <td colSpan="4" className="product-popup-empty">Produk tidak ditemukan</td>
+                            <td colSpan="5" className="product-popup-empty">Item tidak ditemukan</td>
                           </tr>
                         ) : (
                           productResults.map((product, idx) => (
@@ -2922,6 +3205,7 @@ const handleExportTemplate = useCallback(async () => {
                               <td>{idx + 1}</td>
                               <td>{product.name}</td>
                               <td>{product.unit}</td>
+                              <td>{product.item_type === 'treatment' ? 'Treatment' : 'Product'}</td>
                               <td className="text-right">{formatCurrency(product.price)}</td>
                             </tr>
                           ))
@@ -3291,7 +3575,7 @@ const handleExportTemplate = useCallback(async () => {
           </button>
           <button className="action-key action-key-dark" onClick={handleLogout}>
             <span className="material-icons power-icon">power_settings_new</span>
-            <span>Close</span>
+            <span>{isClinicAppointmentFlow ? 'Kembali' : 'Close'}</span>
           </button>
         </aside>
       </div>

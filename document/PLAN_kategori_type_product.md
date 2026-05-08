@@ -194,4 +194,183 @@ Mitigasi:
 1. Backend category dan validasi product.
 2. Frontend category.
 3. Frontend product.
-4. Verifikasi lint/build frontend dan backend.
+4. Filter laporan stock (exclude service & consumable).
+5. Filter POS/penjualan (exclude consumable, unlock service).
+6. Verifikasi lint/build frontend dan backend.
+
+---
+
+# PHASE 2: Filter Berdasarkan Tipe Product (Laporan Stock & POS)
+
+## Overview
+Menerapkan aturan bisnis untuk tipe product `service` dan `consumable`:
+
+| Tipe | Laporan Stock | Penjualan (POS) | Stock Lock |
+|------|---------------|-----------------|------------|
+| **Stockable** | Muncul | Muncul | Terkunci (cek stock) |
+| **Service** | Tidak muncul | Muncul | Tidak terkunci |
+| **Consumable** | Tidak muncul | Tidak muncul | - |
+
+## Sketsa Visual
+
+### Laporan Stock - Hanya Stockable
+```text
++----------------------------------------------------------+
+| Laporan Stock                                            |
++----------------------------------------------------------+
+| Search: [____]  Warehouse: [Semua v]  Category: [Semua v]|
+| Stock: [Available ▼]                                     |
++----------------------------------------------------------+
+| No | SKU    | Nama      | Category  | Qty  | Gudang     |
+|----|--------|-----------|-----------|------|------------|
+| 1  | PRD001 | Mouse     | Aksesoris | 50   | Utama      |
+| 2  | PRD002 | Keyboard  | Aksesoris | 30   | Utama      |
++----------------------------------------------------------+
+| Hanya produk stockable yang ditampilkan                  |
+| Produk service & consumable TIDAK muncul                 |
++----------------------------------------------------------+
+```
+
+### POS - Catalog (Tanpa Consumable)
+```text
++----------------------------------------------------------+
+|  POS - Kasir                                             |
++----------------------------------------------------------+
+| Search: [servis              ]                           |
++----------------------------------------------------------+
+| [Servis AC        ] [Ganti Oli        ] [Cuci Motor   ]  |
+|  Rp 150.000          Rp 80.000          Rp 25.000        |
+|  [service]           [service]          [service]         |
++----------------------------------------------------------+
+| Produk consumable TIDAK muncul di catalog                |
+| Produk service muncul tanpa stock lock                   |
++----------------------------------------------------------+
+```
+
+### POS - Cart dengan Service (Unlock Stock)
+```text
++----------------------------------------------------------+
+| Keranjang                                    Total: 230K |
++----------------------------------------------------------+
+| Item              | Qty | Harga    | Subtotal             |
+|-------------------|-----|----------|----------------------|
+| Servis AC         |  1  | 150.000  | 150.000  [service]   |
+| Mouse Wireless    |  1  |  80.000  |  80.000  [stockable] |
++----------------------------------------------------------+
+| Note: Service item tidak dicek stock-nya                  |
+| Stockable tetap dicek stock seperti biasa                |
++----------------------------------------------------------+
+```
+
+## Technical Implementation
+
+### 1. Laporan Stock - LapStock.jsx
+**File:** `src/components/ToolbarItem/laporan/stok/LapStock.jsx`
+
+**Perubahan:**
+- Tambah filter otomatis exclude `service` dan `consumable`
+- Default filter: hanya tampilkan `stockable`
+- Jika backend API belum support filter `product_type`, lakukan filter di frontend setelah data diterima
+
+```javascript
+const items = (result.items || []).filter(item => {
+  const productType = item?.category?.product_type || 'stockable'
+  return productType === 'stockable'
+})
+```
+
+### 2. Stock Card Modal
+**File:** `src/components/ToolbarItem/laporan/stok/StockCardModal.jsx`
+
+**Perubahan:**
+- Tidak ada perubahan langsung - modal hanya dipanggil dari LapStock
+- Otomatis terfilter karena hanya produk stockable yang tampil di tabel
+
+### 3. POS - Product Search & Catalog
+**File:** `src/components/POS/POS.jsx`
+
+**Perubahan:**
+- Fungsi `searchCatalog()`: filter `consumable` dari hasil pencarian
+- Produk `service` tetap muncul di catalog
+
+```javascript
+const searchCatalog = useCallback(async (keyword) => {
+  const result = await listProducts(auth.token, { search: keyword, limit: 50 })
+  return (result.items || []).filter(item => {
+    const catType = normalizeProductType(item?.category?.product_type)
+    return catType !== 'consumable'
+  }).map(mapProductSearchResult)
+}, [auth.token])
+```
+
+### 4. POS - Cart & Checkout
+**File:** `src/components/POS/POS.jsx`
+
+**Perubahan:**
+- Fungsi `addToCart()`: cek tipe produk
+- `service`: skip validasi stock
+- `stockable`: tetap validasi stock seperti biasa
+
+```javascript
+const addToCart = (product) => {
+  const catType = normalizeProductType(product?.category?.product_type)
+  if (catType === 'stockable' && product.stock <= 0) {
+    // show error: stock habis
+    return
+  }
+  // service: langsung tambah ke cart tanpa cek stock
+}
+```
+
+### 5. Helper Function
+**File:** `src/utils/normalizeProductType.js` (atau di file yang sudah ada)
+
+**Perubahan:**
+- Pastikan helper `normalizeProductType()` tersedia untuk digunakan di POS dan LapStock
+- Sudah ada di `Category.jsx` dan `Product.jsx`, perlu diekstrak ke shared utility
+
+### 6. API Layer Updates (opsional)
+**File:** `src/features/master/product/product.api.js`
+
+**Perubahan opsional:**
+- Tambah parameter `product_type` atau `exclude_type` ke `listProducts` untuk efisiensi server-side filtering
+
+```javascript
+if (params.product_type) qs.set('product_type', params.product_type)
+if (params.exclude_type) qs.set('exclude_type', params.exclude_type)
+```
+
+## Planned File Changes
+1. `src/components/ToolbarItem/laporan/stok/LapStock.jsx` - filter stockable only
+2. `src/components/POS/POS.jsx` - filter consumable, unlock service
+3. `src/utils/productType.js` - ekstrak normalizeProductType ke shared utility (opsional)
+4. `src/features/master/product/product.api.js` - optional: tambah parameter filter
+
+## Validation Checklist
+1. Laporan stock hanya menampilkan produk `stockable`
+2. Produk `service` tidak muncul di laporan stock
+3. Produk `consumable` tidak muncul di laporan stock
+4. POS catalog tidak menampilkan produk `consumable`
+5. Produk `service` muncul di POS catalog
+6. Produk `service` bisa ditambahkan ke cart tanpa validasi stock
+7. Produk `stockable` tetap validasi stock di POS
+8. Produk `consumable` tidak bisa ditambahkan ke cart
+9. `npm run lint` frontend lulus
+10. `npm run build` frontend lulus
+
+## Risiko & Mitigasi
+
+### Risiko 1: Backend belum support filter product_type di API
+Mitigasi:
+- Lakukan filtering di frontend setelah data diterima
+- Performa masih acceptable untuk dataset < 1000 items
+
+### Risiko 2: Produk existing tanpa category atau category tanpa product_type
+Mitigasi:
+- Default ke `stockable` jika product_type tidak terdeteksi
+- Gunakan fallback: `item?.category?.product_type || 'stockable'`
+
+### Risiko 3: Service item bisa dijual melebihi kapasitas
+Mitigasi:
+- Tidak ada limit stock untuk service, tapi bisa tambahkan validasi lain (misal: jadwal, availability)
+- Untuk sekarang: service tidak ada batasan quantity

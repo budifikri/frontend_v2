@@ -2,6 +2,51 @@
 
 ## Status: PENDING
 
+## Progress Checklist
+
+### Phase 1: Category & Product Type
+- [x] Task 1: Backend model category + product_type
+- [x] Task 2: Backend validasi product_type
+- [x] Task 3: Backend request category update
+- [x] Task 4: Backend handler & service category
+- [x] Task 5: Backend response category
+- [x] Task 6: Backend validasi product cost_price=0 & retail_price=0
+- [x] Task 7: Frontend Category.jsx DEFAULT_FORM
+- [x] Task 8: Frontend dropdown Tipe Product
+- [x] Task 9: Frontend kolom TYPE tabel category
+- [x] Task 10: Frontend import/export Excel category
+- [x] Task 11: Frontend lookup category di product
+- [x] Task 12: Frontend resolver category di Product.jsx
+- [x] Task 13: Frontend flag UI (isServiceCategory, isConsumableCategory, isStockManagedCategory)
+- [x] Task 14: Frontend hide Cost, Reorder, Adjust Stock untuk service
+- [x] Task 15: Frontend hide Harga Jual untuk consumable
+- [x] Task 16: Frontend auto-update nilai saat category berubah
+- [x] Task 17: Frontend payload save product
+- [ ] Task 18: Test create/update category 3 tipe
+- [ ] Task 19: Test create/update product 3 tipe
+- [ ] Task 20: npm run lint
+- [ ] Task 21: npm run build
+- [ ] Task 22: Build/test backend
+
+### Phase 2: Filter Laporan Stock & POS
+- [ ] Task 23: Ekstrak normalizeProductType() ke shared utility
+- [ ] Task 24: LapStock.jsx filter exclude service & consumable
+- [ ] Task 25: POS.jsx searchCatalog() filter consumable
+- [ ] Task 26: POS.jsx addToCart() skip stock untuk service
+- [ ] Task 27: POS badge/indicator tipe produk (opsional)
+- [ ] Task 28: Test laporan stock hanya stockable
+- [ ] Task 29: Test POS consumable tidak muncul
+- [ ] Task 30: Test POS service tanpa stock lock
+- [ ] Task 31: Test POS stockable tetap validasi stock
+- [ ] Task 32: npm run lint
+- [ ] Task 33: npm run build
+
+### Summary
+- **Phase 1**: 17/22 completed
+- **Phase 2**: 0/11 completed
+- **Total**: 17/33 completed
+- **Status**: PENDING
+
 ## Tasks
 
 | # | Task | Status |
@@ -39,3 +84,44 @@
 2. Form product otomatis berubah sesuai tipe category.
 3. Rule `service` dan `consumable` tervalidasi sampai backend.
 4. Data existing tetap aman dan tidak rusak.
+
+---
+
+## PHASE 2: Filter Laporan Stock & POS
+
+### Aturan Bisnis
+| Tipe | Laporan Stock | Penjualan (POS) | Stock Lock |
+|------|---------------|-----------------|------------|
+| **Stockable** | Muncul | Muncul | Terkunci (cek stock) |
+| **Service** | Tidak muncul | Muncul | Tidak terkunci |
+| **Consumable** | Tidak muncul | Tidak muncul | - |
+
+### Tasks Phase 2
+
+| # | Task | Status |
+|---|------|--------|
+| 23 | Ekstrak `normalizeProductType()` ke shared utility (`src/utils/productType.js`) | PENDING |
+| 24 | Update `LapStock.jsx`: filter otomatis exclude `service` dan `consumable` | PENDING |
+| 25 | Update `POS.jsx` `searchCatalog()`: filter `consumable` dari hasil pencarian | PENDING |
+| 26 | Update `POS.jsx` `addToCart()`: skip validasi stock untuk produk `service` | PENDING |
+| 27 | Tambah badge/indicator tipe produk di POS catalog (opsional) | PENDING |
+| 28 | Uji laporan stock: hanya `stockable` yang muncul | PENDING |
+| 29 | Uji POS: `consumable` tidak muncul di catalog | PENDING |
+| 30 | Uji POS: `service` muncul di catalog tanpa stock lock | PENDING |
+| 31 | Uji POS: `stockable` tetap validasi stock | PENDING |
+| 32 | Jalankan `npm run lint` | PENDING |
+| 33 | Jalankan `npm run build` | PENDING |
+
+### File yang Akan Dimodifikasi
+1. `src/components/ToolbarItem/laporan/stok/LapStock.jsx`
+2. `src/components/POS/POS.jsx`
+3. `src/utils/productType.js` (new, optional)
+4. `src/features/master/product/product.api.js` (optional)
+
+### Catatan Implementasi Phase 2
+- Filter di frontend dilakukan setelah data diterima dari API
+- Fallback ke `stockable` jika `product_type` tidak terdeteksi
+- Service item di POS tidak membatasi quantity
+- Consumable item tidak bisa ditambahkan ke cart sama sekali
+
+---

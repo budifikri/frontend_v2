@@ -1,0 +1,8 @@
+{
+  "keys": [
+    "pos_retail_auth"
+  ],
+  "values": {
+    "pos_retail_auth": "{\"token\":\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjb21wYW55QWNjZXNzIjpudWxsLCJjb21wYW55SWQiOiJkNmMwYjZkNS04ODYzLTQ0MjMtOTMzYy1kZjEzMzJiNWE0NTQiLCJlbWFpbCI6ImZpa3JpYXdhbjIwMDdAZ21haWwuY29tIiwiZXhwIjoxNzc4MTU3OTg1LCJpYXQiOjE3NzgxMjkxODUsImlzcyI6InBvcy1yZXRhaWwiLCJqdGkiOiI4OGYwNDNjNi04MTA0LTQ1OWUtOWIwMi02NDZmNzE1YTNhMzEiLCJwZXJtaXNzaW9ucyI6bnVsbCwicm9sZSI6ImFkbWluIiwic3ViIjoiYjJmNmY5NjctMzViNi00MGQzLThkMTUtZDMwODE0MGI2N2Q3IiwidXNlcklkIjoiYjJmNmY5NjctMzViNi00MGQzLThkMTUtZDMwODE0MGI2N2Q3IiwidXNlcm5hbWUiOiJmaWtyaSJ9.lp5c1lOvFvI_iBO90PDogbT_7zP7cjg1eK__7NBdQyA\",\"role\":\"admin\",\"username\":\"fikri\",\"companyName\":\"fikrisoftware\",\"companyId\":\"d6c0b6d5-8863-4423-933c-df1332b5a454\",\"businessType\":\"clinic\"}"
+  }
+}

@@ -32,7 +32,7 @@ import { BackupRestore } from '../ToolbarItem/setting/BackupRestore'
 import { Telegram } from '../ToolbarItem/setting/Telegram'
 import { Appointment } from '../ToolbarItem/transaksi/Appointment'
 
-export function DashboardCanvas({ activeTool, toolContext, onExit }) {
+export function DashboardCanvas({ activeTool, toolContext, onExit, onOpenTool }) {
   if (activeTool === 'warehouse') {
     return (
       <div className="dashboard-canvas">
@@ -292,7 +292,7 @@ export function DashboardCanvas({ activeTool, toolContext, onExit }) {
   if (activeTool === 'appointment') {
     return (
       <div className="dashboard-canvas">
-        <Appointment onExit={onExit} />
+        <Appointment onExit={onExit} onOpenTool={onOpenTool} toolContext={toolContext} />
       </div>
     )
   }
