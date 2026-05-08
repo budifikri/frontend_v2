@@ -24,27 +24,27 @@
 - [x] Task 17: Frontend payload save product
 - [ ] Task 18: Test create/update category 3 tipe
 - [ ] Task 19: Test create/update product 3 tipe
-- [ ] Task 20: npm run lint
-- [ ] Task 21: npm run build
-- [ ] Task 22: Build/test backend
+- [x] Task 20: npm run lint
+- [x] Task 21: npm run build
+- [x] Task 22: Build/test backend
 
 ### Phase 2: Filter Laporan Stock & POS
-- [ ] Task 23: Ekstrak normalizeProductType() ke shared utility
-- [ ] Task 24: LapStock.jsx filter exclude service & consumable
-- [ ] Task 25: POS.jsx searchCatalog() filter consumable
-- [ ] Task 26: POS.jsx addToCart() skip stock untuk service
-- [ ] Task 27: POS badge/indicator tipe produk (opsional)
+- [x] Task 23: Ekstrak normalizeProductType() ke shared utility
+- [x] Task 24: LapStock.jsx filter exclude service & consumable
+- [x] Task 25: POS.jsx searchCatalog() filter consumable
+- [x] Task 26: POS.jsx addToCart() skip stock untuk service
+- [x] Task 27: POS badge/indicator tipe produk (opsional)
 - [ ] Task 28: Test laporan stock hanya stockable
 - [ ] Task 29: Test POS consumable tidak muncul
 - [ ] Task 30: Test POS service tanpa stock lock
 - [ ] Task 31: Test POS stockable tetap validasi stock
-- [ ] Task 32: npm run lint
-- [ ] Task 33: npm run build
+- [x] Task 32: npm run lint
+- [x] Task 33: npm run build
 
 ### Summary
-- **Phase 1**: 17/22 completed
-- **Phase 2**: 0/11 completed
-- **Total**: 17/33 completed
+- **Phase 1**: 20/22 completed
+- **Phase 2**: 7/11 completed
+- **Total**: 27/33 completed
 - **Status**: PENDING
 
 ## Tasks

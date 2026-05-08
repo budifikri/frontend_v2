@@ -5,6 +5,7 @@ import { listWarehouses } from '../../../../features/master/warehouse/warehouse.
 import { listCategories } from '../../../../features/master/category/category.api'
 import { getCurrentCompany } from '../../../../features/master/company/company.api'
 import { openReportPrintWindow } from '../../../../utils/reportPrint'
+import { normalizeProductType } from '../../../../utils/productType'
 import { useMasterTableSort } from '../../../../hooks/useMasterTableSort'
 import { useMasterPagination } from '../../../../hooks/useMasterPagination'
 import { MasterTableHeader } from '../../table/MasterTableHeader'
@@ -87,6 +88,8 @@ export function LapStock({ onExit }) {
 
   const [warehouseOptions, setWarehouseOptions] = useState([])
   const [categoryOptions, setCategoryOptions] = useState([])
+  const [categoryTypeById, setCategoryTypeById] = useState({})
+  const [categoryTypeByName, setCategoryTypeByName] = useState({})
 
   const [selectedId, setSelectedId] = useState(null)
 
@@ -111,6 +114,8 @@ export function LapStock({ onExit }) {
     if (!token) {
       setWarehouseOptions(getUniqueOptions(DUMMY_STOCKS, 'warehouse_id', 'warehouse'))
       setCategoryOptions(getUniqueOptions(DUMMY_STOCKS, 'category_id', 'category'))
+      setCategoryTypeById({})
+      setCategoryTypeByName({})
       return
     }
 
@@ -127,15 +132,42 @@ export function LapStock({ onExit }) {
       const categories = (categoryRes.items || []).map((item) => ({
         id: String(item.id || ''),
         name: item.name || item.code || '-',
+        product_type: normalizeProductType(item?.product_type),
       }))
+      const nextCategoryTypeById = categories.reduce((acc, item) => {
+        if (item.id) acc[item.id] = item.product_type
+        return acc
+      }, {})
+      const nextCategoryTypeByName = categories.reduce((acc, item) => {
+        const name = String(item.name || '').trim().toLowerCase()
+        if (name) acc[name] = item.product_type
+        return acc
+      }, {})
 
       setWarehouseOptions(warehouses.filter((item) => item.id && item.name))
-      setCategoryOptions(categories.filter((item) => item.id && item.name))
+      setCategoryOptions(categories.filter((item) => item.id && item.name && item.product_type === 'stockable'))
+      setCategoryTypeById(nextCategoryTypeById)
+      setCategoryTypeByName(nextCategoryTypeByName)
     } catch {
       setWarehouseOptions([])
       setCategoryOptions([])
+      setCategoryTypeById({})
+      setCategoryTypeByName({})
     }
   }, [token])
+
+  const isStockableInventoryItem = useCallback((item) => {
+    const categoryId = String(item?.category_id || item?.product?.category_id || '')
+    const categoryType = categoryTypeById[categoryId]
+    const categoryName = String(item?.category || item?.category_name || item?.product?.category_name || '').trim().toLowerCase()
+    const productType = normalizeProductType(
+      categoryType
+      || categoryTypeByName[categoryName]
+      || item?.product_type
+      || item?.category?.product_type,
+    )
+    return productType === 'stockable'
+  }, [categoryTypeById, categoryTypeByName])
 
   const fetchData = useCallback(async () => {
     setError('')
@@ -144,6 +176,7 @@ export function LapStock({ onExit }) {
     if (!token) {
       const keyword = searchKeyword.trim().toLowerCase()
       const filtered = DUMMY_STOCKS.filter((item) => {
+        if (!isStockableInventoryItem(item)) return false
         if (warehouseFilter && String(item.warehouse_id || '') !== warehouseFilter) return false
         if (categoryFilter && String(item.category_id || '') !== categoryFilter) return false
         const stockValue = Number(item.stock || 0)
@@ -169,12 +202,13 @@ export function LapStock({ onExit }) {
         search: searchKeyword.trim() || undefined,
         stock: stockFilter,
         warehouse_id: warehouseFilter || undefined,
-        limit,
-        offset,
+        limit: pager.isAllRecords ? 5000 : Math.max(offset + limit + 200, 500),
+        offset: 0,
       })
 
       const serverItems = result.items || []
-      const items = serverItems.filter((item) => {
+      const filteredItems = serverItems.filter((item) => {
+        if (!isStockableInventoryItem(item)) return false
         if (categoryFilter && String(item.category_id || '') !== categoryFilter) return false
         const stockValue = Number(item.stock || 0)
         if (stockFilter === 'available' && stockValue <= 0) return false
@@ -183,12 +217,14 @@ export function LapStock({ onExit }) {
         return true
       })
 
-      setData(items)
+      const items = pager.isAllRecords
+        ? filteredItems
+        : filteredItems.slice(offset, offset + limit)
 
-      const nextPagination = result.pagination || {}
+      setData(items)
       setPagination({
-        total: categoryFilter ? items.length : Number(nextPagination.total ?? 0),
-        has_more: categoryFilter ? false : Boolean(nextPagination.has_more),
+        total: filteredItems.length,
+        has_more: offset + limit < filteredItems.length,
       })
     } catch {
       setData([])
@@ -196,7 +232,7 @@ export function LapStock({ onExit }) {
     } finally {
       setIsLoading(false)
     }
-  }, [token, searchKeyword, warehouseFilter, categoryFilter, stockFilter, limit, offset])
+  }, [token, searchKeyword, warehouseFilter, categoryFilter, stockFilter, limit, offset, pager.isAllRecords, isStockableInventoryItem])
 
   useEffect(() => {
     refreshLookups()

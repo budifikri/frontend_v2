@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useAuth } from '../../shared/auth'
 import { listProducts } from '../../features/master/product/product.api'
+import { listCategories } from '../../features/master/category/category.api'
 import { listTreatments } from '../../features/master/treatment/treatment.api'
 import { getPriceTier } from '../../features/master/price-tier/priceTier.api'
 import { listPromotions } from '../../features/master/promotion/promotion.api'
@@ -16,6 +17,7 @@ import { Toast } from '../../components/Toast'
 import { printViaSerial, printViaWindowsPrinter, listSerialPorts, listWindowsPrinters, testPrintBytes } from '../../utils/serialApi'
 import { DOT_MATRIX_TOKEN_LIST, renderDotMatrixReceipt, renderDotMatrixPlainText, getDefaultDotMatrixCustomTemplateText, buildDotMatrixPrintModel } from './DotMatrixFormatter'
 import { createTemplatePayload, validateTemplatePayload, extractTemplateFromPayload, readTemplateFile, saveTemplateNative } from '../../features/setting/receiptTemplateFile'
+import { formatProductTypeLabel, normalizeProductType } from '../../utils/productType'
 import './POS.css'
 
 const APPOINTMENT_DRAFT_PREFIX = 'pos_appointment_draft_'
@@ -102,6 +104,8 @@ function mapProductSearchResult(item = {}) {
     item_type: 'product',
     name: item.name,
     unit: item.unit_name || item.unit || 'Pcs',
+    category_id: item.category_id || item.category?.id || '',
+    product_type: normalizeProductType(item.product_type || item.category?.product_type),
     retail_price: Number(item.retail_price || 0),
     cost_price: Number(item.cost_price || 0),
     tax_rate: Number(item.tax_rate || 0),
@@ -222,6 +226,7 @@ export function POS({ posContext = null, onExit = null }) {
         }
       : null
   ))
+  const [categoryProductTypes, setCategoryProductTypes] = useState({})
 
   const ensureRuntimeReceiptSettings = useCallback((value) => {
     const source = value && typeof value === 'object' ? value : DEFAULT_RECEIPT_SETTINGS
@@ -252,6 +257,29 @@ export function POS({ posContext = null, onExit = null }) {
     return () => clearInterval(timer)
   }, [])
 
+  const loadCategoryProductTypes = useCallback(async () => {
+    if (!auth.token) {
+      setCategoryProductTypes({})
+      return {}
+    }
+
+    try {
+      const result = await listCategories(auth.token, { limit: 200, offset: 0, include_inactive: true })
+      const nextMap = (result.items || []).reduce((acc, item) => {
+        const categoryId = String(item?.id || '')
+        if (categoryId) {
+          acc[categoryId] = normalizeProductType(item?.product_type)
+        }
+        return acc
+      }, {})
+      setCategoryProductTypes(nextMap)
+      return nextMap
+    } catch (err) {
+      console.error('Failed to load category product types:', err)
+      return {}
+    }
+  }, [auth.token])
+
   useEffect(() => {
     const saved = localStorage.getItem('pos_pending_notes')
     if (saved) {
@@ -262,6 +290,10 @@ export function POS({ posContext = null, onExit = null }) {
       }
     }
   }, [])
+
+  useEffect(() => {
+    loadCategoryProductTypes()
+  }, [loadCategoryProductTypes])
 
   useEffect(() => {
     const loaded = loadReceiptSettings()
@@ -1335,10 +1367,24 @@ const handleExportTemplate = useCallback(async () => {
   const searchCatalog = useCallback(async (keyword) => {
     const trimmedKeyword = keyword.trim()
     const productPromise = listProducts(auth.token, { search: trimmedKeyword, limit: 50 })
+    const productTypeMap = Object.keys(categoryProductTypes).length > 0
+      ? categoryProductTypes
+      : await loadCategoryProductTypes()
+    const enrichProductType = (item) => ({
+      ...item,
+      product_type: normalizeProductType(
+        item?.product_type
+        || item?.category?.product_type
+        || productTypeMap[String(item?.category_id || item?.category?.id || '')],
+      ),
+    })
 
     if (!isClinicAppointmentFlow) {
       const result = await productPromise
-      return (result.items || []).map((item) => mapProductSearchResult(item))
+      return (result.items || [])
+        .map(enrichProductType)
+        .filter((item) => item.product_type !== 'consumable')
+        .map((item) => mapProductSearchResult(item))
     }
 
     const [productResult, treatmentResult] = await Promise.all([
@@ -1347,10 +1393,13 @@ const handleExportTemplate = useCallback(async () => {
     ])
 
     return [
-      ...(productResult.items || []).map((item) => mapProductSearchResult(item)),
+      ...(productResult.items || [])
+        .map(enrichProductType)
+        .filter((item) => item.product_type !== 'consumable')
+        .map((item) => mapProductSearchResult(item)),
       ...(treatmentResult.items || []).map((item) => mapTreatmentSearchResult(item)),
     ]
-  }, [auth.token, isClinicAppointmentFlow])
+  }, [auth.token, categoryProductTypes, isClinicAppointmentFlow, loadCategoryProductTypes])
 
   const handleSearchKeyDown = async (e) => {
     if (e.key === 'F7') {
@@ -1530,6 +1579,14 @@ const handleExportTemplate = useCallback(async () => {
       return
     }
 
+    const productType = normalizeProductType(product?.product_type)
+    if (productType === 'consumable') {
+      setToast({ isOpen: true, message: 'Produk consumable tidak dapat dijual', type: 'warning' })
+      setShowProductPopup(false)
+      setSearch('')
+      return
+    }
+
     const retailPrice = Number(product?.retail_price ?? product?.price ?? 0)
     const loadedTiers = Array.isArray(product?.price_tiers)
       ? product.price_tiers
@@ -1547,6 +1604,8 @@ const handleExportTemplate = useCallback(async () => {
             qty: nextQty,
             retail_price: Number(item.retail_price ?? retailPrice),
             cost_price: Number(item.cost_price ?? product.cost_price ?? 0),
+            category_id: item.category_id || product.category_id || '',
+            product_type: normalizeProductType(item.product_type || productType),
             price_tiers: tiers,
             price: resolveItemUnitPrice(Number(item.retail_price ?? retailPrice), tiers, nextQty, item.product_id),
           }
@@ -1561,6 +1620,8 @@ const handleExportTemplate = useCallback(async () => {
         product_id: product.id,
         name: product.name,
         qty: 1,
+        category_id: product.category_id || '',
+        product_type: productType,
         retail_price: retailPrice,
         cost_price: Number(product.cost_price || 0),
         tax_rate: Number(product.tax_rate || 0),
@@ -3205,7 +3266,7 @@ const handleExportTemplate = useCallback(async () => {
                               <td>{idx + 1}</td>
                               <td>{product.name}</td>
                               <td>{product.unit}</td>
-                              <td>{product.item_type === 'treatment' ? 'Treatment' : 'Product'}</td>
+                              <td>{product.item_type === 'treatment' ? 'Treatment' : formatProductTypeLabel(product.product_type)}</td>
                               <td className="text-right">{formatCurrency(product.price)}</td>
                             </tr>
                           ))
