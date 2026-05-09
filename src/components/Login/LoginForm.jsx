@@ -1,4 +1,19 @@
-export function LoginForm({ userId, password, onUserIdChange, onPasswordChange, onSubmit, onReset, isLoading, error }) {
+import { useState } from 'react'
+
+export function LoginForm({ userId, onUserIdChange, onSubmit, onReset, isLoading, error }) {
+  const [password, setPassword] = useState('')
+
+  const handleFormSubmit = async (event) => {
+    event.preventDefault()
+    await onSubmit(password)
+    setPassword('')
+  }
+
+  const handleResetClick = async () => {
+    setPassword('')
+    await onReset()
+  }
+
   return (
     <main className="app-shell">
       <section className="login-window" aria-label="Minimarket login">
@@ -16,13 +31,14 @@ export function LoginForm({ userId, password, onUserIdChange, onPasswordChange, 
             <div className="lock-shadow" />
           </div>
 
-          <form className="login-form" onSubmit={onSubmit}>
+          <form id="login-form" className="login-form" onSubmit={handleFormSubmit}>
             <label htmlFor="userId">USER ID</label>
             <input
               id="userId"
               name="userId"
               value={userId}
               onChange={(event) => onUserIdChange(event.target.value)}
+              placeholder="Isi User Name"
               autoComplete="username"
               disabled={isLoading}
             />
@@ -33,28 +49,27 @@ export function LoginForm({ userId, password, onUserIdChange, onPasswordChange, 
               name="password"
               type="password"
               value={password}
-              onChange={(event) => onPasswordChange(event.target.value)}
-              autoComplete="current-password"
+              onChange={(event) => setPassword(event.target.value)}
+              autoComplete="new-password"
+              placeholder="Isi password"
+              data-lpignore="true"
+              data-1p-ignore="true"
               disabled={isLoading}
             />
 
             {error && (
               <div className="login-error">{error}</div>
             )}
-
-            <button type="submit" className="visually-hidden" aria-hidden="true" tabIndex={-1}>
-              Login
-            </button>
           </form>
         </div>
 
         <footer className="window-footer">
           <span className="version-pill">Ver 3.0</span>
           <div className="action-buttons" aria-label="login actions">
-            <button type="button" className="circle-button cancel" aria-label="Batal" onClick={onReset} disabled={isLoading}>
+            <button type="button" className="circle-button cancel" aria-label="Batal" onClick={handleResetClick} disabled={isLoading}>
               &times;
             </button>
-            <button type="button" className="circle-button submit" aria-label="Masuk" onClick={onSubmit} disabled={isLoading || !userId.trim() || !password.trim()}>
+            <button type="submit" form="login-form" className="circle-button submit" aria-label="Masuk" disabled={isLoading || !userId.trim() || !password.trim()}>
               {isLoading ? '...' : '✓'}
             </button>
           </div>

@@ -6,6 +6,8 @@ import { login } from './features/auth/login.api'
 import { listWarehouses } from './features/master/warehouse/warehouse.api'
 import { listPurchases } from './features/transaksi/purchase/purchase.api'
 
+const LAST_USERNAME_STORAGE_KEY = 'pos_retail_last_username'
+
 vi.mock('./features/auth/login.api', () => ({
   login: vi.fn(),
 }))
@@ -29,8 +31,9 @@ function createFakeJwt(payload = { role: 'admin' }) {
 }
 
 async function submitLogin() {
-  fireEvent.change(screen.getByLabelText('USER ID'), { target: { value: 'admin' } })
-  fireEvent.change(screen.getByLabelText('PASSWORD'), { target: { value: '123456' } })
+  fireEvent.change(screen.getByLabelText(/USER ID/i), { target: { value: 'admin' } })
+  const passwordInput = screen.getByLabelText(/PASSWORD/i)
+  fireEvent.change(passwordInput, { target: { value: '123456' } })
   await act(async () => {
     fireEvent.click(screen.getByLabelText('Masuk'))
   })
@@ -62,6 +65,37 @@ describe('App', () => {
     expect(screen.getByText('Ver 3.0')).toBeTruthy()
     expect(screen.getByLabelText('USER ID')).toBeTruthy()
     expect(screen.getByLabelText('PASSWORD')).toBeTruthy()
+    expect(screen.getByPlaceholderText('Isi User Name')).toBeTruthy()
+    expect(screen.getByPlaceholderText('Isi password')).toBeTruthy()
+    expect(screen.getByLabelText('PASSWORD').getAttribute('autocomplete')).toBe('new-password')
+    expect(screen.getByLabelText('PASSWORD').getAttribute('data-lpignore')).toBe('true')
+    expect(screen.getByLabelText('PASSWORD').getAttribute('data-1p-ignore')).toBe('true')
+  })
+
+  it('memuat username dari last login berhasil terakhir', () => {
+    localStorage.setItem(LAST_USERNAME_STORAGE_KEY, 'kasir01')
+
+    render(<App />)
+
+    expect(screen.getByLabelText(/USER ID/i).value).toBe('kasir01')
+  })
+
+  it('mengosongkan password saat login gagal', async () => {
+    localStorage.setItem(LAST_USERNAME_STORAGE_KEY, 'kasir01')
+    vi.mocked(login).mockRejectedValueOnce(new Error('Login failed'))
+
+    render(<App />)
+
+    fireEvent.change(screen.getByLabelText(/USER ID/i), { target: { value: 'admin' } })
+    fireEvent.change(screen.getByLabelText(/PASSWORD/i), { target: { value: '123456' } })
+
+    await act(async () => {
+      fireEvent.click(screen.getByLabelText('Masuk'))
+    })
+
+    expect(await screen.findByText('Login failed')).toBeTruthy()
+    expect(screen.getByLabelText(/PASSWORD/i).value).toBe('')
+    expect(localStorage.getItem(LAST_USERNAME_STORAGE_KEY)).toBe('kasir01')
   })
 
   it('opens dashboard when login berhasil', async () => {
@@ -70,6 +104,7 @@ describe('App', () => {
     await submitLogin()
 
     expect(login).toHaveBeenCalledWith({ username: 'admin', password: '123456' })
+    expect(localStorage.getItem(LAST_USERNAME_STORAGE_KEY)).toBe('admin')
     expect(await screen.findByLabelText('POS Admin Menu Dashboard')).toBeTruthy()
     expect(screen.getByText('System Connected')).toBeTruthy()
   })

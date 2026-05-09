@@ -307,7 +307,7 @@ export function CompanySetting({ onExit }) {
                     <input type="text" id="company-code" className="receipt-text-input" value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })} readOnly={!isEditing} />
                   </div>
                   <div className="receipt-setting-field-inline">
-                    <label htmlFor="company-name">Nama Company</label>
+                    <label htmlFor="company-name">Company</label>
                     <input type="text" id="company-name" className="receipt-text-input" value={form.nama} onChange={(e) => setForm({ ...form, nama: e.target.value })} readOnly={!isEditing} />
                   </div>
                   <div className="receipt-setting-field-inline">

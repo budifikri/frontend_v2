@@ -20,6 +20,12 @@ import { resolveShortcutTool } from './utils/shortcutHelper'
 import { canAccessTool } from './shared/moduleAccess'
 
 const IMPLEMENTED_TOOLS = new Set(['warehouse', 'satuan', 'categori', 'product', 'customer', 'supplier', 'dokter', 'jadwal_dokter', 'paket', 'treatment', 'company', 'theme', 'user', 'lapstok', 'laphargagrosir', 'lapjual', 'lapbeli', 'opname', 'beli', 'receive', 'retur', 'promotion', 'lapcashdrawer', 'report_setting', 'backup', 'telegram', 'module', 'business_type', 'module_package', 'appointment'])
+const LAST_USERNAME_STORAGE_KEY = 'pos_retail_last_username'
+
+function loadLastUsername() {
+  if (typeof localStorage === 'undefined') return ''
+  return localStorage.getItem(LAST_USERNAME_STORAGE_KEY) || ''
+}
 
 function AppContent() {
   const { auth, setAuth, clearAuth } = useAuth()
@@ -29,8 +35,7 @@ function AppContent() {
   const [activeTool, setActiveTool] = useState(null)
   const [toolContext, setToolContext] = useState(null)
   const [isToolbarVisible, setIsToolbarVisible] = useState(true)
-  const [userId, setUserId] = useState('')
-  const [password, setPassword] = useState('')
+  const [userId, setUserId] = useState(() => loadLastUsername())
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const [shortcutPopupKey, setShortcutPopupKey] = useState(null)
@@ -155,13 +160,17 @@ function AppContent() {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [view, activeMenu, activateTool])
 
-  const handleLogin = async (event) => {
-    event.preventDefault()
+  const handleLogin = async (password) => {
+    const username = userId.trim()
+
     setError('')
     setIsLoading(true)
 
     try {
-      const result = await login({ username: userId, password })
+      const result = await login({ username, password })
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem(LAST_USERNAME_STORAGE_KEY, username)
+      }
       const role = result.role?.toLowerCase()
       setAuth({ token: result.token, role, username: result.username, companyName: result.companyName, companyId: result.companyId, businessType: result.businessType })
       if (role === 'cashier') {
@@ -180,7 +189,6 @@ function AppContent() {
 
   const handleReset = async () => {
     setUserId('')
-    setPassword('')
     setError('')
     if (window.__TAURI__) {
       try {
@@ -196,8 +204,7 @@ function AppContent() {
   const handleLogout = useCallback(() => {
     clearAuth()
     setView('login')
-    setUserId('')
-    setPassword('')
+    setUserId(loadLastUsername())
   }, [clearAuth])
 
   const handleMenuChange = (menuKey) => {
@@ -294,9 +301,7 @@ function AppContent() {
   return (
     <LoginForm
       userId={userId}
-      password={password}
       onUserIdChange={setUserId}
-      onPasswordChange={setPassword}
       onSubmit={handleLogin}
       onReset={handleReset}
       isLoading={isLoading}
