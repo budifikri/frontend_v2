@@ -2144,6 +2144,11 @@ body.has-wallpaper .cash-register {
   flex-wrap: nowrap;
 }
 
+.appointment-arrow-step-wrap {
+  position: relative;
+  display: inline-flex;
+}
+
 .appointment-arrow-step {
   position: relative;
   min-width: 108px;
@@ -2195,6 +2200,48 @@ body.has-wallpaper .cash-register {
   outline: 2px solid #0f766e;
   outline-offset: 2px;
   z-index: 3;
+}
+
+.appointment-arrow-tooltip {
+  position: absolute;
+  left: 50%;
+  top: calc(100% + 6px);
+  transform: translateX(-50%) translateY(2px);
+  min-width: 180px;
+  max-width: 220px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: #fff;
+  color: #000;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.35;
+  text-transform: none;
+  letter-spacing: normal;
+  white-space: normal;
+  text-align: center;
+  border: 1px solid #000;
+  pointer-events: none;
+  opacity: 0;
+  z-index: 20;
+  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.08);
+  transition: opacity 160ms ease, transform 160ms ease;
+}
+
+.appointment-arrow-tooltip::after {
+  content: '';
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-bottom-color: #000;
+}
+
+.appointment-arrow-step-wrap:hover .appointment-arrow-tooltip,
+.appointment-arrow-step-wrap:focus-within .appointment-arrow-tooltip {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
 }
 
 .appointment-calendar-form-body {
@@ -2485,6 +2532,10 @@ body.has-wallpaper .cash-register {
     margin-left: 0;
   }
 
+  .appointment-arrow-step-wrap {
+    width: 100%;
+  }
+
   .appointment-arrow-step,
   .appointment-arrow-step:first-child,
   .appointment-arrow-step:last-child {
@@ -2492,6 +2543,26 @@ body.has-wallpaper .cash-register {
     margin-left: 0;
     clip-path: none;
     border-radius: 8px;
+  }
+
+  .appointment-arrow-tooltip {
+    left: 0;
+    top: calc(100% + 6px);
+    transform: translateY(2px);
+    min-width: 0;
+    max-width: min(260px, calc(100vw - 48px));
+    text-align: left;
+  }
+
+  .appointment-arrow-tooltip::after {
+    left: 20px;
+    transform: none;
+    bottom: 100%;
+  }
+
+  .appointment-arrow-step-wrap:hover .appointment-arrow-tooltip,
+  .appointment-arrow-step-wrap:focus-within .appointment-arrow-tooltip {
+    transform: translateY(0);
   }
 
   .appointment-calendar-form-body {
@@ -3901,9 +3972,7 @@ body.has-wallpaper .cash-register {
 }
 
 .appointment-inline-embedded-btn {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
+  position: static;
   width: 34px;
   height: 34px;
   border-radius: 10px;
@@ -3915,8 +3984,17 @@ body.has-wallpaper .cash-register {
   transition: transform 120ms ease, box-shadow 120ms ease;
 }
 
+.appointment-inline-tooltip-wrap {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .appointment-inline-embedded-btn:hover:not(:disabled) {
-  transform: translateY(calc(-50% - 1px));
+  transform: translateY(-1px);
   box-shadow: 0 7px 16px rgba(15, 23, 42, 0.24);
 }
 
@@ -3924,22 +4002,71 @@ body.has-wallpaper .cash-register {
   font-size: 1rem;
 }
 
-.appointment-inline-patient-filter-btn {
+.appointment-inline-tooltip {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%) translateY(2px);
+  min-width: 110px;
+  max-width: 180px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: #fff;
+  color: #000;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.35;
+  white-space: nowrap;
+  text-align: center;
+  border: 1px solid #000;
+  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.08);
+  pointer-events: none;
+  opacity: 0;
+  z-index: 25;
+  transition: opacity 160ms ease, transform 160ms ease;
+}
+
+.appointment-inline-tooltip::after {
+  content: '';
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-bottom-color: #000;
+}
+
+.appointment-inline-tooltip-wrap:hover .appointment-inline-tooltip,
+.appointment-inline-tooltip-wrap:focus-within .appointment-inline-tooltip {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+.appointment-inline-patient-filter-wrap {
   right: 46px;
+}
+
+.appointment-inline-patient-filter-btn {
   background: linear-gradient(135deg, #8b5cf6, #6d28d9);
   color: #fff;
   border: 1px solid #7c3aed;
 }
 
-.appointment-inline-patient-add-btn {
+.appointment-inline-patient-add-wrap {
   right: 6px;
+}
+
+.appointment-inline-patient-add-btn {
   background: linear-gradient(135deg, #3b82f6, #1d4ed8);
   color: #fff;
   border: 1px solid #2563eb;
 }
 
-.appointment-inline-patient-edit-btn {
+.appointment-inline-patient-edit-wrap {
   right: 6px;
+}
+
+.appointment-inline-patient-edit-btn {
   background: linear-gradient(135deg, #334155, #0f172a);
   color: #fff;
   border: 1px solid #1e293b;

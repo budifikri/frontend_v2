@@ -55,10 +55,10 @@ const STATUS_OPTIONS = [
 ]
 
 const FORM_STATUS_STEPS = [
-  { value: 'scheduled', label: 'Scheduled' },
-  { value: 'confirmed', label: 'Confirmed' },
-  { value: 'completed', label: 'Completed' },
-  { value: 'cancelled', label: 'Cancelled', tone: 'cancelled' },
+  { value: 'scheduled', label: 'Scheduled', tooltip: 'Isi data pasien sesuai jadwal dokter' },
+  { value: 'confirmed', label: 'Confirmed', tooltip: 'Konfirmasi ke dokter' },
+  { value: 'completed', label: 'Completed', tooltip: 'Pasien akan melakukan pembayaran' },
+  { value: 'cancelled', label: 'Cancelled', tone: 'cancelled', tooltip: 'Cancel jadwal pemeriksaan' },
 ]
 
 const DAY_LABELS = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab']
@@ -1349,24 +1349,28 @@ export function Appointment({ onExit, onOpenTool, toolContext = null }) {
             placeholder="Cari Nama / No RM / NIK / HP"
             className="master-form-input appointment-inline-input"
           />
-          <button
-            type="button"
-            className="appointment-inline-embedded-btn appointment-inline-patient-filter-btn"
-            onClick={handlePatientSearch}
-            title="Filter pasien"
-            aria-label="Filter pasien"
-          >
-            <span className="material-icons-round">filter_alt</span>
-          </button>
-          <button
-            type="button"
-            className="appointment-inline-embedded-btn appointment-inline-patient-add-btn"
-            onClick={handleOpenPatientCreate}
-            title="Tambah pasien"
-            aria-label="Tambah pasien"
-          >
-            <span className="material-icons-round">person_add</span>
-          </button>
+          <div className="appointment-inline-tooltip-wrap appointment-inline-patient-filter-wrap">
+            <button
+              type="button"
+              className="appointment-inline-embedded-btn appointment-inline-patient-filter-btn"
+              onClick={handlePatientSearch}
+              aria-label="Filter pasien"
+            >
+              <span className="material-icons-round">filter_alt</span>
+            </button>
+            <span className="appointment-inline-tooltip" role="tooltip">Filter pasien</span>
+          </div>
+          <div className="appointment-inline-tooltip-wrap appointment-inline-patient-add-wrap">
+            <button
+              type="button"
+              className="appointment-inline-embedded-btn appointment-inline-patient-add-btn"
+              onClick={handleOpenPatientCreate}
+              aria-label="Tambah pasien"
+            >
+              <span className="material-icons-round">person_add</span>
+            </button>
+            <span className="appointment-inline-tooltip" role="tooltip">Tambah pasien</span>
+          </div>
           {showPatientSearchResults && (
             <div className="appointment-inline-patient-dropdown">
               {isPatientLoading ? (
@@ -1398,16 +1402,18 @@ export function Appointment({ onExit, onOpenTool, toolContext = null }) {
             className="master-form-input appointment-inline-input appointment-inline-readonly-input"
             title={selectedPatientNoRm || 'Belum pilih pasien'}
           />
-          <button
-            type="button"
-            className="appointment-inline-embedded-btn appointment-inline-patient-edit-btn"
-            onClick={handleOpenPatientDetail}
-            disabled={!selectedPatient}
-            title="Edit data pasien"
-            aria-label="Edit data pasien"
-          >
-            <span className="material-icons-round">open_in_new</span>
-          </button>
+          <div className="appointment-inline-tooltip-wrap appointment-inline-patient-edit-wrap">
+            <button
+              type="button"
+              className="appointment-inline-embedded-btn appointment-inline-patient-edit-btn"
+              onClick={handleOpenPatientDetail}
+              disabled={!selectedPatient}
+              aria-label="Edit data pasien"
+            >
+              <span className="material-icons-round">open_in_new</span>
+            </button>
+            <span className="appointment-inline-tooltip" role="tooltip">Edit data pasien</span>
+          </div>
         </div>
       </div>
       <div className="master-form-group">
@@ -1492,15 +1498,17 @@ export function Appointment({ onExit, onOpenTool, toolContext = null }) {
       {FORM_STATUS_STEPS.map((item) => {
         const isActive = form.status === item.value
         return (
-          <button
-            key={item.value}
-            type="button"
-            className={`appointment-arrow-step ${isActive ? 'is-active' : 'is-inactive'} ${item.tone === 'cancelled' ? 'appointment-arrow-step-cancelled' : ''}`}
-            onClick={() => setForm({ ...form, status: item.value })}
-            aria-pressed={isActive}
-          >
-            {item.label}
-          </button>
+          <div key={item.value} className="appointment-arrow-step-wrap">
+            <button
+              type="button"
+              className={`appointment-arrow-step ${isActive ? 'is-active' : 'is-inactive'} ${item.tone === 'cancelled' ? 'appointment-arrow-step-cancelled' : ''}`}
+              onClick={() => setForm({ ...form, status: item.value })}
+              aria-pressed={isActive}
+            >
+              {item.label}
+            </button>
+            <span className="appointment-arrow-tooltip" role="tooltip">{item.tooltip}</span>
+          </div>
         )
       })}
     </div>
