@@ -4,18 +4,23 @@
 - perbaikan cetak laporan, fungsi print sepertinya cuman dari screenshoot data 
 - perbaikan sequence no nota penjualan yang acak, seharusnya urut
 ## TODO
-- perbaikan thema dan shorcut detil pembelian 
-- simpan setting cetak (font, format layout) ke database 
 
-- laporan pembelian
+- help tiap form
 - pembuatan dashboard
-- setting printer thermal dan dot matrix
 - Help POS
+- simpan setting cetak (font, format layout) ke database 
 - update logo pos
-- merapikan setting POS
-- menghitung harga rata rata
-- menghitung profit
-- penambahan cost di stock opname
+
+- perbaikan thema dan shorcut detil pembelian (done)
+
+
+- laporan pembelian (done)
+- setting printer thermal dan dot matrix(done)
+- merapikan setting POS  (done)
+- menghitung harga rata rata  (done)
+- menghitung profit(done)
+- penambahan cost di stock opname  (done)
+
 
 
 ## ON PROGRESS

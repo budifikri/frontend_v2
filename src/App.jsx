@@ -8,6 +8,7 @@ import {
   DashboardFooter,
   LoginForm,
   POS,
+  Toast,
 } from './components'
 import { AuthProvider, useAuth } from './shared/auth'
 import { ModuleProvider } from './shared/ModuleContext'
@@ -37,7 +38,7 @@ function AppContent() {
   const [isToolbarVisible, setIsToolbarVisible] = useState(true)
   const [userId, setUserId] = useState(() => loadLastUsername())
   const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState('')
+  const [toast, setToast] = useState({ isOpen: false, message: '', type: 'error' })
   const [shortcutPopupKey, setShortcutPopupKey] = useState(null)
 
   const activateTool = useCallback((toolKey, label = toolKey, context = null) => {
@@ -160,10 +161,9 @@ function AppContent() {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [view, activeMenu, activateTool])
 
-  const handleLogin = async (password) => {
+const handleLogin = async (password) => {
     const username = userId.trim()
 
-    setError('')
     setIsLoading(true)
 
     try {
@@ -181,7 +181,7 @@ function AppContent() {
         setIsToolbarVisible(true)
       }
     } catch (err) {
-      setError(err.message || 'Login failed')
+      setToast({ isOpen: true, message: err.message || 'Login failed', type: 'error' })
     } finally {
       setIsLoading(false)
     }
@@ -189,7 +189,7 @@ function AppContent() {
 
   const handleReset = async () => {
     setUserId('')
-    setError('')
+    setToast({ isOpen: false, message: '', type: 'error' })
     if (window.__TAURI__) {
       try {
         const { getCurrentWindow } = await import('@tauri-apps/api/window')
@@ -299,14 +299,21 @@ function AppContent() {
   }
 
   return (
-    <LoginForm
-      userId={userId}
-      onUserIdChange={setUserId}
-      onSubmit={handleLogin}
-      onReset={handleReset}
-      isLoading={isLoading}
-      error={error}
-    />
+    <>
+      <LoginForm
+        userId={userId}
+        onUserIdChange={setUserId}
+        onSubmit={handleLogin}
+        onReset={handleReset}
+        isLoading={isLoading}
+      />
+      <Toast
+        message={toast.message}
+        type={toast.type}
+        isOpen={toast.isOpen}
+        onClose={() => setToast(prev => ({ ...prev, isOpen: false }))}
+      />
+    </>
   )
 }
 

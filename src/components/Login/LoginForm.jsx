@@ -1,6 +1,6 @@
 import { useState } from 'react'
 
-export function LoginForm({ userId, onUserIdChange, onSubmit, onReset, isLoading, error }) {
+export function LoginForm({ userId, onUserIdChange, onSubmit, onReset, isLoading }) {
   const [password, setPassword] = useState('')
 
   const handleFormSubmit = async (event) => {
@@ -56,10 +56,6 @@ export function LoginForm({ userId, onUserIdChange, onSubmit, onReset, isLoading
               data-1p-ignore="true"
               disabled={isLoading}
             />
-
-            {error && (
-              <div className="login-error">{error}</div>
-            )}
           </form>
         </div>
 
