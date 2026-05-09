@@ -584,7 +584,7 @@ export function POS({ posContext = null, onExit = null }) {
       clearAuth()
     } catch (err) {
       console.error('Failed to close cash drawer:', err)
-      alert('Gagal menutup cash drawer: ' + (err.message || 'Unknown error'))
+      setToast({ isOpen: true, message: 'Gagal menutup cash drawer: ' + (err.message || 'Unknown error'), type: 'error' })
     } finally {
       setIsClosingDrawer(false)
     }
@@ -614,19 +614,19 @@ export function POS({ posContext = null, onExit = null }) {
 
   const handleCashIn = useCallback(async () => {
     if (!currentCashDrawer || !cashInAmount || parseFloat(cashInAmount) <= 0) {
-      alert('Masukkan jumlah yang valid')
+      setToast({ isOpen: true, message: 'Masukkan jumlah yang valid', type: 'warning' })
       return
     }
     setIsCashInSubmitting(true)
     try {
       await cashInDrawer(auth.token, currentCashDrawer.id, parseFloat(cashInAmount), cashInReason)
-      alert('Cash In berhasil!')
+      setToast({ isOpen: true, message: 'Cash In berhasil!', type: 'success' })
       setShowCashInForm(false)
       setCashInAmount('')
       setCashInReason('')
     } catch (err) {
       console.error('Failed to cash in:', err)
-      alert('Gagal cash in: ' + (err.message || 'Unknown error'))
+      setToast({ isOpen: true, message: 'Gagal cash in: ' + (err.message || 'Unknown error'), type: 'error' })
     } finally {
       setIsCashInSubmitting(false)
     }
@@ -648,7 +648,7 @@ export function POS({ posContext = null, onExit = null }) {
         setCashOutReason('')
         setTimeout(() => cashOutAmountRef.current?.focus(), 100)
       } else {
-        alert('Cash drawer belum dibuka')
+        setToast({ isOpen: true, message: 'Cash drawer belum dibuka', type: 'warning' })
       }
     } catch (err) {
       console.error('Failed to get cash drawer:', err)
@@ -657,19 +657,19 @@ export function POS({ posContext = null, onExit = null }) {
 
   const handleCashOut = useCallback(async () => {
     if (!currentCashDrawer || !cashOutAmount || parseFloat(cashOutAmount) <= 0) {
-      alert('Masukkan jumlah yang valid')
+      setToast({ isOpen: true, message: 'Masukkan jumlah yang valid', type: 'warning' })
       return
     }
     setIsCashOutSubmitting(true)
     try {
       await cashOutDrawer(auth.token, currentCashDrawer.id, parseFloat(cashOutAmount), cashOutReason)
-      alert('Cash Out berhasil!')
+      setToast({ isOpen: true, message: 'Cash Out berhasil!', type: 'success' })
       setShowCashOutForm(false)
       setCashOutAmount('')
       setCashOutReason('')
     } catch (err) {
       console.error('Failed to cash out:', err)
-      alert('Gagal cash out: ' + (err.message || 'Unknown error'))
+      setToast({ isOpen: true, message: 'Gagal cash out: ' + (err.message || 'Unknown error'), type: 'error' })
     } finally {
       setIsCashOutSubmitting(false)
     }
@@ -683,7 +683,7 @@ export function POS({ posContext = null, onExit = null }) {
 
   const handleOpenCashDrawer = async () => {
     if (!mainWarehouse) {
-      alert('Warehouse utama tidak ditemukan')
+      setToast({ isOpen: true, message: 'Warehouse utama tidak ditemukan', type: 'warning' })
       return
     }
     setIsOpeningDrawer(true)
@@ -699,7 +699,7 @@ export function POS({ posContext = null, onExit = null }) {
       setShowCashDrawerForm(false)
     } catch (err) {
       console.error('Failed to open cash drawer:', err)
-      alert('Gagal membuka cash drawer: ' + (err.message || 'Unknown error'))
+      setToast({ isOpen: true, message: 'Gagal membuka cash drawer: ' + (err.message || 'Unknown error'), type: 'error' })
     } finally {
       setIsOpeningDrawer(false)
     }
@@ -1794,17 +1794,17 @@ const handleExportTemplate = useCallback(async () => {
     const payment = parseFloat(paymentAmount) || 0
 
     if (isClinicAppointmentFlow && !currentCashDrawer?.id) {
-      alert('Cash drawer belum dibuka')
+      setToast({ isOpen: true, message: 'Cash drawer belum dibuka', type: 'warning' })
       setShowCashDrawerForm(true)
       return
     }
 
     if (paymentMethod === 'CASH' && payment < total) {
-      alert('Jumlah pembayaran kurang dari total')
+      setToast({ isOpen: true, message: 'Jumlah pembayaran kurang dari total', type: 'warning' })
       return
     }
     if (paymentMethod === 'TRANSFER' && !transferAccount.trim()) {
-      alert('Masukkan nomor rekening tujuan')
+      setToast({ isOpen: true, message: 'Masukkan nomor rekening tujuan', type: 'warning' })
       return
     }
 
@@ -1933,7 +1933,7 @@ const handleExportTemplate = useCallback(async () => {
     } catch (err) {
       console.error('Failed to save sale:', err)
       const errorMsg = err.message || 'Unknown error'
-      alert('Gagal menyimpan penjualan: ' + errorMsg)
+      setToast({ isOpen: true, message: 'Gagal menyimpan penjualan: ' + errorMsg, type: 'error' })
     }
   }
 
@@ -2190,10 +2190,10 @@ const handleExportTemplate = useCallback(async () => {
             <div className="cash-drawer-popup-footer">
               <button 
                 className="payment-btn-cancel" 
-                onClick={handleSkipCashDrawer}
+                onClick={handleLogout}
                 disabled={isOpeningDrawer}
               >
-                Lewati
+                Cancel
               </button>
               <button 
                 className="payment-btn-confirm" 
