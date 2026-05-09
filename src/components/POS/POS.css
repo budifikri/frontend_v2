@@ -115,29 +115,6 @@
   overflow: hidden;
 }
 
-.pos-appointment-banner {
-  display: grid;
-  gap: 8px;
-  margin: 0 22px 14px;
-  padding: 12px 14px;
-  border-radius: 14px;
-  background: rgba(13, 148, 136, 0.12);
-  border: 1px solid rgba(13, 148, 136, 0.2);
-}
-
-.pos-appointment-banner-row {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  font-size: 13px;
-  color: #0f172a;
-}
-
-.pos-appointment-banner-label {
-  color: #475569;
-  font-weight: 600;
-}
-
 /* ============================
    LEFT: RECEIPT PAPER (40%)
    ============================ */
@@ -931,7 +908,7 @@
 
 /* Product Popup */
 .product-popup-overlay {
-  position: absolute;
+  position: fixed;
   top: 0;
   left: 0;
   right: 0;
@@ -947,12 +924,19 @@
   background: white;
   border-radius: 12px;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-  width: 90%;
-  max-width: 600px;
-  max-height: 70%;
+  width: min(800px, calc(100vw - 64px));
+  max-width: none;
+  max-height: min(78vh, 900px);
   display: flex;
   flex-direction: column;
   overflow: hidden;
+}
+
+@media (max-width: 768px) {
+  .product-popup {
+    width: calc(100vw - 24px);
+    max-height: 82vh;
+  }
 }
 
 .product-popup-header {
@@ -992,9 +976,40 @@
 }
 
 .product-popup-table {
-  width: 100%;
+  width: max-content;
+  min-width: 100%;
   border-collapse: collapse;
   font-size: 14px;
+}
+
+.product-popup-table th:first-child,
+.product-popup-table td:first-child {
+  width: 56px;
+  white-space: nowrap;
+}
+
+.product-popup-table th:nth-child(2),
+.product-popup-table td:nth-child(2) {
+  min-width: 320px;
+  width: auto;
+}
+
+.product-popup-table th:nth-child(3),
+.product-popup-table td:nth-child(3) {
+  width: 120px;
+  white-space: nowrap;
+}
+
+.product-popup-table th:nth-child(4),
+.product-popup-table td:nth-child(4) {
+  width: 140px;
+  white-space: nowrap;
+}
+
+.product-popup-table th:nth-child(5),
+.product-popup-table td:nth-child(5) {
+  width: 160px;
+  white-space: nowrap;
 }
 
 .product-popup-table thead {
@@ -1016,6 +1031,7 @@
 .product-popup-table td {
   padding: 12px 16px;
   border-bottom: 1px solid #f1f5f9;
+  vertical-align: top;
 }
 
 .product-popup-table tbody tr {

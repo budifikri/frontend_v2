@@ -553,9 +553,9 @@
   text-align: center;
 }
 
-.action-popup h3 {
-  color: #191c1e;
-}
+/* .action-popup h3 { */
+/*   color: #191c1e; */
+/* } */
 
 .action-popup p {
   color: #64748b;

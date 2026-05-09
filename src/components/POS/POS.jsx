@@ -155,6 +155,7 @@ export function POS({ posContext = null, onExit = null }) {
   const [itemToDelete, setItemToDelete] = useState(null)
   const [deleteButtonIndex, setDeleteButtonIndex] = useState(1)
   const searchInputRef = useRef(null)
+  const searchContainerRef = useRef(null)
   const paymentInputRef = useRef(null)
   const deleteConfirmBtnRef = useRef(null)
   const deleteCancelBtnRef = useRef(null)
@@ -227,6 +228,7 @@ export function POS({ posContext = null, onExit = null }) {
       : null
   ))
   const [categoryProductTypes, setCategoryProductTypes] = useState({})
+  const [productPopupMinWidth, setProductPopupMinWidth] = useState(560)
 
   const ensureRuntimeReceiptSettings = useCallback((value) => {
     const source = value && typeof value === 'object' ? value : DEFAULT_RECEIPT_SETTINGS
@@ -294,6 +296,21 @@ export function POS({ posContext = null, onExit = null }) {
   useEffect(() => {
     loadCategoryProductTypes()
   }, [loadCategoryProductTypes])
+
+  useEffect(() => {
+    if (!showProductPopup) return undefined
+
+    const updateProductPopupWidth = () => {
+      const nextWidth = Math.round(searchContainerRef.current?.getBoundingClientRect?.().width || 0)
+      const viewportWidth = typeof window === 'undefined' ? 1100 : Math.max(window.innerWidth - 24, 320)
+      const preferredWidth = nextWidth > 0 ? Math.max(nextWidth, 560) : 560
+      setProductPopupMinWidth(Math.min(preferredWidth, viewportWidth))
+    }
+
+    updateProductPopupWidth()
+    window.addEventListener('resize', updateProductPopupWidth)
+    return () => window.removeEventListener('resize', updateProductPopupWidth)
+  }, [showProductPopup])
 
   useEffect(() => {
     const loaded = loadReceiptSettings()
@@ -3111,27 +3128,6 @@ const handleExportTemplate = useCallback(async () => {
               </div>
             </div>
 
-            {isClinicAppointmentFlow && (
-              <div className="pos-appointment-banner">
-                <div className="pos-appointment-banner-row">
-                  <span className="pos-appointment-banner-label">Pasien Aktif</span>
-                  <strong>{selectedCustomer?.name || '-'}</strong>
-                </div>
-                <div className="pos-appointment-banner-row">
-                  <span className="pos-appointment-banner-label">Sumber</span>
-                  <span>Appointment {appointmentId || '-'}</span>
-                </div>
-                <div className="pos-appointment-banner-row">
-                  <span className="pos-appointment-banner-label">Cash Drawer</span>
-                  <span>{currentCashDrawer?.id ? 'Open' : 'Closed'}</span>
-                </div>
-                <div className="pos-appointment-banner-row">
-                  <span className="pos-appointment-banner-label">Harga</span>
-                  <span>Terkunci dari master item</span>
-                </div>
-              </div>
-            )}
-
             <div className="receipt-items-wrapper">
               <div className="receipt-items">
                 {items.map((item, idx) => (
@@ -3195,7 +3191,7 @@ const handleExportTemplate = useCallback(async () => {
             </div>
 
             <div className="receipt-footer">
-              <div className="pos-search-container">
+              <div ref={searchContainerRef} className="pos-search-container">
                 <span className="material-icons">search</span>
                 <input
                   ref={searchInputRef}
@@ -3229,7 +3225,7 @@ const handleExportTemplate = useCallback(async () => {
                   }
                 }}
               >
-                <div className="product-popup" onClick={(e) => e.stopPropagation()}>
+                <div className="product-popup" style={{ minWidth: `${productPopupMinWidth}px` }} onClick={(e) => e.stopPropagation()}>
                   <div className="product-popup-header">
                     <h3>{isClinicAppointmentFlow ? 'Daftar Product & Treatment' : 'Daftar Produk'}</h3>
                     <button className="product-popup-close" onClick={() => { setShowProductPopup(false); setSearch('') }}>

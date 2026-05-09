@@ -34,17 +34,17 @@
 - [x] Task 25: POS.jsx searchCatalog() filter consumable
 - [x] Task 26: POS.jsx addToCart() skip stock untuk service
 - [x] Task 27: POS badge/indicator tipe produk (opsional)
-- [ ] Task 28: Test laporan stock hanya stockable
-- [ ] Task 29: Test POS consumable tidak muncul
-- [ ] Task 30: Test POS service tanpa stock lock
-- [ ] Task 31: Test POS stockable tetap validasi stock
+- [x] Task 28: Test laporan stock hanya stockable
+- [x] Task 29: Test POS consumable tidak muncul
+- [x] Task 30: Test POS service tanpa stock lock
+- [x] Task 31: Test POS stockable tetap validasi stock
 - [x] Task 32: npm run lint
 - [x] Task 33: npm run build
 
 ### Summary
 - **Phase 1**: 20/22 completed
-- **Phase 2**: 7/11 completed
-- **Total**: 27/33 completed
+- **Phase 2**: 11/11 completed
+- **Total**: 31/33 completed
 - **Status**: PENDING
 
 ## Tasks
