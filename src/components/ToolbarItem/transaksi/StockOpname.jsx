@@ -155,7 +155,6 @@ export function StockOpname({ onExit }) {
   const [selectedId, setSelectedId] = useState(null)
   const [showForm, setShowForm] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
-  const [showExitConfirm, setShowExitConfirm] = useState(false)
   const [showDetail, setShowDetail] = useState(false)
   const tableRef = useRef(null)
 
@@ -322,7 +321,7 @@ export function StockOpname({ onExit }) {
     setSelectedId,
     handleEdit: handleViewDetail,
     tableRef,
-    isModalOpen: showForm || showDeleteConfirm || showExitConfirm || showDetail,
+    isModalOpen: showForm || showDeleteConfirm || showDetail,
   })
 
   const handleConfirmDelete = async () => {
@@ -409,11 +408,7 @@ export function StockOpname({ onExit }) {
   }
 
   const handlePrint = () => window.print()
-  const handleExitClick = () => setShowExitConfirm(true)
-  const handleConfirmExit = () => {
-    setShowExitConfirm(false)
-    onExit()
-  }
+  const handleExitClick = () => onExit()
 
   const warehouseOptionsForSelect = useMemo(() => {
     const opts = warehouseOptions.length > 0 ? warehouseOptions : DUMMY_WAREHOUSES
@@ -703,18 +698,6 @@ export function StockOpname({ onExit }) {
           cancelText="Batal"
           onConfirm={handleConfirmDelete}
           onCancel={() => setShowDeleteConfirm(false)}
-        />
-      )}
-
-      {showExitConfirm && (
-        <DeleteMaster
-          itemName="keluar dari halaman ini"
-          title="Konfirmasi Keluar"
-          confirmText="Ya"
-          cancelText="Tidak"
-          isExit={true}
-          onConfirm={handleConfirmExit}
-          onCancel={() => setShowExitConfirm(false)}
         />
       )}
 

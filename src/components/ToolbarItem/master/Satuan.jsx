@@ -67,7 +67,6 @@ export function Satuan({ onExit }) {
   const [showForm, setShowForm] = useState(false)
   const [isNewMode, setIsNewMode] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
-  const [showExitConfirm, setShowExitConfirm] = useState(false)
   const [showImportConfirm, setShowImportConfirm] = useState(false)
   const tableRef = useRef(null)
   const [pendingImportData, setPendingImportData] = useState(null)
@@ -139,7 +138,7 @@ export function Satuan({ onExit }) {
     setSelectedId,
     handleEdit,
     tableRef,
-    isModalOpen: showForm || showDeleteConfirm || showExitConfirm || showImportConfirm,
+    isModalOpen: showForm || showDeleteConfirm || showImportConfirm,
   })
 
   useEffect(() => {
@@ -181,7 +180,7 @@ export function Satuan({ onExit }) {
         handleNew()
       } else if (e.key === 'Escape') {
         e.preventDefault()
-        setShowExitConfirm(true)
+        onExit()
       }
     }
 
@@ -487,11 +486,6 @@ export function Satuan({ onExit }) {
   }
 
   function handleExitClick() {
-    setShowExitConfirm(true)
-  }
-
-  function handleConfirmExit() {
-    setShowExitConfirm(false)
     onExit()
   }
 
@@ -649,18 +643,6 @@ export function Satuan({ onExit }) {
           itemName={selectedItem?.name}
           onConfirm={handleConfirmDelete}
           onCancel={() => setShowDeleteConfirm(false)}
-        />
-      )}
-
-      {showExitConfirm && (
-        <DeleteMaster
-          itemName="keluar dari halaman ini"
-          title="Konfirmasi Keluar"
-          confirmText="Ya"
-          cancelText="Tidak"
-          isExit={true}
-          onConfirm={handleConfirmExit}
-          onCancel={() => setShowExitConfirm(false)}
         />
       )}
 

@@ -214,7 +214,6 @@ export function Promotion({ onExit }) {
   const [selectedId, setSelectedId] = useState(null)
   const [showForm, setShowForm] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
-  const [showExitConfirm, setShowExitConfirm] = useState(false)
   const tableRef = useRef(null)
   const [togglingId, setTogglingId] = useState(null)
 
@@ -310,7 +309,7 @@ export function Promotion({ onExit }) {
         handleNew()
       } else if (e.key === 'Escape') {
         e.preventDefault()
-        setShowExitConfirm(true)
+        onExit()
       }
     }
 
@@ -408,7 +407,7 @@ export function Promotion({ onExit }) {
     setSelectedId,
     handleEdit,
     tableRef,
-    isModalOpen: showForm || showDeleteConfirm || showExitConfirm,
+    isModalOpen: showForm || showDeleteConfirm,
   })
 
   async function handleConfirmDelete() {
@@ -474,11 +473,6 @@ export function Promotion({ onExit }) {
   }
 
   function handleExitClick() {
-    setShowExitConfirm(true)
-  }
-
-  function handleConfirmExit() {
-    setShowExitConfirm(false)
     onExit()
   }
 
@@ -835,17 +829,6 @@ export function Promotion({ onExit }) {
         />
       )}
 
-      {showExitConfirm && (
-        <DeleteMaster
-          itemName="keluar dari halaman ini"
-          title="Konfirmasi Keluar"
-          confirmText="Ya"
-          cancelText="Tidak"
-          isExit={true}
-          onConfirm={handleConfirmExit}
-          onCancel={() => setShowExitConfirm(false)}
-        />
-      )}
     </div>
   )
 }

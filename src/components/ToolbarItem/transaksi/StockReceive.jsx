@@ -108,7 +108,6 @@ export function StockReceive({ onExit }) {
   const { limit, offset } = pager
 
   const [selectedId, setSelectedId] = useState(null)
-  const [showExitConfirm, setShowExitConfirm] = useState(false)
   const [showDetail, setShowDetail] = useState(false)
   const tableRef = useRef(null)
 
@@ -227,12 +226,11 @@ export function StockReceive({ onExit }) {
     setSelectedId,
     handleEdit: handleViewDetail,
     tableRef,
-    isModalOpen: showExitConfirm || showDetail || showDateModal,
+    isModalOpen: showDetail || showDateModal,
   })
 
   const handlePrint = () => window.print()
-  const handleExitClick = () => setShowExitConfirm(true)
-  const handleConfirmExit = () => { setShowExitConfirm(false); onExit() }
+  const handleExitClick = () => onExit()
 
   const handleDateFilterChange = (value) => {
     if (value === 'custom') {
@@ -277,18 +275,17 @@ export function StockReceive({ onExit }) {
 
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (showExitConfirm) return
       if (e.key === 'F2') {
         e.preventDefault()
         handleViewDetail()
       } else if (e.key === 'Escape') {
         e.preventDefault()
-        setShowExitConfirm(true)
+        onExit()
       }
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [showExitConfirm, handleViewDetail])
+  }, [handleViewDetail, onExit])
 
   if (showDetail) {
     return (
@@ -428,18 +425,6 @@ export function StockReceive({ onExit }) {
         isAllRecords={pager.isAllRecords}
         onToggleAllRecords={pager.toggleAllRecords}
       />
-
-      {showExitConfirm && (
-        <DeleteMaster
-          itemName="keluar dari halaman ini"
-          title="Konfirmasi Keluar"
-          confirmText="Ya"
-          cancelText="Tidak"
-          isExit={true}
-          onConfirm={handleConfirmExit}
-          onCancel={() => setShowExitConfirm(false)}
-        />
-      )}
 
       {showDateModal && (
         <div className="delete-master-overlay">

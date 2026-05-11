@@ -156,6 +156,11 @@ export function PurchaseReturnDetail({ selectedId: propSelectedId, onExit, onSav
     loadPurchaseReturn()
   }, [propSelectedId, token])
 
+  const currentReturnStatus = String(header.status || 'draft').toLowerCase()
+  const isLocked = ['approved', 'approve', 'void', 'voided'].includes(currentReturnStatus)
+  const isApprovedReturn = ['approved', 'approve'].includes(currentReturnStatus)
+  const activeReturnStatus = isApprovedReturn ? 'approved' : 'draft'
+
   const handleSelectProduct = useCallback(async (product) => {
     if (isLocked) return
     const existingIndex = items.findIndex(item => item.product_id === product.id)
@@ -224,11 +229,6 @@ export function PurchaseReturnDetail({ selectedId: propSelectedId, onExit, onSav
     const grandTotal = subtotal - discountTotal + taxTotal
     return { subtotal, discountTotal, taxTotal, grandTotal, itemCount: items.length }
   }, [items])
-
-  const currentReturnStatus = String(header.status || 'draft').toLowerCase()
-  const isLocked = ['approved', 'approve', 'void', 'voided'].includes(currentReturnStatus)
-  const isApprovedReturn = ['approved', 'approve'].includes(currentReturnStatus)
-  const activeReturnStatus = isApprovedReturn ? 'approved' : 'draft'
 
   const handleSave = useCallback(async () => {
     if (isLocked) return

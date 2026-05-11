@@ -303,7 +303,6 @@ export function Customer({ onExit, toolContext = null }) {
   const [showForm, setShowForm] = useState(false)
   const [isNewMode, setIsNewMode] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
-  const [showExitConfirm, setShowExitConfirm] = useState(false)
   const [showImportConfirm, setShowImportConfirm] = useState(false)
   const [pendingImportData, setPendingImportData] = useState(null)
   const [showToast, setShowToast] = useState(false)
@@ -482,7 +481,7 @@ export function Customer({ onExit, toolContext = null }) {
     setSelectedId,
     handleEdit,
     tableRef,
-    isModalOpen: showForm || showDeleteConfirm || showExitConfirm || showImportConfirm,
+    isModalOpen: showForm || showDeleteConfirm || showImportConfirm,
   })
 
   useEffect(() => {
@@ -546,7 +545,7 @@ export function Customer({ onExit, toolContext = null }) {
         handleNew()
       } else if (e.key === 'Escape') {
         e.preventDefault()
-        setShowExitConfirm(true)
+        onExit()
       }
     }
 
@@ -917,11 +916,6 @@ export function Customer({ onExit, toolContext = null }) {
   }
 
   function handleExitClick() {
-    setShowExitConfirm(true)
-  }
-
-  function handleConfirmExit() {
-    setShowExitConfirm(false)
     onExit()
   }
 
@@ -1310,18 +1304,6 @@ export function Customer({ onExit, toolContext = null }) {
           itemName={selectedItem?.name}
           onConfirm={handleConfirmDelete}
           onCancel={() => setShowDeleteConfirm(false)}
-        />
-      )}
-
-      {showExitConfirm && (
-        <DeleteMaster
-          itemName="keluar dari halaman ini"
-          title="Konfirmasi Keluar"
-          confirmText="Ya"
-          cancelText="Tidak"
-          isExit={true}
-          onConfirm={handleConfirmExit}
-          onCancel={() => setShowExitConfirm(false)}
         />
       )}
 

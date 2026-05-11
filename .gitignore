@@ -6,12 +6,12 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
-
+prod
 node_modules
 dist
 dist-ssr
 *.local
-
+document
 # Tauri / Rust
 src-tauri/target/
 src-tauri/gen/
@@ -31,6 +31,8 @@ coverage/
 *.njsproj
 *.sln
 *.sw?
+*.md
+*.go
 
 
 

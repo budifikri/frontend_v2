@@ -120,7 +120,6 @@ export function Purchase({ onExit }) {
 
   const [selectedId, setSelectedId] = useState(null)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
-  const [showExitConfirm, setShowExitConfirm] = useState(false)
   const [showDetail, setShowDetail] = useState(false)
   const tableRef = useRef(null)
 
@@ -341,13 +340,13 @@ export function Purchase({ onExit }) {
     setSelectedId,
     handleEdit: handleViewDetail,
     tableRef,
-    isModalOpen: showDeleteConfirm || showExitConfirm || showDetail || showDateModal,
+    isModalOpen: showDeleteConfirm || showDetail || showDateModal,
   })
 
   useEffect(() => {
     const handleKeyDown = (e) => {
-      console.debug('[Purchase.jsx] keydown:', e.key, '| showDetail:', showDetail, '| showExitConfirm:', showExitConfirm)
-      if (showDeleteConfirm || showExitConfirm) return
+      console.debug('[Purchase.jsx] keydown:', e.key, '| showDetail:', showDetail)
+      if (showDeleteConfirm) return
       if (showDetail) {
         console.debug('[Purchase.jsx] ESC blocked - showDetail is true')
         return
@@ -363,12 +362,12 @@ export function Purchase({ onExit }) {
         handleNew()
       } else if (e.key === 'Escape') {
         e.preventDefault()
-        setShowExitConfirm(true)
+        onExit()
       }
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [showDeleteConfirm, showExitConfirm, showDetail, fetchData, handleViewDetail, handleDeleteClick, handleNew])
+  }, [showDeleteConfirm, showDetail, fetchData, handleViewDetail, handleDeleteClick, handleNew, onExit])
 
   const handleConfirmDelete = async () => {
     if (!selectedItem) {
@@ -390,8 +389,7 @@ export function Purchase({ onExit }) {
   }
 
   const handlePrint = () => window.print()
-  const handleExitClick = () => setShowExitConfirm(true)
-  const handleConfirmExit = () => { setShowExitConfirm(false); onExit() }
+  const handleExitClick = () => onExit()
 
   // Date filter handlers
   const handleDateFilterChange = (value) => {
@@ -646,18 +644,6 @@ export function Purchase({ onExit }) {
           cancelText="Batal"
           onConfirm={handleConfirmDelete}
           onCancel={() => setShowDeleteConfirm(false)}
-        />
-      )}
-
-      {showExitConfirm && (
-        <DeleteMaster
-          itemName="keluar dari halaman ini"
-          title="Konfirmasi Keluar"
-          confirmText="Ya"
-          cancelText="Tidak"
-          isExit={true}
-          onConfirm={handleConfirmExit}
-          onCancel={() => setShowExitConfirm(false)}
         />
       )}
 

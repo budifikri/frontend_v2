@@ -108,7 +108,6 @@ export function PurchaseReturn({ onExit }) {
 
   const [selectedId, setSelectedId] = useState(null)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
-  const [showExitConfirm, setShowExitConfirm] = useState(false)
   const [showDetail, setShowDetail] = useState(false)
   const tableRef = useRef(null)
 
@@ -286,12 +285,12 @@ export function PurchaseReturn({ onExit }) {
     setSelectedId,
     handleEdit: handleViewDetail,
     tableRef,
-    isModalOpen: showDeleteConfirm || showExitConfirm || showDetail || showDateModal,
+    isModalOpen: showDeleteConfirm || showDetail || showDateModal,
   })
 
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (showDeleteConfirm || showExitConfirm) return
+      if (showDeleteConfirm) return
       if (e.key === 'F2') {
         e.preventDefault()
         handleViewDetail()
@@ -303,12 +302,12 @@ export function PurchaseReturn({ onExit }) {
         handleNew()
       } else if (e.key === 'Escape') {
         e.preventDefault()
-        setShowExitConfirm(true)
+        onExit()
       }
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [showDeleteConfirm, showExitConfirm, handleViewDetail, handleDeleteClick, handleNew])
+  }, [showDeleteConfirm, handleViewDetail, handleDeleteClick, handleNew, onExit])
 
   const handleConfirmDelete = async () => {
     if (!selectedItem) {
@@ -330,8 +329,7 @@ export function PurchaseReturn({ onExit }) {
   }
 
   const handlePrint = () => window.print()
-  const handleExitClick = () => setShowExitConfirm(true)
-  const handleConfirmExit = () => { setShowExitConfirm(false); onExit() }
+  const handleExitClick = () => onExit()
 
   const handleDateFilterChange = (value) => {
     if (value === 'custom') {
@@ -549,18 +547,6 @@ export function PurchaseReturn({ onExit }) {
           cancelText="Batal"
           onConfirm={handleConfirmDelete}
           onCancel={() => setShowDeleteConfirm(false)}
-        />
-      )}
-
-      {showExitConfirm && (
-        <DeleteMaster
-          itemName="keluar dari halaman ini"
-          title="Konfirmasi Keluar"
-          confirmText="Ya"
-          cancelText="Tidak"
-          isExit={true}
-          onConfirm={handleConfirmExit}
-          onCancel={() => setShowExitConfirm(false)}
         />
       )}
 

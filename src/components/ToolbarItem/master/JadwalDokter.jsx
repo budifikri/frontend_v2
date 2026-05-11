@@ -101,7 +101,6 @@ export function JadwalDokter({ onExit }) {
   const [selectedId, setSelectedId] = useState(null)
   const [showForm, setShowForm] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
-  const [showExitConfirm, setShowExitConfirm] = useState(false)
   const [isNewMode, setIsNewMode] = useState(false)
   const [form, setForm] = useState(DEFAULT_FORM)
   const [toastMessage, setToastMessage] = useState('')
@@ -131,7 +130,7 @@ export function JadwalDokter({ onExit }) {
     setSelectedId,
     handleEdit: (row) => handleEdit(row),
     tableRef,
-    isModalOpen: showForm || showDeleteConfirm || showExitConfirm,
+    isModalOpen: showForm || showDeleteConfirm,
   })
 
   const printData = useMemo(() => {
@@ -246,14 +245,6 @@ export function JadwalDokter({ onExit }) {
         return
       }
 
-      if (showExitConfirm) {
-        if (e.key === 'Escape') {
-          e.preventDefault()
-          setShowExitConfirm(false)
-        }
-        return
-      }
-
       if (e.key === 'F2') {
         e.preventDefault()
         handleEdit()
@@ -265,7 +256,7 @@ export function JadwalDokter({ onExit }) {
         handleNew()
       } else if (e.key === 'Escape') {
         e.preventDefault()
-        setShowExitConfirm(true)
+        onExit()
       }
     }
 
@@ -401,11 +392,6 @@ export function JadwalDokter({ onExit }) {
       data: printData,
       footerTextOverride: `Laporan Jadwal Dokter dicetak pada ${new Date().toLocaleDateString('id-ID')}`,
     })
-  }
-
-  function handleConfirmExit() {
-    setShowExitConfirm(false)
-    onExit()
   }
 
   return (
@@ -567,7 +553,7 @@ export function JadwalDokter({ onExit }) {
         onEdit={handleEdit}
         onDelete={handleDeleteClick}
         onPrint={handlePrint}
-        onExit={() => setShowExitConfirm(true)}
+        onExit={onExit}
         onRefresh={fetchData}
         isLoading={isLoading}
         page={pager.page}
@@ -591,19 +577,7 @@ export function JadwalDokter({ onExit }) {
         />
       )}
 
-      {showExitConfirm && (
-        <DeleteMaster
-          itemName="keluar dari halaman ini"
-          title="Konfirmasi Keluar"
-          confirmText="Ya"
-          cancelText="Tidak"
-          isExit={true}
-          onConfirm={handleConfirmExit}
-          onCancel={() => setShowExitConfirm(false)}
-        />
-      )}
-
-      {showToast && <Toast message={toastMessage} type="success" onClose={() => setShowToast(false)} />}
+      {showToast && <Toast message={toastMessage} type="success" isOpen={showToast} onClose={() => setShowToast(false)} />}
     </div>
   )
 }

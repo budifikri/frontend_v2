@@ -368,7 +368,6 @@ export function Appointment({ onExit, onOpenTool, toolContext = null }) {
   const [showForm, setShowForm] = useState(false)
   const [isNewMode, setIsNewMode] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
-  const [showExitConfirm, setShowExitConfirm] = useState(false)
   const tableRef = useRef(null)
   const [showToast, setShowToast] = useState(false)
   const [toastMessage, setToastMessage] = useState('')
@@ -570,7 +569,7 @@ export function Appointment({ onExit, onOpenTool, toolContext = null }) {
     setSelectedId,
     handleEdit,
     tableRef,
-    isModalOpen: showForm || showDeleteConfirm || showExitConfirm || showDateModal,
+    isModalOpen: showForm || showDeleteConfirm || showDateModal,
   })
 
   useEffect(() => {
@@ -640,7 +639,7 @@ export function Appointment({ onExit, onOpenTool, toolContext = null }) {
         handleNew()
       } else if (e.key === 'Escape') {
         e.preventDefault()
-        setShowExitConfirm(true)
+        onExit()
       }
     }
 
@@ -1205,11 +1204,6 @@ export function Appointment({ onExit, onOpenTool, toolContext = null }) {
   }
 
   function handleExitClick() {
-    setShowExitConfirm(true)
-  }
-
-  function handleConfirmExit() {
-    setShowExitConfirm(false)
     onExit()
   }
 
@@ -1956,18 +1950,6 @@ export function Appointment({ onExit, onOpenTool, toolContext = null }) {
           itemName={`appointment ${selectedItem?.patient_name || ''}`}
           onConfirm={handleConfirmDelete}
           onCancel={() => setShowDeleteConfirm(false)}
-        />
-      )}
-
-      {showExitConfirm && (
-        <DeleteMaster
-          itemName="keluar dari halaman ini"
-          title="Konfirmasi Keluar"
-          confirmText="Ya"
-          cancelText="Tidak"
-          isExit={true}
-          onConfirm={handleConfirmExit}
-          onCancel={() => setShowExitConfirm(false)}
         />
       )}
 

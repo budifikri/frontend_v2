@@ -64,7 +64,6 @@ export function Warehouse({ onExit }) {
   const [showForm, setShowForm] = useState(false)
   const [isNewMode, setIsNewMode] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
-  const [showExitConfirm, setShowExitConfirm] = useState(false)
   const [showImportConfirm, setShowImportConfirm] = useState(false)
   const tableRef = useRef(null)
   const [pendingImportData, setPendingImportData] = useState(null)
@@ -225,7 +224,7 @@ export function Warehouse({ onExit }) {
         handleNew()
       } else if (e.key === 'Escape') {
         e.preventDefault()
-        setShowExitConfirm(true)
+        onExit()
       }
     }
 
@@ -338,7 +337,7 @@ export function Warehouse({ onExit }) {
     setSelectedId,
     handleEdit,
     tableRef,
-    isModalOpen: showForm || showDeleteConfirm || showExitConfirm || showImportConfirm,
+    isModalOpen: showForm || showDeleteConfirm || showImportConfirm,
   })
 
   const handlePrint = async () => {
@@ -503,11 +502,6 @@ export function Warehouse({ onExit }) {
   }
 
   const handleExitClick = () => {
-    setShowExitConfirm(true)
-  }
-
-  const handleConfirmExit = () => {
-    setShowExitConfirm(false)
     onExit()
   }
 
@@ -712,18 +706,6 @@ export function Warehouse({ onExit }) {
           itemName={selectedItem?.name}
           onConfirm={handleConfirmDelete}
           onCancel={() => setShowDeleteConfirm(false)}
-        />
-      )}
-
-      {showExitConfirm && (
-        <DeleteMaster
-          itemName="keluar dari halaman ini"
-          title="Konfirmasi Keluar"
-          confirmText="Ya"
-          cancelText="Tidak"
-          isExit={true}
-          onConfirm={handleConfirmExit}
-          onCancel={() => setShowExitConfirm(false)}
         />
       )}
 

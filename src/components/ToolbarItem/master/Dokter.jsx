@@ -112,7 +112,6 @@ export function Dokter({ onExit }) {
   const [showForm, setShowForm] = useState(false)
   const [isNewMode, setIsNewMode] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
-  const [showExitConfirm, setShowExitConfirm] = useState(false)
   const tableRef = useRef(null)
   const [togglingId, setTogglingId] = useState(null)
   const [showToast, setShowToast] = useState(false)
@@ -186,7 +185,7 @@ export function Dokter({ onExit }) {
     setSelectedId,
     handleEdit,
     tableRef,
-    isModalOpen: showForm || showDeleteConfirm || showExitConfirm,
+    isModalOpen: showForm || showDeleteConfirm,
   })
 
   useEffect(() => {
@@ -228,7 +227,7 @@ export function Dokter({ onExit }) {
         handleNew()
       } else if (e.key === 'Escape') {
         e.preventDefault()
-        setShowExitConfirm(true)
+        onExit()
       }
     }
 
@@ -488,11 +487,6 @@ export function Dokter({ onExit }) {
   }
 
   function handleExitClick() {
-    setShowExitConfirm(true)
-  }
-
-  function handleConfirmExit() {
-    setShowExitConfirm(false)
     onExit()
   }
 
@@ -673,18 +667,6 @@ export function Dokter({ onExit }) {
           itemName={selectedItem?.nama}
           onConfirm={handleConfirmDelete}
           onCancel={() => setShowDeleteConfirm(false)}
-        />
-      )}
-
-      {showExitConfirm && (
-        <DeleteMaster
-          itemName="keluar dari halaman ini"
-          title="Konfirmasi Keluar"
-          confirmText="Ya"
-          cancelText="Tidak"
-          isExit={true}
-          onConfirm={handleConfirmExit}
-          onCancel={() => setShowExitConfirm(false)}
         />
       )}
 

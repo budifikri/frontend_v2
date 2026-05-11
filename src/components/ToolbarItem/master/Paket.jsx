@@ -85,7 +85,6 @@ export function Paket({ onExit }) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [showDetailDeleteConfirm, setShowDetailDeleteConfirm] = useState(false)
   const [pendingDetailDeleteIndex, setPendingDetailDeleteIndex] = useState(null)
-  const [showExitConfirm, setShowExitConfirm] = useState(false)
   const [showImportConfirm, setShowImportConfirm] = useState(false)
   const [pendingImportData, setPendingImportData] = useState(null)
   const [showToast, setShowToast] = useState(false)
@@ -176,7 +175,7 @@ export function Paket({ onExit }) {
     setSelectedId,
     handleEdit,
     tableRef,
-    isModalOpen: showForm || showDeleteConfirm || showDetailDeleteConfirm || showExitConfirm || showImportConfirm || showProductPopup,
+    isModalOpen: showForm || showDeleteConfirm || showDetailDeleteConfirm || showImportConfirm || showProductPopup,
   })
 
   // Fetch product search
@@ -723,11 +722,6 @@ export function Paket({ onExit }) {
   }
 
   function handleExitClick() {
-    setShowExitConfirm(true)
-  }
-
-  function handleConfirmExit() {
-    setShowExitConfirm(false)
     onExit()
   }
 
@@ -788,7 +782,7 @@ export function Paket({ onExit }) {
         handleNew()
       } else if (e.key === 'Escape') {
         e.preventDefault()
-        setShowExitConfirm(true)
+        onExit()
       }
     }
 
@@ -1138,18 +1132,6 @@ export function Paket({ onExit }) {
           itemName={detailItems[pendingDetailDeleteIndex]?.nama || 'item detail'}
           onConfirm={handleConfirmRemoveProduct}
           onCancel={handleCancelRemoveProduct}
-        />
-      )}
-
-      {showExitConfirm && (
-        <DeleteMaster
-          itemName="keluar dari halaman ini"
-          title="Konfirmasi Keluar"
-          confirmText="Ya"
-          cancelText="Tidak"
-          isExit={true}
-          onConfirm={handleConfirmExit}
-          onCancel={() => setShowExitConfirm(false)}
         />
       )}
 
