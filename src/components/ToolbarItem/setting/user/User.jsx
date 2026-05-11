@@ -21,7 +21,7 @@ const DEFAULT_FORM = {
   is_active: true,
 }
 
-const ROLE_OPTIONS = ['SUPERUSER', 'ADMIN', 'MANAGER', 'SUPERVISOR', 'CASHIER']
+const ROLE_OPTIONS = ['ADMIN', 'MANAGER', 'SUPERVISOR', 'CASHIER']
 
 const TABLE_COLUMNS = [
   { key: 'no', label: 'NO', sortable: false },
@@ -377,7 +377,8 @@ export function User({ onExit }) {
       setSelectedId(null)
       setForm(DEFAULT_FORM)
     } catch (err) {
-      setError(err.message || 'Failed to save user')
+      setToastMessage(err.message || 'Gagal menyimpan user')
+      setShowToast(true)
     } finally {
       setIsSaving(false)
     }
@@ -493,6 +494,10 @@ export function User({ onExit }) {
                 value={form.username}
                 onChange={(e) => setForm({ ...form, username: e.target.value })}
                 className="master-form-input"
+                autoComplete="off"
+                name="user-management-username"
+                data-lpignore="true"
+                data-1p-ignore="true"
               />
             </div>
             <div className="master-form-group">
@@ -544,6 +549,10 @@ export function User({ onExit }) {
                     onChange={(e) => setForm({ ...form, password: e.target.value })}
                     className="master-form-input"
                     placeholder={selectedItem ? 'Masukkan password baru' : 'Masukkan password'}
+                    autoComplete="new-password"
+                    name="user-management-password"
+                    data-lpignore="true"
+                    data-1p-ignore="true"
                   />
                 </div>
                 <div className="master-form-group">
@@ -554,6 +563,10 @@ export function User({ onExit }) {
                     onChange={(e) => setForm({ ...form, confirm_password: e.target.value })}
                     className="master-form-input"
                     placeholder={selectedItem ? 'Ulangi password baru' : 'Ulangi password'}
+                    autoComplete="new-password"
+                    name="user-management-confirm-password"
+                    data-lpignore="true"
+                    data-1p-ignore="true"
                   />
                 </div>
                  <div className="master-form-group"></div><div className="master-form-group"></div><div className="master-form-group"></div>
@@ -645,7 +658,12 @@ export function User({ onExit }) {
         />
       )}
 
-      {showToast && <Toast message={toastMessage} type="error" onClose={() => setShowToast(false)} />}
+      <Toast
+        message={toastMessage}
+        type="error"
+        isOpen={showToast}
+        onClose={() => setShowToast(false)}
+      />
     </div>
   )
 }
