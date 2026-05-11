@@ -1,4 +1,4 @@
-export function matchesItemFilter(filter, companyConfig) {
+export function matchesItemFilter(filter, companyConfig, userRole) {
   if (!filter) return true
   if (!companyConfig?.businessType) return true
   if (!Array.isArray(companyConfig?.modules) || companyConfig.modules.length === 0) return true
@@ -13,7 +13,12 @@ export function matchesItemFilter(filter, companyConfig) {
     filter.moduleCodes.length === 0 ||
     filter.moduleCodes.some((code) => companyConfig.modules.includes(code))
 
-  return businessTypeMatch && moduleCodeMatch
+  const roleMatch =
+    !Array.isArray(filter.roles) ||
+    filter.roles.length === 0 ||
+    filter.roles.includes(userRole)
+
+  return businessTypeMatch && moduleCodeMatch && roleMatch
 }
 
 function normalizeDividers(items) {
@@ -25,7 +30,7 @@ function normalizeDividers(items) {
   })
 }
 
-export function getVisibleToolbarItems(items, companyConfig) {
+export function getVisibleToolbarItems(items, companyConfig, userRole) {
   const visible = []
 
   for (const item of items) {
@@ -35,14 +40,14 @@ export function getVisibleToolbarItems(items, companyConfig) {
     }
 
     if (item.isPopup) {
-      const subItems = (item.subItems || []).filter((subItem) => matchesItemFilter(subItem.filter, companyConfig))
+      const subItems = (item.subItems || []).filter((subItem) => matchesItemFilter(subItem.filter, companyConfig, userRole))
       if (subItems.length > 0) {
         visible.push({ ...item, subItems })
       }
       continue
     }
 
-    if (matchesItemFilter(item.filter, companyConfig)) {
+    if (matchesItemFilter(item.filter, companyConfig, userRole)) {
       visible.push(item)
     }
   }
@@ -50,16 +55,16 @@ export function getVisibleToolbarItems(items, companyConfig) {
   return normalizeDividers(visible)
 }
 
-export function canAccessTool(toolbarMap, toolKey, companyConfig) {
+export function canAccessTool(toolbarMap, toolKey, companyConfig, userRole) {
   for (const items of Object.values(toolbarMap)) {
     for (const item of items) {
       if (item.divider) continue
       if (item.isPopup) {
         const matchedSubItem = (item.subItems || []).find((subItem) => subItem.key === toolKey)
-        if (matchedSubItem) return matchesItemFilter(matchedSubItem.filter, companyConfig)
+        if (matchedSubItem) return matchesItemFilter(matchedSubItem.filter, companyConfig, userRole)
         continue
       }
-      if (item.key === toolKey) return matchesItemFilter(item.filter, companyConfig)
+      if (item.key === toolKey) return matchesItemFilter(item.filter, companyConfig, userRole)
     }
   }
 

@@ -16,6 +16,7 @@ import { useModule } from './shared/useModule'
 import { defaultMenu } from './data'
 import { toolbarItems } from './data/toolbarItems'
 import { login } from './features/auth/login.api'
+import { apiFetch } from './shared/http'
 import { applyTitlebarColors, applyWallpaper } from './utils/colorHelper'
 import { resolveShortcutTool } from './utils/shortcutHelper'
 import { canAccessTool } from './shared/moduleAccess'
@@ -38,6 +39,7 @@ function AppContent() {
   const [isToolbarVisible, setIsToolbarVisible] = useState(true)
   const [userId, setUserId] = useState(() => loadLastUsername())
   const [isLoading, setIsLoading] = useState(false)
+  const [isInitializing, setIsInitializing] = useState(true)
   const [toast, setToast] = useState({ isOpen: false, message: '', type: 'error' })
   const [shortcutPopupKey, setShortcutPopupKey] = useState(null)
 
@@ -49,7 +51,7 @@ function AppContent() {
       return
     }
 
-    if (!canAccessTool(toolbarItems, toolKey, companyConfig)) {
+    if (!canAccessTool(toolbarItems, toolKey, companyConfig, auth.role)) {
       window.alert(`${label} tidak aktif untuk company ini`)
       return
     }
@@ -63,22 +65,44 @@ function AppContent() {
   }, [companyConfig])
 
   useEffect(() => {
-    if (auth.token) {
-      if (auth.role === 'cashier') {
-        setView('pos')
-      } else {
-        setView('dashboard')
-        setActiveMenu(defaultMenu)
+    let mounted = true
+
+    if (!auth.token) {
+      if (mounted) {
+        setView('login')
+        setActiveTool(null)
+        setToolContext(null)
         setIsToolbarVisible(true)
+        setIsInitializing(false)
       }
       return
     }
 
-    setView('login')
-    setActiveTool(null)
-    setToolContext(null)
-    setIsToolbarVisible(true)
-  }, [auth.token, auth.role])
+    apiFetch('/api/auth/me', { token: auth.token })
+      .then(() => {
+        if (!mounted) return
+        if (auth.role === 'cashier') {
+          setView('pos')
+        } else {
+          setView('dashboard')
+          setActiveMenu(defaultMenu)
+          setIsToolbarVisible(true)
+        }
+      })
+      .catch(() => {
+        if (!mounted) return
+        clearAuth()
+        setView('login')
+        setActiveTool(null)
+        setToolContext(null)
+        setIsToolbarVisible(true)
+      })
+      .finally(() => {
+        if (mounted) setIsInitializing(false)
+      })
+
+    return () => { mounted = false }
+  }, [])
 
   useEffect(() => {
     const savedWallpaper = localStorage.getItem('theme-wallpaper') || import.meta.env.VITE_DEFAULT_WALLPAPER
@@ -263,6 +287,14 @@ const handleLogin = async (password) => {
     setView('dashboard')
     setToolContext(null)
   }, [auth.role, handleLogout, toolContext])
+
+  if (isInitializing) {
+    return (
+      <div className="app-loading">
+        <div className="app-loading-spinner" />
+      </div>
+    )
+  }
 
   if (view === 'dashboard') {
     const dashboardWindowClassName = !isToolbarVisible

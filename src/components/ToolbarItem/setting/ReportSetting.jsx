@@ -37,7 +37,7 @@ const SAMPLE_DATA = [
   { no: '3', kode: 'WH003', nama: 'Gudang B', tipe: 'STORAGE', kota: 'Surabaya', status: 'Non-Aktif' },
 ]
 
-export function ReportSetting() {
+export function ReportSetting({ onExit }) {
   const { auth } = useAuth()
   const token = auth?.token
 
@@ -402,18 +402,18 @@ export function ReportSetting() {
       </div>
 
       <div className="master-footer">
-            <div className="master-footer-actions">
-        <button type="button" className="master-btn-save-primary" onClick={handleSave} disabled={isSaving}>
-          <span className="material-icons-round">save</span>
-          SIMPAN
-        </button>
-        <button type="button" className="master-btn-cancel-secondary" onClick={handleReset}>
-         Reset Default
-        </button>
-     </div><div>
-           </div>
-
-        
+        <div className="master-footer-actions">
+          <button type="button" className="master-btn-save-primary" onClick={handleSave} disabled={isSaving}>
+            <span className="material-icons-round">save</span>
+            SIMPAN
+          </button>
+          <button type="button" className="master-btn-cancel-secondary" onClick={handleReset}>
+            Reset Default
+          </button>
+          <button type="button" className="master-footer-btn" onClick={onExit}>
+            <span className="material-icons-round master-footer-icon red">exit_to_app</span>
+          </button>
+        </div>
       </div>
     </div>
   )

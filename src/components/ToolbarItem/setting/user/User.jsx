@@ -21,7 +21,7 @@ const DEFAULT_FORM = {
   is_active: true,
 }
 
-const ROLE_OPTIONS = ['ADMIN', 'MANAGER', 'SUPERVISOR', 'CASHIER']
+const ROLE_OPTIONS = ['SUPERUSER', 'ADMIN', 'MANAGER', 'SUPERVISOR', 'CASHIER']
 
 const TABLE_COLUMNS = [
   { key: 'no', label: 'NO', sortable: false },
@@ -130,6 +130,7 @@ export function User({ onExit }) {
       if (!token) {
         const keyword = searchKeyword.trim().toLowerCase()
         const filtered = DUMMY_USERS.filter((item) => {
+          if (String(item.role || '').toUpperCase() === 'SUPERUSER') return false
           const active = isActiveUser(item)
           if (isActiveFilter === 'active' && !active) return false
           if (isActiveFilter === 'inactive' && active) return false

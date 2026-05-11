@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import { jwtDecode } from 'jwt-decode'
 
 export const UserRole = {
+  SUPERUSER: 'superuser',
   ADMIN: 'admin',
   MANAGER: 'manager',
   CASHIER: 'cashier',
@@ -14,7 +15,7 @@ export const AUTH_EXPIRED_EVENT = 'pos-retail:auth-expired'
 const AuthContext = createContext(null)
 
 function isUserRole(value) {
-  return value === 'admin' || value === 'manager' || value === 'cashier' || value === 'staff'
+  return value === 'superuser' || value === 'admin' || value === 'manager' || value === 'cashier' || value === 'staff'
 }
 
 export function extractRoleFromToken(token) {
