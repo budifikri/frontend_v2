@@ -1,7 +1,7 @@
 .theme-settings {
-  padding: 24px;
+  padding: 24px 24px 0;
   background-color: #f1f5f9;
-  height: 100%;
+  flex: 1;
   color: #1e293b;
   display: flex;
   flex-direction: column;

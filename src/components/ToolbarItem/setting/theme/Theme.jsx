@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import './Theme.css'
 import { applyTitlebarColors, applyWallpaper } from '../../../../utils/colorHelper'
-import { isDebugEnabled } from '../../../../utils/debugLogger'
 import { DebugLogViewer } from '../../../Settings/DebugLogViewer'
 
 const COLORS = [
@@ -27,7 +26,6 @@ export function Theme({ onExit }) {
   const [savedTitleColor, setSavedTitleColor] = useState(titleColor)
   const [showBrowse, setShowBrowse] = useState(false)
   const [showDebugLog, setShowDebugLog] = useState(false)
-  const debugEnabled = isDebugEnabled()
 
   const getWallpaperHistory = () => {
     const history = localStorage.getItem('wallpaper-history')
@@ -93,6 +91,7 @@ export function Theme({ onExit }) {
   }
 
   return (
+    <>
     <div className="theme-settings">
       <div className="theme-grid">
         {/* Left Column */}
@@ -209,16 +208,6 @@ export function Theme({ onExit }) {
           </div>
         </div>
       </div>
-      <div className="theme-footer">
-        {debugEnabled && (
-          <button className="theme-btn-debug" onClick={() => setShowDebugLog(true)}>
-            <span className="material-icons">bug_report</span>
-            View Debug Log
-          </button>
-        )}
-        <button className="theme-btn-cancel" onClick={handleCancel}>Cancel</button>
-        <button className="theme-btn-save" onClick={handleSave}>Save</button>
-      </div>
 
       {/* Browse Popup */}
       {showBrowse && (
@@ -256,5 +245,18 @@ export function Theme({ onExit }) {
       {/* Debug Log Viewer */}
       {showDebugLog && <DebugLogViewer onClose={() => setShowDebugLog(false)} />}
     </div>
+
+    <div className="master-footer">
+      <div className="master-footer-actions">
+        <button type="button" className="master-btn-save-primary" onClick={handleSave}>
+          <span className="material-icons-round">save</span>
+          SIMPAN
+        </button>
+        <button type="button" className="master-footer-btn" onClick={handleCancel}>
+          <span className="material-icons-round master-footer-icon red">exit_to_app</span>
+        </button>
+      </div>
+    </div>
+    </>
   )
 }
