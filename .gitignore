@@ -47,4 +47,14 @@ coverage/
 .env
 .playwright-mcp
 bash*
-
+*.txt
+tests
+/compile.bat
+/npm
+/kembali-click-result.json
+/localstorage-login.json
+/network_requests.json
+/login-page.png
+/pos-bg-check.png
+/pos-bg-check2.png
+/appointment-form-after-fix.png
