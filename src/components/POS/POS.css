@@ -2919,3 +2919,40 @@
   color: #b45309;
   font-style: italic;
 }
+
+/* Master Error State */
+.master-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 16px;
+  margin: 8px 0;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 6px;
+  color: #991b1b;
+  font-size: 14px;
+}
+
+.master-error-retry {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 12px;
+  background: #dc2626;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.master-error-retry:hover {
+  background: #b91c1c;
+}
+
+.master-error-retry .material-icons-round {
+  font-size: 16px;
+}

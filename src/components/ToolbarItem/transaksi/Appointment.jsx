@@ -452,7 +452,7 @@ export function Appointment({ onExit, onOpenTool, toolContext = null }) {
         has_more: Boolean(nextPagination.has_more),
       })
     } catch (err) {
-      setError(err.message || 'Failed to load appointments')
+      setError(err.message || 'Gagal memuat appointment')
       setData([])
       setPagination({ total: 0, has_more: false })
     } finally {
@@ -1679,7 +1679,22 @@ export function Appointment({ onExit, onOpenTool, toolContext = null }) {
         </div>
       </div>
 
-      {error && <div className="master-error">{error}</div>}
+      {error && (
+        <div className="master-error">
+          <span>{error}</span>
+          <button
+            type="button"
+            className="master-error-retry"
+            onClick={() => {
+              setError('')
+              fetchData()
+            }}
+          >
+            <span className="material-icons-round">refresh</span>
+            Coba Lagi
+          </button>
+        </div>
+      )}
 
       {viewMode === 'calendar' ? (
         <div className="appointment-calendar-layout">
@@ -1775,6 +1790,8 @@ export function Appointment({ onExit, onOpenTool, toolContext = null }) {
             <div className="appointment-calendar-detail-body">
               {isCalendarLoading ? (
                 <div className="appointment-calendar-empty-state">Loading appointment...</div>
+              ) : error ? (
+                <div className="appointment-calendar-empty-state">Gagal memuat data, klik tombol "Coba Lagi" di atas</div>
               ) : selectedCalendarItems.length === 0 ? (
                 <div className="appointment-calendar-empty-state">Belum ada appointment pada tanggal ini.</div>
               ) : (
@@ -1909,9 +1926,16 @@ export function Appointment({ onExit, onOpenTool, toolContext = null }) {
                     </td>
                   </tr>
                 ))}
-                {!isLoading && sortedData.length === 0 && (
+                {!isLoading && !error && sortedData.length === 0 && (
                   <tr>
                     <td colSpan={8} className="text-center">No data</td>
+                  </tr>
+                )}
+                {!isLoading && error && sortedData.length === 0 && (
+                  <tr>
+                    <td colSpan={8} className="text-center">
+                      <span className="text-muted">Gagal memuat data, klik tombol "Coba Lagi" di atas</span>
+                    </td>
                   </tr>
                 )}
               </tbody>
