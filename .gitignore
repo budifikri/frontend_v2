@@ -32,6 +32,7 @@ coverage/
 *.sln
 *.sw?
 *.md
+!AGENTS.md
 *.go
 
 
